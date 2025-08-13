@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMVCMPC - IT Head Dashboard</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navigation">
+        <div class="nav-header">
+            <div class="nav-logo">
+                <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                <span>IMVCMPC</span>
+            </div>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item active" onclick="showScreen('dashboard')">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item" onclick="showScreen('user-management')">
+                <i class="fas fa-users"></i>
+                <span>User Management</span>
+            </li>
+            <li class="nav-item" onclick="showScreen('system-config')">
+                <i class="fas fa-cogs"></i>
+                <span>System Config</span>
+            </li>
+            <li class="nav-item" onclick="showScreen('security')">
+                <i class="fas fa-shield-alt"></i>
+                <span>Security</span>
+            </li>
+            <li class="nav-item" onclick="showScreen('logs')">
+                <i class="fas fa-list-alt"></i>
+                <span>System Logs</span>
+            </li>
+            <li class="nav-item" onclick="showScreen('backup')">
+                <i class="fas fa-database"></i>
+                <span>Backup & Restore</span>
+            </li>
+            <li class="nav-item" onclick="showScreen('account')">
+                <i class="fas fa-user-cog"></i>
+                <span>Account</span>
+            </li>
+        </ul>
+        
+        <div class="nav-footer">
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="breadcrumb">
+                <span id="currentScreen">Dashboard</span>
+            </div>
+            
+            <div class="datetime-display">
+                <div class="date-display" id="currentDate"></div>
+                <div class="time-display" id="currentTime"></div>
+            </div>
+            
+            <div class="user-profile">
+                <div class="user-info">
+                    <div class="user-name" id="userName">IT Head</div>
+                    <div class="user-role" id="userRole">IT Head</div>
+                </div>
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Container -->
+        <div class="content-container">
+            <!-- Dashboard Screen -->
+            <div id="dashboard" class="screen active">
+                <div class="welcome-content">
+                    <h1>Welcome to IT Head Dashboard</h1>
+                    <p>System administration, user management, and security oversight for the IMVCMPC Financial Management System.</p>
+                </div>
+                
+                <div class="quick-links">
+                    <div class="quick-link" onclick="showScreen('user-management')">
+                        <i class="fas fa-users"></i>
+                        <span>User Management</span>
+                    </div>
+                    <div class="quick-link" onclick="showScreen('system-config')">
+                        <i class="fas fa-cogs"></i>
+                        <span>System Configuration</span>
+                    </div>
+                    <div class="quick-link" onclick="showScreen('security')">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Security Settings</span>
+                    </div>
+                    <div class="quick-link" onclick="showScreen('logs')">
+                        <i class="fas fa-list-alt"></i>
+                        <span>System Logs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management Screen -->
+            <div id="user-management" class="screen">
+                <h2>User Management</h2>
+                <p>Create, edit, and manage user accounts across all roles and branches.</p>
+            </div>
+
+            <!-- System Configuration Screen -->
+            <div id="system-config" class="screen">
+                <h2>System Configuration</h2>
+                <p>Configure system settings, parameters, and global preferences.</p>
+            </div>
+
+            <!-- Security Screen -->
+            <div id="security" class="screen">
+                <h2>Security Management</h2>
+                <p>Monitor security events, manage access controls, and audit system activities.</p>
+            </div>
+
+            <!-- System Logs Screen -->
+            <div id="logs" class="screen">
+                <h2>System Logs</h2>
+                <p>View and analyze system logs, audit trails, and activity records.</p>
+            </div>
+
+            <!-- Backup & Restore Screen -->
+            <div id="backup" class="screen">
+                <h2>Backup & Restore</h2>
+                <p>Manage system backups, data recovery, and disaster prevention.</p>
+            </div>
+
+            <!-- Account Screen -->
+            <div id="account" class="screen">
+                <h2>Account Settings</h2>
+                <p>Manage your account preferences and security settings.</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/main.js"></script>
+</body>
+</html>
