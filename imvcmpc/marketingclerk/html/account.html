@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMVCMPC - Account</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/account.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Dashboard -->
+    <div id="mainScreen" class="screen active">
+        <!-- Navigation -->
+        <nav class="navigation">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <span>IMVCMPC</span>
+                </div>
+            </div>
+
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="memberdata.html" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Member Data</span>
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="reports.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="notifications.html" class="nav-item">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </div>
+
+            <div class="nav-account">
+                <a href="account.html" class="nav-item active">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Account</span>
+                </a>
+            </div>
+
+            <div class="nav-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="breadcrumb">
+                    <div class="datetime-display">
+                        <div class="date-display" id="currentDate"></div>
+                        <div class="time-display" id="currentTime"></div>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name">Marketing Clerk</span>
+                        <span class="user-role">IMVCMPC - Main Branch</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Content -->
+            <div class="account-content">
+                <div class="account-header">
+                    <h1>Account Settings</h1>
+                    <p>Manage your profile, security settings, and account preferences.</p>
+                </div>
+
+                <div class="account-grid">
+                    <!-- Profile Section -->
+                    <div class="account-section profile-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-user"></i> Profile Information</h2>
+                            <button class="edit-btn" id="editProfileBtn">
+                                <i class="fas fa-edit"></i>
+                                <span>Edit</span>
+                            </button>
+                        </div>
+                        
+                        <div class="profile-content">
+                            <div class="profile-avatar">
+                                <div class="avatar-container">
+                                    <i class="fas fa-user-circle"></i>
+                                    <button class="change-avatar-btn" id="changeAvatarBtn">
+                                        <i class="fas fa-camera"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="profile-details">
+                                <div class="profile-field">
+                                    <label>Full Name</label>
+                                    <input type="text" id="fullName" value="Marketing Clerk" readonly>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Email</label>
+                                    <input type="email" id="email" value="clerk@imvcmc.com" readonly>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Phone</label>
+                                    <input type="tel" id="phone" value="+63 912 345 6789" readonly>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Position</label>
+                                    <input type="text" id="position" value="Marketing Clerk" readonly>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Branch</label>
+                                    <input type="text" id="branch" value="Main Branch - IBAAN" readonly>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Employee ID</label>
+                                    <input type="text" id="employeeId" value="MC-001" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Section -->
+                    <div class="account-section security-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-shield-alt"></i> Security Settings</h2>
+                        </div>
+                        
+                        <div class="security-content">
+                            <div class="security-item">
+                                <div class="security-info">
+                                    <h3>Password</h3>
+                                    <p>Last changed: 3 months ago</p>
+                                </div>
+                                <button class="security-btn" id="changePasswordBtn">
+                                    <i class="fas fa-key"></i>
+                                    <span>Change</span>
+                                </button>
+                            </div>
+                            
+                            <div class="security-item">
+                                <div class="security-info">
+                                    <h3>Two-Factor Authentication</h3>
+                                    <p>Add an extra layer of security</p>
+                                </div>
+                                <button class="security-btn toggle-btn" id="toggle2FABtn">
+                                    <i class="fas fa-toggle-off"></i>
+                                    <span>Enable</span>
+                                </button>
+                            </div>
+                            
+                            <div class="security-item">
+                                <div class="security-info">
+                                    <h3>Login Sessions</h3>
+                                    <p>Manage active sessions</p>
+                                </div>
+                                <button class="security-btn" id="manageSessionsBtn">
+                                    <i class="fas fa-desktop"></i>
+                                    <span>Manage</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preferences Section -->
+                    <div class="account-section preferences-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-cog"></i> Preferences</h2>
+                        </div>
+                        
+                        <div class="preferences-content">
+                            <div class="preference-item">
+                                <div class="preference-info">
+                                    <h3>Language</h3>
+                                    <p>Choose your preferred language</p>
+                                </div>
+                                <select class="preference-select" id="languageSelect">
+                                    <option value="en">English</option>
+                                    <option value="tl">Tagalog</option>
+                                    <option value="ceb">Cebuano</option>
+                                </select>
+                            </div>
+                            
+                            <div class="preference-item">
+                                <div class="preference-info">
+                                    <h3>Theme</h3>
+                                    <p>Choose your preferred theme</p>
+                                </div>
+                                <select class="preference-select" id="themeSelect">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="auto">Auto</option>
+                                </select>
+                            </div>
+                            
+                            <div class="preference-item">
+                                <div class="preference-info">
+                                    <h3>Notifications</h3>
+                                    <p>Manage notification preferences</p>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="emailNotifications" checked>
+                                    <label for="emailNotifications">Email</label>
+                                </div>
+                            </div>
+                            
+                            <div class="preference-item">
+                                <div class="preference-info">
+                                    <h3>Auto-logout</h3>
+                                    <p>Automatically logout after inactivity</p>
+                                </div>
+                                <select class="preference-select" id="autoLogoutSelect">
+                                    <option value="15">15 minutes</option>
+                                    <option value="30" selected>30 minutes</option>
+                                    <option value="60">1 hour</option>
+                                    <option value="0">Never</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Section -->
+                    <div class="account-section activity-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                            <button class="view-all-btn" id="viewAllActivityBtn">
+                                <span>View All</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="activity-content">
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <h4>Login</h4>
+                                    <p>Successfully logged in from Main Branch</p>
+                                    <span class="activity-time">2 hours ago</span>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <h4>Profile Update</h4>
+                                    <p>Updated phone number</p>
+                                    <span class="activity-time">1 day ago</span>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <h4>Password Change</h4>
+                                    <p>Password changed successfully</p>
+                                    <span class="activity-time">3 months ago</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <h4>Session Info</h4>
+                                    <p>Click to view current session details</p>
+                                    <button class="session-info-btn" onclick="displaySessionInfo()">
+                                        <i class="fas fa-info-circle"></i>
+                                        View Session
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="account-actions">
+                    <button class="save-btn" id="saveChangesBtn">
+                        <i class="fas fa-save"></i>
+                        <span>Save Changes</span>
+                    </button>
+                    <button class="cancel-btn" id="cancelChangesBtn">
+                        <i class="fas fa-times"></i>
+                        <span>Cancel</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/account.js"></script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMVCMPC - Notifications</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/notifications.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Dashboard -->
+    <div id="mainScreen" class="screen active">
+        <!-- Navigation -->
+        <nav class="navigation">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <span>IMVCMPC</span>
+                </div>
+            </div>
+
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="memberdata.html" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Member Data</span>
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="reports.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="notifications.html" class="nav-item active">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </div>
+
+            <div class="nav-account">
+                                        <a href="account.html" class="nav-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>Account</span>
+                        </a>
+            </div>
+
+            <div class="nav-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="breadcrumb">
+                    <div class="datetime-display">
+                        <div class="date-display" id="currentDate"></div>
+                        <div class="time-display" id="currentTime"></div>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name">Marketing Clerk</span>
+                        <span class="user-role">IMVCMPC - Main Branch</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Content -->
+            <div class="notifications-content">
+                <div class="notifications-header">
+                    <h1>Notifications</h1>
+                    <p>Stay updated with important alerts, reminders, and system notifications.</p>
+                </div>
+
+                <div class="notifications-controls">
+                    <div class="filter-controls">
+                        <button class="filter-btn active" data-filter="all">
+                            <i class="fas fa-list"></i>
+                            <span>All</span>
+                        </button>
+                        <button class="filter-btn" data-filter="unread">
+                            <i class="fas fa-envelope"></i>
+                            <span>Unread</span>
+                            <span class="badge" id="unreadCount">3</span>
+                        </button>
+                        <button class="filter-btn" data-filter="important">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Important</span>
+                        </button>
+                        <button class="filter-btn" data-filter="system">
+                            <i class="fas fa-cog"></i>
+                            <span>System</span>
+                        </button>
+                    </div>
+
+                    <div class="action-controls">
+                        <button class="mark-all-read-btn" onclick="markAllAsRead()">
+                            <i class="fas fa-check-double"></i>
+                            <span>Mark All as Read</span>
+                        </button>
+                        <button class="clear-all-btn" onclick="clearAllNotifications()">
+                            <i class="fas fa-trash"></i>
+                            <span>Clear All</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="notifications-list" id="notificationsList">
+                    <!-- Notifications will be populated by JavaScript -->
+                </div>
+
+                <div class="notifications-empty" id="notificationsEmpty" style="display: none;">
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash"></i>
+                        <h3>No Notifications</h3>
+                        <p>You're all caught up! No new notifications at the moment.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/notifications.js"></script>
+</body>
+</html>

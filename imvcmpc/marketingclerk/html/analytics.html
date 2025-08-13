@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMVCMPC - Analytics</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/analytics.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Dashboard -->
+    <div id="mainScreen" class="screen active">
+        <!-- Navigation -->
+        <nav class="navigation">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <span>IMVCMPC</span>
+                </div>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="memberdata.html" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Member Data</span>
+                </a>
+                <a href="analytics.html" class="nav-item active">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                                            <a href="reports.html" class="nav-item">
+                                <i class="fas fa-file-alt"></i>
+                                <span>Reports</span>
+                            </a>
+                            <a href="notifications.html" class="nav-item">
+                                <i class="fas fa-bell"></i>
+                                <span>Notifications</span>
+                            </a>
+            </div>
+            
+            <div class="nav-account">
+                                        <a href="account.html" class="nav-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>Account</span>
+                        </a>
+            </div>
+            
+            <div class="nav-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="breadcrumb">
+                    <div class="datetime-display">
+                        <div class="date-display" id="currentDate"></div>
+                        <div class="time-display" id="currentTime"></div>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name">Marketing Clerk</span>
+                        <span class="user-role">IMVCMPC - Main Branch</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Content -->
+            <div class="analytics-content">
+                <div class="analytics-header">
+                    <h1>Analytics</h1>
+                    <div class="analytics-filters">
+                        <div class="filter-group">
+                            <label>Branch:</label>
+                            <select id="analyticsBranch">
+                                <option value="1">Branch 1</option>
+                                <option value="2">Branch 2</option>
+                                <option value="3">Branch 3</option>
+                                <option value="4">Branch 4</option>
+                                <option value="5">Branch 5</option>
+                                <option value="6">Branch 6</option>
+                                <option value="7">Branch 7</option>
+                                <option value="8">Branch 8</option>
+                                <option value="9">Branch 9</option>
+                                <option value="10">Branch 10</option>
+                                <option value="11">Branch 11</option>
+                                <option value="12">Branch 12</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Month:</label>
+                            <select id="analyticsMonth">
+                                <option value="JANUARY">JANUARY</option>
+                                <option value="FEBRUARY">FEBRUARY</option>
+                                <option value="MARCH">MARCH</option>
+                                <option value="APRIL">APRIL</option>
+                                <option value="MAY">MAY</option>
+                                <option value="JUNE">JUNE</option>
+                                <option value="JULY">JULY</option>
+                                <option value="AUGUST">AUGUST</option>
+                                <option value="SEPTEMBER">SEPTEMBER</option>
+                                <option value="OCTOBER">OCTOBER</option>
+                                <option value="NOVEMBER">NOVEMBER</option>
+                                <option value="DECEMBER">DECEMBER</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="ai-recommendation-card">
+                        <div class="ai-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="ai-content">
+                            <h3>AI Recommendation</h3>
+                            <p>Based on current trends, consider focusing on Branch 3 for increased savings this month.</p>
+                        </div>
+                    </div>
+
+                    <div class="branch-summary-card">
+                        <h3>Branch Summary</h3>
+                        <div class="summary-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Savings</span>
+                                <span class="stat-value">₱125,000</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Disbursement</span>
+                                <span class="stat-value">₱98,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="analytics-charts">
+                        <div class="chart-card">
+                            <h3>Monthly Trends</h3>
+                            <div class="chart-container">
+                                <canvas id="monthlyTrendsChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Branch Rankings</h3>
+                            <div class="chart-container">
+                                <canvas id="branchRankingsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/analytics.js"></script>
+</body>
+</html>

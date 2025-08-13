@@ -1,0 +1,221 @@
+/* Analytics Content */
+.analytics-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 100px 32px 32px; /* Added top padding to account for fixed top bar */
+}
+
+.analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 24px;
+}
+
+.analytics-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--dark-green);
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.analytics-filters {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-600);
+}
+
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--dark-green);
+    background: var(--white);
+    min-width: 120px;
+}
+
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--dark-green);
+    box-shadow: 0 0 0 2px rgba(11, 94, 28, 0.1);
+}
+
+/* Analytics Grid */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.ai-recommendation-card,
+.branch-summary-card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+.ai-recommendation-card {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.ai-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--dark-green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    flex-shrink: 0;
+}
+
+.ai-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-green);
+    margin-bottom: 8px;
+}
+
+.ai-content p {
+    font-size: 14px;
+    color: var(--gray-600);
+    line-height: 1.4;
+}
+
+.branch-summary-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--dark-green);
+    margin-bottom: 16px;
+}
+
+.summary-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: 8px;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--gray-600);
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-green);
+}
+
+/* Analytics Charts */
+.analytics-charts {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 24px;
+}
+
+.chart-card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+.chart-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--dark-green);
+    margin-bottom: 16px;
+}
+
+.chart-container {
+    height: 300px;
+    position: relative;
+}
+
+/* Chart Colors - Individual colors for each chart type */
+:root {
+    /* Monthly Trends Chart Colors */
+    --chart-trends-savings: rgba(11, 94, 28, 1);
+    --chart-trends-savings-bg: rgba(11, 94, 28, 0.1);
+    --chart-trends-disbursements: rgba(184, 213, 61, 1);
+    --chart-trends-disbursements-bg: rgba(184, 213, 61, 0.1);
+    
+    /* Branch Rankings Chart Colors */
+    --chart-rankings-bg: rgba(11, 94, 28, 0.8);
+    --chart-rankings-border: rgba(11, 94, 28, 1);
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .analytics-charts {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .analytics-content {
+        padding: 100px 16px 16px; /* Maintain top padding on mobile */
+    }
+    
+    .analytics-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .analytics-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-group select {
+        min-width: auto;
+    }
+    
+    .analytics-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .analytics-charts {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}

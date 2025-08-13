@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMVCMPC - Reports</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/reports.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Dashboard -->
+    <div id="mainScreen" class="screen active">
+        <!-- Navigation -->
+        <nav class="navigation">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <span>IMVCMPC</span>
+                </div>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="memberdata.html" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Member Data</span>
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                                            <a href="reports.html" class="nav-item active">
+                                <i class="fas fa-file-alt"></i>
+                                <span>Reports</span>
+                            </a>
+                            <a href="notifications.html" class="nav-item">
+                                <i class="fas fa-bell"></i>
+                                <span>Notifications</span>
+                            </a>
+            </div>
+            
+            <div class="nav-account">
+                                        <a href="account.html" class="nav-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>Account</span>
+                        </a>
+            </div>
+            
+            <div class="nav-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="breadcrumb">
+                    <div class="datetime-display">
+                        <div class="date-display" id="currentDate"></div>
+                        <div class="time-display" id="currentTime"></div>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name">Marketing Clerk</span>
+                        <span class="user-role">IMVCMPC - Main Branch</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Content -->
+            <div class="reports-content">
+                <div class="reports-header">
+                    <h1>Reports</h1>
+                    <p>Use the filters to search for specific members, select branches, and customize your report by date, month, or year.</p>
+                </div>
+
+                <div class="reports-toggle">
+                    <button class="toggle-btn active" data-type="member">
+                        <i class="fas fa-user"></i>
+                        <span>Member</span>
+                    </button>
+                    <button class="toggle-btn" data-type="branch">
+                        <i class="fas fa-store"></i>
+                        <span>Branch</span>
+                    </button>
+                </div>
+
+                <div class="reports-filters">
+                    <div id="memberFilters" class="filter-section active">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="memberSearchReport" placeholder="Search member...">
+                        </div>
+                    </div>
+                    <div id="branchFilters" class="filter-section">
+                        <div class="filter-row">
+                            <select id="reportBranch">
+                                <option value="">Select Branch</option>
+                                <option value="Branch 1">Branch 1 - IBAAN</option>
+                                <option value="Branch 2">Branch 2 - BAUAN</option>
+                                <option value="Branch 3">Branch 3 - SAN JOSE</option>
+                                <option value="Branch 4">Branch 4 - ROSARIO</option>
+                                <option value="Branch 5">Branch 5 - SAN JUAN</option>
+                                <option value="Branch 6">Branch 6 - PADRE GARCIA</option>
+                                <option value="Branch 7">Branch 7 - LIPA CITY</option>
+                                <option value="Branch 8">Branch 8 - BATANGAS CITY</option>
+                                <option value="Branch 9">Branch 9 - MABINI LIPA</option>
+                                <option value="Branch 10">Branch 10 - CALAMIAS</option>
+                                <option value="Branch 11">Branch 11 - LEMERY</option>
+                                <option value="Branch 12">Branch 12 - MATAAS NA KAHOY</option>
+                            </select>
+                            <select id="reportMonth">
+                                <option value="">Select Month</option>
+                                <option value="January">January</option>
+                                <option value="February">February</option>
+                                <option value="March">March</option>
+                                <option value="April">April</option>
+                                <option value="May">May</option>
+                                <option value="June">June</option>
+                                <option value="July">July</option>
+                                <option value="August">August</option>
+                                <option value="September">September</option>
+                                <option value="October">October</option>
+                                <option value="November">November</option>
+                                <option value="December">December</option>
+                            </select>
+                            <select id="reportYear">
+                                <option value="">Select Year</option>
+                                <option value="2025">2025</option>
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                                <option value="2022">2022</option>
+                                <option value="2021">2021</option>
+                                <option value="2020">2020</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="date-picker">
+                        <button class="date-btn" onclick="openDatePicker()">
+                            <i class="fas fa-calendar"></i>
+                            <span id="selectedDate">Select Date</span>
+                        </button>
+                    </div>
+
+                    <div class="type-toggle">
+                        <button class="type-btn active" data-type="savings">
+                            <i class="fas fa-piggy-bank"></i>
+                            <span>SAVINGS</span>
+                        </button>
+                        <button class="type-btn" data-type="disbursement">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>DISBURSEMENT</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="report-summary">
+                    <div class="summary-card">
+                        <h3 id="reportTitle">MEMBER REPORT</h3>
+                        <div class="summary-content" id="summaryContent">
+                            <!-- Summary content will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-actions">
+                    <button class="download-btn" onclick="downloadReport()">
+                        <i class="fas fa-download"></i>
+                        <span>DOWNLOAD REPORT AS PDF</span>
+                    </button>
+                    <button class="clear-btn" onclick="clearFilters()">
+                        <i class="fas fa-times"></i>
+                        <span>CLEAR</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/reports.js"></script>
+</body>
+</html>
