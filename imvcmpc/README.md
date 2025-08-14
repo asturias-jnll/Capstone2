@@ -1,6 +1,6 @@
 # IMVCMPC Financial Management System
 
-A comprehensive financial management system with multi-criteria decision analysis AI for cooperatives with multiple branches.
+A comprehensive financial management system with multi-criteria decision analysis AI for cooperatives with multiple branches
 
 ## 🏗️ **System Architecture**
 

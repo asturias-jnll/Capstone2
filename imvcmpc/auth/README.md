@@ -1,6 +1,6 @@
 # IMVCMPC Authentication System
 
-A robust, role-based authentication system for the IMVCMPC Financial Management System with multi-criteria decision analysis AI.
+A robust, role-based authentication system for the IMVCMPC Financial Management System with multi-criteria decision analysis AI
 
 ## 🚀 Features
 
