@@ -81,3 +81,8 @@ pids
 .env.test
 .env.production
 .env.local
+
+# README files
+README.md
+README
+*.md
