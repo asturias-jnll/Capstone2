@@ -1,8 +1,4 @@
 # Environment files - NEVER commit these!
-.env
-*.env
-env.example
-development.env
 
 # Dependencies
 node_modules/
