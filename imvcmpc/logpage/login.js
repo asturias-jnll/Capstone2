@@ -93,7 +93,7 @@ async function login() {
 function redirectBasedOnRole(role) {
     switch (role) {
         case 'marketing_clerk':
-            window.location.href = '../marketingclerk/html/main.html';
+            window.location.href = '../marketingclerk/html/dashboard.html';
             break;
         case 'finance_officer':
             window.location.href = '../financeofficer/html/main.html'; // Adjust path if needed
@@ -102,8 +102,8 @@ function redirectBasedOnRole(role) {
             window.location.href = '../ithead/html/main.html'; // Adjust path if needed
             break;
         default:
-            // Default to marketing clerk for now
-            window.location.href = '../marketingclerk/html/main.html';
+            // Default to marketing clerk dashboard
+            window.location.href = '../marketingclerk/html/dashboard.html';
             break;
     }
 }

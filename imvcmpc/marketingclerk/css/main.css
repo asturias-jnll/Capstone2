@@ -292,6 +292,74 @@ body {
     font-size: 20px;
 }
 
+/* Redirect Content */
+.redirect-content {
+    padding: 100px 40px 60px;
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.redirect-spinner {
+    margin-bottom: 32px;
+}
+
+.redirect-spinner i {
+    font-size: 64px;
+    color: var(--light-green);
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.redirect-content h2 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--dark-green);
+    margin-bottom: 16px;
+    line-height: 1.3;
+}
+
+.redirect-content p {
+    font-size: 18px;
+    color: var(--gray-600);
+    margin-bottom: 32px;
+    line-height: 1.5;
+}
+
+.redirect-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 32px;
+    background: linear-gradient(135deg, var(--dark-green) 0%, var(--green) 100%);
+    color: var(--white);
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
+}
+
+.redirect-btn:hover {
+    background: linear-gradient(135deg, var(--green) 0%, var(--light-green) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(11, 94, 28, 0.4);
+}
+
+.redirect-btn i {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+.redirect-btn:hover i {
+    transform: translateX(4px);
+}
+
 /* Mobile Responsive */
 @media (max-width: 1024px) {
     .navigation {

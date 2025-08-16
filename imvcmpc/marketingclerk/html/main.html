@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMVCMPC - Finance Management System</title>
+    <title>IMVCMPC - Redirecting...</title>
+    <!-- Force redirect to dashboard -->
+    <meta http-equiv="refresh" content="0;url=dashboard.html">
     <link rel="stylesheet" href="../css/main.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -15,7 +17,7 @@
         <nav class="navigation">
             <div class="nav-header">
                 <div class="nav-logo">
-                    <img src="../assets/logo.png" alt="IMVCMPC Logo">
+                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
                     <span>IMVCMPC</span>
                 </div>
             </div>
@@ -37,17 +39,17 @@
                     <i class="fas fa-file-alt"></i>
                     <span>Reports</span>
                 </a>
-                <a href="#" class="nav-item">
+                <a href="notifications.html" class="nav-item">
                     <i class="fas fa-bell"></i>
                     <span>Notifications</span>
                 </a>
             </div>
             
             <div class="nav-account">
-                                        <a href="account.html" class="nav-item">
-                            <i class="fas fa-user-circle"></i>
-                            <span>Account</span>
-                        </a>
+                <a href="account.html" class="nav-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Account</span>
+                </a>
             </div>
             
             <div class="nav-footer">
@@ -79,36 +81,39 @@
                 </div>
             </div>
 
-            <!-- Welcome Content -->
-            <div class="welcome-content">
-                <h1>Welcome to IMVCMPC Finance Management System</h1>
-                <p>Please select a section from the navigation menu to get started.</p>
-                <div class="quick-links">
-                    <a href="dashboard.html" class="quick-link">
-                        <i class="fas fa-home"></i>
-                        <span>Go to Dashboard</span>
-                    </a>
-                    <a href="memberdata.html" class="quick-link">
-                        <i class="fas fa-users"></i>
-                        <span>View Member Data</span>
-                    </a>
-                    <a href="analytics.html" class="quick-link">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>View Analytics</span>
-                    </a>
-                                                <a href="reports.html" class="quick-link">
-                                <i class="fas fa-file-alt"></i>
-                                <span>View Reports</span>
-                            </a>
-                            <a href="notifications.html" class="quick-link">
-                                <i class="fas fa-bell"></i>
-                                <span>Notifications</span>
-                            </a>
+            <!-- Redirect Message -->
+            <div class="redirect-content">
+                <div class="redirect-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
                 </div>
+                <h2>Redirecting to Dashboard...</h2>
+                <p>Please wait while we redirect you to your dashboard.</p>
+                <a href="dashboard.html" class="redirect-btn">
+                    <i class="fas fa-arrow-right"></i>
+                    <span>Go to Dashboard Now</span>
+                </a>
             </div>
         </main>
     </div>
 
     <script src="../js/main.js"></script>
+    <script>
+        // Force redirect to dashboard immediately
+        window.location.replace('dashboard.html');
+        
+        // Fallback redirect after 1 second if the above doesn't work
+        setTimeout(function() {
+            if (window.location.pathname.includes('main.html')) {
+                window.location.href = 'dashboard.html';
+            }
+        }, 1000);
+        
+        // Additional fallback after 3 seconds
+        setTimeout(function() {
+            if (window.location.pathname.includes('main.html')) {
+                window.location.replace('dashboard.html');
+            }
+        }, 3000);
+    </script>
 </body>
 </html>
