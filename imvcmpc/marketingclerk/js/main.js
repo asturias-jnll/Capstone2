@@ -263,6 +263,9 @@ function clearUserSession() {
     localStorage.removeItem('notifications');
     localStorage.removeItem('lastLoginTime');
     
+    // Reset session tracking for account status
+    localStorage.removeItem('sessionStartTime');
+    
     // Clear any session storage
     sessionStorage.clear();
     

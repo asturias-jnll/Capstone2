@@ -156,6 +156,12 @@
     flex: 1 !important;
 }
 
+/* Security Status Styling */
+#mainScreen .form-group .info-value {
+    color: #111827 !important;
+    font-weight: 500 !important;
+}
+
 /* Edit Input Fields */
 #mainScreen .form-group .edit-input {
     display: none !important;
