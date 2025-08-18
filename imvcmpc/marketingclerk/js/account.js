@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeAccount() {
     setupEventListeners();
     loadUserPreferences();
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
 }
 
 // Setup all event listeners
@@ -41,6 +43,26 @@ function setupEventListeners() {
     if (cancelChangesBtn) {
         cancelChangesBtn.addEventListener('click', cancelChanges);
     }
+    
+    // Add event listeners for role and branch changes
+    const userRoleSelect = document.getElementById('userRoleSelect');
+    const branchSelect = document.getElementById('branchSelect');
+    
+    if (userRoleSelect) {
+        userRoleSelect.addEventListener('change', () => {
+            const userRole = userRoleSelect.value;
+            const assignedBranch = branchSelect ? branchSelect.value : 'IBAAN Main Branch - All Branches Access';
+            updatePermissions(userRole, assignedBranch);
+        });
+    }
+    
+    if (branchSelect) {
+        branchSelect.addEventListener('change', () => {
+            const userRole = userRoleSelect ? userRoleSelect.value : 'Marketing Clerk';
+            const assignedBranch = branchSelect.value;
+            updatePermissions(userRole, assignedBranch);
+        });
+    }
 }
 
 // Toggle edit mode for different sections
@@ -53,24 +75,132 @@ function toggleEditMode(section) {
         saveSectionChanges(section);
         editBtn.innerHTML = '<i class="fas fa-edit"></i><span>Edit</span>';
         editBtn.classList.remove('editing');
-        showMessage(`${section.charAt(0).toUpperCase() + section.slice(1)} updated successfully!`, 'success');
+        
+        // Exit edit mode for form groups
+        if (section === 'personal') {
+            document.querySelectorAll('.personal-details .form-group').forEach(group => {
+                group.classList.remove('editing');
+            });
+        } else if (section === 'role') {
+            // Remove editing class from role form groups
+            document.querySelectorAll('.role-info .form-group').forEach(group => {
+                group.classList.remove('editing');
+            });
+        } else if (section === 'branch') {
+            // Remove editing class from branch form groups
+            document.querySelectorAll('.branch-info .form-group').forEach(group => {
+                group.classList.remove('editing');
+            });
+        }
+        
+        if (section === 'personal') {
+            showMessage('Personal Information updated successfully!', 'success');
+        } else if (section === 'role') {
+            showMessage('Role & Access updated successfully!', 'success');
+        } else if (section === 'branch') {
+            showMessage('Branch Details updated successfully!', 'success');
+        } else {
+            showMessage(`${section.charAt(0).toUpperCase() + section.slice(1)} updated successfully!`, 'success');
+        }
     } else {
         // Enter edit mode
         editBtn.innerHTML = '<i class="fas fa-save"></i><span>Save</span>';
         editBtn.classList.add('editing');
+        
+        // Enter edit mode for form groups
+        if (section === 'personal') {
+            document.querySelectorAll('.personal-details .form-group').forEach(group => {
+                group.classList.add('editing');
+            });
+        } else if (section === 'role') {
+            // Add editing class to role form groups
+            document.querySelectorAll('.role-info .form-group').forEach(group => {
+                group.classList.add('editing');
+            });
+        } else if (section === 'branch') {
+            // Add editing class to branch form groups
+            document.querySelectorAll('.branch-info .form-group').forEach(group => {
+                group.classList.add('editing');
+            });
+        }
     }
 }
 
 // Save changes for specific section
 function saveSectionChanges(section) {
-    const sectionData = {
-        section: section,
-        timestamp: new Date().toISOString()
-    };
-    
-    // Save to localStorage (in real app, this would be an API call)
-    localStorage.setItem(`${section}Data`, JSON.stringify(sectionData));
-    addActivityLog(`${section.charAt(0).toUpperCase() + section.slice(1)} Update`, `Updated ${section} information`);
+    if (section === 'personal') {
+        // Get values from input fields
+        const fullName = document.getElementById('fullNameInput').value;
+        const email = document.getElementById('emailInput').value;
+        const phone = document.getElementById('phoneInput').value;
+        const employeeId = document.getElementById('employeeIdInput').value;
+        
+        // Update display values
+        document.getElementById('fullName').textContent = fullName;
+        document.getElementById('emailAddress').textContent = email;
+        document.getElementById('phoneNumber').textContent = phone;
+        document.getElementById('employeeId').textContent = employeeId;
+        
+        // Save to localStorage
+        const personalData = {
+            fullName: fullName,
+            email: email,
+            phone: phone,
+            employeeId: employeeId,
+            timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('personalData', JSON.stringify(personalData));
+        
+        addActivityLog('Personal Info Update', 'Updated personal information');
+            } else if (section === 'role') {
+            // Get values from select fields
+            const userRole = document.getElementById('userRoleSelect').value;
+            const assignedBranch = document.getElementById('branchSelect').value;
+            
+            // Update display values
+            document.getElementById('userRole').textContent = userRole;
+            document.getElementById('assignedBranch').textContent = assignedBranch;
+            
+            // Update permissions automatically based on role and branch
+            updatePermissions(userRole, assignedBranch);
+            
+            // Save to localStorage
+            const roleData = {
+                userRole: userRole,
+                assignedBranch: assignedBranch,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('roleData', JSON.stringify(roleData));
+            
+            addActivityLog('Role & Access Update', 'Updated role and access information');
+        } else if (section === 'branch') {
+            // Get values from input fields
+            const branchContact = document.getElementById('branchContactInput').value;
+            const branchOperationDays = document.getElementById('branchOperationDaysSelect').value;
+            
+            // Update display values
+            document.getElementById('branchContact').textContent = branchContact;
+            document.getElementById('branchOperationDays').textContent = branchOperationDays;
+            
+            // Save to localStorage
+            const branchData = {
+                branchContact: branchContact,
+                branchOperationDays: branchOperationDays,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('branchData', JSON.stringify(branchData));
+            
+            addActivityLog('Branch Details Update', 'Updated branch information');
+        } else {
+        const sectionData = {
+            section: section,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Save to localStorage (in real app, this would be an API call)
+        localStorage.setItem(`${section}Data`, JSON.stringify(sectionData));
+        addActivityLog(`${section.charAt(0).toUpperCase() + section.slice(1)} Update`, `Updated ${section} information`);
+    }
 }
 
 // Handle avatar change
@@ -82,6 +212,20 @@ function handleAvatarChange() {
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const avatarIcon = document.querySelector('.avatar-container i');
+                avatarIcon.className = 'fas fa-user-circle';
+                avatarIcon.style.backgroundImage = `url(${e.target.result})`;
+                avatarIcon.style.backgroundSize = 'cover';
+                avatarIcon.style.backgroundPosition = 'center';
+                avatarIcon.style.borderRadius = '50%';
+                avatarIcon.style.width = '100%';
+                avatarIcon.style.height = '100%';
+            };
+            reader.readAsDataURL(file);
+            
             showMessage('Avatar updated successfully!', 'success');
             addActivityLog('Avatar Update', 'Changed profile picture');
         }
@@ -92,6 +236,22 @@ function handleAvatarChange() {
 
 // Save all changes
 function saveChanges() {
+    // Check if any section is in edit mode
+    const editingSections = document.querySelectorAll('.edit-btn.editing');
+    if (editingSections.length > 0) {
+        editingSections.forEach(btn => {
+            const section = btn.id.replace('edit', '').replace('Btn', '').toLowerCase();
+            saveSectionChanges(section);
+            btn.innerHTML = '<i class="fas fa-edit"></i><span>Edit</span>';
+            btn.classList.remove('editing');
+        });
+        
+        // Exit edit mode for all form groups
+        document.querySelectorAll('.form-group').forEach(group => {
+            group.classList.remove('editing');
+        });
+    }
+    
     showMessage('All changes saved successfully!', 'success');
     addActivityLog('Settings Save', 'Saved all account preferences');
 }
@@ -107,14 +267,108 @@ function cancelChanges() {
         }
     });
     
+    // Exit edit mode for all form groups
+    document.querySelectorAll('.form-group').forEach(group => {
+        group.classList.remove('editing');
+    });
+    
+    // Reset input values to original display values
+    document.getElementById('fullNameInput').value = document.getElementById('fullName').textContent;
+    document.getElementById('emailInput').value = document.getElementById('emailAddress').textContent;
+    document.getElementById('phoneInput').value = document.getElementById('phoneNumber').textContent;
+    
     showMessage('Changes cancelled', 'info');
 }
 
 // Load user preferences from localStorage
 function loadUserPreferences() {
-    // Load any saved preferences (placeholder for future functionality)
+    // Load saved personal data
+    const personalData = JSON.parse(localStorage.getItem('personalData') || '{}');
+    if (personalData.fullName) {
+        document.getElementById('fullName').textContent = personalData.fullName;
+        document.getElementById('fullNameInput').value = personalData.fullName;
+    }
+    if (personalData.email) {
+        document.getElementById('emailAddress').textContent = personalData.email;
+        document.getElementById('emailInput').value = personalData.email;
+    }
+    if (personalData.phone) {
+        document.getElementById('phoneNumber').textContent = personalData.phone;
+        document.getElementById('phoneInput').value = personalData.phone;
+    }
+    if (personalData.employeeId) {
+        document.getElementById('employeeId').textContent = personalData.employeeId;
+        document.getElementById('employeeIdInput').value = personalData.employeeId;
+    }
+    
+    // Load saved branch data
+    const branchData = JSON.parse(localStorage.getItem('branchData') || '{}');
+    if (branchData.branchContact) {
+        document.getElementById('branchContact').textContent = branchData.branchContact;
+        document.getElementById('branchContactInput').value = branchData.branchContact;
+    }
+    if (branchData.branchOperationDays) {
+        document.getElementById('branchOperationDays').textContent = branchData.branchOperationDays;
+        document.getElementById('branchOperationDaysSelect').value = branchData.branchOperationDays;
+    }
+    
+    // Set initial values for read-only branch fields
+    document.getElementById('branchNameInput').value = document.getElementById('branchName').textContent;
+    document.getElementById('branchLocationInput').value = document.getElementById('branchLocation').textContent;
+    
+    // Load any other saved preferences
     const preferences = JSON.parse(localStorage.getItem('userPreferences') || '{}');
     // Apply preferences if needed
+}
+
+// Update permissions automatically based on role and branch
+function updatePermissions(userRole, assignedBranch) {
+    const permissionTags = document.getElementById('permissionTags');
+    let permissions = [];
+    
+    if (userRole === 'Marketing Clerk') {
+        if (assignedBranch.includes('IBAAN Main Branch')) {
+            permissions = ['View All Branches', 'Manage Member Data', 'View Analytics', 'Generate Reports'];
+        } else {
+            permissions = ['View Own Branch', 'Manage Member Data', 'View Analytics', 'Generate Reports'];
+        }
+    } else if (userRole === 'Finance Officer') {
+        if (assignedBranch.includes('IBAAN Main Branch')) {
+            permissions = ['View All Branches', 'Validate Member Data', 'View Analytics', 'Generate Reports'];
+        } else {
+            permissions = ['View Own Branch', 'Validate Member Data', 'View Analytics', 'Generate Reports'];
+        }
+    } else if (userRole === 'IT Head') {
+        permissions = ['View All Branches', 'System Administration', 'User Management', 'View Analytics', 'Generate Reports'];
+    }
+    
+    // Update permission tags
+    permissionTags.innerHTML = permissions.map(permission => 
+        `<span class="permission-tag">${permission}</span>`
+    ).join('');
+}
+
+// Update date and time display
+function updateDateTime() {
+    const now = new Date();
+    
+    // Update date
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateDisplay = document.getElementById('currentDate');
+    if (dateDisplay) {
+        dateDisplay.textContent = now.toLocaleDateString('en-US', dateOptions);
+    }
+    
+    // Update time
+    const timeDisplay = document.getElementById('currentTime');
+    if (timeDisplay) {
+        timeDisplay.textContent = now.toLocaleTimeString('en-US', { 
+            hour12: true, 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        });
+    }
 }
 
 // Add activity to the log

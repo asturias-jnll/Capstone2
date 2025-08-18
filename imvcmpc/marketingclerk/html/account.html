@@ -111,19 +111,23 @@
                             <div class="personal-details">
                                 <div class="form-group">
                                     <label>Full Name</label>
-                                    <span class="info-value">Marketing Clerk</span>
+                                    <span class="info-value" id="fullName">Marketing Clerk</span>
+                                    <input type="text" class="edit-input" id="fullNameInput" value="Marketing Clerk" style="display: none;">
                                 </div>
                                 <div class="form-group">
                                     <label>Employee ID</label>
-                                    <span class="info-value">MC-001</span>
+                                    <span class="info-value" id="employeeId">MC-001</span>
+                                    <input type="text" class="edit-input disabled-input" id="employeeIdInput" value="MC-001" style="display: none;" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label>Email Address</label>
-                                    <span class="info-value">clerk@imvcmc.com</span>
+                                    <span class="info-value" id="emailAddress">clerk@imvcmc.com</span>
+                                    <input type="email" class="edit-input" id="emailInput" value="clerk@imvcmc.com" style="display: none;">
                                 </div>
                                 <div class="form-group">
                                     <label>Phone Number</label>
-                                    <span class="info-value">+63 912 345 6789</span>
+                                    <span class="info-value" id="phoneNumber">+63 912 345 6789</span>
+                                    <input type="tel" class="edit-input" id="phoneInput" value="+63 912 345 6789" style="display: none;">
                                 </div>
                             </div>
                         </div>
@@ -143,19 +147,38 @@
                             <div class="role-info">
                                 <div class="form-group">
                                     <label>User Role</label>
-                                    <span class="info-value">Marketing Clerk</span>
+                                    <span class="info-value" id="userRole">Marketing Clerk</span>
+                                    <select class="edit-input" id="userRoleSelect" style="display: none;">
+                                        <option value="Marketing Clerk">Marketing Clerk</option>
+                                        <option value="Finance Officer">Finance Officer</option>
+                                        <option value="IT Head">IT Head</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label>Assigned Branch</label>
-                                    <span class="info-value">Main Branch - All Branches Access</span>
+                                    <span class="info-value" id="assignedBranch">IBAAN Main Branch - All Branches Access</span>
+                                    <select class="edit-input" id="branchSelect" style="display: none;">
+                                        <option value="IBAAN Main Branch - All Branches Access">IBAAN Main Branch - All Branches Access</option>
+                                        <option value="BAUAN Branch - Own Branch Access">BAUAN Branch - Own Branch Access</option>
+                                        <option value="SAN JOSE Branch - Own Branch Access">SAN JOSE Branch - Own Branch Access</option>
+                                        <option value="ROSARIO Branch - Own Branch Access">ROSARIO Branch - Own Branch Access</option>
+                                        <option value="SAN JUAN Branch - Own Branch Access">SAN JUAN Branch - Own Branch Access</option>
+                                        <option value="PADRE GARCIA Branch - Own Branch Access">PADRE GARCIA Branch - Own Branch Access</option>
+                                        <option value="LIPA CITY Branch - Own Branch Access">LIPA CITY Branch - Own Branch Access</option>
+                                        <option value="BATANGAS CITY Branch - Own Branch Access">BATANGAS CITY Branch - Own Branch Access</option>
+                                        <option value="MABINI LIPA Branch - Own Branch Access">MABINI LIPA Branch - Own Branch Access</option>
+                                        <option value="CALAMIAS Branch - Own Branch Access">CALAMIAS Branch - Own Branch Access</option>
+                                        <option value="LEMERY Branch - Own Branch Access">LEMERY Branch - Own Branch Access</option>
+                                        <option value="MATAAS NA KAHOY Branch - Own Branch Access">MATAAS NA KAHOY Branch - Own Branch Access</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label>Permissions</label>
-                                    <div class="permission-tags">
+                                    <div class="permission-tags" id="permissionTags">
                                         <span class="permission-tag">View All Branches</span>
                                         <span class="permission-tag">Manage Member Data</span>
-                                        <span class="permission-tag">Generate Reports</span>
                                         <span class="permission-tag">View Analytics</span>
+                                        <span class="permission-tag">Generate Reports</span>
                                     </div>
                                 </div>
                             </div>
@@ -202,19 +225,30 @@
                             <div class="branch-info">
                                 <div class="form-group">
                                     <label>Branch Name</label>
-                                    <span class="info-value">Main Branch</span>
+                                    <span class="info-value" id="branchName">Main Branch</span>
+                                    <input type="text" class="edit-input disabled-input" id="branchNameInput" value="Main Branch" style="display: none;" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label>Branch Location</label>
-                                    <span class="info-value">IBAAN, Batangas</span>
+                                    <span class="info-value" id="branchLocation">IBAAN, Batangas</span>
+                                    <input type="text" class="edit-input disabled-input" id="branchLocationInput" value="IBAAN, Batangas" style="display: none;" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label>Branch Contact</label>
-                                    <span class="info-value">+63 43 123 4567</span>
+                                    <span class="info-value" id="branchContact">+63 43 123 4567</span>
+                                    <input type="tel" class="edit-input" id="branchContactInput" value="+63 43 123 4567" style="display: none;">
                                 </div>
                                 <div class="form-group">
-                                    <label>Branch Address</label>
-                                    <span class="info-value">123 Main Street, IBAAN, Batangas, Philippines</span>
+                                    <label>Operation Days</label>
+                                    <span class="info-value" id="branchOperationDays">Monday - Friday</span>
+                                    <select class="edit-input" id="branchOperationDaysSelect" style="display: none;">
+                                        <option value="Monday - Friday">Monday - Friday</option>
+                                        <option value="Monday - Saturday">Monday - Saturday</option>
+                                        <option value="Monday - Sunday">Monday - Sunday</option>
+                                        <option value="Tuesday - Saturday">Tuesday - Saturday</option>
+                                        <option value="Wednesday - Sunday">Wednesday - Sunday</option>
+                                        <option value="Daily">Daily (7 days a week)</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>

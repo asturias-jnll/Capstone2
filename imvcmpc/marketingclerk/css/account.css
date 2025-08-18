@@ -112,6 +112,15 @@
     color: white !important;
 }
 
+#mainScreen .edit-btn.editing {
+    background: #69B41E !important;
+    color: white !important;
+}
+
+#mainScreen .edit-btn.editing:hover {
+    background: #5a9a1a !important;
+}
+
 /* Profile Avatar - Hidden */
 #mainScreen .profile-avatar {
     display: none !important;
@@ -147,11 +156,63 @@
     flex: 1 !important;
 }
 
-/* Hide Input Fields */
-#mainScreen .form-group input,
-#mainScreen .form-group select,
-#mainScreen .form-group textarea {
+/* Edit Input Fields */
+#mainScreen .form-group .edit-input {
     display: none !important;
+    width: 100% !important;
+    padding: 0.5rem !important;
+    border: 1px solid #69B41E !important;
+    border-radius: 4px !important;
+    font-size: 0.875rem !important;
+    background: white !important;
+    color: #111827 !important;
+}
+
+/* Dropdown spacing - add space for the dropdown icon */
+#mainScreen .form-group select.edit-input {
+    padding-right: 2.5rem !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2369B41E' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.5em 1.5em !important;
+    appearance: none !important;
+}
+
+#mainScreen .form-group .edit-input:focus {
+    outline: none !important;
+    border-color: #0D5B11 !important;
+    box-shadow: 0 0 0 3px rgba(105, 180, 30, 0.1) !important;
+}
+
+/* Disabled input styling */
+#mainScreen .form-group .disabled-input {
+    background: #f8f9fa !important;
+    color: #6b7280 !important;
+    border: 1px solid #d1d5db !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+}
+
+#mainScreen .form-group .disabled-input:focus {
+    border-color: #d1d5db !important;
+    box-shadow: none !important;
+}
+
+/* Show input fields when editing */
+#mainScreen .form-group.editing .info-value {
+    display: none !important;
+}
+
+#mainScreen .form-group.editing .edit-input {
+    display: block !important;
+}
+
+/* Light green background for editing form groups */
+#mainScreen .form-group.editing {
+    background: #f0f9f0 !important;
+    border-radius: 6px !important;
+    padding: 0.5rem !important;
+    margin: 0.25rem 0 !important;
 }
 
 /* Content Areas - Grey Background */
@@ -240,67 +301,6 @@
 #mainScreen .branch-section:hover {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
     border-color: #69B41E !important;
-}
-
-/* Remove Hover Effects from Content Areas */
-#mainScreen .personal-section *,
-#mainScreen .status-section *,
-#mainScreen .role-section *,
-#mainScreen .branch-section * {
-    transition: none !important;
-}
-
-#mainScreen .personal-section *:hover,
-#mainScreen .status-section *:hover,
-#mainScreen .role-section *:hover,
-#mainScreen .branch-section *:hover {
-    background: transparent !important;
-    color: inherit !important;
-    transform: none !important;
-    transition: none !important;
-    box-shadow: none !important;
-    border: none !important;
-    outline: none !important;
-}
-
-/* Specifically target grey background content areas */
-#mainScreen .personal-content,
-#mainScreen .status-content,
-#mainScreen .role-info,
-#mainScreen .branch-info {
-    transition: none !important;
-    pointer-events: none !important;
-}
-
-#mainScreen .personal-content *,
-#mainScreen .status-content *,
-#mainScreen .role-info *,
-#mainScreen .branch-info * {
-    transition: none !important;
-    pointer-events: none !important;
-}
-
-#mainScreen .personal-content:hover,
-#mainScreen .status-content:hover,
-#mainScreen .role-info:hover,
-#mainScreen .branch-info:hover {
-    background: #f8f9fa !important;
-    transform: none !important;
-    transition: none !important;
-    box-shadow: none !important;
-}
-
-#mainScreen .personal-content *:hover,
-#mainScreen .status-content *:hover,
-#mainScreen .role-info *:hover,
-#mainScreen .branch-info *:hover {
-    background: transparent !important;
-    color: inherit !important;
-    transform: none !important;
-    transition: none !important;
-    box-shadow: none !important;
-    border: none !important;
-    outline: none !important;
 }
 
 /* Responsive Design */
