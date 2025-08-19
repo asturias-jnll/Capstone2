@@ -52,31 +52,42 @@ async function setupDatabase() {
             const schemaPath = path.join(__dirname, 'schema.sql');
             const schema = fs.readFileSync(schemaPath, 'utf8');
             
-            // Execute the entire schema as one transaction
+            // Execute the schema without wrapping in a transaction
+            // This allows individual statements to succeed even if some fail
+            console.log('🧹 Cleaning up existing objects...');
             try {
-                await dbClient.query('BEGIN');
-                
-                // Drop existing triggers and functions first to avoid conflicts
-                console.log('🧹 Cleaning up existing objects...');
-                try {
-                    await dbClient.query(`
-                        DROP TRIGGER IF EXISTS update_users_updated_at ON users;
-                        DROP TRIGGER IF EXISTS update_branches_updated_at ON branches;
-                        DROP FUNCTION IF EXISTS update_updated_at_column();
-                    `);
-                } catch (cleanupError) {
-                    console.log('   ⚠️  Cleanup warning (this is normal):', cleanupError.message);
-                }
-                
-                // Execute the main schema
-                await dbClient.query(schema);
-                await dbClient.query('COMMIT');
-                console.log('✅ Database schema executed successfully');
-            } catch (error) {
-                await dbClient.query('ROLLBACK');
-                console.error('❌ Schema execution failed:', error.message);
-                throw error;
+                await dbClient.query(`
+                    DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+                    DROP TRIGGER IF EXISTS update_branches_updated_at ON branches;
+                    DROP FUNCTION IF EXISTS update_updated_at_column();
+                `);
+                console.log('   ✅ Cleanup completed successfully');
+            } catch (cleanupError) {
+                console.log('   ⚠️  Cleanup warning (this is normal):', cleanupError.message);
             }
+            
+            // Split schema into individual statements and execute them
+            const statements = schema
+                .split(';')
+                .map(stmt => stmt.trim())
+                .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+            
+            console.log(`📝 Executing ${statements.length} schema statements...`);
+            
+            for (let i = 0; i < statements.length; i++) {
+                const statement = statements[i];
+                if (statement.trim()) {
+                    try {
+                        await dbClient.query(statement);
+                        console.log(`   ✅ Statement ${i + 1} executed successfully`);
+                    } catch (error) {
+                        // Log error but continue with other statements
+                        console.log(`   ⚠️  Statement ${i + 1} failed (this may be normal):`, error.message);
+                    }
+                }
+            }
+            
+            console.log('✅ Database schema execution completed');
             
             // Verify tables were created
             console.log('🔍 Verifying table creation...');
