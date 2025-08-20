@@ -45,10 +45,10 @@
             </div>
 
             <div class="nav-account">
-                                        <a href="account.html" class="nav-item">
-                            <i class="fas fa-user-circle"></i>
-                            <span>Account</span>
-                        </a>
+                <a href="account.html" class="nav-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Account</span>
+                </a>
             </div>
 
             <div class="nav-footer">
@@ -80,23 +80,27 @@
                 </div>
             </div>
 
-            <!-- Notifications Content -->
-            <div class="notifications-content">
-                <div class="notifications-header">
-                    <h1>Notifications</h1>
-                    <p>Stay updated with important alerts, reminders, and system notifications.</p>
-                </div>
-
-                <div class="notifications-controls">
-                    <div class="filter-controls">
+            <!-- Notifications Container -->
+            <div class="notifications-container">
+                <!-- Filters Section -->
+                <div class="filters-section">
+                    <div class="filter-buttons">
                         <button class="filter-btn active" data-filter="all">
                             <i class="fas fa-list"></i>
                             <span>All</span>
+                        </button>
+                        <button class="filter-btn" data-filter="branch">
+                            <i class="fas fa-building"></i>
+                            <span>Branch</span>
                         </button>
                         <button class="filter-btn" data-filter="unread">
                             <i class="fas fa-envelope"></i>
                             <span>Unread</span>
                             <span class="badge" id="unreadCount">3</span>
+                        </button>
+                        <button class="filter-btn" data-filter="read">
+                            <i class="fas fa-envelope-open"></i>
+                            <span>Read</span>
                         </button>
                         <button class="filter-btn" data-filter="important">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -106,24 +110,30 @@
                             <i class="fas fa-cog"></i>
                             <span>System</span>
                         </button>
+                        <button class="filter-btn" data-filter="done">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Done</span>
+                        </button>
                     </div>
 
-                    <div class="action-controls">
-                        <button class="mark-all-read-btn" onclick="markAllAsRead()">
-                            <i class="fas fa-check-double"></i>
-                            <span>Mark All as Read</span>
-                        </button>
-                        <button class="clear-all-btn" onclick="clearAllNotifications()">
-                            <i class="fas fa-trash"></i>
-                            <span>Clear All</span>
-                        </button>
+                    <div class="branch-selector" id="branchSelector" style="display: none;">
+                        <select id="branchFilter" onchange="filterByBranch()">
+                            <option value="">All Branches</option>
+                            <option value="main">Main Branch</option>
+                            <option value="branch1">Branch 1 - IBAAN</option>
+                            <option value="branch2">Branch 2 - LIPA</option>
+                            <option value="branch3">Branch 3 - SAN JOSE</option>
+                            <option value="branch4">Branch 4 - BATANGAS</option>
+                        </select>
                     </div>
                 </div>
 
+                <!-- Notifications List -->
                 <div class="notifications-list" id="notificationsList">
                     <!-- Notifications will be populated by JavaScript -->
                 </div>
 
+                <!-- Empty State -->
                 <div class="notifications-empty" id="notificationsEmpty" style="display: none;">
                     <div class="empty-state">
                         <i class="fas fa-bell-slash"></i>

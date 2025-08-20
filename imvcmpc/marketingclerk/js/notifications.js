@@ -1,19 +1,13 @@
 // Notifications functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize notifications when page is loaded
     initializeNotifications();
 });
 
 // Initialize all notifications functionality
 function initializeNotifications() {
-    // Setup event listeners
     setupFilterEventListeners();
     setupNotificationEventListeners();
-    
-    // Load initial notifications
     loadNotifications();
-    
-    // Update unread count
     updateUnreadCount();
 }
 
@@ -23,34 +17,35 @@ function setupFilterEventListeners() {
     
     filterBtns.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Remove active class from all filter buttons
             filterBtns.forEach(b => b.classList.remove('active'));
-            
-            // Add active class to clicked button
             this.classList.add('active');
             
-            // Filter notifications
             const filterType = this.getAttribute('data-filter');
             filterNotifications(filterType);
+            
+            // Show/hide branch selector
+            const branchSelector = document.getElementById('branchSelector');
+            if (filterType === 'branch') {
+                branchSelector.style.display = 'block';
+            } else {
+                branchSelector.style.display = 'none';
+            }
         });
     });
 }
 
 // Setup notification item event listeners
 function setupNotificationEventListeners() {
-    // Event delegation for notification items
     document.addEventListener('click', function(e) {
         if (e.target.closest('.notification-item')) {
             const notificationItem = e.target.closest('.notification-item');
             const notificationId = notificationItem.getAttribute('data-id');
             
-            // Mark as read if unread
             if (notificationItem.classList.contains('unread')) {
                 markAsRead(notificationId);
             }
         }
         
-        // Handle action button clicks
         if (e.target.closest('.notification-action-btn')) {
             const actionBtn = e.target.closest('.notification-action-btn');
             const action = actionBtn.getAttribute('data-action');
@@ -63,17 +58,18 @@ function setupNotificationEventListeners() {
 
 // Load notifications data
 function loadNotifications() {
-    // Mock notifications data - in real app, this would come from API/database
     const notifications = [
         {
             id: 1,
-            title: 'New Member Registration',
+            title: 'New Member Registration - Branch 1',
             content: 'A new member has been registered in Branch 1 - IBAAN. Please review the application.',
             type: 'info',
             priority: 'normal',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
             isRead: false,
-            category: 'system'
+            category: 'transaction',
+            branch: 'branch1',
+            status: 'pending'
         },
         {
             id: 2,
@@ -81,9 +77,11 @@ function loadNotifications() {
             content: 'Scheduled system maintenance will occur tonight from 11:00 PM to 2:00 AM. Some services may be temporarily unavailable.',
             type: 'warning',
             priority: 'important',
-            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
             isRead: false,
-            category: 'system'
+            category: 'system',
+            branch: 'main',
+            status: 'active'
         },
         {
             id: 3,
@@ -91,19 +89,23 @@ function loadNotifications() {
             content: 'The monthly financial report for December 2024 has been successfully generated and is ready for review.',
             type: 'success',
             priority: 'normal',
-            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
             isRead: false,
-            category: 'system'
+            category: 'system',
+            branch: 'main',
+            status: 'completed'
         },
         {
             id: 4,
-            title: 'Branch Performance Alert',
+            title: 'Branch Performance Alert - Branch 3',
             content: 'Branch 3 - SAN JOSE has exceeded its monthly savings target by 15%. Great performance!',
             type: 'success',
             priority: 'normal',
-            timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
+            timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
             isRead: true,
-            category: 'important'
+            category: 'transaction',
+            branch: 'branch3',
+            status: 'completed'
         },
         {
             id: 5,
@@ -111,26 +113,51 @@ function loadNotifications() {
             content: 'Daily database backup has been completed successfully. All data is secure and up to date.',
             type: 'info',
             priority: 'normal',
-            timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
+            timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
             isRead: true,
-            category: 'system'
+            category: 'system',
+            branch: 'main',
+            status: 'completed'
         },
         {
             id: 6,
-            title: 'Member Data Update Required',
-            content: 'Several member records require updates. Please review and update member information as needed.',
+            title: 'Member Data Update Required - Main Branch',
+            content: 'Finance Officer has requested review of member data updates. Please review and update member information as needed.',
             type: 'warning',
             priority: 'important',
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
             isRead: true,
-            category: 'important'
+            category: 'transaction',
+            branch: 'main',
+            status: 'pending'
+        },
+        {
+            id: 7,
+            title: 'New Transaction - Branch 2',
+            content: 'Large deposit transaction completed in Branch 2 - LIPA. Amount: ₱500,000.00',
+            type: 'success',
+            priority: 'normal',
+            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+            isRead: false,
+            category: 'transaction',
+            branch: 'branch2',
+            status: 'completed'
+        },
+        {
+            id: 8,
+            title: 'System Update Available',
+            content: 'New system update v2.1.5 is available for installation. Includes performance improvements and bug fixes.',
+            type: 'info',
+            priority: 'important',
+            timestamp: new Date(Date.now() - 30 * 60 * 1000),
+            isRead: false,
+            category: 'system',
+            branch: 'main',
+            status: 'pending'
         }
     ];
     
-    // Store notifications in localStorage for persistence
     localStorage.setItem('notifications', JSON.stringify(notifications));
-    
-    // Display notifications
     displayNotifications(notifications);
 }
 
@@ -149,11 +176,8 @@ function displayNotifications(notifications) {
     
     notificationsList.style.display = 'block';
     notificationsEmpty.style.display = 'none';
-    
-    // Clear existing notifications
     notificationsList.innerHTML = '';
     
-    // Create notification items
     notifications.forEach(notification => {
         const notificationItem = createNotificationItem(notification);
         notificationsList.appendChild(notificationItem);
@@ -165,9 +189,12 @@ function createNotificationItem(notification) {
     const notificationItem = document.createElement('div');
     notificationItem.className = `notification-item ${notification.isRead ? '' : 'unread'} ${notification.priority === 'important' ? 'important' : ''} ${notification.category}`;
     notificationItem.setAttribute('data-id', notification.id);
+    notificationItem.setAttribute('data-branch', notification.branch);
+    notificationItem.setAttribute('data-status', notification.status);
     
     const timeAgo = getTimeAgo(notification.timestamp);
     const typeClass = notification.type;
+    const branchName = getBranchName(notification.branch);
     
     notificationItem.innerHTML = `
         <div class="notification-header">
@@ -178,6 +205,7 @@ function createNotificationItem(notification) {
                         <i class="fas fa-${getTypeIcon(notification.type)}"></i>
                         ${notification.type}
                     </span>
+                    <span class="notification-branch">${branchName}</span>
                     <span class="notification-time">${timeAgo}</span>
                 </div>
             </div>
@@ -185,11 +213,24 @@ function createNotificationItem(notification) {
         <div class="notification-content">${notification.content}</div>
         <div class="notification-actions">
             ${notification.isRead ? '' : '<button class="notification-action-btn primary" data-action="mark-read"><i class="fas fa-check"></i> Mark as Read</button>'}
+            ${notification.status === 'pending' ? '<button class="notification-action-btn warning" data-action="mark-done"><i class="fas fa-check-circle"></i> Mark as Done</button>' : ''}
             <button class="notification-action-btn" data-action="dismiss"><i class="fas fa-times"></i> Dismiss</button>
         </div>
     `;
     
     return notificationItem;
+}
+
+// Get branch name from branch code
+function getBranchName(branchCode) {
+    const branches = {
+        'main': 'Main Branch',
+        'branch1': 'Branch 1 - IBAAN',
+        'branch2': 'Branch 2 - LIPA',
+        'branch3': 'Branch 3 - SAN JOSE',
+        'branch4': 'Branch 4 - BATANGAS'
+    };
+    return branches[branchCode] || branchCode;
 }
 
 // Get appropriate icon for notification type
@@ -208,18 +249,17 @@ function getTimeAgo(timestamp) {
     const now = new Date();
     const diffInSeconds = Math.floor((now - timestamp) / 1000);
     
-    if (diffInSeconds < 60) {
-        return 'Just now';
-    } else if (diffInSeconds < 3600) {
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) {
         const minutes = Math.floor(diffInSeconds / 60);
         return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-    } else if (diffInSeconds < 86400) {
+    }
+    if (diffInSeconds < 86400) {
         const hours = Math.floor(diffInSeconds / 3600);
         return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    } else {
-        const days = Math.floor(diffInSeconds / 86400);
-        return `${days} day${days > 1 ? 's' : ''} ago`;
     }
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
 // Filter notifications based on selected filter
@@ -231,17 +271,41 @@ function filterNotifications(filterType) {
         case 'unread':
             filteredNotifications = notifications.filter(n => !n.isRead);
             break;
+        case 'read':
+            filteredNotifications = notifications.filter(n => n.isRead);
+            break;
         case 'important':
             filteredNotifications = notifications.filter(n => n.priority === 'important');
             break;
         case 'system':
             filteredNotifications = notifications.filter(n => n.category === 'system');
             break;
+        case 'done':
+            filteredNotifications = notifications.filter(n => n.status === 'completed');
+            break;
+        case 'branch':
+            filteredNotifications = notifications;
+            break;
         default: // 'all'
             filteredNotifications = notifications;
             break;
     }
     
+    displayNotifications(filteredNotifications);
+}
+
+// Filter by specific branch
+function filterByBranch() {
+    const branchFilter = document.getElementById('branchFilter');
+    const selectedBranch = branchFilter.value;
+    
+    if (!selectedBranch) {
+        filterNotifications('branch');
+        return;
+    }
+    
+    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+    const filteredNotifications = notifications.filter(n => n.branch === selectedBranch);
     displayNotifications(filteredNotifications);
 }
 
@@ -254,22 +318,20 @@ function markAsRead(notificationId) {
         notification.isRead = true;
         localStorage.setItem('notifications', JSON.stringify(notifications));
         
-        // Update UI
         const notificationItem = document.querySelector(`[data-id="${notificationId}"]`);
         if (notificationItem) {
             notificationItem.classList.remove('unread');
             notificationItem.classList.remove('important');
             
-            // Update actions
             const actions = notificationItem.querySelector('.notification-actions');
             if (actions) {
                 actions.innerHTML = `
+                    ${notification.status === 'pending' ? '<button class="notification-action-btn warning" data-action="mark-done"><i class="fas fa-check-circle"></i> Mark as Done</button>' : ''}
                     <button class="notification-action-btn" data-action="dismiss"><i class="fas fa-times"></i> Dismiss</button>
                 `;
             }
         }
         
-        // Update unread count
         updateUnreadCount();
     }
 }
@@ -280,9 +342,36 @@ function handleNotificationAction(action, notificationId) {
         case 'mark-read':
             markAsRead(notificationId);
             break;
+        case 'mark-done':
+            markAsDone(notificationId);
+            break;
         case 'dismiss':
             dismissNotification(notificationId);
             break;
+    }
+}
+
+// Mark notification as done
+function markAsDone(notificationId) {
+    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+    const notification = notifications.find(n => n.id == notificationId);
+    
+    if (notification) {
+        notification.status = 'completed';
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        
+        const notificationItem = document.querySelector(`[data-id="${notificationId}"]`);
+        if (notificationItem) {
+            notificationItem.setAttribute('data-status', 'completed');
+            const actions = notificationItem.querySelector('.notification-actions');
+            if (actions) {
+                actions.innerHTML = `
+                    <button class="notification-action-btn" data-action="dismiss"><i class="fas fa-times"></i> Dismiss</button>
+                `;
+            }
+        }
+        
+        showNotificationMessage('Notification marked as done', 'success');
     }
 }
 
@@ -293,73 +382,18 @@ function dismissNotification(notificationId) {
     
     localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
     
-    // Remove from UI
     const notificationItem = document.querySelector(`[data-id="${notificationId}"]`);
     if (notificationItem) {
         notificationItem.remove();
     }
     
-    // Check if list is empty
     const remainingNotifications = document.querySelectorAll('.notification-item');
     if (remainingNotifications.length === 0) {
         document.getElementById('notificationsList').style.display = 'none';
         document.getElementById('notificationsEmpty').style.display = 'block';
     }
     
-    // Update unread count
     updateUnreadCount();
-}
-
-// Mark all notifications as read
-function markAllAsRead() {
-    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-    
-    notifications.forEach(notification => {
-        notification.isRead = true;
-    });
-    
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-    
-    // Update UI
-    const notificationItems = document.querySelectorAll('.notification-item');
-    notificationItems.forEach(item => {
-        item.classList.remove('unread');
-        item.classList.remove('important');
-        
-        // Update actions
-        const actions = item.querySelector('.notification-actions');
-        if (actions) {
-            actions.innerHTML = `
-                <button class="notification-action-btn" data-action="dismiss"><i class="fas fa-times"></i> Dismiss</button>
-            `;
-        }
-    });
-    
-    // Update unread count
-    updateUnreadCount();
-    
-    // Show success message
-    showNotificationMessage('All notifications marked as read', 'success');
-}
-
-// Clear all notifications
-function clearAllNotifications() {
-    if (confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
-        localStorage.removeItem('notifications');
-        
-        // Clear UI
-        const notificationsList = document.getElementById('notificationsList');
-        const notificationsEmpty = document.getElementById('notificationsEmpty');
-        
-        if (notificationsList) notificationsList.style.display = 'none';
-        if (notificationsEmpty) notificationsEmpty.style.display = 'block';
-        
-        // Update unread count
-        updateUnreadCount();
-        
-        // Show success message
-        showNotificationMessage('All notifications cleared', 'success');
-    }
 }
 
 // Update unread count badge
@@ -370,19 +404,12 @@ function updateUnreadCount() {
     const unreadBadge = document.getElementById('unreadCount');
     if (unreadBadge) {
         unreadBadge.textContent = unreadCount;
-        
-        // Hide badge if no unread notifications
-        if (unreadCount === 0) {
-            unreadBadge.style.display = 'none';
-        } else {
-            unreadBadge.style.display = 'inline';
-        }
+        unreadBadge.style.display = unreadCount === 0 ? 'none' : 'inline';
     }
 }
 
 // Show notification message
 function showNotificationMessage(message, type = 'info') {
-    // Create temporary message element
     const messageElement = document.createElement('div');
     messageElement.className = `notification-message ${type}`;
     messageElement.style.cssText = `
@@ -404,12 +431,10 @@ function showNotificationMessage(message, type = 'info') {
     
     document.body.appendChild(messageElement);
     
-    // Animate in
     setTimeout(() => {
         messageElement.style.transform = 'translateX(0)';
     }, 100);
     
-    // Remove after 3 seconds
     setTimeout(() => {
         messageElement.style.transform = 'translateX(100%)';
         setTimeout(() => {
