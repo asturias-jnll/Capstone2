@@ -137,13 +137,17 @@ function setupTransactionTypeButtons() {
     typeButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const configSection = this.closest('.config-section');
-            const typeButtons = configSection.querySelectorAll('.type-btn');
+            const configId = configSection.id;
             
-            // Remove active class from all buttons in this section
-            typeButtons.forEach(b => b.classList.remove('active'));
-            
-            // Add active class to clicked button
-            this.classList.add('active');
+            if (configId === 'branchConfig') {
+                // For branch config, toggle the clicked button (both can be selected)
+                this.classList.toggle('active');
+            } else {
+                // For other configs, only one can be selected
+                const typeButtons = configSection.querySelectorAll('.type-btn');
+                typeButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            }
         });
     });
 }
@@ -267,7 +271,7 @@ function generateSavingsReportData() {
     return {
         type: 'Savings Report',
         branches: selectedBranches,
-        period: `${month || 'All Months'} ${year}`,
+        period: `${month} ${year}`,
         data: data
     };
 }
@@ -286,7 +290,7 @@ function generateDisbursementReportData() {
     return {
         type: 'Disbursement Report',
         branches: selectedBranches,
-        period: `${month || 'All Months'} ${year}`,
+        period: `${month} ${year}`,
         data: data
     };
 }
@@ -320,7 +324,7 @@ function generateBranchReportData() {
     return {
         type: 'Branch Performance Report',
         branch: selectedBranch,
-        period: `${month || 'All Months'} ${year}`,
+        period: `${month} ${year}`,
         data: data
     };
 }
@@ -678,6 +682,70 @@ function hideExportSection() {
     if (exportSection) {
         exportSection.style.display = 'none';
     }
+}
+
+// Clear configuration based on report type
+function clearConfiguration(reportType) {
+    switch (reportType) {
+        case 'savings':
+            clearSavingsConfig();
+            break;
+        case 'disbursement':
+            clearDisbursementConfig();
+            break;
+        case 'member':
+            clearMemberConfig();
+            break;
+        case 'branch':
+            clearBranchConfig();
+            break;
+    }
+    
+    // Clear report canvas and hide export section
+    clearReportCanvas();
+    hideExportSection();
+    
+    showMessage('Configuration cleared successfully!', 'success');
+}
+
+// Clear savings configuration
+function clearSavingsConfig() {
+    const configSection = document.getElementById('savingsConfig');
+    configSection.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('savingsYear').value = '2025';
+    document.getElementById('savingsMonth').value = '1';
+}
+
+// Clear disbursement configuration
+function clearDisbursementConfig() {
+    const configSection = document.getElementById('disbursementConfig');
+    configSection.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('disbursementYear').value = '2025';
+    document.getElementById('disbursementMonth').value = '1';
+}
+
+// Clear member configuration
+function clearMemberConfig() {
+    document.getElementById('memberSearch').value = '';
+    document.querySelectorAll('#memberConfig .type-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+}
+
+// Clear branch configuration
+function clearBranchConfig() {
+    document.querySelectorAll('input[name="branchSelection"]').forEach(radio => {
+        radio.checked = false;
+    });
+    document.getElementById('branchYear').value = '2025';
+    document.getElementById('branchMonth').value = '1';
+    document.querySelectorAll('#branchConfig .type-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
 }
 
 // Export to PDF

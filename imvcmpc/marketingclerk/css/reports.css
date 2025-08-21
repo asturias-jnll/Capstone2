@@ -2,7 +2,7 @@
 .reports-content {
     max-width: none; /* Remove max-width constraint */
     margin: 0; /* Remove auto margins */
-    padding: 80px 16px 24px; /* Reduced side padding to minimum */
+    padding: 80px 32px 24px; /* Align left padding with top bar */
 }
 
 /* Reports Header */
@@ -113,9 +113,16 @@
 }
 
 .config-header {
-    background: linear-gradient(135deg, #f8faf8, #f1f5f9);
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
     padding: 16px 24px;
     border-bottom: 1px solid #e2e8f0;
+}
+
+.config-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .config-header h3 {
@@ -125,8 +132,34 @@
     margin: 0;
     padding: 16px 20px;
     border-bottom: 1px solid #e5e7e5;
-    background: linear-gradient(135deg, #f8faf8, #ffffff);
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
     border-radius: 12px 12px 0 0;
+    flex: 1;
+}
+
+.clear-config-btn {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.clear-config-btn:hover {
+    background: rgba(107, 114, 128, 0.1);
+    color: #374151;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.clear-config-btn:active {
+    transform: translateY(-50%) scale(0.95);
 }
 
 .config-content {
@@ -164,7 +197,7 @@
     display: flex;
     align-items: center;
     cursor: pointer;
-    padding: 12px 8px;
+    padding: 16px 8px;
     border: 2px solid #e2e8f0;
     border-radius: 10px;
     background: #ffffff;
@@ -195,7 +228,7 @@
 }
 
 .branch-name {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: #6b7280;
     margin-bottom: 2px;
@@ -204,7 +237,7 @@
 }
 
 .branch-location {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 500;
     color: #9ca3af;
     text-align: center;
@@ -243,7 +276,7 @@
     display: flex;
     align-items: center;
     cursor: pointer;
-    padding: 12px 8px;
+    padding: 16px 8px;
     border: 2px solid #e2e8f0;
     border-radius: 10px;
     background: #ffffff;
@@ -308,6 +341,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    width: 100%;
 }
 
 .filter-group label {
@@ -321,13 +355,14 @@
 .filter-group select,
 .filter-group input {
     width: 100%;
-    padding: 10px 12px;
+    padding: 12px 16px;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     background: #ffffff;
     color: #4a5568;
     font-size: 14px;
     transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
 .filter-group select:focus,
@@ -343,14 +378,28 @@
     border-color: #cbd5e1;
 }
 
-/* Search Section */
-.search-section {
+/* Member Config Row */
+.member-config-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
     margin-bottom: 20px;
+    width: 100%;
+}
+
+/* Branch Config Row */
+.branch-config-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr;
+    gap: 24px;
+    margin-bottom: 20px;
+    width: 100%;
 }
 
 /* Transaction Type */
 .transaction-type {
-    margin-bottom: 20px;
+    margin-bottom: 0;
+    width: 100%;
 }
 
 .transaction-type label {
@@ -366,6 +415,8 @@
 .type-buttons {
     display: flex;
     gap: 12px;
+    width: 100%;
+    justify-content: space-between;
 }
 
 .type-btn {
@@ -373,30 +424,32 @@
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
     background: #ffffff;
     color: #4a5568;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-width: 120px;
+    width: 140px;
     justify-content: center;
+    height: 44px;
+    flex: 1;
 }
 
 .type-btn:hover {
     border-color: #69B41E;
     color: #187C19;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(105, 180, 30, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(105, 180, 30, 0.15);
 }
 
 .type-btn.active {
     border-color: #0D5B11;
-    background: linear-gradient(135deg, #0D5B11, #187C19);
-    color: #ffffff;
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    color: #0D5B11;
+    transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(13, 91, 17, 0.2);
 }
 
@@ -408,10 +461,13 @@
 .generate-section {
     text-align: center;
     margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .generate-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 14px 28px;
@@ -483,6 +539,13 @@
     border-radius: 16px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* Center the export PDF button */
+#exportSection {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
 }
 
 .export-pdf-btn {
@@ -753,8 +816,19 @@
         font-size: 9px;
     }
     
+    .member-config-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .branch-config-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
     .type-buttons {
         flex-direction: column;
+        width: 100%;
     }
     
     .config-content {
@@ -764,6 +838,12 @@
     .generate-btn,
     .export-pdf-btn {
         min-width: 100%;
+    }
+    
+    .clear-config-btn {
+        right: 16px;
+        padding: 6px;
+        font-size: 14px;
     }
 }
 
@@ -789,6 +869,20 @@
     
     .branch-location {
         font-size: 8px;
+    }
+    
+    .member-config-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .branch-config-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .type-btn {
+        min-width: 100%;
     }
 }
 
