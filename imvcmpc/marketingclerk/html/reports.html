@@ -83,108 +83,472 @@
             <!-- Reports Content -->
             <div class="reports-content">
                 <div class="reports-header">
+                    <div class="header-left">
                     <h1>Reports</h1>
-                    <p>Use the filters to search for specific members, select branches, and customize your report by date, month, or year.</p>
+                        <p>Generate financial reports for savings, disbursements, members, and branch performance.</p>
                 </div>
-
-                <div class="reports-toggle">
-                    <button class="toggle-btn active" data-type="member">
+                    <div class="header-right">
+                        <!-- Report Type Selection -->
+                        <div class="report-type-selector">
+                            <button class="report-type-btn" data-type="savings">
+                                <i class="fas fa-piggy-bank"></i>
+                                <span>Savings Reports</span>
+                            </button>
+                            <button class="report-type-btn" data-type="disbursement">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>Disbursement Reports</span>
+                            </button>
+                            <button class="report-type-btn" data-type="member">
                         <i class="fas fa-user"></i>
-                        <span>Member</span>
+                                <span>Member Reports</span>
                     </button>
-                    <button class="toggle-btn" data-type="branch">
+                            <button class="report-type-btn" data-type="branch">
                         <i class="fas fa-store"></i>
-                        <span>Branch</span>
+                                <span>Branch Reports</span>
                     </button>
-                </div>
-
-                <div class="reports-filters">
-                    <div id="memberFilters" class="filter-section active">
-                        <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="memberSearchReport" placeholder="Search member...">
                         </div>
                     </div>
-                    <div id="branchFilters" class="filter-section">
+                </div>
+
+                <!-- Report Configuration -->
+                <div class="report-config">
+                    <!-- Initial State -->
+                    <div id="initialState" class="initial-state">
+                        <div class="initial-message">
+                            <i class="fas fa-file-alt"></i>
+                            <h4>Choose a Report Type</h4>
+                            <p>Select one of the report types above to configure and generate your report.</p>
+                        </div>
+                </div>
+
+                    <!-- Savings/Disbursement Configuration -->
+                    <div id="savingsConfig" class="config-section">
+                        <div class="config-header">
+                            <h3>Savings Report Configuration</h3>
+                        </div>
+                        <div class="config-content">
+                            <div class="branch-selection">
+                                <label>Select Branches (Multiple Selection)</label>
+                                <div class="branch-grid">
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch1">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 1</span>
+                                            <span class="branch-location">IBAAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch2">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 2</span>
+                                            <span class="branch-location">BAUAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch3">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 3</span>
+                                            <span class="branch-location">SAN JOSE</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch4">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 4</span>
+                                            <span class="branch-location">ROSARIO</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch5">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 5</span>
+                                            <span class="branch-location">SAN JUAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch6">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 6</span>
+                                            <span class="branch-location">PADRE GARCIA</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch7">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 7</span>
+                                            <span class="branch-location">LIPA CITY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch8">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 8</span>
+                                            <span class="branch-location">BATANGAS CITY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch9">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 9</span>
+                                            <span class="branch-location">MABINI LIPA</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch10">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 10</span>
+                                            <span class="branch-location">CALAMIAS</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch11">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 11</span>
+                                            <span class="branch-location">LEMERY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch12">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 12</span>
+                                            <span class="branch-location">MATAAS NA KAHOY</span>
+                                        </span>
+                                    </label>
+                        </div>
+                    </div>
                         <div class="filter-row">
-                            <select id="reportBranch">
-                                <option value="">Select Branch</option>
-                                <option value="Branch 1">Branch 1 - IBAAN</option>
-                                <option value="Branch 2">Branch 2 - BAUAN</option>
-                                <option value="Branch 3">Branch 3 - SAN JOSE</option>
-                                <option value="Branch 4">Branch 4 - ROSARIO</option>
-                                <option value="Branch 5">Branch 5 - SAN JUAN</option>
-                                <option value="Branch 6">Branch 6 - PADRE GARCIA</option>
-                                <option value="Branch 7">Branch 7 - LIPA CITY</option>
-                                <option value="Branch 8">Branch 8 - BATANGAS CITY</option>
-                                <option value="Branch 9">Branch 9 - MABINI LIPA</option>
-                                <option value="Branch 10">Branch 10 - CALAMIAS</option>
-                                <option value="Branch 11">Branch 11 - LEMERY</option>
-                                <option value="Branch 12">Branch 12 - MATAAS NA KAHOY</option>
+                                <div class="filter-group">
+                                    <label for="savingsYear">Year</label>
+                                    <select id="savingsYear">
+                                        <option value="2025">2025</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2023">2023</option>
+                                        <option value="2022">2022</option>
+                                        <option value="2021">2021</option>
                             </select>
-                            <select id="reportMonth">
-                                <option value="">Select Month</option>
-                                <option value="January">January</option>
-                                <option value="February">February</option>
-                                <option value="March">March</option>
-                                <option value="April">April</option>
-                                <option value="May">May</option>
-                                <option value="June">June</option>
-                                <option value="July">July</option>
-                                <option value="August">August</option>
-                                <option value="September">September</option>
-                                <option value="October">October</option>
-                                <option value="November">November</option>
-                                <option value="December">December</option>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="savingsMonth">Month</label>
+                                    <select id="savingsMonth">
+                                        <option value="">All Months</option>
+                                        <option value="1">January</option>
+                                        <option value="2">February</option>
+                                        <option value="3">March</option>
+                                        <option value="4">April</option>
+                                        <option value="5">May</option>
+                                        <option value="6">June</option>
+                                        <option value="7">July</option>
+                                        <option value="8">August</option>
+                                        <option value="9">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
                             </select>
-                            <select id="reportYear">
-                                <option value="">Select Year</option>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="disbursementConfig" class="config-section">
+                        <div class="config-header">
+                            <h3>Disbursement Report Configuration</h3>
+                        </div>
+                        <div class="config-content">
+                            <div class="branch-selection">
+                                <label>Select Branches (Multiple Selection)</label>
+                                <div class="branch-grid">
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch1">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 1</span>
+                                            <span class="branch-location">IBAAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch2">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 2</span>
+                                            <span class="branch-location">BAUAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch3">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 3</span>
+                                            <span class="branch-location">SAN JOSE</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch4">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 4</span>
+                                            <span class="branch-location">ROSARIO</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch5">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 5</span>
+                                            <span class="branch-location">SAN JUAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch6">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 6</span>
+                                            <span class="branch-location">PADRE GARCIA</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch7">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 7</span>
+                                            <span class="branch-location">LIPA CITY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch8">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 8</span>
+                                            <span class="branch-location">BATANGAS CITY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch9">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 9</span>
+                                            <span class="branch-location">MABINI LIPA</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch10">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 10</span>
+                                            <span class="branch-location">CALAMIAS</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch11">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 11</span>
+                                            <span class="branch-location">LEMERY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-checkbox">
+                                        <input type="checkbox" value="branch12">
+                                        <span class="checkmark">
+                                            <span class="branch-name">Branch 12</span>
+                                            <span class="branch-location">MATAAS NA KAHOY</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label for="disbursementYear">Year</label>
+                                    <select id="disbursementYear">
                                 <option value="2025">2025</option>
                                 <option value="2024">2024</option>
                                 <option value="2023">2023</option>
                                 <option value="2022">2022</option>
                                 <option value="2021">2021</option>
-                                <option value="2020">2020</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="disbursementMonth">Month</label>
+                                    <select id="disbursementMonth">
+                                        <option value="">All Months</option>
+                                        <option value="1">January</option>
+                                        <option value="2">February</option>
+                                        <option value="3">March</option>
+                                        <option value="4">April</option>
+                                        <option value="5">May</option>
+                                        <option value="6">June</option>
+                                        <option value="7">July</option>
+                                        <option value="8">August</option>
+                                        <option value="9">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
                             </select>
                         </div>
                     </div>
-
-                    <div class="date-picker">
-                        <button class="date-btn" onclick="openDatePicker()">
-                            <i class="fas fa-calendar"></i>
-                            <span id="selectedDate">Select Date</span>
-                        </button>
+                        </div>
                     </div>
 
-                    <div class="type-toggle">
+                    <div id="memberConfig" class="config-section">
+                        <div class="config-header">
+                            <h3>Member Report Configuration</h3>
+                        </div>
+                        <div class="config-content">
+                            <div class="search-section">
+                                <div class="filter-group">
+                                    <label for="memberSearch">Search Member</label>
+                                    <input type="text" id="memberSearch" placeholder="Enter member name or ID">
+                                </div>
+                            </div>
+                            <div class="transaction-type">
+                                <label>Transaction Type</label>
+                                <div class="type-buttons">
                         <button class="type-btn active" data-type="savings">
                             <i class="fas fa-piggy-bank"></i>
-                            <span>SAVINGS</span>
+                                        <span>Savings</span>
                         </button>
                         <button class="type-btn" data-type="disbursement">
                             <i class="fas fa-money-bill-wave"></i>
-                            <span>DISBURSEMENT</span>
+                                        <span>Disbursement</span>
                         </button>
+                                </div>
+                            </div>
                     </div>
                 </div>
 
-                <div class="report-summary">
-                    <div class="summary-card">
-                        <h3 id="reportTitle">MEMBER REPORT</h3>
-                        <div class="summary-content" id="summaryContent">
-                            <!-- Summary content will be populated by JavaScript -->
+                    <div id="branchConfig" class="config-section">
+                        <div class="config-header">
+                            <h3>Branch Report Configuration</h3>
+                        </div>
+                        <div class="config-content">
+                            <div class="branch-selection">
+                                <label>Select Branch (Single Selection)</label>
+                                <div class="branch-grid single">
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch1">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 1</span>
+                                            <span class="branch-location">IBAAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch2">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 2</span>
+                                            <span class="branch-location">BAUAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch3">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 3</span>
+                                            <span class="branch-location">SAN JOSE</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch4">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 4</span>
+                                            <span class="branch-location">ROSARIO</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch5">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 5</span>
+                                            <span class="branch-location">SAN JUAN</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch6">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 6</span>
+                                            <span class="branch-location">PADRE GARCIA</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch7">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 7</span>
+                                            <span class="branch-location">LIPA CITY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch8">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 8</span>
+                                            <span class="branch-location">BATANGAS CITY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch9">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 9</span>
+                                            <span class="branch-location">MABINI LIPA</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch10">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 10</span>
+                                            <span class="branch-location">CALAMIAS</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch11">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 11</span>
+                                            <span class="branch-location">LEMERY</span>
+                                        </span>
+                                    </label>
+                                    <label class="branch-radio">
+                                        <input type="radio" name="branchSelection" value="branch12">
+                                        <span class="radiomark">
+                                            <span class="branch-name">Branch 12</span>
+                                            <span class="branch-location">MATAAS NA KAHOY</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label for="branchYear">Year</label>
+                                    <select id="branchYear">
+                                        <option value="2025">2025</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2023">2023</option>
+                                        <option value="2022">2022</option>
+                                        <option value="2021">2021</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="branchMonth">Month</label>
+                                    <select id="branchMonth">
+                                        <option value="">All Months</option>
+                                        <option value="1">January</option>
+                                        <option value="2">February</option>
+                                        <option value="3">March</option>
+                                        <option value="4">April</option>
+                                        <option value="5">May</option>
+                                        <option value="6">June</option>
+                                        <option value="7">July</option>
+                                        <option value="8">August</option>
+                                        <option value="9">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="transaction-type">
+                                <label>Transaction Type (Both Required)</label>
+                                <div class="type-buttons">
+                                    <button class="type-btn" data-type="savings">
+                                        <i class="fas fa-piggy-bank"></i>
+                                        <span>Savings</span>
+                                    </button>
+                                    <button class="type-btn" data-type="disbursement">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                        <span>Disbursement</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="report-actions">
-                    <button class="download-btn" onclick="downloadReport()">
-                        <i class="fas fa-download"></i>
-                        <span>DOWNLOAD REPORT AS PDF</span>
-                    </button>
-                    <button class="clear-btn" onclick="clearFilters()">
-                        <i class="fas fa-times"></i>
-                        <span>CLEAR</span>
+                <!-- Export Section -->
+                <div class="export-section" id="exportSection" style="display: none;">
+                    <button class="export-pdf-btn" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>EXPORT PDF</span>
                     </button>
                 </div>
             </div>
@@ -195,3 +559,4 @@
     <script src="../js/reports.js"></script>
 </body>
 </html>
+

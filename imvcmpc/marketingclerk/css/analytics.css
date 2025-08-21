@@ -1,8 +1,8 @@
 /* Analytics Content */
 .analytics-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 100px 32px 32px; /* Added top padding to account for fixed top bar */
+    padding: 100px 16px 32px; /* Reduced side padding to minimum */
+    max-width: none; /* Remove max-width constraint */
+    margin: 0; /* Remove auto margins */
 }
 
 .analytics-header {

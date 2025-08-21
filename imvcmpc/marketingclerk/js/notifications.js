@@ -61,14 +61,14 @@ function loadNotifications() {
     const notifications = [
         {
             id: 1,
-            title: 'New Member Registration - Branch 1',
-            content: 'A new member has been registered in Branch 1 - IBAAN. Please review the application.',
+            title: 'New Member Registration - IBAAN Main Branch',
+            content: 'A new member has been registered in IBAAN Main Branch. Please review the application.',
             type: 'info',
             priority: 'normal',
             timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
             isRead: false,
             category: 'transaction',
-            branch: 'branch1',
+            branch: 'ibaamain',
             status: 'pending'
         },
         {
@@ -80,7 +80,7 @@ function loadNotifications() {
             timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
             isRead: false,
             category: 'system',
-            branch: 'main',
+            branch: 'ibaamain',
             status: 'active'
         },
         {
@@ -92,19 +92,19 @@ function loadNotifications() {
             timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
             isRead: false,
             category: 'system',
-            branch: 'main',
+            branch: 'ibaamain',
             status: 'completed'
         },
         {
             id: 4,
-            title: 'Branch Performance Alert - Branch 3',
-            content: 'Branch 3 - SAN JOSE has exceeded its monthly savings target by 15%. Great performance!',
+            title: 'Branch Performance Alert - SAN JOSE Branch',
+            content: 'SAN JOSE Branch - Own Branch has exceeded its monthly savings target by 15%. Great performance!',
             type: 'success',
             priority: 'normal',
             timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
             isRead: true,
             category: 'transaction',
-            branch: 'branch3',
+            branch: 'sanjose',
             status: 'completed'
         },
         {
@@ -116,31 +116,31 @@ function loadNotifications() {
             timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
             isRead: true,
             category: 'system',
-            branch: 'main',
+            branch: 'ibaamain',
             status: 'completed'
         },
         {
             id: 6,
-            title: 'Member Data Update Required - Main Branch',
+            title: 'Member Data Update Required - IBAAN Main Branch',
             content: 'Finance Officer has requested review of member data updates. Please review and update member information as needed.',
             type: 'warning',
             priority: 'important',
             timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
             isRead: true,
             category: 'transaction',
-            branch: 'main',
+            branch: 'ibaamain',
             status: 'pending'
         },
         {
             id: 7,
-            title: 'New Transaction - Branch 2',
-            content: 'Large deposit transaction completed in Branch 2 - LIPA. Amount: ₱500,000.00',
+            title: 'New Transaction - LIPA CITY Branch',
+            content: 'Large deposit transaction completed in LIPA CITY Branch - Own Branch. Amount: ₱500,000.00',
             type: 'success',
             priority: 'normal',
             timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
             isRead: false,
             category: 'transaction',
-            branch: 'branch2',
+            branch: 'lipacity',
             status: 'completed'
         },
         {
@@ -152,7 +152,7 @@ function loadNotifications() {
             timestamp: new Date(Date.now() - 30 * 60 * 1000),
             isRead: false,
             category: 'system',
-            branch: 'main',
+            branch: 'ibaamain',
             status: 'pending'
         }
     ];
@@ -224,11 +224,18 @@ function createNotificationItem(notification) {
 // Get branch name from branch code
 function getBranchName(branchCode) {
     const branches = {
-        'main': 'Main Branch',
-        'branch1': 'Branch 1 - IBAAN',
-        'branch2': 'Branch 2 - LIPA',
-        'branch3': 'Branch 3 - SAN JOSE',
-        'branch4': 'Branch 4 - BATANGAS'
+        'ibaamain': 'Branch 1 - IBAAN',
+        'bauan': 'Branch 2 - BAUAN',
+        'sanjose': 'Branch 3 - SAN JOSE',
+        'rosario': 'Branch 4 - ROSARIO',
+        'sanjuan': 'Branch 5 - SAN JUAN',
+        'padregarcia': 'Branch 6 - PADRE GARCIA',
+        'lipacity': 'Branch 7 - LIPA CITY',
+        'batangascity': 'Branch 8 - BATANGAS CITY',
+        'mabini': 'Branch 9 - MABINI LIPA',
+        'calamias': 'Branch 10 - CALAMIAS',
+        'lemery': 'Branch 11 - LEMERY',
+        'mataasnakahoy': 'Branch 12 - MATAAS NA KAHOY'
     };
     return branches[branchCode] || branchCode;
 }

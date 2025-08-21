@@ -3,9 +3,9 @@
 
 /* Force override all existing styles */
 #mainScreen .account-content {
-    padding: 2rem !important;
-    max-width: 1200px !important;
-    margin: 0 auto !important;
+    padding: 1.5rem 0 !important; /* Remove left/right padding to align with header */
+    max-width: none !important; /* Remove max-width constraint */
+    margin: 0 !important; /* Remove auto margins */
     background: #fafbfc !important;
     min-height: calc(100vh - 120px) !important;
 }
@@ -13,8 +13,8 @@
 /* Account Header */
 #mainScreen .account-header {
     text-align: center !important;
-    margin: 4rem 0 3rem 0 !important;
-    padding: 1.5rem !important;
+    margin: 4rem 32px 1.5rem 32px !important; /* Increase left/right margins to align with header date */
+    padding: 1rem !important;
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
     border-radius: 12px !important;
     color: #0D5B11 !important;
@@ -35,35 +35,35 @@
 }
 
 #mainScreen .account-header h1 {
-    font-size: 1.5rem !important;
+    font-size: 1.1rem !important;
     font-weight: 700 !important;
-    margin-bottom: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
     color: #0D5B11 !important;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
     letter-spacing: -0.025em !important;
 }
 
 #mainScreen .account-header p {
-    font-size: 0.9rem !important;
+    font-size: 0.8rem !important;
     color: #6b7280 !important;
     margin: 0 !important;
     font-weight: 500 !important;
-    line-height: 1.5 !important;
+    line-height: 1.4 !important;
 }
 
 /* Account Grid Layout */
 #mainScreen .account-grid {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)) !important;
-    gap: 1.5rem !important;
-    margin-bottom: 2rem !important;
+    gap: 1rem !important;
+    margin: 0 32px 1.5rem 32px !important; /* Increase left/right margins to align with header date */
 }
 
 /* Section Cards */
 #mainScreen .account-section {
     background: white !important;
     border-radius: 8px !important;
-    padding: 1.5rem !important;
+    padding: 1.25rem !important;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04) !important;
     border: 1px solid #f0f2f5 !important;
     transition: all 0.2s ease !important;
@@ -74,8 +74,8 @@
     color: #0D5B11 !important;
     font-size: 1rem !important;
     font-weight: 600 !important;
-    margin-bottom: 1.25rem !important;
-    padding-bottom: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.5rem !important;
     border-bottom: 1px solid #f0f2f5 !important;
     display: flex !important;
     align-items: center !important;
@@ -91,7 +91,7 @@
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.75rem !important;
 }
 
 /* Edit Button */
@@ -128,10 +128,10 @@
 
 /* Form Groups */
 #mainScreen .form-group {
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.75rem !important;
     display: flex !important;
     align-items: center !important;
-    padding: 0.75rem 0 !important;
+    padding: 0.5rem 0 !important;
     border-bottom: 1px solid #f3f4f6 !important;
 }
 
@@ -225,17 +225,17 @@
 #mainScreen .personal-content,
 #mainScreen .status-content {
     background: #f8f9fa !important;
-    padding: 1rem !important;
+    padding: 0.75rem !important;
     border-radius: 6px !important;
     border-left: 3px solid #69B41E !important;
-    margin-top: 1rem !important;
+    margin-top: 0.75rem !important;
     transition: none !important;
 }
 
 #mainScreen .role-info,
 #mainScreen .branch-info {
     background: #f8f9fa !important;
-    padding: 1rem !important;
+    padding: 0.75rem !important;
     border-radius: 6px !important;
     border-left: 3px solid #69B41E !important;
 }
@@ -267,8 +267,8 @@
     display: flex !important;
     gap: 1rem !important;
     justify-content: center !important;
-    margin-top: 2rem !important;
-    padding-top: 1.5rem !important;
+    margin-top: 1.5rem !important;
+    padding-top: 1rem !important;
     border-top: 1px solid #f0f2f5 !important;
 }
 
@@ -313,7 +313,7 @@
 @media (max-width: 1200px) {
     #mainScreen .account-grid {
         grid-template-columns: 1fr !important;
-        gap: 1.5rem !important;
+        gap: 1rem !important;
     }
 }
 
@@ -323,8 +323,8 @@
     }
     
     #mainScreen .account-header {
-        margin: 6rem 0 2rem 0 !important;
-        padding: 1rem !important;
+        margin: 4rem 0 1.5rem 0 !important;
+        padding: 0.75rem !important;
     }
     
     #mainScreen .account-section {
