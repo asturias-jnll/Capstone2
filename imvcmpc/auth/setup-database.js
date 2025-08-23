@@ -316,6 +316,139 @@ async function createSampleUsers(client) {
             branch_id: 12, // Branch 12
             employee_id: 'MC-MNK-001',
             phone_number: '+63 912 345 6802'
+        },
+        // Finance Officers for different branches
+        // Branch 2 - Bauan
+        {
+            username: 'finance.bauan',
+            email: 'finance.bauan@imvcmc.com',
+            password: 'BauanFinance123!',
+            first_name: 'Bauan',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 2, // Branch 2
+            employee_id: 'FO-BAU-001',
+            phone_number: '+63 912 345 6803'
+        },
+        // Branch 3 - San Jose
+        {
+            username: 'finance.sanjose',
+            email: 'finance.sanjose@imvcmc.com',
+            password: 'SanJoseFinance123!',
+            first_name: 'San Jose',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 3, // Branch 3
+            employee_id: 'FO-SJ-001',
+            phone_number: '+63 912 345 6804'
+        },
+        // Branch 4 - Rosario
+        {
+            username: 'finance.rosario',
+            email: 'finance.rosario@imvcmc.com',
+            password: 'RosarioFinance123!',
+            first_name: 'Rosario',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 4, // Branch 4
+            employee_id: 'FO-ROS-001',
+            phone_number: '+63 912 345 6805'
+        },
+        // Branch 5 - San Juan
+        {
+            username: 'finance.sanjuan',
+            email: 'finance.sanjuan@imvcmc.com',
+            password: 'SanJuanFinance123!',
+            first_name: 'San Juan',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 5, // Branch 5
+            employee_id: 'FO-SJU-001',
+            phone_number: '+63 912 345 6806'
+        },
+        // Branch 6 - Padre Garcia
+        {
+            username: 'finance.padregarcia',
+            email: 'finance.padregarcia@imvcmc.com',
+            password: 'PadreGarciaFinance123!',
+            first_name: 'Padre Garcia',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 6, // Branch 6
+            employee_id: 'FO-PG-001',
+            phone_number: '+63 912 345 6807'
+        },
+        // Branch 7 - Lipa City
+        {
+            username: 'finance.lipacity',
+            email: 'finance.lipacity@imvcmc.com',
+            password: 'LipaCityFinance123!',
+            first_name: 'Lipa City',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 7, // Branch 7
+            employee_id: 'FO-LC-001',
+            phone_number: '+63 912 345 6808'
+        },
+        // Branch 8 - Batangas City
+        {
+            username: 'finance.batangascity',
+            email: 'finance.batangascity@imvcmc.com',
+            password: 'BatangasCityFinance123!',
+            first_name: 'Batangas City',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 8, // Branch 8
+            employee_id: 'FO-BC-001',
+            phone_number: '+63 912 345 6809'
+        },
+        // Branch 9 - Mabini Lipa
+        {
+            username: 'finance.mabinilipa',
+            email: 'finance.mabinilipa@imvcmc.com',
+            password: 'MabiniLipaFinance123!',
+            first_name: 'Mabini Lipa',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 9, // Branch 9
+            employee_id: 'FO-ML-001',
+            phone_number: '+63 912 345 6810'
+        },
+        // Branch 10 - Calamias
+        {
+            username: 'finance.calamias',
+            email: 'finance.calamias@imvcmc.com',
+            password: 'CalamiasFinance123!',
+            first_name: 'Calamias',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 10, // Branch 10
+            employee_id: 'FO-CAL-001',
+            phone_number: '+63 912 345 6811'
+        },
+        // Branch 11 - Lemery
+        {
+            username: 'finance.lemery',
+            email: 'finance.lemery@imvcmc.com',
+            password: 'LemeryFinance123!',
+            first_name: 'Lemery',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 11, // Branch 11
+            employee_id: 'FO-LEM-001',
+            phone_number: '+63 912 345 6812'
+        },
+        // Branch 12 - Mataas na Kahoy
+        {
+            username: 'finance.mataasnakahoy',
+            email: 'finance.mataasnakahoy@imvcmc.com',
+            password: 'MataasNaKahoyFinance123!',
+            first_name: 'Mataas na Kahoy',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 12, // Branch 12
+            employee_id: 'FO-MNK-001',
+            phone_number: '+63 912 345 6813'
         }
     ];
     
