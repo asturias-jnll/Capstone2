@@ -39,6 +39,78 @@ function initializeAccount() {
     setupPageVisibilityHandling();
     setInterval(updateDateTime, 1000);
     setInterval(updateSessionDuration, 1000);
+    
+    // Initialize branch-specific account information
+    initializeBranchSpecificAccount();
+}
+
+// Initialize branch-specific account information
+function initializeBranchSpecificAccount() {
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const userBranchName = localStorage.getItem('user_branch_name');
+    const userBranchLocation = localStorage.getItem('user_branch_location');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    // Update account header based on branch
+    updateAccountHeader(userBranchName, isMainBranchUser);
+    
+    // Update branch information in account details
+    updateBranchInformation(userBranchId, userBranchName, userBranchLocation, isMainBranchUser);
+}
+
+// Update account header based on branch
+function updateAccountHeader(branchName, isMainBranch) {
+    const headerTitle = document.querySelector('.account-header h1');
+    if (headerTitle && branchName) {
+        if (isMainBranch) {
+            headerTitle.textContent = 'Account Settings - Main Branch Access';
+        } else {
+            headerTitle.textContent = `Account Settings - ${branchName} Branch`;
+        }
+    }
+    
+    const headerDescription = document.querySelector('.account-header p');
+    if (headerDescription && branchName) {
+        if (isMainBranch) {
+            headerDescription.textContent = 'Manage your account preferences and security settings with access to all branches.';
+        } else {
+            headerDescription.textContent = `Manage your account preferences and security settings for ${branchName} branch.`;
+        }
+    }
+}
+
+// Update branch information in account details
+function updateBranchInformation(branchId, branchName, branchLocation, isMainBranch) {
+    const branchInfoElement = document.querySelector('.branch-info');
+    if (branchInfoElement && branchName) {
+        if (isMainBranch) {
+            branchInfoElement.innerHTML = `
+                <div class="form-group">
+                    <label>Branch Access:</label>
+                    <div class="info-value">All Branches (Main Branch User)</div>
+                </div>
+                <div class="form-group">
+                    <label>Primary Branch:</label>
+                    <div class="info-value">Main Branch - IBAAN</div>
+                </div>
+            `;
+        } else {
+            branchInfoElement.innerHTML = `
+                <div class="form-group">
+                    <label>Branch Access:</label>
+                    <div class="info-value">${branchName} Branch Only</div>
+                </div>
+                <div class="form-group">
+                    <label>Branch Location:</label>
+                    <div class="info-value">${branchLocation}</div>
+                </div>
+                <div class="form-group">
+                    <label>Branch ID:</label>
+                    <div class="info-value">${branchId}</div>
+                </div>
+            `;
+        }
+    }
 }
 
 // Setup page visibility handling for accurate session tracking

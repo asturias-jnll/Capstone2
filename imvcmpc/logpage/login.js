@@ -40,6 +40,14 @@ async function login() {
             localStorage.setItem('refresh_token', data.tokens.refresh_token);
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('lastLoginTime', new Date().toISOString());
+            
+            // Store branch information for branch-specific access
+            if (data.user.branch_id) {
+                localStorage.setItem('user_branch_id', data.user.branch_id);
+                localStorage.setItem('user_branch_name', data.user.branch_name);
+                localStorage.setItem('user_branch_location', data.user.branch_location);
+                localStorage.setItem('is_main_branch_user', data.user.is_main_branch_user);
+            }
 
             // Hide loading dialog
             document.getElementById('loadingDialog').style.display = 'none';
@@ -148,6 +156,10 @@ function clearUserSession() {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     localStorage.removeItem('lastLoginTime');
+    localStorage.removeItem('user_branch_id');
+    localStorage.removeItem('user_branch_name');
+    localStorage.removeItem('user_branch_location');
+    localStorage.removeItem('is_main_branch_user');
 }
 
 // Check if user is already logged in

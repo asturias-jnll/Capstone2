@@ -10,6 +10,69 @@ function initializeReports() {
     setupTransactionTypeButtons();
     updateCurrentDateTime();
     setInterval(updateCurrentDateTime, 1000);
+    
+    // Initialize branch-specific reports
+    initializeBranchSpecificReports();
+}
+
+// Initialize branch-specific reports
+function initializeBranchSpecificReports() {
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const userBranchName = localStorage.getItem('user_branch_name');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    // Update reports header based on branch
+    updateReportsHeader(userBranchName, isMainBranchUser);
+    
+    // Filter reports data based on user's branch
+    if (!isMainBranchUser && userBranchName) {
+        filterReportsForBranch(userBranchId, userBranchName);
+        
+        // Hide branch selection for branch-specific users
+        hideBranchSelection();
+    }
+}
+
+// Update reports header based on branch
+function updateReportsHeader(branchName, isMainBranch) {
+    const headerTitle = document.querySelector('.reports-header h1');
+    if (headerTitle && branchName) {
+        if (isMainBranch) {
+            headerTitle.textContent = 'Financial Reports';
+        } else {
+            headerTitle.textContent = `${branchName} Branch Reports`;
+        }
+    }
+}
+
+// Filter reports for specific branch
+function filterReportsForBranch(branchId, branchName) {
+    // Update branch selection to show only current branch
+    updateBranchSelectionForBranch(branchId, branchName);
+}
+
+// Hide branch selection for branch-specific users
+function hideBranchSelection() {
+    const branchSelection = document.querySelector('.branch-selection');
+    if (branchSelection) {
+        branchSelection.style.display = 'none';
+    }
+}
+
+// Update branch selection for specific branch
+function updateBranchSelectionForBranch(branchId, branchName) {
+    const branchGrid = document.querySelector('.branch-grid');
+    if (branchGrid) {
+        branchGrid.innerHTML = `
+            <div class="branch-checkbox">
+                <input type="checkbox" id="branch${branchId}" value="${branchId}" checked disabled>
+                <label class="checkmark" for="branch${branchId}">
+                    <div class="branch-name">${branchName}</div>
+                    <div class="branch-location">Branch ${branchId}</div>
+                </label>
+            </div>
+        `;
+    }
 }
 
 // Setup report type selector
@@ -319,7 +382,7 @@ function generateBranchReportData() {
     const month = document.getElementById('branchMonth').value;
     
     // Generate mock data based on selection
-    const data = generateMockBranchData(selectedBranch, year, month);
+    const data = generateBranchData(selectedBranch, year, month);
     
     return {
         type: 'Branch Performance Report',
@@ -347,22 +410,49 @@ function generateMockSavingsData(branches, year, month) {
         'branch12': 'Branch 12 - MATAAS NA KAHOY'
     };
     
-    const data = [];
-    const count = branches.includes('all') ? 100 : branches.length * 15;
+    // Check if user is branch-specific
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
-    for (let i = 0; i < count; i++) {
-        const branch = branches.includes('all') ? 
-            Object.values(branchNames).filter(name => name !== 'All Branches')[Math.floor(Math.random() * 12)] :
-            branchNames[branches[Math.floor(Math.random() * branches.length)]];
+    let data = [];
+    let count = 0;
+    
+    if (!isMainBranchUser && userBranchId) {
+        // Branch-specific user: generate data only for their branch
+        const userBranchName = `Branch ${userBranchId}`;
+        const userBranchLocation = getBranchLocation(userBranchId);
+        const branchFullName = `${userBranchName} - ${userBranchLocation}`;
         
-        data.push({
-            memberId: `M${String(i + 1).padStart(4, '0')}`,
-            memberName: `Member ${i + 1}`,
-            branch: branch,
-            savings: Math.floor(Math.random() * 100000) + 10000,
-            deposits: Math.floor(Math.random() * 50000) + 5000,
-            date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-        });
+        count = Math.floor(Math.random() * 20) + 15; // 15-35 members for branch
+        
+        for (let i = 0; i < count; i++) {
+            data.push({
+                memberId: `M${userBranchId}${String(i + 1).padStart(3, '0')}`,
+                memberName: generateBranchSpecificName(userBranchId, i),
+                branch: branchFullName,
+                savings: generateBranchSpecificSavings(userBranchId),
+                deposits: generateBranchSpecificDeposits(userBranchId),
+                date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+            });
+        }
+    } else {
+        // Main branch user: generate data for selected branches
+        count = branches.includes('all') ? 100 : branches.length * 15;
+        
+        for (let i = 0; i < count; i++) {
+            const branch = branches.includes('all') ? 
+                Object.values(branchNames).filter(name => name !== 'All Branches')[Math.floor(Math.random() * 12)] :
+                branchNames[branches[Math.floor(Math.random() * branches.length)]];
+            
+            data.push({
+                memberId: `M${String(i + 1).padStart(4, '0')}`,
+                memberName: `Member ${i + 1}`,
+                branch: branch,
+                savings: Math.floor(Math.random() * 100000) + 10000,
+                deposits: Math.floor(Math.random() * 50000) + 5000,
+                date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+            });
+        }
     }
     
     return data;
@@ -386,22 +476,49 @@ function generateMockDisbursementData(branches, year, month) {
         'branch12': 'Branch 12 - MATAAS NA KAHOY'
     };
     
-    const data = [];
-    const count = branches.includes('all') ? 80 : branches.length * 12;
+    // Check if user is branch-specific
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
-    for (let i = 0; i < count; i++) {
-        const branch = branches.includes('all') ? 
-            Object.values(branchNames).filter(name => name !== 'All Branches')[Math.floor(Math.random() * 12)] :
-            branchNames[branches[Math.floor(Math.random() * branches.length)]];
+    let data = [];
+    let count = 0;
+    
+    if (!isMainBranchUser && userBranchId) {
+        // Branch-specific user: generate data only for their branch
+        const userBranchName = `Branch ${userBranchId}`;
+        const userBranchLocation = getBranchLocation(userBranchId);
+        const branchFullName = `${userBranchName} - ${userBranchLocation}`;
         
-        data.push({
-            memberId: `M${String(i + 1).padStart(4, '0')}`,
-            memberName: `Member ${i + 1}`,
-            branch: branch,
-            amount: Math.floor(Math.random() * 200000) + 25000,
-            purpose: ['Business Loan', 'Personal Loan', 'Emergency Loan', 'Education Loan'][Math.floor(Math.random() * 4)],
-            date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-        });
+        count = Math.floor(Math.random() * 15) + 10; // 10-25 disbursements for branch
+        
+        for (let i = 0; i < count; i++) {
+            data.push({
+                memberId: `M${userBranchId}${String(i + 1).padStart(3, '0')}`,
+                memberName: generateBranchSpecificName(userBranchId, i),
+                branch: branchFullName,
+                amount: generateBranchSpecificDisbursement(userBranchId),
+                purpose: ['Business Loan', 'Personal Loan', 'Emergency Loan', 'Education Loan'][Math.floor(Math.random() * 4)],
+                date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+            });
+        }
+    } else {
+        // Main branch user: generate data for selected branches
+        count = branches.includes('all') ? 80 : branches.length * 12;
+        
+        for (let i = 0; i < count; i++) {
+            const branch = branches.includes('all') ? 
+                Object.values(branchNames).filter(name => name !== 'All Branches')[Math.floor(Math.random() * 12)] :
+                branchNames[branches[Math.floor(Math.random() * branches.length)]];
+            
+            data.push({
+                memberId: `M${String(i + 1).padStart(4, '0')}`,
+                memberName: `Member ${i + 1}`,
+                branch: branch,
+                amount: Math.floor(Math.random() * 200000) + 25000,
+                purpose: ['Business Loan', 'Personal Loan', 'Emergency Loan', 'Education Loan'][Math.floor(Math.random() * 4)],
+                date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+            });
+        }
     }
     
     return data;
@@ -409,19 +526,41 @@ function generateMockDisbursementData(branches, year, month) {
 
 // Generate mock member data
 function generateMockMemberData(memberSearch, transactionType) {
-    const data = [];
-    const count = 25;
+    // Check if user is branch-specific
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
-    for (let i = 0; i < count; i++) {
-        data.push({
-            transactionId: `T${String(i + 1).padStart(6, '0')}`,
-            type: transactionType,
-            amount: transactionType === 'savings' ? 
-                Math.floor(Math.random() * 50000) + 5000 : 
-                Math.floor(Math.random() * 150000) + 25000,
-            description: transactionType === 'savings' ? 'Monthly Deposit' : 'Loan Disbursement',
-            date: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-        });
+    const data = [];
+    let count = 25;
+    
+    if (!isMainBranchUser && userBranchId) {
+        // Branch-specific user: generate data only for their branch
+        count = Math.floor(Math.random() * 15) + 10; // 10-25 transactions for branch
+        
+        for (let i = 0; i < count; i++) {
+            data.push({
+                transactionId: `T${userBranchId}${String(i + 1).padStart(4, '0')}`,
+                type: transactionType,
+                amount: transactionType === 'savings' ? 
+                    generateBranchSpecificSavings(userBranchId) : 
+                    generateBranchSpecificDisbursement(userBranchId),
+                description: transactionType === 'savings' ? 'Monthly Deposit' : 'Loan Disbursement',
+                date: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+            });
+        }
+    } else {
+        // Main branch user: generate general data
+        for (let i = 0; i < count; i++) {
+            data.push({
+                transactionId: `T${String(i + 1).padStart(6, '0')}`,
+                type: transactionType,
+                amount: transactionType === 'savings' ? 
+                    Math.floor(Math.random() * 50000) + 5000 : 
+                    Math.floor(Math.random() * 150000) + 25000,
+                description: transactionType === 'savings' ? 'Monthly Deposit' : 'Loan Disbursement',
+                date: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+            });
+        }
     }
     
     return data.sort((a, b) => b.date - a.date);
@@ -451,6 +590,153 @@ function generateMockBranchData(branch, year, month) {
         disbursements: Math.floor(Math.random() * 3000000) + 500000,
         performance: Math.floor(Math.random() * 40) + 60
     };
+}
+
+// Generate branch-specific data
+function generateBranchData(branch, year, month) {
+    // Check if user is branch-specific
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    if (!isMainBranchUser && userBranchId) {
+        // Branch-specific user: generate data only for their branch
+        return generateBranchSpecificData(userBranchId);
+    } else {
+        // Main branch user: generate data for selected branch
+        return generateMockBranchData(branch, year, month);
+    }
+}
+
+// Generate branch-specific data
+function generateBranchSpecificData(branchId) {
+    const branchLocation = getBranchLocation(branchId);
+    const baseAmounts = {
+        2: { savings: 1160000, disbursements: 1050000, members: 180 }, // Bauan
+        3: { savings: 1250000, disbursements: 1150000, members: 200 }, // San Jose
+        4: { savings: 980000, disbursements: 880000, members: 150 },   // Rosario
+        5: { savings: 870000, disbursements: 780000, members: 130 },   // San Juan
+        6: { savings: 920000, disbursements: 820000, members: 160 },   // Taysan
+        7: { savings: 850000, disbursements: 750000, members: 140 },   // Lobo
+        8: { savings: 950000, disbursements: 850000, members: 170 },   // Calaca
+        9: { savings: 780000, disbursements: 680000, members: 120 },   // Lemery
+        10: { savings: 820000, disbursements: 720000, members: 145 },  // Agoncillo
+        11: { savings: 880000, disbursements: 780000, members: 155 },  // San Nicolas
+        12: { savings: 900000, disbursements: 800000, members: 165 }   // Taal
+    };
+    
+    const baseData = baseAmounts[branchId] || { savings: 1000000, disbursements: 900000, members: 150 };
+    
+    // Add realistic variations
+    const variation = (Math.random() - 0.5) * 0.2; // ±10% variation
+    const savings = Math.round(baseData.savings * (1 + variation));
+    const disbursements = Math.round(baseData.disbursements * (1 + variation));
+    const members = Math.round(baseData.members * (1 + variation));
+    const performance = Math.floor(Math.random() * 20) + 70; // 70-90% performance
+    
+    return {
+        branchName: `Branch ${branchId} - ${branchLocation}`,
+        members: members,
+        savings: savings,
+        disbursements: disbursements,
+        performance: performance
+    };
+}
+
+// Helper functions for branch-specific data generation
+function getBranchLocation(branchId) {
+    const locations = {
+        2: 'BAUAN',
+        3: 'SAN JOSE',
+        4: 'ROSARIO',
+        5: 'SAN JUAN',
+        6: 'PADRE GARCIA',
+        7: 'LIPA CITY',
+        8: 'BATANGAS CITY',
+        9: 'MABINI LIPA',
+        10: 'CALAMIAS',
+        11: 'LEMERY',
+        12: 'MATAAS NA KAHOY'
+    };
+    return locations[branchId] || 'UNKNOWN';
+}
+
+function generateBranchSpecificName(branchId, index) {
+    const branchNames = {
+        2: ['Maria Santos', 'Juan Dela Cruz', 'Ana Reyes', 'Pedro Mendoza', 'Carmen Garcia', 'Roberto Torres', 'Luz Villanueva', 'Miguel Lopez', 'Isabela Cruz', 'Antonio Santos'],
+        3: ['Jose Rizal', 'Gabriela Silang', 'Andres Bonifacio', 'Melchora Aquino', 'Lapu-Lapu', 'Tandang Sora', 'Gregorio Del Pilar', 'Mariano Gomez', 'Jacinta Zamora', 'Jose Burgos'],
+        4: ['Isabela Basa', 'Mariano Ponce', 'Marcelo Del Pilar', 'Graciano Lopez', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua'],
+        5: ['Emilio Aguinaldo', 'Apolinario Mabini', 'Miguel Malvar', 'Artemio Ricarte', 'Macario Sakay', 'Gregoria De Jesus', 'Marina Dizon', 'Paciano Rizal', 'Trinidad Rizal', 'Josefa Rizal'],
+        6: ['Santiago Alvarez', 'Mariano Alvarez', 'Pio Valenzuela', 'Jose Dizon', 'Josefa Llanes', 'Gregoria De Jesus', 'Marina Dizon', 'Candido Tirona', 'Vicente Lim', 'Jose Abad Santos'],
+        7: ['Emilio Jacinto', 'Andres Bonifacio', 'Gregoria De Jesus', 'Procopio Bonifacio', 'Procorpio Bonifacio', 'Maximino Bonifacio', 'Espiridiona Bonifacio', 'Santiago Bonifacio', 'Troadio Bonifacio', 'Ciriaco Bonifacio'],
+        8: ['Jose Rizal', 'Marcelo Del Pilar', 'Graciano Lopez', 'Mariano Ponce', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua'],
+        9: ['Emilio Aguinaldo', 'Apolinario Mabini', 'Miguel Malvar', 'Artemio Ricarte', 'Macario Sakay', 'Gregoria De Jesus', 'Marina Dizon', 'Paciano Rizal', 'Trinidad Rizal', 'Josefa Rizal'],
+        10: ['Santiago Alvarez', 'Mariano Alvarez', 'Pio Valenzuela', 'Jose Dizon', 'Josefa Llanes', 'Gregoria De Jesus', 'Marina Dizon', 'Candido Tirona', 'Vicente Lim', 'Jose Abad Santos'],
+        11: ['Emilio Jacinto', 'Andres Bonifacio', 'Gregoria De Jesus', 'Procopio Bonifacio', 'Procorpio Bonifacio', 'Maximino Bonifacio', 'Espiridiona Bonifacio', 'Santiago Bonifacio', 'Troadio Bonifacio', 'Ciriaco Bonifacio'],
+        12: ['Jose Rizal', 'Marcelo Del Pilar', 'Graciano Lopez', 'Mariano Ponce', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua']
+    };
+    
+    const availableNames = branchNames[branchId] || ['Member 1', 'Member 2', 'Member 3', 'Member 4', 'Member 5'];
+    return availableNames[index] || `Member ${index + 1}`;
+}
+
+function generateBranchSpecificSavings(branchId) {
+    const baseAmounts = {
+        2: 28000, // Bauan
+        3: 42000, // San Jose
+        4: 25000, // Rosario
+        5: 22000, // San Juan
+        6: 30000, // Taysan
+        7: 28000, // Lobo
+        8: 32000, // Calaca
+        9: 24000, // Lemery
+        10: 26000, // Agoncillo
+        11: 29000, // San Nicolas
+        12: 31000  // Taal
+    };
+    
+    const baseAmount = baseAmounts[branchId] || 30000;
+    const variation = (Math.random() - 0.5) * 0.4; // ±20% variation
+    return Math.round(baseAmount * (1 + variation));
+}
+
+function generateBranchSpecificDeposits(branchId) {
+    const baseAmounts = {
+        2: 12000, // Bauan
+        3: 18000, // San Jose
+        4: 10000, // Rosario
+        5: 9000,  // San Juan
+        6: 15000, // Taysan
+        7: 14000, // Lobo
+        8: 16000, // Calaca
+        9: 12000, // Lemery
+        10: 13000, // Agoncillo
+        11: 14500, // San Nicolas
+        12: 15500  // Taal
+    };
+    
+    const baseAmount = baseAmounts[branchId] || 15000;
+    const variation = (Math.random() - 0.5) * 0.3; // ±15% variation
+    return Math.round(baseAmount * (1 + variation));
+}
+
+function generateBranchSpecificDisbursement(branchId) {
+    const baseAmounts = {
+        2: 150000, // Bauan
+        3: 180000, // San Jose
+        4: 120000, // Rosario
+        5: 100000, // San Juan
+        6: 140000, // Taysan
+        7: 130000, // Lobo
+        8: 160000, // Calaca
+        9: 110000, // Lemery
+        10: 125000, // Agoncillo
+        11: 135000, // San Nicolas
+        12: 145000  // Taal
+    };
+    
+    const baseAmount = baseAmounts[branchId] || 150000;
+    const variation = (Math.random() - 0.5) * 0.3; // ±15% variation
+    return Math.round(baseAmount * (1 + variation));
 }
 
 // Display report in canvas

@@ -111,23 +111,28 @@ async function setupDatabase() {
             console.log(`   Branches: 12 (including Main Branch)`);
             console.log(`   Roles: 3 (Marketing Clerk, Finance Officer, IT Head)`);
             console.log(`   Permissions: 14 different permissions configured`);
-            console.log(`   Sample Users: 3 users created for testing`);
+            console.log(`   Sample Users: 15 users created for testing (3 main branch + 12 branch clerks)`);
             
             console.log('\n🔑 Sample Login Credentials:');
-            console.log('   Marketing Clerk:');
-            console.log('     Username: marketing.clerk');
-            console.log('     Password: Clerk123!');
-            console.log('     Branch: Main Branch (access to all branches)');
+            console.log('   Main Branch Users (access to all branches):');
+            console.log('     Marketing Clerk: marketing.clerk / Clerk123!');
+            console.log('     Finance Officer: finance.officer / Finance123!');
+            console.log('     IT Head: it.head / ITHead123!');
             console.log('');
-            console.log('   Finance Officer:');
-            console.log('     Username: finance.officer');
-            console.log('     Password: Finance123!');
-            console.log('     Branch: Main Branch (access to all branches)');
+            console.log('   Branch-Specific Marketing Clerks:');
+            console.log('     Branch 2 (Bauan): clerk.bauan / Bauan123!');
+            console.log('     Branch 3 (San Jose): clerk.sanjose / SanJose123!');
+            console.log('     Branch 4 (Rosario): clerk.rosario / Rosario123!');
+            console.log('     Branch 5 (San Juan): clerk.sanjuan / SanJuan123!');
+            console.log('     Branch 6 (Padre Garcia): clerk.padregarcia / PadreGarcia123!');
+            console.log('     Branch 7 (Lipa City): clerk.lipacity / LipaCity123!');
+            console.log('     Branch 8 (Batangas City): clerk.batangascity / BatangasCity123!');
+            console.log('     Branch 9 (Mabini Lipa): clerk.mabinilipa / MabiniLipa123!');
+            console.log('     Branch 10 (Calamias): clerk.calamias / Calamias123!');
+            console.log('     Branch 11 (Lemery): clerk.lemery / Lemery123!');
+            console.log('     Branch 12 (Mataas na Kahoy): clerk.mataasnakahoy / MataasNaKahoy123!');
             console.log('');
-            console.log('   IT Head:');
-            console.log('     Username: it.head');
-            console.log('     Password: ITHead123!');
-            console.log('     Branch: Main Branch (full system access)');
+            console.log('   Note: Branch clerks can only access data for their assigned branch.');
             
         } finally {
             await dbClient.end();
@@ -179,6 +184,138 @@ async function createSampleUsers(client) {
             branch_id: 1, // Main Branch
             employee_id: 'IT-001',
             phone_number: '+63 912 345 6791'
+        },
+        // Branch 2 - Bauan
+        {
+            username: 'clerk.bauan',
+            email: 'clerk.bauan@imvcmc.com',
+            password: 'Bauan123!',
+            first_name: 'Bauan',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 2, // Branch 2
+            employee_id: 'MC-BAU-001',
+            phone_number: '+63 912 345 6792'
+        },
+        // Branch 3 - San Jose
+        {
+            username: 'clerk.sanjose',
+            email: 'clerk.sanjose@imvcmc.com',
+            password: 'SanJose123!',
+            first_name: 'San Jose',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 3, // Branch 3
+            employee_id: 'MC-SJ-001',
+            phone_number: '+63 912 345 6793'
+        },
+        // Branch 4 - Rosario
+        {
+            username: 'clerk.rosario',
+            email: 'clerk.rosario@imvcmc.com',
+            password: 'Rosario123!',
+            first_name: 'Rosario',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 4, // Branch 4
+            employee_id: 'MC-ROS-001',
+            phone_number: '+63 912 345 6794'
+        },
+        // Branch 5 - San Juan
+        {
+            username: 'clerk.sanjuan',
+            email: 'clerk.sanjuan@imvcmc.com',
+            password: 'SanJuan123!',
+            first_name: 'San Juan',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 5, // Branch 5
+            employee_id: 'MC-SJU-001',
+            phone_number: '+63 912 345 6795'
+        },
+        // Branch 6 - Padre Garcia
+        {
+            username: 'clerk.padregarcia',
+            email: 'clerk.padregarcia@imvcmc.com',
+            password: 'PadreGarcia123!',
+            first_name: 'Padre Garcia',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 6, // Branch 6
+            employee_id: 'MC-PG-001',
+            phone_number: '+63 912 345 6796'
+        },
+        // Branch 7 - Lipa City
+        {
+            username: 'clerk.lipacity',
+            email: 'clerk.lipacity@imvcmc.com',
+            password: 'LipaCity123!',
+            first_name: 'Lipa City',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 7, // Branch 7
+            employee_id: 'MC-LC-001',
+            phone_number: '+63 912 345 6797'
+        },
+        // Branch 8 - Batangas City
+        {
+            username: 'clerk.batangascity',
+            email: 'clerk.batangascity@imvcmc.com',
+            password: 'BatangasCity123!',
+            first_name: 'Batangas City',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 8, // Branch 8
+            employee_id: 'MC-BC-001',
+            phone_number: '+63 912 345 6798'
+        },
+        // Branch 9 - Mabini Lipa
+        {
+            username: 'clerk.mabinilipa',
+            email: 'clerk.mabinilipa@imvcmc.com',
+            password: 'MabiniLipa123!',
+            first_name: 'Mabini Lipa',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 9, // Branch 9
+            employee_id: 'MC-ML-001',
+            phone_number: '+63 912 345 6799'
+        },
+        // Branch 10 - Calamias
+        {
+            username: 'clerk.calamias',
+            email: 'clerk.calamias@imvcmc.com',
+            password: 'Calamias123!',
+            first_name: 'Calamias',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 10, // Branch 10
+            employee_id: 'MC-CAL-001',
+            phone_number: '+63 912 345 6800'
+        },
+        // Branch 11 - Lemery
+        {
+            username: 'clerk.lemery',
+            email: 'clerk.lemery@imvcmc.com',
+            password: 'Lemery123!',
+            first_name: 'Lemery',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 11, // Branch 11
+            employee_id: 'MC-LEM-001',
+            phone_number: '+63 912 345 6801'
+        },
+        // Branch 12 - Mataas na Kahoy
+        {
+            username: 'clerk.mataasnakahoy',
+            email: 'clerk.mataasnakahoy@imvcmc.com',
+            password: 'MataasNaKahoy123!',
+            first_name: 'Mataas na Kahoy',
+            last_name: 'Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 12, // Branch 12
+            employee_id: 'MC-MNK-001',
+            phone_number: '+63 912 345 6802'
         }
     ];
     
@@ -191,6 +328,9 @@ async function createSampleUsers(client) {
         if (existingUser.rows.length === 0) {
             // Hash password
             const passwordHash = await bcrypt.hash(userData.password, bcryptRounds);
+            
+            // Determine if user is main branch user
+            const isMainBranchUser = userData.branch_id === 1;
             
             // Insert user
             await client.query(`
@@ -208,10 +348,10 @@ async function createSampleUsers(client) {
                 userData.branch_id,
                 userData.employee_id,
                 userData.phone_number,
-                true // Main branch users
+                isMainBranchUser
             ]);
             
-            console.log(`   ✅ Created user: ${userData.username} (${userData.first_name} ${userData.last_name})`);
+            console.log(`   ✅ Created user: ${userData.username} (${userData.first_name} ${userData.last_name}) - Branch ${userData.branch_id}`);
         } else {
             console.log(`   ⏭️  User already exists: ${userData.username}`);
         }

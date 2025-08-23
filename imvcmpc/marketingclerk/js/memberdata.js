@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Sample member data (in real app, this would come from API)
 let members = [
+    // Branch 1 - IBAAN (Main Branch)
     {
         id: 1,
         name: "Rita Helera",
@@ -38,30 +39,30 @@ let members = [
     },
     {
         id: 4,
-        name: "Maria Santos",
-        branch: "Branch 2",
-        location: "BAUAN",
-        savings: 28000,
-        disbursement: 12000,
-        total: 40000
+        name: "Carmen Santos",
+        branch: "Branch 1",
+        location: "IBAAN",
+        savings: 38000,
+        disbursement: 18000,
+        total: 56000
     },
     {
         id: 5,
-        name: "Juan Dela Cruz",
-        branch: "Branch 2",
-        location: "BAUAN",
-        savings: 35000,
-        disbursement: 18000,
-        total: 53000
+        name: "Roberto Torres",
+        branch: "Branch 1",
+        location: "IBAAN",
+        savings: 45000,
+        disbursement: 22000,
+        total: 67000
     },
     {
         id: 6,
-        name: "Ana Garcia",
-        branch: "Branch 3",
-        location: "SAN JOSE",
-        savings: 42000,
-        disbursement: 22000,
-        total: 64000
+        name: "Luz Villanueva",
+        branch: "Branch 1",
+        location: "IBAAN",
+        savings: 32000,
+        disbursement: 16000,
+        total: 48000
     }
 ];
 
@@ -70,7 +71,141 @@ let editingMemberId = null;
 
 // Initialize member data
 function initializeMemberData() {
+    // Generate comprehensive branch-specific data
+    generateBranchSpecificMembers();
+    
+    // Filter members based on user's branch
+    filterMembersByUserBranch();
+    
     renderMemberTable();
+}
+
+// Generate comprehensive branch-specific member data
+function generateBranchSpecificMembers() {
+    const branchData = {
+        2: { // Bauan
+            names: ['Maria Santos', 'Juan Dela Cruz', 'Ana Reyes', 'Pedro Mendoza', 'Carmen Garcia', 'Roberto Torres', 'Luz Villanueva', 'Miguel Lopez', 'Isabela Cruz', 'Antonio Santos'],
+            baseSavings: 28000,
+            baseDisbursement: 12000
+        },
+        3: { // San Jose
+            names: ['Jose Rizal', 'Gabriela Silang', 'Andres Bonifacio', 'Melchora Aquino', 'Lapu-Lapu', 'Tandang Sora', 'Gregorio Del Pilar', 'Mariano Gomez', 'Jacinta Zamora', 'Jose Burgos'],
+            baseSavings: 42000,
+            baseDisbursement: 22000
+        },
+        4: { // Rosario
+            names: ['Isabela Basa', 'Mariano Ponce', 'Marcelo Del Pilar', 'Graciano Lopez', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua'],
+            baseSavings: 25000,
+            baseDisbursement: 10000
+        },
+        5: { // San Juan
+            names: ['Emilio Aguinaldo', 'Apolinario Mabini', 'Miguel Malvar', 'Artemio Ricarte', 'Macario Sakay', 'Gregoria De Jesus', 'Marina Dizon', 'Paciano Rizal', 'Trinidad Rizal', 'Josefa Rizal'],
+            baseSavings: 22000,
+            baseDisbursement: 9000
+        },
+        6: { // Taysan
+            names: ['Santiago Alvarez', 'Mariano Alvarez', 'Pio Valenzuela', 'Jose Dizon', 'Josefa Llanes', 'Gregoria De Jesus', 'Marina Dizon', 'Candido Tirona', 'Vicente Lim', 'Jose Abad Santos'],
+            baseSavings: 30000,
+            baseDisbursement: 15000
+        },
+        7: { // Lobo
+            names: ['Emilio Jacinto', 'Andres Bonifacio', 'Gregoria De Jesus', 'Procopio Bonifacio', 'Procorpio Bonifacio', 'Maximino Bonifacio', 'Espiridiona Bonifacio', 'Santiago Bonifacio', 'Troadio Bonifacio', 'Ciriaco Bonifacio'],
+            baseSavings: 28000,
+            baseDisbursement: 14000
+        },
+        8: { // Calaca
+            names: ['Jose Rizal', 'Marcelo Del Pilar', 'Graciano Lopez', 'Mariano Ponce', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua'],
+            baseSavings: 32000,
+            baseDisbursement: 16000
+        },
+        9: { // Lemery
+            names: ['Emilio Aguinaldo', 'Apolinario Mabini', 'Miguel Malvar', 'Artemio Ricarte', 'Macario Sakay', 'Gregoria De Jesus', 'Marina Dizon', 'Paciano Rizal', 'Trinidad Rizal', 'Josefa Rizal'],
+            baseSavings: 24000,
+            baseDisbursement: 12000
+        },
+        10: { // Agoncillo
+            names: ['Santiago Alvarez', 'Mariano Alvarez', 'Pio Valenzuela', 'Jose Dizon', 'Josefa Llanes', 'Gregoria De Jesus', 'Marina Dizon', 'Candido Tirona', 'Vicente Lim', 'Jose Abad Santos'],
+            baseSavings: 26000,
+            baseDisbursement: 13000
+        },
+        11: { // San Nicolas
+            names: ['Emilio Jacinto', 'Andres Bonifacio', 'Gregoria De Jesus', 'Procopio Bonifacio', 'Procorpio Bonifacio', 'Maximino Bonifacio', 'Espiridiona Bonifacio', 'Santiago Bonifacio', 'Troadio Bonifacio', 'Ciriaco Bonifacio'],
+            baseSavings: 29000,
+            baseDisbursement: 14500
+        },
+        12: { // Taal
+            names: ['Jose Rizal', 'Marcelo Del Pilar', 'Graciano Lopez', 'Mariano Ponce', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua'],
+            baseSavings: 31000,
+            baseDisbursement: 15500
+        }
+    };
+
+    // Generate members for each branch
+    Object.keys(branchData).forEach(branchId => {
+        const branchInfo = branchData[branchId];
+        const branchName = `Branch ${branchId}`;
+        const branchLocation = getLocationFromBranch(branchName);
+        
+        branchInfo.names.forEach((name, index) => {
+            const memberId = parseInt(branchId) * 100 + index + 1;
+            
+            // Generate realistic variations in savings and disbursements
+            const savingsVariation = (Math.random() - 0.5) * 0.4; // ±20% variation
+            const disbursementVariation = (Math.random() - 0.5) * 0.3; // ±15% variation
+            
+            const savings = Math.round(branchInfo.baseSavings * (1 + savingsVariation));
+            const disbursement = Math.round(branchInfo.baseDisbursement * (1 + disbursementVariation));
+            
+            const member = {
+                id: memberId,
+                name: name,
+                branch: branchName,
+                location: branchLocation,
+                savings: savings,
+                disbursement: disbursement,
+                total: savings + disbursement
+            };
+            
+            members.push(member);
+        });
+    });
+}
+
+// Filter members based on user's branch
+function filterMembersByUserBranch() {
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const userBranchName = localStorage.getItem('user_branch_name');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    if (!isMainBranchUser && userBranchName) {
+        // Filter members to show only those from user's branch
+        currentMembers = members.filter(member => member.branch === userBranchName);
+        
+        // Update page title and description
+        updateMemberDataHeader(userBranchName);
+        
+        // Hide branch filter for branch-specific users
+        hideBranchFilter();
+    } else {
+        // Main branch users see all members
+        currentMembers = [...members];
+    }
+}
+
+// Update member data header based on branch
+function updateMemberDataHeader(branchName) {
+    const headerTitle = document.querySelector('.member-header h1');
+    if (headerTitle) {
+        headerTitle.textContent = `${branchName} Branch Member Data`;
+    }
+}
+
+// Hide branch filter for branch-specific users
+function hideBranchFilter() {
+    const branchFilter = document.getElementById('branchFilter');
+    if (branchFilter) {
+        branchFilter.style.display = 'none';
+    }
 }
 
 // Setup event listeners

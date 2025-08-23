@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize session management
     initializeSessionManagement();
+    
+    // Initialize branch-specific display
+    initializeBranchDisplay();
 });
 
 // Update date and time display
@@ -37,6 +40,75 @@ function updateDateTime() {
     const timeElement = document.getElementById('currentTime');
     if (timeElement) {
         timeElement.textContent = now.toLocaleTimeString('en-US', timeOptions);
+    }
+}
+
+// Initialize branch-specific display
+function initializeBranchDisplay() {
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const userBranchName = localStorage.getItem('user_branch_name');
+    const userBranchLocation = localStorage.getItem('user_branch_location');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    // Update breadcrumb to show branch information
+    const breadcrumbElement = document.getElementById('currentScreen');
+    if (breadcrumbElement && userBranchName) {
+        if (isMainBranchUser) {
+            breadcrumbElement.textContent = 'Dashboard - All Branches';
+        } else {
+            breadcrumbElement.textContent = `Dashboard - ${userBranchName}`;
+        }
+    }
+    
+    // Update user role display to show branch
+    const userRoleElement = document.getElementById('userRole');
+    if (userRoleElement && userBranchName) {
+        if (isMainBranchUser) {
+            userRoleElement.textContent = 'Marketing Clerk (Main Branch)';
+        } else {
+            userRoleElement.textContent = `Marketing Clerk (${userBranchName})`;
+        }
+    }
+    
+    // Add branch indicator to the top bar if not main branch user
+    if (!isMainBranchUser && userBranchName) {
+        addBranchIndicator(userBranchName, userBranchLocation);
+    }
+}
+
+// Add branch indicator to top bar
+function addBranchIndicator(branchName, branchLocation) {
+    const topBar = document.querySelector('.top-bar');
+    if (topBar) {
+        // Check if branch indicator already exists
+        if (!document.getElementById('branchIndicator')) {
+            const branchIndicator = document.createElement('div');
+            branchIndicator.id = 'branchIndicator';
+            branchIndicator.className = 'branch-indicator';
+            branchIndicator.style.cssText = `
+                background: linear-gradient(135deg, #69B41E, #8DC71E);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 14px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 2px 8px rgba(105, 180, 30, 0.3);
+            `;
+            
+            branchIndicator.innerHTML = `
+                <i class="fas fa-map-marker-alt"></i>
+                <span>${branchName} - ${branchLocation}</span>
+            `;
+            
+            // Insert after breadcrumb
+            const breadcrumb = topBar.querySelector('.breadcrumb');
+            if (breadcrumb) {
+                breadcrumb.parentNode.insertBefore(branchIndicator, breadcrumb.nextSibling);
+            }
+        }
     }
 }
 
