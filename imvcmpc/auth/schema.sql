@@ -122,6 +122,23 @@ INSERT INTO branches (id, name, location, is_main_branch) VALUES
 (12, 'Branch 12', 'MATAAS NA KAHOY', FALSE)
 ON CONFLICT (id) DO NOTHING;
 
+-- Insert marketing clerk users with new credential format
+-- Note: These are placeholder password hashes, they should be updated with actual bcrypt hashes
+INSERT INTO users (username, email, password_hash, first_name, last_name, role_id, branch_id, employee_id, is_active) VALUES
+('mc.ibaan', 'mc.ibaan@imvcmpc.com', '$2b$10$placeholder.hash.for.ibaan123!', 'IBAAN', 'Marketing Clerk', 1, 1, 'MC001', true),
+('mc.bauan', 'mc.bauan@imvcmpc.com', '$2b$10$placeholder.hash.for.bauan123!', 'BAUAN', 'Marketing Clerk', 1, 2, 'MC002', true),
+('mc.sanjose', 'mc.sanjose@imvcmpc.com', '$2b$10$placeholder.hash.for.sanjose123!', 'SAN JOSE', 'Marketing Clerk', 1, 3, 'MC003', true),
+('mc.rosario', 'mc.rosario@imvcmpc.com', '$2b$10$placeholder.hash.for.rosario123!', 'ROSARIO', 'Marketing Clerk', 1, 4, 'MC004', true),
+('mc.sanjuan', 'mc.sanjuan@imvcmpc.com', '$2b$10$placeholder.hash.for.sanjuan123!', 'SAN JUAN', 'Marketing Clerk', 1, 5, 'MC005', true),
+('mc.padregarcia', 'mc.padregarcia@imvcmpc.com', '$2b$10$placeholder.hash.for.padregarcia123!', 'PADRE GARCIA', 'Marketing Clerk', 1, 6, 'MC006', true),
+('mc.lipacity', 'mc.lipacity@imvcmpc.com', '$2b$10$placeholder.hash.for.lipacity123!', 'LIPA CITY', 'Marketing Clerk', 1, 7, 'MC007', true),
+('mc.batangascity', 'mc.batangascity@imvcmpc.com', '$2b$10$placeholder.hash.for.batangascity123!', 'BATANGAS CITY', 'Marketing Clerk', 1, 8, 'MC008', true),
+('mc.mabinilipa', 'mc.mabinilipa@imvcmpc.com', '$2b$10$placeholder.hash.for.mabinilipa123!', 'MABINI LIPA', 'Marketing Clerk', 1, 9, 'MC009', true),
+('mc.calamias', 'mc.calamias@imvcmpc.com', '$2b$10$placeholder.hash.for.calamias123!', 'CALAMIAS', 'Marketing Clerk', 1, 10, 'MC010', true),
+('mc.lemery', 'mc.lemery@imvcmpc.com', '$2b$10$placeholder.hash.for.lemery123!', 'LEMERY', 'Marketing Clerk', 1, 11, 'MC011', true),
+('mc.mataasnakahoy', 'mc.mataasnakahoy@imvcmpc.com', '$2b$10$placeholder.hash.for.mataasnakahoy123!', 'MATAAS NA KAHOY', 'Marketing Clerk', 1, 12, 'MC012', true)
+ON CONFLICT (username) DO NOTHING;
+
 -- Insert default roles
 INSERT INTO roles (id, name, display_name, description) VALUES
 (1, 'marketing_clerk', 'Marketing Clerk', 'Marketing clerk with branch-specific access'),

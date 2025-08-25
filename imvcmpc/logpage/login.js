@@ -17,10 +17,30 @@ async function login() {
 
     // Disable login button and show loading state
     loginBtn.disabled = true;
-    loginBtnText.textContent = 'LOGGING IN...';
 
     // Show loading dialog
-    document.getElementById('loadingDialog').style.display = 'flex';
+    const loadingDialog = document.getElementById('loadingDialog');
+    const loadingText = document.querySelector('#loadingDialog p');
+    
+    // Show loading dialog
+    loadingDialog.style.display = 'flex';
+    
+    // Immediately show role-specific message (we'll get the role from the form or make an educated guess)
+    if (loadingText) {
+        // Try to get role from username pattern or show generic message
+        const username = document.getElementById('username').value;
+        let roleGuess = 'User';
+        
+        if (username.includes('mc.')) {
+            roleGuess = 'Marketing Clerk';
+        } else if (username.includes('fo.')) {
+            roleGuess = 'Finance Officer';
+        } else if (username.includes('it.')) {
+            roleGuess = 'IT Head';
+        }
+        
+        loadingText.textContent = `Logging in as ${roleGuess}...`;
+    }
 
     try {
         // Make API call to authentication service
@@ -41,6 +61,11 @@ async function login() {
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('lastLoginTime', new Date().toISOString());
             
+            // Store user role for logout display
+            const userRole = data.user.role_display_name || data.user.role;
+            localStorage.setItem('user_role', userRole);
+            console.log('User role stored in localStorage:', userRole);
+            
             // Store branch information for branch-specific access
             if (data.user.branch_id) {
                 localStorage.setItem('user_branch_id', data.user.branch_id);
@@ -49,35 +74,38 @@ async function login() {
                 localStorage.setItem('is_main_branch_user', data.user.is_main_branch_user);
             }
 
-            // Hide loading dialog
-            document.getElementById('loadingDialog').style.display = 'none';
-
-            // Show success dialog with role-specific message
-            const successDialog = document.getElementById('successDialog');
-            const successMessage = document.getElementById('successMessage');
-            
-            // Update loading dialog text to show actual user role
-            const loadingText = document.querySelector('#loadingDialog p');
+            // Update loading dialog text with actual role from API response
             if (loadingText) {
                 loadingText.textContent = `Logging in as ${data.user.role_display_name}...`;
             }
 
-            // Set success message based on user role
-            successMessage.textContent = `Welcome, ${data.user.first_name} ${data.user.last_name}!`;
-            
-            // Show success dialog
-            successDialog.style.display = 'flex';
-
-            // Redirect based on user role after a short delay
+            // Keep loading dialog visible for a moment to show the updated text
             setTimeout(() => {
-                redirectBasedOnRole(data.user.role);
-            }, 1500);
+                // Hide loading dialog
+                document.getElementById('loadingDialog').style.display = 'none';
+                
+                // Show success dialog with role-specific message
+                const successDialog = document.getElementById('loadingDialog').nextElementSibling;
+                const successMessage = document.getElementById('successMessage');
+                
+                // Set success message based on user role and branch
+                const userBranchName = data.user.branch_name || 'IBAAN';
+                const roleDisplayName = data.user.role_display_name || 'User';
+                successMessage.textContent = `Welcome, ${userBranchName} ${roleDisplayName}!`;
+                
+                // Show success dialog
+                successDialog.style.display = 'flex';
+                
+                // Redirect based on user role after a short delay
+                setTimeout(() => {
+                    redirectBasedOnRole(data.user.role);
+                }, 3000);
+            }, 1000);
 
         } else {
             // Handle API error
             showError(data.error || 'Login failed. Please check your credentials.');
             loginBtn.disabled = false;
-            loginBtnText.textContent = 'LOGIN';
             document.getElementById('loadingDialog').style.display = 'none';
         }
 
@@ -92,7 +120,6 @@ async function login() {
         }
         
         loginBtn.disabled = false;
-        loginBtnText.textContent = 'LOGIN';
         document.getElementById('loadingDialog').style.display = 'none';
     }
 }
@@ -156,6 +183,7 @@ function clearUserSession() {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     localStorage.removeItem('lastLoginTime');
+    localStorage.removeItem('user_role');
     localStorage.removeItem('user_branch_id');
     localStorage.removeItem('user_branch_name');
     localStorage.removeItem('user_branch_location');
@@ -212,10 +240,7 @@ function showError(message) {
     errorMessage.style.display = 'flex';
 }
 
-// Close success dialog
-function closeSuccessDialog() {
-    document.getElementById('successDialog').style.display = 'none';
-}
+
 
 // Handle Enter key press on form inputs
 document.addEventListener('DOMContentLoaded', function() {

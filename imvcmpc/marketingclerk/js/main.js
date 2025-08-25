@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize branch-specific display
     initializeBranchDisplay();
+    
+    // Initialize dynamic user header
+    initializeDynamicUserHeader();
 });
 
 // Update date and time display
@@ -70,47 +73,10 @@ function initializeBranchDisplay() {
         }
     }
     
-    // Add branch indicator to the top bar if not main branch user
-    if (!isMainBranchUser && userBranchName) {
-        addBranchIndicator(userBranchName, userBranchLocation);
-    }
+    // Branch indicator removed - no longer showing branch location in center of header
 }
 
-// Add branch indicator to top bar
-function addBranchIndicator(branchName, branchLocation) {
-    const topBar = document.querySelector('.top-bar');
-    if (topBar) {
-        // Check if branch indicator already exists
-        if (!document.getElementById('branchIndicator')) {
-            const branchIndicator = document.createElement('div');
-            branchIndicator.id = 'branchIndicator';
-            branchIndicator.className = 'branch-indicator';
-            branchIndicator.style.cssText = `
-                background: linear-gradient(135deg, #69B41E, #8DC71E);
-                color: white;
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-size: 14px;
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                box-shadow: 0 2px 8px rgba(105, 180, 30, 0.3);
-            `;
-            
-            branchIndicator.innerHTML = `
-                <i class="fas fa-map-marker-alt"></i>
-                <span>${branchName} - ${branchLocation}</span>
-            `;
-            
-            // Insert after breadcrumb
-            const breadcrumb = topBar.querySelector('.breadcrumb');
-            if (breadcrumb) {
-                breadcrumb.parentNode.insertBefore(branchIndicator, breadcrumb.nextSibling);
-            }
-        }
-    }
-}
+
 
 // Set active navigation item based on current page
 function setActiveNavigation() {
@@ -137,13 +103,13 @@ function setActiveNavigation() {
     });
 }
 
-// Logout function
+// Logout function - shows confirmation and spinning logo before redirecting
 function logout() {
-    // Show enhanced logout confirmation modal
+    // Show logout confirmation modal
     showLogoutConfirmation();
 }
 
-// Show enhanced logout confirmation modal
+// Show logout confirmation modal
 function showLogoutConfirmation() {
     // Create modal overlay
     const modalOverlay = document.createElement('div');
@@ -159,50 +125,35 @@ function showLogoutConfirmation() {
         justify-content: center;
         align-items: center;
         z-index: 10000;
-        backdrop-filter: blur(4px);
     `;
 
     // Create modal content
     const modalContent = document.createElement('div');
     modalContent.className = 'logout-modal';
     modalContent.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        padding: 32px;
+        background: #E9EEF3;
+        border-radius: 24px;
+        padding: 24px;
         text-align: center;
         max-width: 400px;
         width: 90%;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         animation: modalSlideIn 0.3s ease-out;
     `;
 
     modalContent.innerHTML = `
-        <div class="logout-modal-icon" style="
-            width: 64px;
-            height: 64px;
-            background: var(--red);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            color: white;
-            font-size: 24px;
-        ">
-            <i class="fas fa-sign-out-alt"></i>
-        </div>
         <h2 style="
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--dark-green);
-            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #0B5E1C;
+            margin-bottom: 8px;
         ">Confirm Logout</h2>
         <p style="
-            font-size: 16px;
-            color: var(--gray-600);
-            margin-bottom: 24px;
-            line-height: 1.5;
-        ">Are you sure you want to logout? This will end your current session and clear all temporary data.</p>
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        ">Are you sure you want to logout?</p>
         <div style="
             display: flex;
             gap: 12px;
@@ -210,25 +161,27 @@ function showLogoutConfirmation() {
         ">
             <button id="cancelLogout" style="
                 padding: 12px 24px;
-                border: 2px solid var(--gray-300);
-                border-radius: 8px;
+                border: 1px solid #D1D5DB;
+                border-radius: 10px;
                 background: white;
-                color: var(--gray-600);
+                color: #4B5563;
                 font-size: 14px;
                 font-weight: 600;
                 cursor: pointer;
-                transition: all 0.2s ease;
+                transition: all 0.3s ease;
+                min-width: 100px;
             ">Cancel</button>
             <button id="confirmLogout" style="
                 padding: 12px 24px;
                 border: none;
-                border-radius: 8px;
-                background: var(--red);
+                border-radius: 10px;
+                background: #187C19;
                 color: white;
                 font-size: 14px;
                 font-weight: 600;
                 cursor: pointer;
-                transition: all 0.2s ease;
+                transition: all 0.3s ease;
+                min-width: 100px;
             ">Logout</button>
         </div>
     `;
@@ -259,13 +212,15 @@ function showLogoutConfirmation() {
         }
         
         #cancelLogout:hover {
-            border-color: var(--gray-400);
-            background: var(--gray-50);
+            border-color: #9CA3AF;
+            background: #F9FAFB;
+            transform: translateY(-1px);
         }
         
         #confirmLogout:hover {
-            background: #dc2626;
+            background: #0B5E1C;
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
         }
     `;
     document.head.appendChild(style);
@@ -312,89 +267,135 @@ function closeLogoutModal() {
     }
 }
 
-// Perform actual logout
+// Perform actual logout with spinning logo
 function performLogout() {
-    // Clear any stored user data
+    // Show logout loading with spinning logo
+    showLogoutLoading();
+    
+    // Clear user session data
     clearUserSession();
     
-    // Show logout message
-    showLogoutMessage();
-    
-    // Redirect to logout page after a brief delay
+    // Redirect to login page after showing loading
     setTimeout(() => {
-        window.location.href = '../../logpage/logout.html';
-    }, 1000);
+        window.location.href = '../../logpage/login.html';
+    }, 3000);
 }
 
 // Clear user session data
 function clearUserSession() {
-    // Clear localStorage items
-    localStorage.removeItem('userProfile');
-    localStorage.removeItem('userPreferences');
-    localStorage.removeItem('userActivities');
-    localStorage.removeItem('notifications');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
     localStorage.removeItem('lastLoginTime');
-    
-    // Reset session tracking for account status
-    localStorage.removeItem('sessionStartTime');
-    
-    // Clear any session storage
-    sessionStorage.clear();
-    
-    // Clear any cookies (if using them)
-    document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-    });
+    localStorage.removeItem('lastActivityTime');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('user_branch_id');
+    localStorage.removeItem('user_branch_name');
+    localStorage.removeItem('user_branch_location');
+    localStorage.removeItem('is_main_branch_user');
 }
 
-// Show logout message
-function showLogoutMessage() {
-    // Create logout message element
-    const messageElement = document.createElement('div');
-    messageElement.className = 'logout-message';
-    messageElement.style.cssText = `
+// Show logout loading with spinning logo
+function showLogoutLoading() {
+    // Create loading overlay
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'logout-loading-overlay';
+    loadingOverlay.style.cssText = `
         position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: var(--dark-green);
-        color: white;
-        padding: 20px 40px;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        z-index: 10000;
-        font-size: 16px;
-        font-weight: 600;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10001;
+    `;
+
+    // Create loading content
+    const loadingContent = document.createElement('div');
+    loadingContent.style.cssText = `
+        background: #E9EEF3;
+        border-radius: 24px;
+        padding: 24px;
         text-align: center;
-        animation: fadeInOut 1s ease-in-out;
-    `;
-    messageElement.innerHTML = `
-        <i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i>
-        Logging out...
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     `;
 
-    // Add CSS animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    loadingContent.innerHTML = `
+        <div class="loading-spinner">
+            <img src="../../assets/logo.png" alt="IMVCMPC Logo" class="spinning-logo">
+        </div>
+        <p id="logoutLoadingText">Logging out as Marketing Clerk...</p>
+    `;
+
+    // Add CSS classes to match login spinner exactly
+    const spinStyle = document.createElement('style');
+    spinStyle.textContent = `
+        .loading-spinner {
+            margin-bottom: 18px;
+        }
+        
+        .spinning-logo {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            animation: spin 1s linear infinite;
+        }
+        
+        #logoutLoadingText {
+            color: #4B5563;
+            margin: 0;
+            margin-bottom: 18px;
+            font-weight: 500;
+            font-size: 18px;
+            text-align: center;
+            display: block;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     `;
-    document.head.appendChild(style);
-
-    document.body.appendChild(messageElement);
-
-    // Remove message after animation
-    setTimeout(() => {
-        if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement);
+    document.head.appendChild(spinStyle);
+    
+    // Immediately update text with actual user role
+    const loadingText = document.getElementById('logoutLoadingText');
+    if (loadingText) {
+        // Try multiple sources for user role
+        let userRole = localStorage.getItem('user_role');
+        
+        if (!userRole) {
+            // Try to get from user object
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    userRole = user.role_display_name || user.role || 'Marketing Clerk';
+                } catch (e) {
+                    userRole = 'Marketing Clerk';
+                }
+            } else {
+                userRole = 'Marketing Clerk';
+            }
         }
-        if (style.parentNode) {
-            style.parentNode.removeChild(style);
+        
+        // Ensure we have a valid role
+        if (!userRole || userRole === 'null' || userRole === 'undefined') {
+            userRole = 'Marketing Clerk';
         }
-    }, 1000);
+        
+        loadingText.textContent = `Logging out as ${userRole}...`;
+        console.log('Logout loading text set:', `Logging out as ${userRole}...`);
+    }
+
+    loadingOverlay.appendChild(loadingContent);
+    document.body.appendChild(loadingOverlay);
 }
 
 // Session Management
@@ -628,3 +629,27 @@ warningStyles.textContent = `
     }
 `;
 document.head.appendChild(warningStyles);
+
+// Initialize dynamic user header - Make it globally accessible
+window.initializeDynamicUserHeader = function() {
+    // Get user data from localStorage
+    const userRole = localStorage.getItem('user_role') || 'Marketing Clerk';
+    const userBranchName = localStorage.getItem('user_branch_name') || 'Main Branch';
+    const userBranchLocation = localStorage.getItem('user_branch_location') || '';
+    
+    // Update user name (role) in header
+    const userNameElement = document.getElementById('userName');
+    if (userNameElement) {
+        userNameElement.textContent = userRole;
+    }
+    
+    // Update user role (branch) in header
+    const userRoleElement = document.getElementById('userRole');
+    if (userRoleElement) {
+        if (userBranchLocation) {
+            userRoleElement.textContent = `IMVCMPC - ${userBranchName} ${userBranchLocation}`;
+        } else {
+            userRoleElement.textContent = `IMVCMPC - ${userBranchName}`;
+        }
+    }
+}

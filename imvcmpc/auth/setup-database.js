@@ -113,24 +113,24 @@ async function setupDatabase() {
             console.log(`   Permissions: 14 different permissions configured`);
             console.log(`   Sample Users: 15 users created for testing (3 main branch + 12 branch clerks)`);
             
-            console.log('\n🔑 Sample Login Credentials:');
-            console.log('   Main Branch Users (access to all branches):');
-            console.log('     Marketing Clerk: marketing.clerk / Clerk123!');
-            console.log('     Finance Officer: finance.officer / Finance123!');
-            console.log('     IT Head: it.head / ITHead123!');
-            console.log('');
-            console.log('   Branch-Specific Marketing Clerks:');
-            console.log('     Branch 2 (Bauan): clerk.bauan / Bauan123!');
-            console.log('     Branch 3 (San Jose): clerk.sanjose / SanJose123!');
-            console.log('     Branch 4 (Rosario): clerk.rosario / Rosario123!');
-            console.log('     Branch 5 (San Juan): clerk.sanjuan / SanJuan123!');
-            console.log('     Branch 6 (Padre Garcia): clerk.padregarcia / PadreGarcia123!');
-            console.log('     Branch 7 (Lipa City): clerk.lipacity / LipaCity123!');
-            console.log('     Branch 8 (Batangas City): clerk.batangascity / BatangasCity123!');
-            console.log('     Branch 9 (Mabini Lipa): clerk.mabinilipa / MabiniLipa123!');
-            console.log('     Branch 10 (Calamias): clerk.calamias / Calamias123!');
-            console.log('     Branch 11 (Lemery): clerk.lemery / Lemery123!');
-            console.log('     Branch 12 (Mataas na Kahoy): clerk.mataasnakahoy / MataasNaKahoy123!');
+                         console.log('\n🔑 Sample Login Credentials:');
+             console.log('   Main Branch Users (access to all branches):');
+             console.log('     Marketing Clerk: mc.ibaan / ibaan123!');
+             console.log('     Finance Officer: finance.officer / Finance123!');
+             console.log('     IT Head: it.head / ITHead123!');
+             console.log('');
+             console.log('   Branch-Specific Marketing Clerks:');
+             console.log('     Branch 2 (Bauan): mc.bauan / bauan123!');
+             console.log('     Branch 3 (San Jose): mc.sanjose / sanjose123!');
+             console.log('     Branch 4 (Rosario): mc.rosario / rosario123!');
+             console.log('     Branch 5 (San Juan): mc.sanjuan / sanjuan123!');
+             console.log('     Branch 6 (Padre Garcia): mc.padregarcia / padregarcia123!');
+             console.log('     Branch 7 (Lipa City): mc.lipacity / lipacity123!');
+             console.log('     Branch 8 (Batangas City): mc.batangascity / batangascity123!');
+             console.log('     Branch 9 (Mabini Lipa): mc.mabinilipa / mabinilipa123!');
+             console.log('     Branch 10 (Calamias): mc.calamias / calamias123!');
+             console.log('     Branch 11 (Lemery): mc.lemery / lemery123!');
+             console.log('     Branch 12 (Mataas na Kahoy): mc.mataasnakahoy / mataasnakahoy123!');
             console.log('');
             console.log('   Note: Branch clerks can only access data for their assigned branch.');
             
@@ -153,15 +153,15 @@ async function createSampleUsers(client) {
     // Sample user data
     const sampleUsers = [
         {
-            username: 'marketing.clerk',
-            email: 'clerk@imvcmc.com',
-            password: 'Clerk123!',
-            first_name: 'Marketing',
-            last_name: 'Clerk',
+            username: 'mc.ibaan',
+            email: 'mc.ibaan@imvcmpc.com',
+            password: 'ibaan123!',
+            first_name: 'IBAAN',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 1, // Main Branch
-            employee_id: 'MC-001',
-            phone_number: '+63 912 345 6789'
+            employee_id: 'MC001',
+            phone_number: '+63 912 345 6701'
         },
         {
             username: 'finance.officer',
@@ -187,135 +187,135 @@ async function createSampleUsers(client) {
         },
         // Branch 2 - Bauan
         {
-            username: 'clerk.bauan',
-            email: 'clerk.bauan@imvcmc.com',
-            password: 'Bauan123!',
-            first_name: 'Bauan',
-            last_name: 'Clerk',
+            username: 'mc.bauan',
+            email: 'mc.bauan@imvcmpc.com',
+            password: 'bauan123!',
+            first_name: 'BAUAN',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 2, // Branch 2
-            employee_id: 'MC-BAU-001',
-            phone_number: '+63 912 345 6792'
+            employee_id: 'MC002',
+            phone_number: '+63 912 345 6702'
         },
         // Branch 3 - San Jose
         {
-            username: 'clerk.sanjose',
-            email: 'clerk.sanjose@imvcmc.com',
-            password: 'SanJose123!',
-            first_name: 'San Jose',
-            last_name: 'Clerk',
+            username: 'mc.sanjose',
+            email: 'mc.sanjose@imvcmpc.com',
+            password: 'sanjose123!',
+            first_name: 'SAN JOSE',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 3, // Branch 3
-            employee_id: 'MC-SJ-001',
-            phone_number: '+63 912 345 6793'
+            employee_id: 'MC003',
+            phone_number: '+63 912 345 6703'
         },
         // Branch 4 - Rosario
         {
-            username: 'clerk.rosario',
-            email: 'clerk.rosario@imvcmc.com',
-            password: 'Rosario123!',
-            first_name: 'Rosario',
-            last_name: 'Clerk',
+            username: 'mc.rosario',
+            email: 'mc.rosario@imvcmpc.com',
+            password: 'rosario123!',
+            first_name: 'ROSARIO',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 4, // Branch 4
-            employee_id: 'MC-ROS-001',
-            phone_number: '+63 912 345 6794'
+            employee_id: 'MC004',
+            phone_number: '+63 912 345 6704'
         },
         // Branch 5 - San Juan
         {
-            username: 'clerk.sanjuan',
-            email: 'clerk.sanjuan@imvcmc.com',
-            password: 'SanJuan123!',
-            first_name: 'San Juan',
-            last_name: 'Clerk',
+            username: 'mc.sanjuan',
+            email: 'mc.sanjuan@imvcmpc.com',
+            password: 'sanjuan123!',
+            first_name: 'SAN JUAN',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 5, // Branch 5
-            employee_id: 'MC-SJU-001',
-            phone_number: '+63 912 345 6795'
+            employee_id: 'MC005',
+            phone_number: '+63 912 345 6705'
         },
         // Branch 6 - Padre Garcia
         {
-            username: 'clerk.padregarcia',
-            email: 'clerk.padregarcia@imvcmc.com',
-            password: 'PadreGarcia123!',
-            first_name: 'Padre Garcia',
-            last_name: 'Clerk',
+            username: 'mc.padregarcia',
+            email: 'mc.padregarcia@imvcmpc.com',
+            password: 'padregarcia123!',
+            first_name: 'PADRE GARCIA',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 6, // Branch 6
-            employee_id: 'MC-PG-001',
-            phone_number: '+63 912 345 6796'
+            employee_id: 'MC006',
+            phone_number: '+63 912 345 6706'
         },
         // Branch 7 - Lipa City
         {
-            username: 'clerk.lipacity',
-            email: 'clerk.lipacity@imvcmc.com',
-            password: 'LipaCity123!',
-            first_name: 'Lipa City',
-            last_name: 'Clerk',
+            username: 'mc.lipacity',
+            email: 'mc.lipacity@imvcmpc.com',
+            password: 'lipacity123!',
+            first_name: 'LIPA CITY',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 7, // Branch 7
-            employee_id: 'MC-LC-001',
-            phone_number: '+63 912 345 6797'
+            employee_id: 'MC007',
+            phone_number: '+63 912 345 6707'
         },
         // Branch 8 - Batangas City
         {
-            username: 'clerk.batangascity',
-            email: 'clerk.batangascity@imvcmc.com',
-            password: 'BatangasCity123!',
-            first_name: 'Batangas City',
-            last_name: 'Clerk',
+            username: 'mc.batangascity',
+            email: 'mc.batangascity@imvcmpc.com',
+            password: 'batangascity123!',
+            first_name: 'BATANGAS CITY',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 8, // Branch 8
-            employee_id: 'MC-BC-001',
-            phone_number: '+63 912 345 6798'
+            employee_id: 'MC008',
+            phone_number: '+63 912 345 6708'
         },
         // Branch 9 - Mabini Lipa
         {
-            username: 'clerk.mabinilipa',
-            email: 'clerk.mabinilipa@imvcmc.com',
-            password: 'MabiniLipa123!',
-            first_name: 'Mabini Lipa',
-            last_name: 'Clerk',
+            username: 'mc.mabinilipa',
+            email: 'mc.mabinilipa@imvcmpc.com',
+            password: 'mabinilipa123!',
+            first_name: 'MABINI LIPA',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 9, // Branch 9
-            employee_id: 'MC-ML-001',
-            phone_number: '+63 912 345 6799'
+            employee_id: 'MC009',
+            phone_number: '+63 912 345 6709'
         },
         // Branch 10 - Calamias
         {
-            username: 'clerk.calamias',
-            email: 'clerk.calamias@imvcmc.com',
-            password: 'Calamias123!',
-            first_name: 'Calamias',
-            last_name: 'Clerk',
+            username: 'mc.calamias',
+            email: 'mc.calamias@imvcmpc.com',
+            password: 'calamias123!',
+            first_name: 'CALAMIAS',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 10, // Branch 10
-            employee_id: 'MC-CAL-001',
-            phone_number: '+63 912 345 6800'
+            employee_id: 'MC010',
+            phone_number: '+63 912 345 6710'
         },
         // Branch 11 - Lemery
         {
-            username: 'clerk.lemery',
-            email: 'clerk.lemery@imvcmc.com',
-            password: 'Lemery123!',
-            first_name: 'Lemery',
-            last_name: 'Clerk',
+            username: 'mc.lemery',
+            email: 'mc.lemery@imvcmpc.com',
+            password: 'lemery123!',
+            first_name: 'LEMERY',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 11, // Branch 11
-            employee_id: 'MC-LEM-001',
-            phone_number: '+63 912 345 6801'
+            employee_id: 'MC011',
+            phone_number: '+63 912 345 6711'
         },
         // Branch 12 - Mataas na Kahoy
         {
-            username: 'clerk.mataasnakahoy',
-            email: 'clerk.mataasnakahoy@imvcmc.com',
-            password: 'MataasNaKahoy123!',
-            first_name: 'Mataas na Kahoy',
-            last_name: 'Clerk',
+            username: 'mc.mataasnakahoy',
+            email: 'mc.mataasnakahoy@imvcmpc.com',
+            password: 'mataasnakahoy123!',
+            first_name: 'MATAAS NA KAHOY',
+            last_name: 'Marketing Clerk',
             role_id: 1, // Marketing Clerk
             branch_id: 12, // Branch 12
-            employee_id: 'MC-MNK-001',
-            phone_number: '+63 912 345 6802'
+            employee_id: 'MC012',
+            phone_number: '+63 912 345 6712'
         },
         // Finance Officers for different branches
         // Branch 2 - Bauan
@@ -487,6 +487,193 @@ async function createSampleUsers(client) {
             console.log(`   ✅ Created user: ${userData.username} (${userData.first_name} ${userData.last_name}) - Branch ${userData.branch_id}`);
         } else {
             console.log(`   ⏭️  User already exists: ${userData.username}`);
+        }
+    }
+    
+    // Setup Marketing Clerk users with new credential format
+    console.log('\n👥 Setting up Marketing Clerk users...');
+    const marketingClerkUsers = [
+        // Branch 1 - IBAAN (Main Branch)
+        {
+            username: 'mc.ibaan',
+            email: 'mc.ibaan@imvcmpc.com',
+            password: 'ibaan123!',
+            first_name: 'IBAAN',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 1, // Main Branch
+            employee_id: 'MC001',
+            phone_number: '+63 912 345 6701'
+        },
+        // Branch 2 - BAUAN
+        {
+            username: 'mc.bauan',
+            email: 'mc.bauan@imvcmpc.com',
+            password: 'bauan123!',
+            first_name: 'BAUAN',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 2, // Branch 2
+            employee_id: 'MC002',
+            phone_number: '+63 912 345 6702'
+        },
+        // Branch 3 - SAN JOSE
+        {
+            username: 'mc.sanjose',
+            email: 'mc.sanjose@imvcmpc.com',
+            password: 'sanjose123!',
+            first_name: 'SAN JOSE',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 3, // Branch 3
+            employee_id: 'MC003',
+            phone_number: '+63 912 345 6703'
+        },
+        // Branch 4 - ROSARIO
+        {
+            username: 'mc.rosario',
+            email: 'mc.rosario@imvcmpc.com',
+            password: 'rosario123!',
+            first_name: 'ROSARIO',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 4, // Branch 4
+            employee_id: 'MC004',
+            phone_number: '+63 912 345 6704'
+        },
+        // Branch 5 - SAN JUAN
+        {
+            username: 'mc.sanjuan',
+            email: 'mc.sanjuan@imvcmpc.com',
+            password: 'sanjuan123!',
+            first_name: 'SAN JUAN',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 5, // Branch 5
+            employee_id: 'MC005',
+            phone_number: '+63 912 345 6705'
+        },
+        // Branch 6 - PADRE GARCIA
+        {
+            username: 'mc.padregarcia',
+            email: 'mc.padregarcia@imvcmpc.com',
+            password: 'padregarcia123!',
+            first_name: 'PADRE GARCIA',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 6, // Branch 6
+            employee_id: 'MC006',
+            phone_number: '+63 912 345 6706'
+        },
+        // Branch 7 - LIPA CITY
+        {
+            username: 'mc.lipacity',
+            email: 'mc.lipacity@imvcmpc.com',
+            password: 'lipacity123!',
+            first_name: 'LIPA CITY',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 7, // Branch 7
+            employee_id: 'MC007',
+            phone_number: '+63 912 345 6707'
+        },
+        // Branch 8 - BATANGAS CITY
+        {
+            username: 'mc.batangascity',
+            email: 'mc.batangascity@imvcmpc.com',
+            password: 'batangascity123!',
+            first_name: 'BATANGAS CITY',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 8, // Branch 8
+            employee_id: 'MC008',
+            phone_number: '+63 912 345 6708'
+        },
+        // Branch 9 - MABINI LIPA
+        {
+            username: 'mc.mabinilipa',
+            email: 'mc.mabinilipa@imvcmpc.com',
+            password: 'mabinilipa123!',
+            first_name: 'MABINI LIPA',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 9, // Branch 9
+            employee_id: 'MC009',
+            phone_number: '+63 912 345 6709'
+        },
+        // Branch 10 - CALAMIAS
+        {
+            username: 'mc.calamias',
+            email: 'mc.calamias@imvcmpc.com',
+            password: 'calamias123!',
+            first_name: 'CALAMIAS',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 10, // Branch 10
+            employee_id: 'MC010',
+            phone_number: '+63 912 345 6710'
+        },
+        // Branch 11 - LEMERY
+        {
+            username: 'mc.lemery',
+            email: 'mc.lemery@imvcmpc.com',
+            password: 'lemery123!',
+            first_name: 'LEMERY',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 11, // Branch 11
+            employee_id: 'MC011',
+            phone_number: '+63 912 345 6711'
+        },
+        // Branch 12 - MATAAS NA KAHOY
+        {
+            username: 'mc.mataasnakahoy',
+            email: 'mc.mataasnakahoy@imvcmpc.com',
+            password: 'mataasnakahoy123!',
+            first_name: 'MATAAS NA KAHOY',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 12, // Branch 12
+            employee_id: 'MC012',
+            phone_number: '+63 912 345 6712'
+        }
+    ];
+    
+    for (const userData of marketingClerkUsers) {
+        // Check if user already exists
+        const existingUser = await client.query(`
+            SELECT id FROM users WHERE username = $1 OR email = $2
+        `, [userData.username, userData.email]);
+        
+        if (existingUser.rows.length === 0) {
+            // Hash password
+            const passwordHash = await bcrypt.hash(userData.password, bcryptRounds);
+            
+            // Determine if user is main branch user
+            const isMainBranchUser = userData.branch_id === 1;
+            
+            // Insert user
+            await client.query(`
+                INSERT INTO users (
+                    username, email, password_hash, first_name, last_name,
+                    role_id, branch_id, employee_id, phone_number, is_main_branch_user
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `, [
+                userData.username,
+                userData.email,
+                passwordHash,
+                userData.first_name,
+                userData.last_name,
+                userData.role_id,
+                userData.branch_id,
+                userData.employee_id,
+                userData.phone_number,
+                isMainBranchUser
+            ]);
+            
+            console.log(`   ✅ Created Marketing Clerk: ${userData.username} (${userData.first_name} ${userData.last_name}) - Branch ${userData.branch_id}`);
+        } else {
+            console.log(`   ⏭️  Marketing Clerk already exists: ${userData.username}`);
         }
     }
 }

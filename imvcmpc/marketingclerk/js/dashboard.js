@@ -65,6 +65,25 @@ function updateDashboardHeader(branchName, isMainBranch) {
             headerDescription.textContent = `Welcome to ${branchName} branch!`;
         }
     }
+    
+    // Update user display name and role
+    updateUserDisplay(branchName, isMainBranch);
+}
+
+// Update user display with branch-specific information
+function updateUserDisplay(branchName, isMainBranch) {
+    const userNameElement = document.getElementById('userName');
+    const userRoleElement = document.getElementById('userRole');
+    
+    if (userNameElement && userRoleElement) {
+        if (isMainBranch) {
+            userNameElement.textContent = 'IBAAN Marketing Clerk';
+            userRoleElement.textContent = 'IMVCMPC - Main Branch';
+        } else {
+            userNameElement.textContent = `${branchName} Marketing Clerk`;
+            userRoleElement.textContent = `IMVCMPC - ${branchName} Branch`;
+        }
+    }
 }
 
 // Filter dashboard data for specific branch

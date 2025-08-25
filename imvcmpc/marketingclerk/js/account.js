@@ -3,31 +3,26 @@
  * 
  * This file handles all account-related functionality including:
  * 
- * ACCOUNT STATUS FEATURES:
- * - Security Status: Shows "Active" if logged in within 7 days, "Inactive for X days" if longer
- * - Last Login: Shows exact date and time of last successful login
- * - Session Duration: Shows duration since last login (hours, minutes, seconds)
- * - Login Attempts: Shows total successful and failed login attempts
+ * BRANCH-SPECIFIC FEATURES:
+ * - Dynamic employee ID format: MC-001 for main branch, MC-002 for branch 2, etc.
+ * - Dynamic email format: mc.ibaan.imvcmpc@gmail.com for main, mc.bauan.imvcmpc@gmail.com for others
+ * - Dynamic role display: "Marketing Clerk (Main Branch)" vs "Marketing Clerk (Branch X)"
+ * - Dynamic branch access: "ALL Branches access" for main, "Branch X access only" for others
  * 
  * SECURITY FEATURES:
- * - Automatic status tracking based on login activity
- * - Clean, simple status display without icons
- * - Session persistence across page refreshes
- * 
- * ERROR HANDLING:
- * - Comprehensive error handling with fallbacks
- * - Data validation and sanitization
- * - Console logging for debugging
- * - Graceful degradation on errors
+ * - Role and access fields are non-editable
+ * - Branch details are non-editable
+ * - Only personal information is editable
  * 
  * @author IMVCMPC Development Team
- * @version 2.0.0
+ * @version 3.0.0
  * @lastUpdated 2024
  */
 
-// Account functionality
+// Account Management System for Marketing Clerk
 document.addEventListener('DOMContentLoaded', function() {
     initializeAccount();
+    initializeDynamicUserHeader(); // Add this line
 });
 
 // Initialize all account functionality
@@ -54,19 +49,108 @@ function initializeBranchSpecificAccount() {
     // Update account header based on branch
     updateAccountHeader(userBranchName, isMainBranchUser);
     
+    // Update personal information based on branch
+    updatePersonalInformation(userBranchId, userBranchName, userBranchLocation, isMainBranchUser);
+    
+    // Update role and access information based on branch
+    updateRoleAndAccess(userBranchName, userBranchLocation, isMainBranchUser);
+    
     // Update branch information in account details
     updateBranchInformation(userBranchId, userBranchName, userBranchLocation, isMainBranchUser);
 }
 
+// Update personal information based on branch
+function updatePersonalInformation(branchId, branchName, branchLocation, isMainBranch) {
+    // Generate employee ID based on branch
+    let employeeId;
+    if (isMainBranch) {
+        employeeId = 'MC-001';
+    } else {
+        // For other branches, use branch number
+        employeeId = `MC-00${branchId}`;
+    }
+    
+    // Generate email based on branch
+    let email;
+    if (isMainBranch) {
+        email = 'mc.ibaan.imvcmpc@gmail.com';
+    } else {
+        const branchCode = branchLocation.toLowerCase().replace(/\s+/g, '');
+        email = `mc.${branchCode}.imvcmpc@gmail.com`;
+    }
+    
+    // Update employee ID display and input
+    const employeeIdElement = document.getElementById('employeeId');
+    const employeeIdInput = document.getElementById('employeeIdInput');
+    if (employeeIdElement) employeeIdElement.textContent = employeeId;
+    if (employeeIdInput) employeeIdInput.value = employeeId;
+    
+    // Update email display and input
+    const emailElement = document.getElementById('emailAddress');
+    const emailInput = document.getElementById('emailInput');
+    if (emailElement) emailElement.textContent = email;
+    if (emailInput) emailInput.value = email;
+    
+    // Save to localStorage
+    const personalData = {
+        employeeId: employeeId,
+        email: email,
+        timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('personalData', JSON.stringify(personalData));
+}
+
+// Update role and access information based on branch
+function updateRoleAndAccess(branchName, branchLocation, isMainBranch) {
+    // Update user role
+    const userRoleElement = document.getElementById('userRole');
+    if (userRoleElement) {
+        if (isMainBranch) {
+            userRoleElement.textContent = 'Marketing Clerk (Main Branch)';
+        } else {
+            userRoleElement.textContent = `Marketing Clerk (${branchLocation})`;
+        }
+    }
+    
+    // Update assigned branch
+    const assignedBranchElement = document.getElementById('assignedBranch');
+    if (assignedBranchElement) {
+        if (isMainBranch) {
+            assignedBranchElement.textContent = 'IBAAN Main Branch - All Branch Access';
+        } else {
+            assignedBranchElement.textContent = `${branchLocation} - Branch ${branchName.split(' ')[1]} access only`;
+        }
+    }
+    
+    // Update permissions based on branch
+    updatePermissions(isMainBranch);
+}
+
+// Update permissions based on branch access
+function updatePermissions(isMainBranch) {
+    const permissionTags = document.getElementById('permissionTags');
+    let permissions = [];
+    
+    if (isMainBranch) {
+        permissions = ['View All Branches', 'Manage Member Data', 'View Analytics', 'Generate Reports'];
+    } else {
+        permissions = ['View Own Branch', 'Manage Member Data', 'View Analytics', 'Generate Reports'];
+    }
+    
+    // Update permission tags
+    if (permissionTags) {
+        permissionTags.innerHTML = permissions.map(permission => 
+            `<span class="permission-tag">${permission}</span>`
+        ).join('');
+    }
+}
+
 // Update account header based on branch
 function updateAccountHeader(branchName, isMainBranch) {
+    // Keep title as "Account Settings" only
     const headerTitle = document.querySelector('.account-header h1');
-    if (headerTitle && branchName) {
-        if (isMainBranch) {
-            headerTitle.textContent = 'Account Settings - Main Branch Access';
-        } else {
-            headerTitle.textContent = `Account Settings - ${branchName} Branch`;
-        }
+    if (headerTitle) {
+        headerTitle.textContent = 'Account Settings';
     }
     
     const headerDescription = document.querySelector('.account-header p');
@@ -74,42 +158,35 @@ function updateAccountHeader(branchName, isMainBranch) {
         if (isMainBranch) {
             headerDescription.textContent = 'Manage your account preferences and security settings with access to all branches.';
         } else {
-            headerDescription.textContent = `Manage your account preferences and security settings for ${branchName} branch.`;
+            headerDescription.textContent = `Manage your account preferences and security settings for ${branchName}.`;
         }
     }
 }
 
 // Update branch information in account details
 function updateBranchInformation(branchId, branchName, branchLocation, isMainBranch) {
-    const branchInfoElement = document.querySelector('.branch-info');
-    if (branchInfoElement && branchName) {
-        if (isMainBranch) {
-            branchInfoElement.innerHTML = `
-                <div class="form-group">
-                    <label>Branch Access:</label>
-                    <div class="info-value">All Branches (Main Branch User)</div>
-                </div>
-                <div class="form-group">
-                    <label>Primary Branch:</label>
-                    <div class="info-value">Main Branch - IBAAN</div>
-                </div>
-            `;
-        } else {
-            branchInfoElement.innerHTML = `
-                <div class="form-group">
-                    <label>Branch Access:</label>
-                    <div class="info-value">${branchName} Branch Only</div>
-                </div>
-                <div class="form-group">
-                    <label>Branch Location:</label>
-                    <div class="info-value">${branchLocation}</div>
-                </div>
-                <div class="form-group">
-                    <label>Branch ID:</label>
-                    <div class="info-value">${branchId}</div>
-                </div>
-            `;
-        }
+    // Update branch name
+    const branchNameElement = document.getElementById('branchName');
+    if (branchNameElement) {
+        branchNameElement.textContent = branchName;
+    }
+    
+    // Update branch location
+    const branchLocationElement = document.getElementById('branchLocation');
+    if (branchLocationElement) {
+        branchLocationElement.textContent = `${branchLocation}, Batangas`;
+    }
+    
+    // Update branch contact (keep default for now)
+    const branchContactElement = document.getElementById('branchContact');
+    if (branchContactElement) {
+        branchContactElement.textContent = '+63 43 123 4567';
+    }
+    
+    // Update operation days (keep default for now)
+    const branchOperationDaysElement = document.getElementById('branchOperationDays');
+    if (branchOperationDaysElement) {
+        branchOperationDaysElement.textContent = 'Monday - Friday';
     }
 }
 
@@ -120,10 +197,8 @@ function setupPageVisibilityHandling() {
     
     document.addEventListener('visibilitychange', function() {
         if (document.hidden) {
-            // Page became hidden (user switched tabs or minimized)
             lastHiddenTime = new Date();
         } else {
-            // Page became visible again
             if (lastHiddenTime) {
                 const hiddenDuration = new Date() - lastHiddenTime;
                 hiddenTime += hiddenDuration;
@@ -132,16 +207,13 @@ function setupPageVisibilityHandling() {
         }
     });
     
-    // Store hidden time in localStorage for persistence
     setInterval(() => {
         if (hiddenTime > 0) {
             localStorage.setItem('sessionHiddenTime', hiddenTime.toString());
         }
     }, 5000);
     
-    // Handle page refresh and navigation
     window.addEventListener('beforeunload', function() {
-        // Store current session state before page unload
         const currentTime = new Date();
         const sessionStartTime = localStorage.getItem('sessionStartTime');
         if (sessionStartTime) {
@@ -151,11 +223,9 @@ function setupPageVisibilityHandling() {
         }
     });
     
-    // Restore session state after page reload
     window.addEventListener('load', function() {
         const lastActiveTime = localStorage.getItem('lastActiveTime');
         if (lastActiveTime) {
-            // Adjust session start time to account for page reload
             const now = new Date();
             const adjustedStartTime = new Date(now - parseInt(lastActiveTime));
             localStorage.setItem('sessionStartTime', adjustedStartTime.toISOString());
@@ -166,12 +236,10 @@ function setupPageVisibilityHandling() {
 
 // Initialize account status with real data
 function initializeAccountStatus() {
-    // Initialize session start time if not exists
     if (!localStorage.getItem('sessionStartTime')) {
         localStorage.setItem('sessionStartTime', new Date().toISOString());
     }
     
-    // Initialize login attempts if not exists
     if (!localStorage.getItem('loginAttempts')) {
         localStorage.setItem('loginAttempts', JSON.stringify({
             successful: 1,
@@ -180,15 +248,12 @@ function initializeAccountStatus() {
         }));
     }
     
-    // Initialize last login if not exists
     if (!localStorage.getItem('lastLogin')) {
         localStorage.setItem('lastLogin', new Date().toISOString());
     }
     
-    // Record this page load as a successful login (simulating user authentication)
     recordSuccessfulLogin();
     
-    // Update all status displays
     updateSecurityStatus();
     updateLastLogin();
     updateSessionDuration();
@@ -199,10 +264,7 @@ function initializeAccountStatus() {
 function updateSecurityStatus() {
     try {
         const securityStatusElement = document.querySelector('.status-content .form-group:first-child .info-value');
-        if (!securityStatusElement) {
-            console.warn('Security status element not found');
-            return;
-        }
+        if (!securityStatusElement) return;
         
         const lastLogin = localStorage.getItem('lastLogin');
         if (!lastLogin) {
@@ -213,9 +275,7 @@ function updateSecurityStatus() {
         const loginDate = new Date(lastLogin);
         const now = new Date();
         
-        // Validate date
         if (isNaN(loginDate.getTime())) {
-            console.warn('Invalid last login date detected, resetting');
             localStorage.setItem('lastLogin', new Date().toISOString());
             securityStatusElement.textContent = 'Active';
             return;
@@ -232,7 +292,6 @@ function updateSecurityStatus() {
         
     } catch (error) {
         console.error('Error updating security status:', error);
-        // Fallback to safe default
         const securityStatusElement = document.querySelector('.status-content .form-group:first-child .info-value');
         if (securityStatusElement) {
             securityStatusElement.textContent = 'Active';
@@ -244,34 +303,20 @@ function updateSecurityStatus() {
 function updateLastLogin() {
     try {
         const lastLoginElement = document.querySelector('.status-content .form-group:nth-child(2) .info-value');
-        if (!lastLoginElement) {
-            console.warn('Last login element not found');
-            return;
-        }
+        if (!lastLoginElement) return;
         
         const lastLogin = localStorage.getItem('lastLogin');
         if (lastLogin) {
             const loginDate = new Date(lastLogin);
             
-            // Validate date
             if (isNaN(loginDate.getTime())) {
-                console.warn('Invalid last login date detected, resetting');
                 localStorage.setItem('lastLogin', new Date().toISOString());
                 lastLoginElement.textContent = 'Just now';
                 return;
             }
             
-            // Format: "December 15, 2024 at 2:30 PM"
-            const dateOptions = { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            };
-            const timeOptions = { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: true 
-            };
+            const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
             
             const dateStr = loginDate.toLocaleDateString('en-US', dateOptions);
             const timeStr = loginDate.toLocaleTimeString('en-US', timeOptions);
@@ -280,7 +325,6 @@ function updateLastLogin() {
         }
     } catch (error) {
         console.error('Error updating last login:', error);
-        // Fallback to safe default
         const lastLoginElement = document.querySelector('.status-content .form-group:nth-child(2) .info-value');
         if (lastLoginElement) {
             lastLoginElement.textContent = 'Just now';
@@ -292,18 +336,13 @@ function updateLastLogin() {
 function updateSessionDuration() {
     try {
         const sessionDurationElement = document.querySelector('.status-content .form-group:nth-child(3) .info-value');
-        if (!sessionDurationElement) {
-            console.warn('Session duration element not found');
-            return;
-        }
+        if (!sessionDurationElement) return;
         
         const lastLogin = localStorage.getItem('lastLogin');
         if (lastLogin) {
             const loginDate = new Date(lastLogin);
             
-            // Validate date
             if (isNaN(loginDate.getTime())) {
-                console.warn('Invalid last login date detected, resetting');
                 localStorage.setItem('lastLogin', new Date().toISOString());
                 sessionDurationElement.textContent = '0 seconds';
                 return;
@@ -312,11 +351,9 @@ function updateSessionDuration() {
             const now = new Date();
             let timeDiff = now - loginDate;
             
-            // Subtract hidden time (when user was not actively using the page)
             const hiddenTime = parseInt(localStorage.getItem('sessionHiddenTime') || '0');
             timeDiff -= hiddenTime;
             
-            // Ensure time difference is not negative
             if (timeDiff < 0) timeDiff = 0;
             
             const hours = Math.floor(timeDiff / 3600000);
@@ -336,7 +373,6 @@ function updateSessionDuration() {
         }
     } catch (error) {
         console.error('Error updating session duration:', error);
-        // Fallback to safe default
         const sessionDurationElement = document.querySelector('.status-content .form-group:nth-child(3) .info-value');
         if (sessionDurationElement) {
             sessionDurationElement.textContent = '0 seconds';
@@ -348,19 +384,14 @@ function updateSessionDuration() {
 function updateLoginAttempts() {
     try {
         const loginAttemptsElement = document.querySelector('.status-content .form-group:nth-child(4) .info-value');
-        if (!loginAttemptsElement) {
-            console.warn('Login attempts element not found');
-            return;
-        }
+        if (!loginAttemptsElement) return;
         
         const loginAttempts = JSON.parse(localStorage.getItem('loginAttempts') || '{}');
         const successful = loginAttempts.successful || 1;
         const failed = loginAttempts.failed || 0;
         
-        // Validate data
         if (typeof successful !== 'number' || typeof failed !== 'number' || 
             successful < 0 || failed < 0) {
-            console.warn('Invalid login attempts data detected, resetting');
             localStorage.setItem('loginAttempts', JSON.stringify({
                 successful: 1,
                 failed: 0,
@@ -380,7 +411,6 @@ function updateLoginAttempts() {
         loginAttemptsElement.textContent = attemptsText;
     } catch (error) {
         console.error('Error updating login attempts:', error);
-        // Fallback to safe default
         const loginAttemptsElement = document.querySelector('.status-content .form-group:nth-child(4) .info-value');
         if (loginAttemptsElement) {
             loginAttemptsElement.textContent = '1 (Successful)';
@@ -399,7 +429,6 @@ function recordSuccessfulLogin() {
     localStorage.setItem('lastLogin', new Date().toISOString());
     localStorage.setItem('sessionStartTime', new Date().toISOString());
     
-    // Update displays
     updateSecurityStatus();
     updateLastLogin();
     updateSessionDuration();
@@ -415,7 +444,6 @@ function recordFailedLogin() {
     
     localStorage.setItem('loginAttempts', JSON.stringify(loginAttempts));
     
-    // Update displays
     updateSecurityStatus();
     updateLoginAttempts();
 }
@@ -423,28 +451,17 @@ function recordFailedLogin() {
 // Reset session (for logout)
 function resetSession() {
     localStorage.removeItem('sessionStartTime');
-    // Don't remove loginAttempts and lastLogin as they should persist
 }
 
 // Setup all event listeners
 function setupEventListeners() {
     const editPersonalBtn = document.getElementById('editPersonalBtn');
-    const editRoleBtn = document.getElementById('editRoleBtn');
-    const editBranchBtn = document.getElementById('editBranchBtn');
     const changeAvatarBtn = document.getElementById('changeAvatarBtn');
     const saveChangesBtn = document.getElementById('saveChangesBtn');
     const cancelChangesBtn = document.getElementById('cancelChangesBtn');
     
     if (editPersonalBtn) {
         editPersonalBtn.addEventListener('click', () => toggleEditMode('personal'));
-    }
-    
-    if (editRoleBtn) {
-        editRoleBtn.addEventListener('click', () => toggleEditMode('role'));
-    }
-    
-    if (editBranchBtn) {
-        editBranchBtn.addEventListener('click', () => toggleEditMode('branch'));
     }
     
     if (changeAvatarBtn) {
@@ -458,30 +475,12 @@ function setupEventListeners() {
     if (cancelChangesBtn) {
         cancelChangesBtn.addEventListener('click', cancelChanges);
     }
-    
-    // Add event listeners for role and branch changes
-    const userRoleSelect = document.getElementById('userRoleSelect');
-    const branchSelect = document.getElementById('branchSelect');
-    
-    if (userRoleSelect) {
-        userRoleSelect.addEventListener('change', () => {
-            const userRole = userRoleSelect.value;
-            const assignedBranch = branchSelect ? branchSelect.value : 'IBAAN Main Branch - All Branches Access';
-            updatePermissions(userRole, assignedBranch);
-        });
-    }
-    
-    if (branchSelect) {
-        branchSelect.addEventListener('change', () => {
-            const userRole = userRoleSelect ? userRoleSelect.value : 'Marketing Clerk';
-            const assignedBranch = branchSelect.value;
-            updatePermissions(userRole, assignedBranch);
-        });
-    }
 }
 
-// Toggle edit mode for different sections
+// Toggle edit mode for personal section only
 function toggleEditMode(section) {
+    if (section !== 'personal') return; // Only personal section is editable
+    
     const editBtn = document.getElementById(`edit${section.charAt(0).toUpperCase() + section.slice(1)}Btn`);
     const isEditing = editBtn.classList.contains('editing');
     
@@ -492,56 +491,24 @@ function toggleEditMode(section) {
         editBtn.classList.remove('editing');
         
         // Exit edit mode for form groups
-        if (section === 'personal') {
-            document.querySelectorAll('.personal-details .form-group').forEach(group => {
-                group.classList.remove('editing');
-            });
-        } else if (section === 'role') {
-            // Remove editing class from role form groups
-            document.querySelectorAll('.role-info .form-group').forEach(group => {
-                group.classList.remove('editing');
-            });
-        } else if (section === 'branch') {
-            // Remove editing class from branch form groups
-            document.querySelectorAll('.branch-info .form-group').forEach(group => {
-                group.classList.remove('editing');
-            });
-        }
+        document.querySelectorAll('.personal-details .form-group').forEach(group => {
+            group.classList.remove('editing');
+        });
         
-        if (section === 'personal') {
-            showMessage('Personal Information updated successfully!', 'success');
-        } else if (section === 'role') {
-            showMessage('Role & Access updated successfully!', 'success');
-        } else if (section === 'branch') {
-            showMessage('Branch Details updated successfully!', 'success');
-        } else {
-            showMessage(`${section.charAt(0).toUpperCase() + section.slice(1)} updated successfully!`, 'success');
-        }
+        showMessage('Personal Information updated successfully!', 'success');
     } else {
         // Enter edit mode
         editBtn.innerHTML = '<i class="fas fa-save"></i><span>Save</span>';
         editBtn.classList.add('editing');
         
         // Enter edit mode for form groups
-        if (section === 'personal') {
-            document.querySelectorAll('.personal-details .form-group').forEach(group => {
-                group.classList.add('editing');
-            });
-        } else if (section === 'role') {
-            // Add editing class to role form groups
-            document.querySelectorAll('.role-info .form-group').forEach(group => {
-                group.classList.add('editing');
-            });
-        } else if (section === 'branch') {
-            // Add editing class to branch form groups
-            document.querySelectorAll('.branch-info .form-group').forEach(group => {
-                group.classList.add('editing');
-            });
-        }
+        document.querySelectorAll('.personal-details .form-group').forEach(group => {
+            group.classList.add('editing');
+        });
     }
 }
 
-// Save changes for specific section
+// Save changes for personal section only
 function saveSectionChanges(section) {
     if (section === 'personal') {
         // Get values from input fields
@@ -567,54 +534,6 @@ function saveSectionChanges(section) {
         localStorage.setItem('personalData', JSON.stringify(personalData));
         
         addActivityLog('Personal Info Update', 'Updated personal information');
-            } else if (section === 'role') {
-            // Get values from select fields
-            const userRole = document.getElementById('userRoleSelect').value;
-            const assignedBranch = document.getElementById('branchSelect').value;
-            
-            // Update display values
-            document.getElementById('userRole').textContent = userRole;
-            document.getElementById('assignedBranch').textContent = assignedBranch;
-            
-            // Update permissions automatically based on role and branch
-            updatePermissions(userRole, assignedBranch);
-            
-            // Save to localStorage
-            const roleData = {
-                userRole: userRole,
-                assignedBranch: assignedBranch,
-                timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('roleData', JSON.stringify(roleData));
-            
-            addActivityLog('Role & Access Update', 'Updated role and access information');
-        } else if (section === 'branch') {
-            // Get values from input fields
-            const branchContact = document.getElementById('branchContactInput').value;
-            const branchOperationDays = document.getElementById('branchOperationDaysSelect').value;
-            
-            // Update display values
-            document.getElementById('branchContact').textContent = branchContact;
-            document.getElementById('branchOperationDays').textContent = branchOperationDays;
-            
-            // Save to localStorage
-            const branchData = {
-                branchContact: branchContact,
-                branchOperationDays: branchOperationDays,
-                timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('branchData', JSON.stringify(branchData));
-            
-            addActivityLog('Branch Details Update', 'Updated branch information');
-        } else {
-        const sectionData = {
-            section: section,
-            timestamp: new Date().toISOString()
-        };
-        
-        // Save to localStorage (in real app, this would be an API call)
-        localStorage.setItem(`${section}Data`, JSON.stringify(sectionData));
-        addActivityLog(`${section.charAt(0).toUpperCase() + section.slice(1)} Update`, `Updated ${section} information`);
     }
 }
 
@@ -627,7 +546,6 @@ function handleAvatarChange() {
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-            // Create preview
             const reader = new FileReader();
             reader.onload = function(e) {
                 const avatarIcon = document.querySelector('.avatar-container i');
@@ -651,7 +569,6 @@ function handleAvatarChange() {
 
 // Save all changes
 function saveChanges() {
-    // Check if any section is in edit mode
     const editingSections = document.querySelectorAll('.edit-btn.editing');
     if (editingSections.length > 0) {
         editingSections.forEach(btn => {
@@ -661,7 +578,6 @@ function saveChanges() {
             btn.classList.remove('editing');
         });
         
-        // Exit edit mode for all form groups
         document.querySelectorAll('.form-group').forEach(group => {
             group.classList.remove('editing');
         });
@@ -673,7 +589,6 @@ function saveChanges() {
 
 // Cancel changes
 function cancelChanges() {
-    // Reset edit mode for all sections
     const editBtns = document.querySelectorAll('.edit-btn');
     editBtns.forEach(btn => {
         if (btn.classList.contains('editing')) {
@@ -682,7 +597,6 @@ function cancelChanges() {
         }
     });
     
-    // Exit edit mode for all form groups
     document.querySelectorAll('.form-group').forEach(group => {
         group.classList.remove('editing');
     });
@@ -715,52 +629,6 @@ function loadUserPreferences() {
         document.getElementById('employeeId').textContent = personalData.employeeId;
         document.getElementById('employeeIdInput').value = personalData.employeeId;
     }
-    
-    // Load saved branch data
-    const branchData = JSON.parse(localStorage.getItem('branchData') || '{}');
-    if (branchData.branchContact) {
-        document.getElementById('branchContact').textContent = branchData.branchContact;
-        document.getElementById('branchContactInput').value = branchData.branchContact;
-    }
-    if (branchData.branchOperationDays) {
-        document.getElementById('branchOperationDays').textContent = branchData.branchOperationDays;
-        document.getElementById('branchOperationDaysSelect').value = branchData.branchOperationDays;
-    }
-    
-    // Set initial values for read-only branch fields
-    document.getElementById('branchNameInput').value = document.getElementById('branchName').textContent;
-    document.getElementById('branchLocationInput').value = document.getElementById('branchLocation').textContent;
-    
-    // Load any other saved preferences
-    const preferences = JSON.parse(localStorage.getItem('userPreferences') || '{}');
-    // Apply preferences if needed
-}
-
-// Update permissions automatically based on role and branch
-function updatePermissions(userRole, assignedBranch) {
-    const permissionTags = document.getElementById('permissionTags');
-    let permissions = [];
-    
-    if (userRole === 'Marketing Clerk') {
-        if (assignedBranch.includes('IBAAN Main Branch')) {
-            permissions = ['View All Branches', 'Manage Member Data', 'View Analytics', 'Generate Reports'];
-        } else {
-            permissions = ['View Own Branch', 'Manage Member Data', 'View Analytics', 'Generate Reports'];
-        }
-    } else if (userRole === 'Finance Officer') {
-        if (assignedBranch.includes('IBAAN Main Branch')) {
-            permissions = ['View All Branches', 'Validate Member Data', 'View Analytics', 'Generate Reports'];
-        } else {
-            permissions = ['View Own Branch', 'Validate Member Data', 'View Analytics', 'Generate Reports'];
-        }
-    } else if (userRole === 'IT Head') {
-        permissions = ['View All Branches', 'System Administration', 'User Management', 'View Analytics', 'Generate Reports'];
-    }
-    
-    // Update permission tags
-    permissionTags.innerHTML = permissions.map(permission => 
-        `<span class="permission-tag">${permission}</span>`
-    ).join('');
 }
 
 // Update date and time display

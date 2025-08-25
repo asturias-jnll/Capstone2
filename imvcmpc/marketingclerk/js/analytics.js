@@ -1,7 +1,7 @@
-// Analytics functionality and charts
+// Analytics System for Marketing Clerk
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize analytics when page is loaded
     initializeAnalytics();
+    initializeDynamicUserHeader(); // Add this line
 });
 
 // Initialize all analytics functionality

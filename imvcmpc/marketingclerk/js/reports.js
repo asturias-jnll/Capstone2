@@ -1,6 +1,7 @@
 // Reports System for Marketing Clerk
 document.addEventListener('DOMContentLoaded', function() {
     initializeReports();
+    initializeDynamicUserHeader(); // Add this line
 });
 
 // Initialize reports system
@@ -24,24 +25,25 @@ function initializeBranchSpecificReports() {
     // Update reports header based on branch
     updateReportsHeader(userBranchName, isMainBranchUser);
     
-    // Filter reports data based on user's branch
+    // For non-main branch users, hide branch-related options
     if (!isMainBranchUser && userBranchName) {
-        filterReportsForBranch(userBranchId, userBranchName);
-        
         // Hide branch selection for branch-specific users
         hideBranchSelection();
+        
+        // Hide branch reports option for non-main branch users
+        hideBranchReportsOption();
+        
+        // Filter reports data based on user's branch
+        filterReportsForBranch(userBranchId, userBranchName);
     }
 }
 
 // Update reports header based on branch
 function updateReportsHeader(branchName, isMainBranch) {
     const headerTitle = document.querySelector('.reports-header h1');
-    if (headerTitle && branchName) {
-        if (isMainBranch) {
-            headerTitle.textContent = 'Financial Reports';
-        } else {
-            headerTitle.textContent = `${branchName} Branch Reports`;
-        }
+    if (headerTitle) {
+        // Always show "Financial Reports" regardless of branch
+        headerTitle.textContent = 'Financial Reports';
     }
 }
 
@@ -53,9 +55,31 @@ function filterReportsForBranch(branchId, branchName) {
 
 // Hide branch selection for branch-specific users
 function hideBranchSelection() {
+    // Hide the main branch selection section
     const branchSelection = document.querySelector('.branch-selection');
     if (branchSelection) {
         branchSelection.style.display = 'none';
+    }
+    
+    // Hide branch checkboxes in all configuration sections
+    const branchCheckboxes = document.querySelectorAll('.branch-checkbox');
+    branchCheckboxes.forEach(checkbox => {
+        checkbox.style.display = 'none';
+    });
+    
+    // Hide branch-related labels and text in config sections
+    const branchLabels = document.querySelectorAll('.config-section .branch-label, .config-section .branch-text');
+    branchLabels.forEach(label => {
+        label.style.display = 'none';
+    });
+}
+
+// Hide branch reports option for non-main branch users
+function hideBranchReportsOption() {
+    // Hide the branch reports button
+    const branchReportsBtn = document.querySelector('.report-type-btn[data-type="branch"]');
+    if (branchReportsBtn) {
+        branchReportsBtn.style.display = 'none';
     }
 }
 

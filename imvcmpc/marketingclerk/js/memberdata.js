@@ -1,7 +1,7 @@
-// Member Data functionality
+// Member Data System for Marketing Clerk
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize member data
     initializeMemberData();
+    initializeDynamicUserHeader(); // Add this line
     
     // Set up event listeners
     setupEventListeners();
@@ -207,6 +207,8 @@ function hideBranchFilter() {
         branchFilter.style.display = 'none';
     }
 }
+
+
 
 // Setup event listeners
 function setupEventListeners() {
