@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../css/analytics.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Main Dashboard -->
@@ -72,7 +73,7 @@
                 <div class="user-profile">
                     <div class="user-info">
                         <span class="user-name" id="userName">Marketing Clerk</span>
-                        <span class="user-role" id="userRole">IMVCMPC - Main Branch</span>
+                        <span class="user-role" id="userRole">IMVCMPC - IBAAN Branch</span>
                     </div>
                     <div class="user-avatar">
                         <i class="fas fa-user"></i>
@@ -82,82 +83,332 @@
 
             <!-- Analytics Content -->
             <div class="analytics-content">
-                <div class="analytics-header">
-                    <h1>Analytics</h1>
-                    <div class="analytics-filters">
-                        <div class="filter-group">
-                            <label>Branch:</label>
-                            <select id="analyticsBranch">
-                                <option value="1">Branch 1</option>
-                                <option value="2">Branch 2</option>
-                                <option value="3">Branch 3</option>
-                                <option value="4">Branch 4</option>
-                                <option value="5">Branch 5</option>
-                                <option value="6">Branch 6</option>
-                                <option value="7">Branch 7</option>
-                                <option value="8">Branch 8</option>
-                                <option value="9">Branch 9</option>
-                                <option value="10">Branch 10</option>
-                                <option value="11">Branch 11</option>
-                                <option value="12">Branch 12</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label>Month:</label>
-                            <select id="analyticsMonth">
-                                <option value="JANUARY">JANUARY</option>
-                                <option value="FEBRUARY">FEBRUARY</option>
-                                <option value="MARCH">MARCH</option>
-                                <option value="APRIL">APRIL</option>
-                                <option value="MAY">MAY</option>
-                                <option value="JUNE">JUNE</option>
-                                <option value="JULY">JULY</option>
-                                <option value="AUGUST">AUGUST</option>
-                                <option value="SEPTEMBER">SEPTEMBER</option>
-                                <option value="OCTOBER">OCTOBER</option>
-                                <option value="NOVEMBER">NOVEMBER</option>
-                                <option value="DECEMBER">DECEMBER</option>
+                <!-- Title Section -->
+                <div class="title-section">
+                    <div class="title-content">
+                        <h1 class="page-title">Analytics</h1>
+                        <p class="page-description">Comprehensive financial insights and performance metrics across all branches. Monitor savings, disbursements, and member growth trends to make informed decisions and drive strategic planning.</p>
+                    </div>
+                    <div class="year-filter-section">
+                        <div class="filter-container">
+                            <label for="yearFilter">Year:</label>
+                            <select id="yearFilter">
+                                <option value="2025">2025</option>
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                                <option value="2022">2022</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <div class="analytics-grid">
-                    <div class="ai-recommendation-card">
-                        <div class="ai-icon">
-                            <i class="fas fa-robot"></i>
+                <!-- Branch Summary -->
+                <div class="branch-summary-section">
+                    <h2>Branch Summary</h2>
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <div class="summary-icon">
+                                <i class="fas fa-piggy-bank"></i>
                         </div>
-                        <div class="ai-content">
-                            <h3>AI Recommendation</h3>
-                            <p>Based on current trends, consider focusing on Branch 3 for increased savings this month.</p>
+                            <div class="summary-content">
+                                <h3>Total Savings</h3>
+                                <p class="summary-value">₱2,450,000</p>
+                                <span class="summary-label">Across All Branches</span>
+                        </div>
+                    </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </div>
+                            <div class="summary-content">
+                                <h3>Total Disbursements</h3>
+                                <p class="summary-value">₱1,890,000</p>
+                                <span class="summary-label">Across All Branches</span>
+                            </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="branch-summary-card">
-                        <h3>Branch Summary</h3>
-                        <div class="summary-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">Savings</span>
-                                <span class="stat-value">₱125,000</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Disbursement</span>
-                                <span class="stat-value">₱98,000</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="analytics-charts">
-                        <div class="chart-card">
-                            <h3>Monthly Trends</h3>
+                <!-- Monthly Trends -->
+                <div class="monthly-trends-section">
+                    <h2>Monthly Trends - IBAAN Branch</h2>
                             <div class="chart-container">
                                 <canvas id="monthlyTrendsChart"></canvas>
                             </div>
                         </div>
-                        <div class="chart-card">
-                            <h3>Branch Rankings</h3>
+
+                <!-- Monthly Savings Chart -->
+                <div class="chart-section">
+                    <h2>Monthly Savings Chart - All Branches</h2>
+                    <div class="month-filters">
+                        <button class="month-filter active" data-month="all">All Months</button>
+                        <button class="month-filter" data-month="jan">Jan</button>
+                        <button class="month-filter" data-month="feb">Feb</button>
+                        <button class="month-filter" data-month="mar">Mar</button>
+                        <button class="month-filter" data-month="apr">Apr</button>
+                        <button class="month-filter" data-month="may">May</button>
+                        <button class="month-filter" data-month="jun">Jun</button>
+                        <button class="month-filter" data-month="jul">Jul</button>
+                        <button class="month-filter" data-month="aug">Aug</button>
+                        <button class="month-filter" data-month="sep">Sep</button>
+                        <button class="month-filter" data-month="oct">Oct</button>
+                        <button class="month-filter" data-month="nov">Nov</button>
+                        <button class="month-filter" data-month="dec">Dec</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="monthlySavingsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Savings Chart - IBAAN -->
+                <div class="chart-section">
+                    <h2>Savings Chart - IBAAN Branch (12 Months)</h2>
+                    <div class="chart-container">
+                        <canvas id="ibaansSavingsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Disbursement Chart -->
+                <div class="chart-section">
+                    <h2>Disbursement Chart - All Branches</h2>
+                    <div class="month-filters">
+                        <button class="month-filter active" data-month="all">All Months</button>
+                        <button class="month-filter" data-month="jan">Jan</button>
+                        <button class="month-filter" data-month="feb">Feb</button>
+                        <button class="month-filter" data-month="mar">Mar</button>
+                        <button class="month-filter" data-month="apr">Apr</button>
+                        <button class="month-filter" data-month="may">May</button>
+                        <button class="month-filter" data-month="jun">Jun</button>
+                        <button class="month-filter" data-month="jul">Jul</button>
+                        <button class="month-filter" data-month="aug">Aug</button>
+                        <button class="month-filter" data-month="sep">Sep</button>
+                        <button class="month-filter" data-month="oct">Oct</button>
+                        <button class="month-filter" data-month="nov">Nov</button>
+                        <button class="month-filter" data-month="dec">Dec</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="disbursementChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Disbursement Chart - IBAAN -->
+                <div class="chart-section">
+                    <h2>Disbursement Chart - IBAAN Branch (12 Months)</h2>
+                    <div class="chart-container">
+                        <canvas id="ibaansDisbursementChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Member Growth Chart -->
+                <div class="chart-section">
+                    <h2>Member Growth Chart - All Branches</h2>
+                    <div class="month-filters">
+                        <button class="month-filter active" data-month="all">All Months</button>
+                        <button class="month-filter" data-month="jan">Jan</button>
+                        <button class="month-filter" data-month="feb">Feb</button>
+                        <button class="month-filter" data-month="mar">Mar</button>
+                        <button class="month-filter" data-month="apr">Apr</button>
+                        <button class="month-filter" data-month="may">May</button>
+                        <button class="month-filter" data-month="jun">Jun</button>
+                        <button class="month-filter" data-month="jul">Jul</button>
+                        <button class="month-filter" data-month="aug">Aug</button>
+                        <button class="month-filter" data-month="sep">Sep</button>
+                        <button class="month-filter" data-month="oct">Oct</button>
+                        <button class="month-filter" data-month="nov">Nov</button>
+                        <button class="month-filter" data-month="dec">Dec</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="memberGrowthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Member Growth Chart - IBAAN -->
+                <div class="chart-section">
+                    <h2>Member Growth Chart - IBAAN Branch (12 Months)</h2>
                             <div class="chart-container">
-                                <canvas id="branchRankingsChart"></canvas>
+                        <canvas id="ibaansMemberGrowthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Branch Rankings -->
+                <div class="rankings-section">
+                    <h2>Branch Rankings</h2>
+                    <div class="rankings-container">
+                        <div class="ranking-item main-branch">
+                            <div class="ranking-number">1</div>
+                            <div class="ranking-info">
+                                <h3>IBAAN</h3>
+                                <p>Main Branch</p>
+                            </div>
+                            <div class="ranking-score">98.5</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">2</div>
+                            <div class="ranking-info">
+                                <h3>BAUAN</h3>
+                                <p>Branch 2</p>
+                            </div>
+                            <div class="ranking-score">95.2</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">3</div>
+                            <div class="ranking-info">
+                                <h3>SAN JOSE</h3>
+                                <p>Branch 3</p>
+                            </div>
+                            <div class="ranking-score">92.8</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">4</div>
+                            <div class="ranking-info">
+                                <h3>ROSARIO</h3>
+                                <p>Branch 4</p>
+                            </div>
+                            <div class="ranking-score">89.4</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">5</div>
+                            <div class="ranking-info">
+                                <h3>SAN JUAN</h3>
+                                <p>Branch 5</p>
+                            </div>
+                            <div class="ranking-score">87.1</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">6</div>
+                            <div class="ranking-info">
+                                <h3>PADRE GARCIA</h3>
+                                <p>Branch 6</p>
+                            </div>
+                            <div class="ranking-score">84.6</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">7</div>
+                            <div class="ranking-info">
+                                <h3>LIPA CITY</h3>
+                                <p>Branch 7</p>
+                            </div>
+                            <div class="ranking-score">82.3</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">8</div>
+                            <div class="ranking-info">
+                                <h3>BATANGAS CITY</h3>
+                                <p>Branch 8</p>
+                            </div>
+                            <div class="ranking-score">79.8</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">9</div>
+                            <div class="ranking-info">
+                                <h3>MABINI LIPA</h3>
+                                <p>Branch 9</p>
+                            </div>
+                            <div class="ranking-score">77.2</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">10</div>
+                            <div class="ranking-info">
+                                <h3>CALAMIAS</h3>
+                                <p>Branch 10</p>
+                            </div>
+                            <div class="ranking-score">74.9</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">11</div>
+                            <div class="ranking-info">
+                                <h3>LEMERY</h3>
+                                <p>Branch 11</p>
+                            </div>
+                            <div class="ranking-score">72.1</div>
+                        </div>
+                        <div class="ranking-item">
+                            <div class="ranking-number">12</div>
+                            <div class="ranking-info">
+                                <h3>MATAAS NA KAHOY</h3>
+                                <p>Branch 12</p>
+                            </div>
+                            <div class="ranking-score">69.8</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Contributors -->
+                <div class="contributors-section">
+                    <h2>Top Contributors</h2>
+                    <div class="contributors-container">
+                        <div class="all-branches-contributors">
+                            <h3>All Branches Combined</h3>
+                            <div class="contributor-list">
+                                <div class="contributor-item">
+                                    <div class="contributor-rank">1</div>
+                                    <div class="contributor-info">
+                                        <h4>Juan Dela Cruz</h4>
+                                        <p>BAUAN Branch</p>
+                                    </div>
+                                    <div class="contributor-amount">₱125,000</div>
+                                </div>
+                                <div class="contributor-item">
+                                    <div class="contributor-rank">2</div>
+                                    <div class="contributor-info">
+                                        <h4>Maria Santos</h4>
+                                        <p>SAN JOSE Branch</p>
+                                    </div>
+                                    <div class="contributor-amount">₱118,500</div>
+                                </div>
+                                <div class="contributor-item">
+                                    <div class="contributor-rank">3</div>
+                                    <div class="contributor-info">
+                                        <h4>Pedro Reyes</h4>
+                                        <p>ROSARIO Branch</p>
+                                    </div>
+                                    <div class="contributor-amount">₱112,300</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ibaans-contributors">
+                            <h3>IBAAN Branch Top 5</h3>
+                            <div class="contributor-list">
+                                <div class="contributor-item main-branch">
+                                    <div class="contributor-rank">1</div>
+                                    <div class="contributor-info">
+                                        <h4>Ana Garcia</h4>
+                                        <p>IBAAN Branch</p>
+                                    </div>
+                                    <div class="contributor-amount">₱98,500</div>
+                                </div>
+                                <div class="contributor-item">
+                                    <div class="contributor-rank">2</div>
+                                    <div class="contributor-info">
+                                        <h4>Carlos Mendoza</h4>
+                                        <p>IBAAN Branch</p>
+                                    </div>
+                                    <div class="contributor-amount">₱87,200</div>
+                                </div>
+                                <div class="contributor-item">
+                                    <div class="contributor-rank">3</div>
+                                    <div class="contributor-info">
+                                        <h4>Luz Villanueva</h4>
+                                        <p>IBAAN Branch</p>
+                                    </div>
+                                    <div class="contributor-amount">₱76,800</div>
+                                </div>
+                                <div class="contributor-item">
+                                    <div class="contributor-rank">4</div>
+                                    <div class="contributor-info">
+                                        <h4>Roberto Cruz</h4>
+                                        <p>IBAAN Branch</p>
+                                    </div>
+                                    <div class="contributor-amount">₱65,400</div>
+                                </div>
+                                <div class="contributor-item">
+                                    <div class="contributor-rank">5</div>
+                                    <div class="contributor-info">
+                                        <h4>Elena Torres</h4>
+                                        <p>IBAAN Branch</p>
+                                    </div>
+                                    <div class="contributor-amount">₱58,900</div>
+                                </div>
                             </div>
                         </div>
                     </div>
