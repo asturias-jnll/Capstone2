@@ -1,7 +1,12 @@
-// Reports System for Marketing Clerk
+// Reports System - Shared
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize shared utilities (includes user header)
+    if (typeof SharedUtils !== 'undefined') {
+        const sharedUtils = new SharedUtils();
+        sharedUtils.init();
+    }
+    
     initializeReports();
-    initializeDynamicUserHeader(); // Add this line
 });
 
 // Initialize reports system
@@ -431,7 +436,8 @@ function generateMockSavingsData(branches, year, month) {
         'branch9': 'Branch 9 - MABINI LIPA',
         'branch10': 'Branch 10 - CALAMIAS',
         'branch11': 'Branch 11 - LEMERY',
-        'branch12': 'Branch 12 - MATAAS NA KAHOY'
+        'branch12': 'Branch 12 - MATAAS NA KAHOY',
+        'branch13': 'Branch 13 - TANAUAN'
     };
     
     // Check if user is branch-specific
@@ -497,7 +503,8 @@ function generateMockDisbursementData(branches, year, month) {
         'branch9': 'Branch 9 - MABINI LIPA',
         'branch10': 'Branch 10 - CALAMIAS',
         'branch11': 'Branch 11 - LEMERY',
-        'branch12': 'Branch 12 - MATAAS NA KAHOY'
+        'branch12': 'Branch 12 - MATAAS NA KAHOY',
+        'branch13': 'Branch 13 - TANAUAN'
     };
     
     // Check if user is branch-specific
@@ -604,7 +611,8 @@ function generateMockBranchData(branch, year, month) {
         'branch9': 'Branch 9 - MABINI LIPA',
         'branch10': 'Branch 10 - CALAMIAS',
         'branch11': 'Branch 11 - LEMERY',
-        'branch12': 'Branch 12 - MATAAS NA KAHOY'
+        'branch12': 'Branch 12 - MATAAS NA KAHOY',
+        'branch13': 'Branch 13 - TANAUAN'
     };
     
     return {
@@ -679,7 +687,8 @@ function getBranchLocation(branchId) {
         9: 'MABINI LIPA',
         10: 'CALAMIAS',
         11: 'LEMERY',
-        12: 'MATAAS NA KAHOY'
+        12: 'MATAAS NA KAHOY',
+        13: 'TANAUAN'
     };
     return locations[branchId] || 'UNKNOWN';
 }

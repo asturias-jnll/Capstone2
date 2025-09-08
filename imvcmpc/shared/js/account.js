@@ -1,28 +1,39 @@
 /**
- * Account Settings JavaScript - IMVCMPC Marketing Clerk
+ * Dynamic Account Settings JavaScript - IMVCMPC
  * 
- * This file handles all account-related functionality including:
+ * This file handles account functionality for both Finance Officer and Marketing Clerk
+ * with dynamic information based on user role and branch assignment.
  * 
- * BRANCH-SPECIFIC FEATURES:
- * - Dynamic employee ID format: MC-001 for main branch, MC-002 for branch 2, etc.
- * - Dynamic email format: mc.ibaan.imvcmpc@gmail.com for main, mc.bauan.imvcmpc@gmail.com for others
- * - Dynamic role display: "Marketing Clerk (Main Branch)" vs "Marketing Clerk (Branch X)"
- * - Dynamic branch access: "ALL Branches access" for main, "Branch X access only" for others
- * 
- * SECURITY FEATURES:
- * - Role and access fields are non-editable
- * - Branch details are non-editable
- * - Only personal information is editable
+ * BRANCH STRUCTURE:
+ * - Branch 1: IBAAN (Main Branch)
+ * - Branch 2: BAUAN
+ * - Branch 3: SAN JOSE
+ * - Branch 4: ROSARIO
+ * - Branch 5: SAN JUAN
+ * - Branch 6: PADRE GARCIA
+ * - Branch 7: LIPA CITY
+ * - Branch 8: BATANGAS CITY
+ * - Branch 9: MABINI LIPA
+ * - Branch 10: CALAMIAS
+ * - Branch 11: LEMERY
+ * - Branch 12: MATAAS NA KAHOY
+ * - Branch 13: TANAUAN
  * 
  * @author IMVCMPC Development Team
- * @version 3.0.0
+ * @version 4.0.0
  * @lastUpdated 2024
  */
 
-// Account Management System for Marketing Clerk
+// Initialize account system
 document.addEventListener('DOMContentLoaded', function() {
     initializeAccount();
-    initializeDynamicUserHeader(); // Add this line
+    initializeDynamicUserHeader();
+    
+    // Force update after a short delay to ensure all elements are loaded
+    setTimeout(() => {
+        console.log('Force updating account information...');
+        initializeDynamicAccount();
+    }, 100);
 });
 
 // Initialize all account functionality
@@ -35,106 +46,166 @@ function initializeAccount() {
     setInterval(updateDateTime, 1000);
     setInterval(updateSessionDuration, 1000);
     
-    // Initialize branch-specific account information
-    initializeBranchSpecificAccount();
+    // Initialize dynamic account information based on user role and branch
+    initializeDynamicAccount();
 }
 
-// Initialize branch-specific account information
-function initializeBranchSpecificAccount() {
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const userBranchName = localStorage.getItem('user_branch_name');
-    const userBranchLocation = localStorage.getItem('user_branch_location');
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+// Initialize dynamic account information based on user role and branch
+function initializeDynamicAccount() {
+    // Get user data from localStorage
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const userRole = localStorage.getItem('user_role') || userData.role_display_name || 'User';
+    const userBranchId = localStorage.getItem('user_branch_id') || userData.branch_id || '1';
+    const userBranchName = localStorage.getItem('user_branch_name') || userData.branch_name || 'Main Branch';
+    const userBranchLocation = localStorage.getItem('user_branch_location') || userData.branch_location || 'IBAAN';
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true' || userData.is_main_branch_user === true;
     
-    // Update account header based on branch
-    updateAccountHeader(userBranchName, isMainBranchUser);
+    // Debug logging
+    console.log('Account Debug Info:', {
+        userRole,
+        userBranchId,
+        userBranchName,
+        userBranchLocation,
+        isMainBranchUser,
+        userData
+    });
     
-    // Update personal information based on branch
-    updatePersonalInformation(userBranchId, userBranchName, userBranchLocation, isMainBranchUser);
-    
-    // Update role and access information based on branch
-    updateRoleAndAccess(userBranchName, userBranchLocation, isMainBranchUser);
-    
-    // Update branch information in account details
+    // Update all account information dynamically
+    updatePersonalInformation(userRole, userBranchId, userBranchName, userBranchLocation, isMainBranchUser);
+    updateRoleAndAccess(userRole, userBranchName, userBranchLocation, isMainBranchUser);
     updateBranchInformation(userBranchId, userBranchName, userBranchLocation, isMainBranchUser);
+    updateAccountHeader(userRole, userBranchName, isMainBranchUser);
 }
 
-// Update personal information based on branch
-function updatePersonalInformation(branchId, branchName, branchLocation, isMainBranch) {
-    // Generate employee ID based on branch
+// Update personal information based on role and branch
+function updatePersonalInformation(userRole, branchId, branchName, branchLocation, isMainBranch) {
+    // Generate employee ID based on role and branch
     let employeeId;
-    if (isMainBranch) {
-        employeeId = 'MC-001';
+    let fullName;
+    let email;
+    
+    // Full name is just the role
+    fullName = userRole;
+    
+    // Generate employee ID based on role and branch
+    if (userRole === 'Finance Officer') {
+        if (isMainBranch) {
+            employeeId = 'FO-001';
+        } else {
+            employeeId = `FO-00${branchId}`;
+        }
+    } else if (userRole === 'Marketing Clerk') {
+        if (isMainBranch) {
+            employeeId = 'MC-001';
+        } else {
+            employeeId = `MC-00${branchId}`;
+        }
     } else {
-        // For other branches, use branch number
-        employeeId = `MC-00${branchId}`;
+        // Default fallback
+        employeeId = 'EMP-001';
     }
     
-    // Generate email based on branch
-    let email;
+    // Generate email based on branch location
     if (isMainBranch) {
-        email = 'mc.ibaan.imvcmpc@gmail.com';
+        email = 'ibaan@imvcmpc.com';
     } else {
         const branchCode = branchLocation.toLowerCase().replace(/\s+/g, '');
-        email = `mc.${branchCode}.imvcmpc@gmail.com`;
+        email = `${branchCode}@imvcmpc.com`;
     }
     
-    // Update employee ID display and input
-    const employeeIdElement = document.getElementById('employeeId');
-    const employeeIdInput = document.getElementById('employeeIdInput');
-    if (employeeIdElement) employeeIdElement.textContent = employeeId;
-    if (employeeIdInput) employeeIdInput.value = employeeId;
+    // Debug logging
+    console.log('Personal Info Update:', { fullName, employeeId, email });
     
-    // Update email display and input
-    const emailElement = document.getElementById('emailAddress');
-    const emailInput = document.getElementById('emailInput');
-    if (emailElement) emailElement.textContent = email;
-    if (emailInput) emailInput.value = email;
+    // Update display elements
+    updateElement('fullName', fullName);
+    updateElement('employeeId', employeeId);
+    updateElement('emailAddress', email);
+    
+    // Update input fields
+    updateInputValue('fullNameInput', fullName);
+    updateInputValue('employeeIdInput', employeeId);
+    updateInputValue('emailInput', email);
     
     // Save to localStorage
     const personalData = {
+        fullName: fullName,
         employeeId: employeeId,
         email: email,
+        userRole: userRole,
+        branchId: branchId,
+        branchName: branchName,
+        branchLocation: branchLocation,
         timestamp: new Date().toISOString()
     };
     localStorage.setItem('personalData', JSON.stringify(personalData));
 }
 
-// Update role and access information based on branch
-function updateRoleAndAccess(branchName, branchLocation, isMainBranch) {
-    // Update user role
-    const userRoleElement = document.getElementById('userRole');
-    if (userRoleElement) {
-        if (isMainBranch) {
-            userRoleElement.textContent = 'Marketing Clerk (Main Branch)';
-        } else {
-            userRoleElement.textContent = `Marketing Clerk (${branchLocation})`;
-        }
-    }
+// Update role and access information based on role and branch
+function updateRoleAndAccess(userRole, branchName, branchLocation, isMainBranch) {
+    // Update user role display
+    updateElement('userRoleDisplay', userRole);
     
     // Update assigned branch
     const assignedBranchElement = document.getElementById('assignedBranch');
     if (assignedBranchElement) {
         if (isMainBranch) {
-            assignedBranchElement.textContent = 'IBAAN Main Branch - All Branch Access';
+            assignedBranchElement.textContent = 'IBAAN Main Branch - All Branches Access';
         } else {
-            assignedBranchElement.textContent = `${branchLocation} - Branch ${branchName.split(' ')[1]} access only`;
+            assignedBranchElement.textContent = `${branchLocation} - Branch ${branchName.split(' ')[1]} Access only`;
         }
     }
     
-    // Update permissions based on branch
-    updatePermissions(isMainBranch);
+    // Update permissions based on role and branch
+    updatePermissions(userRole, isMainBranch);
 }
 
-// Update permissions based on branch access
-function updatePermissions(isMainBranch) {
+// Update permissions based on role and branch access
+function updatePermissions(userRole, isMainBranch) {
     const permissionTags = document.getElementById('permissionTags');
     let permissions = [];
     
-    if (isMainBranch) {
-        permissions = ['View All Branches', 'Manage Member Data', 'View Analytics', 'Generate Reports'];
+    if (userRole === 'Finance Officer') {
+        if (isMainBranch) {
+            permissions = [
+                'View All Branches',
+                'Manage Financial Data',
+                'Approve Transactions',
+                'Generate Financial Reports',
+                'View Analytics',
+                'Manage Member Accounts'
+            ];
+        } else {
+            permissions = [
+                'View Own Branch',
+                'Manage Financial Data',
+                'Approve Transactions',
+                'Generate Financial Reports',
+                'View Analytics',
+                'Manage Member Accounts'
+            ];
+        }
+    } else if (userRole === 'Marketing Clerk') {
+        if (isMainBranch) {
+            permissions = [
+                'View All Branches',
+                'Manage Member Data',
+                'View Analytics',
+                'Generate Reports',
+                'Manage Notifications',
+                'View Member Information'
+            ];
+        } else {
+            permissions = [
+                'View Own Branch',
+                'Manage Member Data',
+                'View Analytics',
+                'Generate Reports',
+                'Manage Notifications',
+                'View Member Information'
+            ];
+        }
     } else {
-        permissions = ['View Own Branch', 'Manage Member Data', 'View Analytics', 'Generate Reports'];
+        permissions = ['Basic Access'];
     }
     
     // Update permission tags
@@ -145,48 +216,97 @@ function updatePermissions(isMainBranch) {
     }
 }
 
-// Update account header based on branch
-function updateAccountHeader(branchName, isMainBranch) {
-    // Keep title as "Account Settings" only
+// Update branch information in account details
+function updateBranchInformation(branchId, branchName, branchLocation, isMainBranch) {
+    // Update branch name - format as "Main Branch", "Branch 2", "Branch 3", etc.
+    let displayBranchName;
+    if (isMainBranch) {
+        displayBranchName = 'Main Branch';
+    } else {
+        displayBranchName = `Branch ${branchId}`;
+    }
+    updateElement('branchName', displayBranchName);
+    
+    // Update branch location
+    updateElement('branchLocation', `${branchLocation}, Batangas`);
+    
+    // Update branch contact based on branch
+    const branchContacts = {
+        '1': '+63 43 123 4567', // IBAAN
+        '2': '+63 43 234 5678', // BAUAN
+        '3': '+63 43 345 6789', // SAN JOSE
+        '4': '+63 43 456 7890', // ROSARIO
+        '5': '+63 43 567 8901', // SAN JUAN
+        '6': '+63 43 678 9012', // PADRE GARCIA
+        '7': '+63 43 789 0123', // LIPA CITY
+        '8': '+63 43 890 1234', // BATANGAS CITY
+        '9': '+63 43 901 2345', // MABINI LIPA
+        '10': '+63 43 012 3456', // CALAMIAS
+        '11': '+63 43 123 4567', // LEMERY
+        '12': '+63 43 234 5678',  // MATAAS NA KAHOY
+        '13': '+63 43 345 6789'   // TANAUAN
+    };
+    
+    const contact = branchContacts[branchId] || '+63 43 123 4567';
+    updateElement('branchContact', contact);
+    
+    // Update operation days
+    updateElement('branchOperationDays', 'Monday - Friday');
+}
+
+// Update account header based on role and branch
+function updateAccountHeader(userRole, branchName, isMainBranch) {
     const headerTitle = document.querySelector('.account-header h1');
     if (headerTitle) {
         headerTitle.textContent = 'Account Settings';
     }
     
     const headerDescription = document.querySelector('.account-header p');
-    if (headerDescription && branchName) {
+    if (headerDescription) {
         if (isMainBranch) {
-            headerDescription.textContent = 'Manage your account preferences and security settings with access to all branches.';
+            headerDescription.textContent = `Manage your ${userRole.toLowerCase()} account preferences and security settings with access to all branches.`;
         } else {
-            headerDescription.textContent = `Manage your account preferences and security settings for ${branchName}.`;
+            headerDescription.textContent = `Manage your ${userRole.toLowerCase()} account preferences and security settings for ${branchName}.`;
         }
     }
 }
 
-// Update branch information in account details
-function updateBranchInformation(branchId, branchName, branchLocation, isMainBranch) {
-    // Update branch name
-    const branchNameElement = document.getElementById('branchName');
-    if (branchNameElement) {
-        branchNameElement.textContent = branchName;
+// Helper function to update element text content
+function updateElement(elementId, text) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+// Helper function to update input value
+function updateInputValue(inputId, value) {
+    const input = document.getElementById(inputId);
+    if (input) {
+        input.value = value;
+    }
+}
+
+// Initialize dynamic user header - Make it globally accessible
+window.initializeDynamicUserHeader = function() {
+    const userRole = localStorage.getItem('user_role') || 'User';
+    const userBranchName = localStorage.getItem('user_branch_name') || 'Main Branch';
+    const userBranchLocation = localStorage.getItem('user_branch_location') || 'IBAAN';
+    
+    // Update user name (role) in header
+    const userNameElement = document.getElementById('userName');
+    if (userNameElement) {
+        userNameElement.textContent = userRole;
     }
     
-    // Update branch location
-    const branchLocationElement = document.getElementById('branchLocation');
-    if (branchLocationElement) {
-        branchLocationElement.textContent = `${branchLocation}, Batangas`;
-    }
-    
-    // Update branch contact (keep default for now)
-    const branchContactElement = document.getElementById('branchContact');
-    if (branchContactElement) {
-        branchContactElement.textContent = '+63 43 123 4567';
-    }
-    
-    // Update operation days (keep default for now)
-    const branchOperationDaysElement = document.getElementById('branchOperationDays');
-    if (branchOperationDaysElement) {
-        branchOperationDaysElement.textContent = 'Monday - Friday';
+    // Update user role (branch) in header
+    const userRoleElement = document.getElementById('userRole');
+    if (userRoleElement) {
+        if (userBranchLocation) {
+            userRoleElement.textContent = `IMVCMPC - ${userBranchName} ${userBranchLocation}`;
+        } else {
+            userRoleElement.textContent = `IMVCMPC - ${userBranchName}`;
+        }
     }
 }
 
@@ -433,24 +553,6 @@ function recordSuccessfulLogin() {
     updateLastLogin();
     updateSessionDuration();
     updateLoginAttempts();
-}
-
-// Record failed login attempt
-function recordFailedLogin() {
-    const loginAttempts = JSON.parse(localStorage.getItem('loginAttempts') || '{}');
-    loginAttempts.failed = (loginAttempts.failed || 0) + 1;
-    loginAttempts.lastAttempt = new Date().toISOString();
-    loginAttempts.lastFailedAttempt = new Date().toISOString();
-    
-    localStorage.setItem('loginAttempts', JSON.stringify(loginAttempts));
-    
-    updateSecurityStatus();
-    updateLoginAttempts();
-}
-
-// Reset session (for logout)
-function resetSession() {
-    localStorage.removeItem('sessionStartTime');
 }
 
 // Setup all event listeners

@@ -43,7 +43,8 @@ const config = {
         { id: 9, name: 'Branch 9', location: 'MABINI LIPA', isMain: false },
         { id: 10, name: 'Branch 10', location: 'CALAMIAS', isMain: false },
         { id: 11, name: 'Branch 11', location: 'LEMERY', isMain: false },
-        { id: 12, name: 'Branch 12', location: 'MATAAS NA KAHOY', isMain: false }
+        { id: 12, name: 'Branch 12', location: 'MATAAS NA KAHOY', isMain: false },
+        { id: 13, name: 'Branch 13', location: 'TANAUAN', isMain: false }
     ],
 
     // Role Configuration

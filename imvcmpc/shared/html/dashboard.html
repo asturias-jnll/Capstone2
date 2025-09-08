@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMVCMPC - Dashboard</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Main Dashboard -->
+    <div id="mainScreen" class="screen active">
+        <!-- Navigation -->
+        <nav class="navigation">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <span>IMVCMPC</span>
+                </div>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item active">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="memberdata.html" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Member Data</span>
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="reports.html" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="notifications.html" class="nav-item">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </div>
+            
+            <div class="nav-account">
+                <a href="account.html" class="nav-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Account</span>
+                </a>
+            </div>
+            
+            <div class="nav-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="breadcrumb">
+                    <div class="datetime-display">
+                        <div class="date-display" id="currentDate"></div>
+                        <div class="time-display" id="currentTime"></div>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name" id="userName">User</span>
+                        <span class="user-role" id="userRole">IMVCMPC - Main Branch</span>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content">
+                <!-- Title Section -->
+                <div class="title-section">
+                    <h1 class="page-title">Dashboard Overview</h1>
+                    <p class="page-description">Quick insights and performance preview</p>
+                    <div class="title-underline"></div>
+                </div>
+
+                <!-- Quick Stats Cards -->
+                <div class="summary-section">
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <div class="card-icon savings">
+                                <i class="fas fa-piggy-bank"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>Total Savings</h3>
+                                <div class="card-value">₱0.00</div>
+                                <div class="card-change">
+                                    <span class="change-indicator">--</span>
+                                    <span class="change-text">No data available</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <div class="card-icon disbursement">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>Total Disbursements</h3>
+                                <div class="card-value">₱0.00</div>
+                                <div class="card-change">
+                                    <span class="change-indicator">--</span>
+                                    <span class="change-text">No data available</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <div class="card-icon growth">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>Net Growth</h3>
+                                <div class="card-value">₱0.00</div>
+                                <div class="card-change">
+                                    <span class="change-indicator">--</span>
+                                    <span class="change-text">No data available</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <div class="card-icon members">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>Active Members</h3>
+                                <div class="card-value">0</div>
+                                <div class="card-change">
+                                    <span class="change-indicator">--</span>
+                                    <span class="change-text">No data available</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <a href="analytics.html" class="action-btn primary">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>View Full Analytics</span>
+                    </a>
+                </div>
+
+                <!-- Preview Charts -->
+                <div class="preview-section">
+                    <div class="section-header">
+                        <h2>Analytics Preview</h2>
+                        <p>Key performance indicators and trends</p>
+                    </div>
+                    
+                    <div class="preview-charts">
+                        <div class="preview-chart">
+                            <div class="chart-header">
+                                <h3>Savings Trend</h3>
+                                <div class="chart-actions">
+                                    <button class="chart-btn" onclick="refreshChart('savings')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="savingsPreviewChart"></canvas>
+                                <div class="no-data-message">
+                                    <i class="fas fa-chart-line"></i>
+                                    <p>No savings data available</p>
+                                    <small>Data will appear here once members start saving</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="preview-chart">
+                            <div class="chart-header">
+                                <h3>Branch Performance</h3>
+                                <div class="chart-actions">
+                                    <button class="chart-btn" onclick="refreshChart('branch')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="branchPreviewChart"></canvas>
+                                <div class="no-data-message">
+                                    <i class="fas fa-building"></i>
+                                    <p>No branch data available</p>
+                                    <small>Data will appear here once branches start operations</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Insights -->
+                <div class="insights-section">
+                    <div class="section-header">
+                        <h2>Quick Insights</h2>
+                        <p>Recent activity and top performers</p>
+                    </div>
+                    
+                    <div class="insights-grid">
+                        <div class="insight-card">
+                            <div class="insight-header">
+                                <h3>Top Members</h3>
+                                <a href="analytics.html" class="view-all">View All</a>
+                            </div>
+                            <div class="insight-content">
+                                <div class="no-data-message">
+                                    <i class="fas fa-users"></i>
+                                    <p>No member data available</p>
+                                    <small>Member data will appear here once they start transactions</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="insight-card">
+                            <div class="insight-header">
+                                <h3>Branch Rankings</h3>
+                                <a href="analytics.html" class="view-all">View All</a>
+                            </div>
+                            <div class="insight-content">
+                                <div class="no-data-message">
+                                    <i class="fas fa-trophy"></i>
+                                    <p>No branch data available</p>
+                                    <small>Branch rankings will appear here once they start operations</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/shared-utils.js"></script>
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/topbar.js"></script>
+    <script>
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTopBar();
+            initializeDashboard();
+        });
+    </script>
+</body>
+</html>

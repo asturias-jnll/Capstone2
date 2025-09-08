@@ -7,7 +7,13 @@
 </head>
 <body>
     <script>
-        // Redirect to shared analytics page (localStorage values are already set by login system)
+        // Set user role for Finance Officer
+        localStorage.setItem('user_role', 'Finance Officer');
+        localStorage.setItem('user_branch_name', 'Main Branch');
+        localStorage.setItem('user_branch_id', '1');
+        localStorage.setItem('is_main_branch_user', 'true');
+        
+        // Redirect to shared analytics page
         window.location.href = '../../shared/html/analytics.html';
     </script>
     

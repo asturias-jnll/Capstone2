@@ -372,7 +372,8 @@ function getBranchLocation(branchId) {
         9: 'MABINI LIPA',
         10: 'CALAMIAS',
         11: 'LEMERY',
-        12: 'MATAAS NA KAHOY'
+        12: 'MATAAS NA KAHOY',
+        13: 'TANAUAN'
     };
     return locations[branchId] || 'UNKNOWN';
 }
@@ -451,7 +452,8 @@ function getBranchName(branchCode) {
         'mabini': 'Branch 9 - MABINI LIPA',
         'calamias': 'Branch 10 - CALAMIAS',
         'lemery': 'Branch 11 - LEMERY',
-        'mataasnakahoy': 'Branch 12 - MATAAS NA KAHOY'
+        'mataasnakahoy': 'Branch 12 - MATAAS NA KAHOY',
+        'tanauan': 'Branch 13 - TANAUAN'
     };
     return branches[branchCode] || branchCode;
 }

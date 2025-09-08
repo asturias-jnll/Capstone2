@@ -131,7 +131,7 @@ function redirectBasedOnRole(role) {
             window.location.href = '../marketingclerk/html/dashboard.html';
             break;
         case 'finance_officer':
-            window.location.href = '../financeofficer/html/main.html'; // Adjust path if needed
+            window.location.href = '../financeofficer/html/dashboard.html';
             break;
         case 'it_head':
             window.location.href = '../ithead/html/main.html'; // Adjust path if needed

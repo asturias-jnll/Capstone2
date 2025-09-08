@@ -147,7 +147,8 @@ async function setupDatabase() {
                     (9, 'Branch 9', 'MABINI LIPA', FALSE),
                     (10, 'Branch 10', 'CALAMIAS', FALSE),
                     (11, 'Branch 11', 'LEMERY', FALSE),
-                    (12, 'Branch 12', 'MATAAS NA KAHOY', FALSE)
+                    (12, 'Branch 12', 'MATAAS NA KAHOY', FALSE),
+                    (13, 'Branch 13', 'TANAUAN', FALSE)
                 `);
                 
                 // Insert default roles
@@ -199,10 +200,10 @@ async function setupDatabase() {
             console.log('\n🎉 Database setup completed successfully!');
             console.log('\n📊 Database Summary:');
             console.log(`   Database: ${dbName}`);
-            console.log(`   Branches: 12 (including Main Branch)`);
+            console.log(`   Branches: 13 (including Main Branch)`);
             console.log(`   Roles: 3 (Marketing Clerk, Finance Officer, IT Head)`);
             console.log(`   Permissions: 14 different permissions configured`);
-            console.log(`   Sample Users: 27 users created for testing (3 main branch + 12 branch clerks + 12 finance officers)`);
+            console.log(`   Sample Users: 29 users created for testing (3 main branch + 13 branch clerks + 13 finance officers)`);
             
             console.log('\n🔑 Sample Login Credentials:');
             console.log('   Main Branch Users (access to all branches):');
@@ -222,6 +223,7 @@ async function setupDatabase() {
             console.log('     Branch 10 (Calamias): mc.calamias / calamias123!');
             console.log('     Branch 11 (Lemery): mc.lemery / lemery123!');
             console.log('     Branch 12 (Mataas na Kahoy): mc.mataasnakahoy / mataasnakahoy123!');
+            console.log('     Branch 13 (Tanauan): mc.tanauan / tanauan123!');
             console.log('');
             console.log('   Branch-Specific Finance Officers:');
             console.log('     Branch 1 (IBAAN): fo.ibaan / ibaan123!');
@@ -236,6 +238,7 @@ async function setupDatabase() {
             console.log('     Branch 10 (Calamias): fo.calamias / calamias123!');
             console.log('     Branch 11 (Lemery): fo.lemery / lemery123!');
             console.log('     Branch 12 (Mataas na Kahoy): fo.mataasnakahoy / mataasnakahoy123!');
+            console.log('     Branch 13 (Tanauan): fo.tanauan / tanauan123!');
             console.log('');
             console.log('   Note: Branch clerks and finance officers can only access data for their assigned branch.');
             
@@ -422,6 +425,18 @@ async function createSampleUsers(client) {
             employee_id: 'MC012',
             phone_number: '+63 912 345 6712'
         },
+        // Branch 13 - Tanauan
+        {
+            username: 'mc.tanauan',
+            email: 'mc.tanauan@imvcmpc.com',
+            password: 'tanauan123!',
+            first_name: 'TANAUAN',
+            last_name: 'Marketing Clerk',
+            role_id: 1, // Marketing Clerk
+            branch_id: 13, // Branch 13
+            employee_id: 'MC013',
+            phone_number: '+63 912 345 6713'
+        },
         // Finance Officers for different branches
         // Branch 2 - Bauan
         {
@@ -554,6 +569,18 @@ async function createSampleUsers(client) {
             branch_id: 12, // Branch 12
             employee_id: 'FO012',
             phone_number: '+63 912 345 6813'
+        },
+        // Branch 13 - Tanauan
+        {
+            username: 'fo.tanauan',
+            email: 'fo.tanauan@imvcmc.com',
+            password: 'tanauan123!',
+            first_name: 'TANAUAN',
+            last_name: 'Finance Officer',
+            role_id: 2, // Finance Officer
+            branch_id: 13, // Branch 13
+            employee_id: 'FO013',
+            phone_number: '+63 912 345 6814'
         }
     ];
     

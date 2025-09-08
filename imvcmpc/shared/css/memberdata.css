@@ -1,0 +1,777 @@
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #E9EEF3 0%, #B8D53D 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Color Variables */
+:root {
+    --dark-green: #0B5E1C;
+    --green: #187C19;
+    --light-green: #69B41E;
+    --lime-green: #8DC71E;
+    --yellow-green: #B8D53D;
+    --orange: #FFA726;
+    --background: #E9EEF3;
+    --white: #FFFFFF;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-300: #D1D5DB;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --red: #EF4444;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --shadow-light: rgba(0, 0, 0, 0.04);
+}
+
+/* Transaction Data Content */
+.member-data-content {
+    max-width: calc(100vw - 210px - 32px); /* Account for nav + equal margins */
+    margin: 0 auto; /* Center the content */
+    padding: 120px 16px 80px; /* Equal left and right padding, aligned with date */
+    position: relative;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* Title Section - Minimalist */
+.title-section {
+    margin: -20px 0 1.5rem 0;
+    padding: 0.1rem 0;
+    text-align: left; /* Keep on left side */
+}
+
+.page-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #0D5B11;
+    margin: 0 0 0.2rem 0;
+    letter-spacing: -1px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-description {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 0 0 0.5rem 0;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+}
+
+.title-underline {
+    height: 3px;
+    background: linear-gradient(90deg, #0D5B11, #187C19, #69B41E);
+    border-radius: 2px;
+    margin: 0;
+    flex: 1;
+    max-width: calc(100% - 12px); /* Limit to description length */
+}
+
+/* Transaction Controls - Minimalist */
+.transaction-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+}
+
+.search-section {
+    flex: 1;
+    max-width: 300px;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--white);
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+}
+
+.search-box:hover {
+    border-color: var(--dark-green);
+}
+
+.search-box:focus-within {
+    border-color: var(--dark-green);
+    box-shadow: 0 0 0 3px rgba(11, 94, 28, 0.1);
+}
+
+.search-box i {
+    color: var(--gray-600);
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    background: transparent;
+    flex: 1;
+    font-size: 14px;
+    color: var(--gray-700);
+}
+
+.search-box input::placeholder {
+    color: var(--gray-500);
+}
+
+.add-transaction-btn {
+    padding: 8px 16px;
+    background: var(--dark-green);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.add-transaction-btn:hover {
+    background: #0A4F18;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(11, 94, 28, 0.2);
+}
+
+/* Transaction Table Wrapper */
+.transaction-table-wrapper {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 18px;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    margin-bottom: 80px; /* Space for fixed bottom controls */
+    margin-left: 0; /* No left margin */
+    margin-right: 0; /* No right margin */
+    position: relative;
+    box-sizing: border-box;
+    width: 100%; /* Full width within content area */
+    max-width: 100%; /* Don't exceed content area */
+}
+
+/* Zoom Controls */
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zoom-btn {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--gray-300);
+    background: var(--white);
+    color: var(--gray-600);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--dark-green);
+    color: var(--dark-green);
+}
+
+.zoom-slider {
+    width: 80px;
+    height: 8px;
+    background: var(--gray-300);
+    border-radius: 4px;
+    position: relative;
+    margin: 0 8px;
+}
+
+.zoom-slider input[type="range"] {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    background: transparent;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.zoom-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--dark-green);
+    cursor: pointer;
+    border: 1px solid var(--white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-slider input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--dark-green);
+    cursor: pointer;
+    border: 1px solid var(--white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-percentage {
+    font-size: 11px;
+    color: var(--gray-600);
+    font-weight: 500;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Table Scroll Area */
+.table-scroll-area {
+    position: relative;
+}
+
+/* Transaction Table Container */
+.transaction-table-container {
+    overflow-x: auto; /* Enable horizontal scrolling */
+    overflow-y: hidden; /* Hide vertical scrollbar */
+    border: 1px solid var(--gray-100);
+    border-radius: 8px;
+    background: var(--white);
+    max-height: 60vh;
+    position: relative;
+    margin-bottom: 12px; /* Space between table and controls */
+    padding: 16px; /* Consistent padding on all sides */
+    box-sizing: border-box;
+    width: 100%; /* Full width within wrapper */
+    max-width: 100%; /* Don't exceed wrapper width */
+    margin-right: 0; /* Remove any right margin */
+    /* Enable programmatic scrolling */
+    scroll-behavior: smooth;
+}
+
+/* Hide browser scrollbar but keep functionality */
+.transaction-table-container::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+}
+
+.transaction-table-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.transaction-table-container::-webkit-scrollbar-thumb {
+    background: transparent;
+}
+
+/* Fixed Bottom Controls Bar - Match top bar exactly */
+.bottom-controls {
+    position: fixed;
+    bottom: 0;
+    left: 210px;
+    right: 0;
+    background: transparent;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+}
+
+.scroll-controls {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+}
+
+.scroll-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--gray-300);
+    background: var(--white);
+    color: var(--gray-600);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.scroll-btn:first-child {
+    left: 2px;
+    z-index: 10;
+    pointer-events: auto;
+    position: absolute;
+}
+
+.scroll-btn:last-child {
+    right: 2px;
+    z-index: 10;
+    pointer-events: auto;
+    position: absolute;
+}
+
+.scroll-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--dark-green);
+    color: var(--dark-green);
+}
+
+.scroll-track {
+    flex: 1;
+    height: 8px;
+    background: var(--gray-300);
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+    margin: 0 22px;
+    z-index: 1;
+}
+
+.scroll-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 30%;
+    background: var(--dark-green);
+    border-radius: 4px;
+    cursor: grab;
+    transition: all 0.3s ease;
+}
+
+.scroll-thumb:hover {
+    background: #0A4F18;
+}
+
+.scroll-thumb:active {
+    cursor: grabbing;
+}
+
+.transaction-table {
+    width: 1400px;
+    min-width: 1400px;
+    border-collapse: collapse;
+    font-size: 12px;
+    transition: transform 0.3s ease;
+    transform-origin: top left;
+    margin: 0;
+    padding: 0;
+}
+
+.transaction-table th {
+    background: var(--gray-50);
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--dark-green);
+    border: 1px solid var(--gray-100);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.transaction-table td {
+    padding: 10px 8px;
+    border: 1px solid var(--gray-100);
+    color: var(--gray-700);
+    text-align: center;
+    white-space: nowrap;
+    background: var(--white);
+}
+
+.transaction-table tr:nth-child(even) td {
+    background: var(--gray-50);
+}
+
+.transaction-table tr:hover td {
+    background: var(--yellow-green);
+    color: var(--dark-green);
+}
+
+/* Column Widths */
+.transaction-table th:nth-child(1), /* DATE */
+.transaction-table td:nth-child(1) {
+    width: 80px;
+    min-width: 80px;
+}
+
+.transaction-table th:nth-child(2), /* PAYEE */
+.transaction-table td:nth-child(2) {
+    width: 120px;
+    min-width: 120px;
+}
+
+.transaction-table th:nth-child(3), /* REFERENCE */
+.transaction-table td:nth-child(3) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(4), /* CROSS REFERENCE */
+.transaction-table td:nth-child(4) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(5), /* CHECK NUMBER */
+.transaction-table td:nth-child(5) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(6), /* CASH IN BANK */
+.transaction-table td:nth-child(6) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(7), /* LOAN RECEIVABLES */
+.transaction-table td:nth-child(7) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(8), /* SAVINGS DEPOSITS */
+.transaction-table td:nth-child(8) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(9), /* INTEREST INCOME */
+.transaction-table td:nth-child(9) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(10), /* SERVICE CHARGE */
+.transaction-table td:nth-child(10) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(11), /* SUNDRIES */
+.transaction-table td:nth-child(11) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(12), /* PARTICULARS */
+.transaction-table td:nth-child(12) {
+    width: 150px;
+    min-width: 150px;
+}
+
+.transaction-table th:nth-child(13), /* DEBIT */
+.transaction-table td:nth-child(13) {
+    width: 100px;
+    min-width: 100px;
+}
+
+.transaction-table th:nth-child(14), /* CREDIT */
+.transaction-table td:nth-child(14) {
+    width: 100px;
+    min-width: 100px;
+}
+
+/* Empty State */
+.empty-transactions {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray-600);
+    font-style: italic;
+}
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: var(--background);
+    border-radius: 24px;
+    padding: 24px;
+    max-width: 600px;
+    width: 90%;
+    text-align: left;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content h3 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: var(--dark-green);
+    font-weight: 600;
+}
+
+/* Form Styles */
+.form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+#transactionForm label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--dark-green);
+    font-size: 14px;
+}
+
+#transactionForm input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid var(--dark-green);
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+#transactionForm input:focus {
+    outline: none;
+    border-color: var(--yellow-green);
+    box-shadow: 0 0 0 3px rgba(184, 213, 61, 0.2);
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+.cancel-btn {
+    padding: 10px 20px;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.save-btn {
+    padding: 10px 20px;
+    background: var(--dark-green);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+    background: var(--gray-300);
+}
+
+.save-btn:hover {
+    background: #0A4F18;
+}
+
+/* Delete Dialog */
+.delete-icon {
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.delete-icon i {
+    font-size: 48px;
+    color: var(--red);
+}
+
+.dialog-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+}
+
+.delete-btn {
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.delete-btn:hover {
+    background: #DC2626;
+}
+
+/* Success Notification */
+.success-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--dark-green);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 3000;
+    font-weight: 600;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Tablet Responsive */
+@media (max-width: 1024px) {
+    .member-data-content {
+        max-width: calc(100vw - 240px - 32px); /* Account for nav + equal margins */
+        padding: 120px 32px 80px; /* Equal left and right padding */
+    }
+    
+    .transaction-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+    
+    .bottom-controls {
+        left: 240px;
+        right: 0;
+        padding: 16px 32px;
+    }
+    
+    .scroll-controls {
+        max-width: none;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .member-data-content {
+        padding: 100px 16px 80px; /* Equal left and right padding on mobile */
+        max-width: calc(100vw - 32px); /* Full width minus equal margins on mobile */
+    }
+    
+    .transaction-table-wrapper {
+        padding: 12px;
+        border-radius: 16px;
+        margin-bottom: 100px; /* More space for mobile controls */
+        margin-right: 0; /* Remove right margin on mobile */
+        max-width: 100%; /* Full width on mobile */
+    }
+    
+    .bottom-controls {
+        left: 0;
+        right: 0;
+        padding: 12px 16px;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+    
+    .scroll-controls {
+        justify-content: center;
+        max-width: none;
+    }
+    
+    .zoom-controls {
+        justify-content: center;
+    }
+    
+    /* Mobile-friendly button sizes */
+    .scroll-btn, .zoom-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+    }
+    
+    .scroll-track {
+        height: 10px;
+        margin: 0 12px;
+    }
+    
+    .zoom-slider {
+        width: 100px;
+        height: 10px;
+        margin: 0 8px;
+    }
+    
+    .zoom-percentage {
+        font-size: 12px;
+        min-width: 35px;
+    }
+    
+    .transaction-table {
+        font-size: 11px;
+    }
+    
+    .transaction-table th,
+    .transaction-table td {
+        padding: 8px 6px;
+    }
+    
+    .modal-content {
+        padding: 20px;
+        border-radius: 20px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+}

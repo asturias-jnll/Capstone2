@@ -1,5 +1,8 @@
 // Main navigation and common functionality
 document.addEventListener('DOMContentLoaded', function() {
+    // Set user role in localStorage for role detection
+    localStorage.setItem('user_role', 'Marketing Clerk');
+    
     // Initialize date and time display
     updateDateTime();
     setInterval(updateDateTime, 1000);
