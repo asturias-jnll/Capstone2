@@ -240,20 +240,8 @@
     <script src="../js/topbar.js"></script>
     <script>
         // Initialize when page loads
-        // Function to hide dashboard for Finance Officer
-        function hideDashboardForFinanceOfficer() {
-            const userRole = localStorage.getItem('user_role');
-            const dashboardNavItem = document.querySelector('a[href="dashboard.html"]');
-            
-            if (userRole === 'Finance Officer' && dashboardNavItem) {
-                dashboardNavItem.style.display = 'none';
-                console.log('Dashboard hidden for Finance Officer');
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             initializeTopBar();
-            hideDashboardForFinanceOfficer();
         });
     </script>
 </body>

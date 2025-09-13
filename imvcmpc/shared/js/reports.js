@@ -77,6 +77,12 @@ function hideBranchSelection() {
     branchLabels.forEach(label => {
         label.style.display = 'none';
     });
+    
+    // Hide the "Select Branches" label text
+    const branchSelectionLabels = document.querySelectorAll('.branch-selection label');
+    branchSelectionLabels.forEach(label => {
+        label.style.display = 'none';
+    });
 }
 
 // Hide branch reports option for non-main branch users
@@ -291,6 +297,16 @@ function validateSavingsDisbursementConfig(reportType) {
     const configSection = document.getElementById(reportType + 'Config');
     const selectedBranches = configSection.querySelectorAll('.branch-checkbox input[type="checkbox"]:checked');
     
+    // Check if user is non-main branch user
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    // For non-main branch users, skip branch selection validation
+    if (!isMainBranchUser && userBranchId) {
+        return true;
+    }
+    
+    // For main branch users, require branch selection
     if (selectedBranches.length === 0) {
         showMessage('Please select at least one branch.', 'error');
         return false;
@@ -357,12 +373,22 @@ function generateSavingsReportData() {
     const year = document.getElementById('savingsYear').value;
     const month = document.getElementById('savingsMonth').value;
     
+    // For non-main branch users, use their branch ID if no branches are selected
+    let branchesToUse = selectedBranches;
+    if (selectedBranches.length === 0) {
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+        if (!isMainBranchUser && userBranchId) {
+            branchesToUse = [userBranchId];
+        }
+    }
+    
     // Generate mock data based on selection
-    const data = generateMockSavingsData(selectedBranches, year, month);
+    const data = generateMockSavingsData(branchesToUse, year, month);
     
     return {
         type: 'Savings Report',
-        branches: selectedBranches,
+        branches: branchesToUse,
         period: `${month} ${year}`,
         data: data
     };
@@ -376,12 +402,22 @@ function generateDisbursementReportData() {
     const year = document.getElementById('disbursementYear').value;
     const month = document.getElementById('disbursementMonth').value;
     
+    // For non-main branch users, use their branch ID if no branches are selected
+    let branchesToUse = selectedBranches;
+    if (selectedBranches.length === 0) {
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+        if (!isMainBranchUser && userBranchId) {
+            branchesToUse = [userBranchId];
+        }
+    }
+    
     // Generate mock data based on selection
-    const data = generateMockDisbursementData(selectedBranches, year, month);
+    const data = generateMockDisbursementData(branchesToUse, year, month);
     
     return {
         type: 'Disbursement Report',
-        branches: selectedBranches,
+        branches: branchesToUse,
         period: `${month} ${year}`,
         data: data
     };
@@ -424,7 +460,6 @@ function generateBranchReportData() {
 // Generate mock savings data
 function generateMockSavingsData(branches, year, month) {
     const branchNames = {
-        'all': 'All Branches',
         'branch1': 'Branch 1 - IBAAN',
         'branch2': 'Branch 2 - BAUAN',
         'branch3': 'Branch 3 - SAN JOSE',
@@ -445,44 +480,36 @@ function generateMockSavingsData(branches, year, month) {
     const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
     let data = [];
-    let count = 0;
     
     if (!isMainBranchUser && userBranchId) {
-        // Branch-specific user: generate data only for their branch
+        // Branch-specific user: generate 1 entry for their branch
         const userBranchName = `Branch ${userBranchId}`;
         const userBranchLocation = getBranchLocation(userBranchId);
         const branchFullName = `${userBranchName} - ${userBranchLocation}`;
         
-        count = Math.floor(Math.random() * 20) + 15; // 15-35 members for branch
-        
-        for (let i = 0; i < count; i++) {
-            data.push({
-                memberId: `M${userBranchId}${String(i + 1).padStart(3, '0')}`,
-                memberName: generateBranchSpecificName(userBranchId, i),
-                branch: branchFullName,
-                savings: generateBranchSpecificSavings(userBranchId),
-                deposits: generateBranchSpecificDeposits(userBranchId),
-                date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-            });
-        }
+        // Generate 1 entry for the user's branch
+        data.push({
+            branch: branchFullName,
+            totalSavings: Math.floor(Math.random() * 500000) + 200000, // 200k-700k
+            deposits: Math.floor(Math.random() * 100000) + 50000, // 50k-150k
+            month: parseInt(month),
+            year: parseInt(year)
+        });
     } else {
-        // Main branch user: generate data for selected branches
-        count = branches.includes('all') ? 100 : branches.length * 15;
-        
-        for (let i = 0; i < count; i++) {
-            const branch = branches.includes('all') ? 
-                Object.values(branchNames).filter(name => name !== 'All Branches')[Math.floor(Math.random() * 12)] :
-                branchNames[branches[Math.floor(Math.random() * branches.length)]];
-            
-            data.push({
-                memberId: `M${String(i + 1).padStart(4, '0')}`,
-                memberName: `Member ${i + 1}`,
-                branch: branch,
-                savings: Math.floor(Math.random() * 100000) + 10000,
-                deposits: Math.floor(Math.random() * 50000) + 5000,
-                date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-            });
-        }
+        // Main branch user: generate 1 entry for each selected branch
+        branches.forEach(branchId => {
+            const branchName = branchNames[branchId];
+            if (branchName) {
+                // Generate 1 entry per branch
+                data.push({
+                    branch: branchName,
+                    totalSavings: Math.floor(Math.random() * 500000) + 200000, // 200k-700k
+                    deposits: Math.floor(Math.random() * 100000) + 50000, // 50k-150k
+                    month: parseInt(month),
+                    year: parseInt(year)
+                });
+            }
+        });
     }
     
     return data;
@@ -491,7 +518,6 @@ function generateMockSavingsData(branches, year, month) {
 // Generate mock disbursement data
 function generateMockDisbursementData(branches, year, month) {
     const branchNames = {
-        'all': 'All Branches',
         'branch1': 'Branch 1 - IBAAN',
         'branch2': 'Branch 2 - BAUAN',
         'branch3': 'Branch 3 - SAN JOSE',
@@ -512,44 +538,36 @@ function generateMockDisbursementData(branches, year, month) {
     const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
     let data = [];
-    let count = 0;
     
     if (!isMainBranchUser && userBranchId) {
-        // Branch-specific user: generate data only for their branch
+        // Branch-specific user: generate 1 entry for their branch
         const userBranchName = `Branch ${userBranchId}`;
         const userBranchLocation = getBranchLocation(userBranchId);
         const branchFullName = `${userBranchName} - ${userBranchLocation}`;
         
-        count = Math.floor(Math.random() * 15) + 10; // 10-25 disbursements for branch
-        
-        for (let i = 0; i < count; i++) {
-            data.push({
-                memberId: `M${userBranchId}${String(i + 1).padStart(3, '0')}`,
-                memberName: generateBranchSpecificName(userBranchId, i),
-                branch: branchFullName,
-                amount: generateBranchSpecificDisbursement(userBranchId),
-                purpose: ['Business Loan', 'Personal Loan', 'Emergency Loan', 'Education Loan'][Math.floor(Math.random() * 4)],
-                date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-            });
-        }
+        // Generate 1 entry for the user's branch
+        data.push({
+            branch: branchFullName,
+            totalDisbursements: Math.floor(Math.random() * 800000) + 300000, // 300k-1.1M
+            totalMembers: Math.floor(Math.random() * 50) + 20, // 20-70 members
+            month: parseInt(month),
+            year: parseInt(year)
+        });
     } else {
-        // Main branch user: generate data for selected branches
-        count = branches.includes('all') ? 80 : branches.length * 12;
-        
-        for (let i = 0; i < count; i++) {
-            const branch = branches.includes('all') ? 
-                Object.values(branchNames).filter(name => name !== 'All Branches')[Math.floor(Math.random() * 12)] :
-                branchNames[branches[Math.floor(Math.random() * branches.length)]];
-            
-            data.push({
-                memberId: `M${String(i + 1).padStart(4, '0')}`,
-                memberName: `Member ${i + 1}`,
-                branch: branch,
-                amount: Math.floor(Math.random() * 200000) + 25000,
-                purpose: ['Business Loan', 'Personal Loan', 'Emergency Loan', 'Education Loan'][Math.floor(Math.random() * 4)],
-                date: new Date(parseInt(year), month ? parseInt(month) - 1 : Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-            });
-        }
+        // Main branch user: generate 1 entry for each selected branch
+        branches.forEach(branchId => {
+            const branchName = branchNames[branchId];
+            if (branchName) {
+                // Generate 1 entry per branch
+                data.push({
+                    branch: branchName,
+                    totalDisbursements: Math.floor(Math.random() * 800000) + 300000, // 300k-1.1M
+                    totalMembers: Math.floor(Math.random() * 50) + 20, // 20-70 members
+                    month: parseInt(month),
+                    year: parseInt(year)
+                });
+            }
+        });
     }
     
     return data;
@@ -798,40 +816,44 @@ function displayReport(reportData) {
 // Generate savings/disbursement report HTML
 function generateSavingsDisbursementHTML(reportData) {
     const isSavings = reportData.type === 'Savings Report';
-    const totalAmount = reportData.data.reduce((sum, item) => sum + (isSavings ? item.savings : item.amount), 0);
-    const totalMembers = reportData.data.length;
+    const totalAmount = reportData.data.reduce((sum, item) => sum + (isSavings ? item.totalSavings : item.totalDisbursements), 0);
+    const totalMembers = reportData.data.reduce((sum, item) => sum + (isSavings ? 0 : item.totalMembers), 0);
+    const uniqueBranches = [...new Set(reportData.data.map(item => item.branch))];
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
     
     let html = `
         <div class="report-content">
-        <div class="report-stats">
+            <div class="report-stats">
                 <div class="stat-card">
-                    <div class="stat-value">${reportData.branches.includes('all') ? 'All' : reportData.branches.length}</div>
+                    <div class="stat-value">${uniqueBranches.length}</div>
                     <div class="stat-label">Branches</div>
-            </div>
+                </div>
                 <div class="stat-card">
-                    <div class="stat-value">${totalMembers}</div>
+                    <div class="stat-value">${isSavings ? reportData.data.length * 30 : totalMembers}</div>
                     <div class="stat-label">Total Members</div>
-            </div>
+                </div>
                 <div class="stat-card">
                     <div class="stat-value">₱${totalAmount.toLocaleString()}</div>
                     <div class="stat-label">Total ${isSavings ? 'Savings' : 'Disbursements'}</div>
-            </div>
+                </div>
                 <div class="stat-card">
-                    <div class="stat-value">${reportData.period}</div>
-                    <div class="stat-label">Period</div>
+                    <div class="stat-value">${currentDate}</div>
+                    <div class="stat-label">Generated</div>
+                </div>
             </div>
-        </div>
     
             <div class="report-table">
                 <table>
                     <thead>
                         <tr>
-                            <th>Member ID</th>
-                            <th>Member Name</th>
                             <th>Branch</th>
-                            <th>${isSavings ? 'Savings' : 'Amount'}</th>
-                            <th>${isSavings ? 'Deposits' : 'Purpose'}</th>
-                            <th>Date</th>
+                            <th>${isSavings ? 'Total Savings Deposits' : 'Total Disbursements'}</th>
+                            <th>Month</th>
+                            <th>Year</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -840,12 +862,10 @@ function generateSavingsDisbursementHTML(reportData) {
     reportData.data.forEach(item => {
             html += `
                 <tr>
-                <td>${item.memberId}</td>
-                <td>${item.memberName}</td>
-                <td>${item.branch}</td>
-                <td>₱${(isSavings ? item.savings : item.amount).toLocaleString()}</td>
-                <td>${isSavings ? '₱' + item.deposits.toLocaleString() : item.purpose}</td>
-                <td>${item.date.toLocaleDateString()}</td>
+                    <td>${item.branch}</td>
+                    <td>₱${(isSavings ? (item.totalSavings + item.deposits) : item.totalDisbursements).toLocaleString()}</td>
+                    <td>${getMonthName(item.month)}</td>
+                    <td>${item.year}</td>
                 </tr>
             `;
         });
@@ -854,7 +874,7 @@ function generateSavingsDisbursementHTML(reportData) {
                     </tbody>
                 </table>
             </div>
-            </div>
+        </div>
         `;
     
     return html;
@@ -1124,6 +1144,15 @@ function showMessage(message, type = 'info') {
             }
         }, 300);
     }, 4000);
+}
+
+// Helper function to get month name
+function getMonthName(monthNumber) {
+    const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[monthNumber - 1] || 'Unknown';
 }
 
 // Update current date and time
