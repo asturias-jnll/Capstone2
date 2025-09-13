@@ -18,14 +18,14 @@
         localStorage.setItem('user_branch_id', '1');
         localStorage.setItem('is_main_branch_user', 'true');
         
-        // Redirect to shared main page
-        window.location.href = '../../shared/html/main.html';
+        // Redirect to member data page (since dashboard is hidden for Finance Officer)
+        window.location.href = '../../shared/html/memberdata.html';
     </script>
     
     <!-- Fallback content in case JavaScript is disabled -->
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-        <h2>Redirecting to Dashboard...</h2>
-        <p>If you are not redirected automatically, <a href="../../shared/html/main.html">click here</a>.</p>
+        <h2>Redirecting to Member Data...</h2>
+        <p>If you are not redirected automatically, <a href="../../shared/html/memberdata.html">click here</a>.</p>
     </div>
 </body>
 </html>

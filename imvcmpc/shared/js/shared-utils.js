@@ -12,16 +12,16 @@ class SharedUtils {
                     { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
                 ]
             },
-                                    'finance-officer': {
-                            name: 'Finance Officer',
-                            navItems: [
-                                { href: 'main.html', icon: 'fas fa-home', text: 'Dashboard' },
-                                { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
-                                { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
-                                { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-                                { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
-                            ]
-                        }
+            'finance-officer': {
+                name: 'Finance Officer',
+                navItems: [
+                    // Dashboard is hidden for Finance Officer
+                    { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
+                    { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
+                    { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
+                    { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
+                ]
+            }
         };
     }
 
@@ -34,6 +34,7 @@ class SharedUtils {
         this.initializeBranchDisplay();
         this.initializeDynamicUserHeader();
         this.loadNavigation();
+        this.hideDashboardForFinanceOfficer();
     }
 
     // Update date and time display
@@ -87,6 +88,19 @@ class SharedUtils {
             `;
             navContainer.appendChild(navItem);
         });
+    }
+
+    // Hide dashboard navigation for Finance Officer
+    hideDashboardForFinanceOfficer() {
+        const userRole = localStorage.getItem('user_role');
+        const dashboardNavItems = document.querySelectorAll('a[href="dashboard.html"], a[href="main.html"]');
+        
+        if (userRole === 'Finance Officer' && dashboardNavItems.length > 0) {
+            dashboardNavItems.forEach(item => {
+                item.style.display = 'none';
+            });
+            console.log('Dashboard hidden for Finance Officer');
+        }
     }
 
     // Get current role from localStorage or URL
