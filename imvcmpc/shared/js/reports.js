@@ -19,6 +19,7 @@ function initializeReports() {
     
     // Initialize branch-specific reports
     initializeBranchSpecificReports();
+    
 }
 
 // Initialize branch-specific reports
@@ -54,35 +55,53 @@ function updateReportsHeader(branchName, isMainBranch) {
 
 // Filter reports for specific branch
 function filterReportsForBranch(branchId, branchName) {
-    // Update branch selection to show only current branch
-    updateBranchSelectionForBranch(branchId, branchName);
+    // For non-main branch users, we just hide the branch selection
+    // The branch is already determined by their user data
+    console.log(`Filtering reports for ${branchName} (Branch ${branchId})`);
 }
 
 // Hide branch selection for branch-specific users
 function hideBranchSelection() {
-    // Hide the main branch selection section
-    const branchSelection = document.querySelector('.branch-selection');
-    if (branchSelection) {
-        branchSelection.style.display = 'none';
+    // Hide branch selection sections in savings and disbursement configs
+    const savingsBranchSelection = document.querySelector('#savingsConfig .branch-selection');
+    const disbursementBranchSelection = document.querySelector('#disbursementConfig .branch-selection');
+    
+    if (savingsBranchSelection) {
+        savingsBranchSelection.style.display = 'none';
+    }
+    if (disbursementBranchSelection) {
+        disbursementBranchSelection.style.display = 'none';
     }
     
-    // Hide branch checkboxes in all configuration sections
-    const branchCheckboxes = document.querySelectorAll('.branch-checkbox');
-    branchCheckboxes.forEach(checkbox => {
-        checkbox.style.display = 'none';
-    });
+    // Show branch indicators for non-main branch users
+    showBranchIndicators();
+}
+
+// Show branch indicators for non-main branch users
+function showBranchIndicators() {
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const userBranchName = localStorage.getItem('user_branch_name');
+    const userBranchLocation = localStorage.getItem('user_branch_location');
     
-    // Hide branch-related labels and text in config sections
-    const branchLabels = document.querySelectorAll('.config-section .branch-label, .config-section .branch-text');
-    branchLabels.forEach(label => {
-        label.style.display = 'none';
-    });
-    
-    // Hide the "Select Branches" label text
-    const branchSelectionLabels = document.querySelectorAll('.branch-selection label');
-    branchSelectionLabels.forEach(label => {
-        label.style.display = 'none';
-    });
+    if (userBranchId && userBranchName && userBranchLocation) {
+        const branchDisplayName = `${userBranchName} - ${userBranchLocation}`;
+        
+        // Show savings branch indicator
+        const savingsIndicator = document.getElementById('savingsBranchIndicator');
+        const savingsBranchName = document.getElementById('savingsBranchName');
+        if (savingsIndicator && savingsBranchName) {
+            savingsBranchName.textContent = branchDisplayName;
+            savingsIndicator.style.display = 'flex';
+        }
+        
+        // Show disbursement branch indicator
+        const disbursementIndicator = document.getElementById('disbursementBranchIndicator');
+        const disbursementBranchName = document.getElementById('disbursementBranchName');
+        if (disbursementIndicator && disbursementBranchName) {
+            disbursementBranchName.textContent = branchDisplayName;
+            disbursementIndicator.style.display = 'flex';
+        }
+    }
 }
 
 // Hide branch reports option for non-main branch users
@@ -94,21 +113,6 @@ function hideBranchReportsOption() {
     }
 }
 
-// Update branch selection for specific branch
-function updateBranchSelectionForBranch(branchId, branchName) {
-    const branchGrid = document.querySelector('.branch-grid');
-    if (branchGrid) {
-        branchGrid.innerHTML = `
-            <div class="branch-checkbox">
-                <input type="checkbox" id="branch${branchId}" value="${branchId}" checked disabled>
-                <label class="checkmark" for="branch${branchId}">
-                    <div class="branch-name">${branchName}</div>
-                    <div class="branch-location">Branch ${branchId}</div>
-                </label>
-            </div>
-        `;
-    }
-}
 
 // Setup report type selector
 function setupReportTypeSelector() {
@@ -128,8 +132,8 @@ function setupReportTypeSelector() {
             // Clear report canvas
             clearReportCanvas();
             
-            // Hide export section
-            hideExportSection();
+            // Hide send finance section
+            hideSendFinanceSection();
         });
     });
 }
@@ -159,7 +163,7 @@ function showConfigurationSection(reportType) {
 // Add report canvas and generate button
 function addReportCanvas() {
     const reportConfig = document.querySelector('.report-config');
-    const exportSection = document.getElementById('exportSection');
+    const sendFinanceSection = document.getElementById('sendFinanceSection');
     
     // Check if report canvas already exists
     if (!document.getElementById('reportCanvas')) {
@@ -185,9 +189,9 @@ function addReportCanvas() {
             </button>
         `;
         
-        // Insert before export section
-        exportSection.parentNode.insertBefore(generateSection, exportSection);
-        exportSection.parentNode.insertBefore(reportCanvas, exportSection);
+        // Insert before send finance section
+        sendFinanceSection.parentNode.insertBefore(generateSection, sendFinanceSection);
+        sendFinanceSection.parentNode.insertBefore(reportCanvas, sendFinanceSection);
     }
 }
 
@@ -211,21 +215,19 @@ function showGenerateButton() {
     }
 }
 
-// Setup branch selection functionality
+// Setup branch selection functionality (only for main branch users)
 function setupBranchSelection() {
-    // Setup individual branch checkboxes
-    const branchCheckboxes = document.querySelectorAll('.branch-checkbox input[type="checkbox"]');
-    branchCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            handleIndividualBranchSelection(this.closest('.config-section').id.replace('Config', ''));
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    // Only setup branch selection for main branch users
+    if (isMainBranchUser) {
+        const branchCheckboxes = document.querySelectorAll('.branch-checkbox input[type="checkbox"]');
+        branchCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                console.log('Branch selection changed for main branch user');
+            });
         });
-    });
-}
-
-// Handle individual branch selection
-function handleIndividualBranchSelection(reportType) {
-    // Individual branch selection logic can be added here if needed
-    console.log('Branch selection changed for:', reportType);
+    }
 }
 
 // Setup transaction type buttons
@@ -252,29 +254,42 @@ function setupTransactionTypeButtons() {
 
 // Generate report based on current configuration
 function generateReport() {
-    const activeReportType = document.querySelector('.report-type-btn.active');
-    if (!activeReportType) {
-        showMessage('Please select a report type first.', 'error');
-        return;
-    }
-    
-    const reportType = activeReportType.getAttribute('data-type');
-    
-    // Validate configuration
-    if (!validateConfiguration(reportType)) {
-        return;
-    }
-    
-    // Generate report data
-    const reportData = generateReportData(reportType);
-    
-    // Display report
-    displayReport(reportData);
-    
-    // Show export section
-    showExportSection();
+    try {
+        const activeReportType = document.querySelector('.report-type-btn.active');
+        if (!activeReportType) {
+            showMessage('Please select a report type first.', 'error');
+            return;
+        }
+        
+        const reportType = activeReportType.getAttribute('data-type');
+        if (!reportType) {
+            showMessage('Invalid report type selected.', 'error');
+            return;
+        }
+        
+        // Validate configuration
+        if (!validateConfiguration(reportType)) {
+            return;
+        }
+        
+        // Generate report data
+        const reportData = generateReportData(reportType);
+        if (!reportData) {
+            showMessage('Failed to generate report data.', 'error');
+            return;
+        }
+        
+        // Display report
+        displayReport(reportData);
+        
+    // Show send to finance section
+    showSendFinanceSection();
     
     showMessage('Report generated successfully!', 'success');
+    } catch (error) {
+        console.error('Error generating report:', error);
+        showMessage('An error occurred while generating the report.', 'error');
+    }
 }
 
 // Validate configuration based on report type
@@ -294,22 +309,27 @@ function validateConfiguration(reportType) {
 
 // Validate savings/disbursement configuration
 function validateSavingsDisbursementConfig(reportType) {
-    const configSection = document.getElementById(reportType + 'Config');
-    const selectedBranches = configSection.querySelectorAll('.branch-checkbox input[type="checkbox"]:checked');
-    
-    // Check if user is non-main branch user
-    const userBranchId = localStorage.getItem('user_branch_id');
     const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
-    // For non-main branch users, skip branch selection validation
-    if (!isMainBranchUser && userBranchId) {
-        return true;
+    // Check if form elements exist
+    const yearElement = document.getElementById(reportType + 'Year');
+    const monthElement = document.getElementById(reportType + 'Month');
+    
+    if (!yearElement || !monthElement) {
+        showMessage('Report configuration form not found.', 'error');
+        return false;
     }
     
     // For main branch users, require branch selection
-    if (selectedBranches.length === 0) {
-        showMessage('Please select at least one branch.', 'error');
-        return false;
+    if (isMainBranchUser) {
+        const configSection = document.getElementById(reportType + 'Config');
+        if (configSection) {
+            const selectedBranches = configSection.querySelectorAll('.branch-checkbox input[type="checkbox"]:checked');
+            if (selectedBranches.length === 0) {
+                showMessage('Please select at least one branch.', 'error');
+                return false;
+            }
+        }
     }
     
     return true;
@@ -367,59 +387,49 @@ function generateReportData(reportType) {
 
 // Generate savings report data
 function generateSavingsReportData() {
-    const configSection = document.getElementById('savingsConfig');
-    const selectedBranches = Array.from(configSection.querySelectorAll('.branch-checkbox input[type="checkbox"]:checked'))
-        .map(checkbox => checkbox.value);
-    const year = document.getElementById('savingsYear').value;
-    const month = document.getElementById('savingsMonth').value;
+    const yearElement = document.getElementById('savingsYear');
+    const monthElement = document.getElementById('savingsMonth');
     
-    // For non-main branch users, use their branch ID if no branches are selected
-    let branchesToUse = selectedBranches;
-    if (selectedBranches.length === 0) {
-        const userBranchId = localStorage.getItem('user_branch_id');
-        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-        if (!isMainBranchUser && userBranchId) {
-            branchesToUse = [userBranchId];
-        }
+    if (!yearElement || !monthElement) {
+        console.error('Savings report form elements not found');
+        return {
+            type: 'Savings Report',
+            period: 'Unknown',
+            data: []
+        };
     }
     
-    // Generate mock data based on selection
-    const data = generateMockSavingsData(branchesToUse, year, month);
+    const year = yearElement.value || '2025';
+    const month = monthElement.value || '1';
     
     return {
         type: 'Savings Report',
-        branches: branchesToUse,
         period: `${month} ${year}`,
-        data: data
+        data: []
     };
 }
 
 // Generate disbursement report data
 function generateDisbursementReportData() {
-    const configSection = document.getElementById('disbursementConfig');
-    const selectedBranches = Array.from(configSection.querySelectorAll('.branch-checkbox input[type="checkbox"]:checked'))
-        .map(checkbox => checkbox.value);
-    const year = document.getElementById('disbursementYear').value;
-    const month = document.getElementById('disbursementMonth').value;
+    const yearElement = document.getElementById('disbursementYear');
+    const monthElement = document.getElementById('disbursementMonth');
     
-    // For non-main branch users, use their branch ID if no branches are selected
-    let branchesToUse = selectedBranches;
-    if (selectedBranches.length === 0) {
-        const userBranchId = localStorage.getItem('user_branch_id');
-        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-        if (!isMainBranchUser && userBranchId) {
-            branchesToUse = [userBranchId];
-        }
+    if (!yearElement || !monthElement) {
+        console.error('Disbursement report form elements not found');
+        return {
+            type: 'Disbursement Report',
+            period: 'Unknown',
+            data: []
+        };
     }
     
-    // Generate mock data based on selection
-    const data = generateMockDisbursementData(branchesToUse, year, month);
+    const year = yearElement.value || '2025';
+    const month = monthElement.value || '1';
     
     return {
         type: 'Disbursement Report',
-        branches: branchesToUse,
         period: `${month} ${year}`,
-        data: data
+        data: []
     };
 }
 
@@ -429,14 +439,11 @@ function generateMemberReportData() {
     const activeTypeBtn = document.querySelector('#memberConfig .type-btn.active');
     const transactionType = activeTypeBtn ? activeTypeBtn.getAttribute('data-type') : 'savings';
     
-    // Generate mock data based on search and type
-    const data = generateMockMemberData(memberSearch, transactionType);
-    
     return {
         type: 'Member Report',
         member: memberSearch,
         transactionType: transactionType,
-        data: data
+        data: []
     };
 }
 
@@ -446,379 +453,72 @@ function generateBranchReportData() {
     const year = document.getElementById('branchYear').value;
     const month = document.getElementById('branchMonth').value;
     
-    // Generate mock data based on selection
-    const data = generateBranchData(selectedBranch, year, month);
-    
     return {
         type: 'Branch Performance Report',
         branch: selectedBranch,
         period: `${month} ${year}`,
-        data: data
+        data: {}
     };
 }
 
-// Generate mock savings data
-function generateMockSavingsData(branches, year, month) {
-    const branchNames = {
-        'branch1': 'Branch 1 - IBAAN',
-        'branch2': 'Branch 2 - BAUAN',
-        'branch3': 'Branch 3 - SAN JOSE',
-        'branch4': 'Branch 4 - ROSARIO',
-        'branch5': 'Branch 5 - SAN JUAN',
-        'branch6': 'Branch 6 - PADRE GARCIA',
-        'branch7': 'Branch 7 - LIPA CITY',
-        'branch8': 'Branch 8 - BATANGAS CITY',
-        'branch9': 'Branch 9 - MABINI LIPA',
-        'branch10': 'Branch 10 - CALAMIAS',
-        'branch11': 'Branch 11 - LEMERY',
-        'branch12': 'Branch 12 - MATAAS NA KAHOY',
-        'branch13': 'Branch 13 - TANAUAN'
-    };
-    
-    // Check if user is branch-specific
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    let data = [];
-    
-    if (!isMainBranchUser && userBranchId) {
-        // Branch-specific user: generate 1 entry for their branch
-        const userBranchName = `Branch ${userBranchId}`;
-        const userBranchLocation = getBranchLocation(userBranchId);
-        const branchFullName = `${userBranchName} - ${userBranchLocation}`;
-        
-        // Generate 1 entry for the user's branch
-        data.push({
-            branch: branchFullName,
-            totalSavings: Math.floor(Math.random() * 500000) + 200000, // 200k-700k
-            deposits: Math.floor(Math.random() * 100000) + 50000, // 50k-150k
-            month: parseInt(month),
-            year: parseInt(year)
-        });
-    } else {
-        // Main branch user: generate 1 entry for each selected branch
-        branches.forEach(branchId => {
-            const branchName = branchNames[branchId];
-            if (branchName) {
-                // Generate 1 entry per branch
-                data.push({
-                    branch: branchName,
-                    totalSavings: Math.floor(Math.random() * 500000) + 200000, // 200k-700k
-                    deposits: Math.floor(Math.random() * 100000) + 50000, // 50k-150k
-                    month: parseInt(month),
-                    year: parseInt(year)
-                });
-            }
-        });
-    }
-    
-    return data;
-}
 
-// Generate mock disbursement data
-function generateMockDisbursementData(branches, year, month) {
-    const branchNames = {
-        'branch1': 'Branch 1 - IBAAN',
-        'branch2': 'Branch 2 - BAUAN',
-        'branch3': 'Branch 3 - SAN JOSE',
-        'branch4': 'Branch 4 - ROSARIO',
-        'branch5': 'Branch 5 - SAN JUAN',
-        'branch6': 'Branch 6 - PADRE GARCIA',
-        'branch7': 'Branch 7 - LIPA CITY',
-        'branch8': 'Branch 8 - BATANGAS CITY',
-        'branch9': 'Branch 9 - MABINI LIPA',
-        'branch10': 'Branch 10 - CALAMIAS',
-        'branch11': 'Branch 11 - LEMERY',
-        'branch12': 'Branch 12 - MATAAS NA KAHOY',
-        'branch13': 'Branch 13 - TANAUAN'
-    };
-    
-    // Check if user is branch-specific
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    let data = [];
-    
-    if (!isMainBranchUser && userBranchId) {
-        // Branch-specific user: generate 1 entry for their branch
-        const userBranchName = `Branch ${userBranchId}`;
-        const userBranchLocation = getBranchLocation(userBranchId);
-        const branchFullName = `${userBranchName} - ${userBranchLocation}`;
-        
-        // Generate 1 entry for the user's branch
-        data.push({
-            branch: branchFullName,
-            totalDisbursements: Math.floor(Math.random() * 800000) + 300000, // 300k-1.1M
-            totalMembers: Math.floor(Math.random() * 50) + 20, // 20-70 members
-            month: parseInt(month),
-            year: parseInt(year)
-        });
-    } else {
-        // Main branch user: generate 1 entry for each selected branch
-        branches.forEach(branchId => {
-            const branchName = branchNames[branchId];
-            if (branchName) {
-                // Generate 1 entry per branch
-                data.push({
-                    branch: branchName,
-                    totalDisbursements: Math.floor(Math.random() * 800000) + 300000, // 300k-1.1M
-                    totalMembers: Math.floor(Math.random() * 50) + 20, // 20-70 members
-                    month: parseInt(month),
-                    year: parseInt(year)
-                });
-            }
-        });
-    }
-    
-    return data;
-}
 
-// Generate mock member data
-function generateMockMemberData(memberSearch, transactionType) {
-    // Check if user is branch-specific
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    const data = [];
-    let count = 25;
-    
-    if (!isMainBranchUser && userBranchId) {
-        // Branch-specific user: generate data only for their branch
-        count = Math.floor(Math.random() * 15) + 10; // 10-25 transactions for branch
-        
-        for (let i = 0; i < count; i++) {
-            data.push({
-                transactionId: `T${userBranchId}${String(i + 1).padStart(4, '0')}`,
-                type: transactionType,
-                amount: transactionType === 'savings' ? 
-                    generateBranchSpecificSavings(userBranchId) : 
-                    generateBranchSpecificDisbursement(userBranchId),
-                description: transactionType === 'savings' ? 'Monthly Deposit' : 'Loan Disbursement',
-                date: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-            });
-        }
-    } else {
-        // Main branch user: generate general data
-        for (let i = 0; i < count; i++) {
-            data.push({
-                transactionId: `T${String(i + 1).padStart(6, '0')}`,
-                type: transactionType,
-                amount: transactionType === 'savings' ? 
-                    Math.floor(Math.random() * 50000) + 5000 : 
-                    Math.floor(Math.random() * 150000) + 25000,
-                description: transactionType === 'savings' ? 'Monthly Deposit' : 'Loan Disbursement',
-                date: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-            });
-        }
-    }
-    
-    return data.sort((a, b) => b.date - a.date);
-}
 
-// Generate mock branch data
-function generateMockBranchData(branch, year, month) {
-    const branchNames = {
-        'branch1': 'Branch 1 - IBAAN',
-        'branch2': 'Branch 2 - BAUAN',
-        'branch3': 'Branch 3 - SAN JOSE',
-        'branch4': 'Branch 4 - ROSARIO',
-        'branch5': 'Branch 5 - SAN JUAN',
-        'branch6': 'Branch 6 - PADRE GARCIA',
-        'branch7': 'Branch 7 - LIPA CITY',
-        'branch8': 'Branch 8 - BATANGAS CITY',
-        'branch9': 'Branch 9 - MABINI LIPA',
-        'branch10': 'Branch 10 - CALAMIAS',
-        'branch11': 'Branch 11 - LEMERY',
-        'branch12': 'Branch 12 - MATAAS NA KAHOY',
-        'branch13': 'Branch 13 - TANAUAN'
-    };
-    
-    return {
-        branchName: branchNames[branch],
-        members: Math.floor(Math.random() * 200) + 50,
-        savings: Math.floor(Math.random() * 5000000) + 1000000,
-        disbursements: Math.floor(Math.random() * 3000000) + 500000,
-        performance: Math.floor(Math.random() * 40) + 60
-    };
-}
 
-// Generate branch-specific data
-function generateBranchData(branch, year, month) {
-    // Check if user is branch-specific
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    if (!isMainBranchUser && userBranchId) {
-        // Branch-specific user: generate data only for their branch
-        return generateBranchSpecificData(userBranchId);
-    } else {
-        // Main branch user: generate data for selected branch
-        return generateMockBranchData(branch, year, month);
-    }
-}
 
-// Generate branch-specific data
-function generateBranchSpecificData(branchId) {
-    const branchLocation = getBranchLocation(branchId);
-    const baseAmounts = {
-        2: { savings: 1160000, disbursements: 1050000, members: 180 }, // Bauan
-        3: { savings: 1250000, disbursements: 1150000, members: 200 }, // San Jose
-        4: { savings: 980000, disbursements: 880000, members: 150 },   // Rosario
-        5: { savings: 870000, disbursements: 780000, members: 130 },   // San Juan
-        6: { savings: 920000, disbursements: 820000, members: 160 },   // Taysan
-        7: { savings: 850000, disbursements: 750000, members: 140 },   // Lobo
-        8: { savings: 950000, disbursements: 850000, members: 170 },   // Calaca
-        9: { savings: 780000, disbursements: 680000, members: 120 },   // Lemery
-        10: { savings: 820000, disbursements: 720000, members: 145 },  // Agoncillo
-        11: { savings: 880000, disbursements: 780000, members: 155 },  // San Nicolas
-        12: { savings: 900000, disbursements: 800000, members: 165 }   // Taal
-    };
-    
-    const baseData = baseAmounts[branchId] || { savings: 1000000, disbursements: 900000, members: 150 };
-    
-    // Add realistic variations
-    const variation = (Math.random() - 0.5) * 0.2; // ±10% variation
-    const savings = Math.round(baseData.savings * (1 + variation));
-    const disbursements = Math.round(baseData.disbursements * (1 + variation));
-    const members = Math.round(baseData.members * (1 + variation));
-    const performance = Math.floor(Math.random() * 20) + 70; // 70-90% performance
-    
-    return {
-        branchName: `Branch ${branchId} - ${branchLocation}`,
-        members: members,
-        savings: savings,
-        disbursements: disbursements,
-        performance: performance
-    };
-}
 
-// Helper functions for branch-specific data generation
-function getBranchLocation(branchId) {
-    const locations = {
-        2: 'BAUAN',
-        3: 'SAN JOSE',
-        4: 'ROSARIO',
-        5: 'SAN JUAN',
-        6: 'PADRE GARCIA',
-        7: 'LIPA CITY',
-        8: 'BATANGAS CITY',
-        9: 'MABINI LIPA',
-        10: 'CALAMIAS',
-        11: 'LEMERY',
-        12: 'MATAAS NA KAHOY',
-        13: 'TANAUAN'
-    };
-    return locations[branchId] || 'UNKNOWN';
-}
 
-function generateBranchSpecificName(branchId, index) {
-    const branchNames = {
-        2: ['Maria Santos', 'Juan Dela Cruz', 'Ana Reyes', 'Pedro Mendoza', 'Carmen Garcia', 'Roberto Torres', 'Luz Villanueva', 'Miguel Lopez', 'Isabela Cruz', 'Antonio Santos'],
-        3: ['Jose Rizal', 'Gabriela Silang', 'Andres Bonifacio', 'Melchora Aquino', 'Lapu-Lapu', 'Tandang Sora', 'Gregorio Del Pilar', 'Mariano Gomez', 'Jacinta Zamora', 'Jose Burgos'],
-        4: ['Isabela Basa', 'Mariano Ponce', 'Marcelo Del Pilar', 'Graciano Lopez', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua'],
-        5: ['Emilio Aguinaldo', 'Apolinario Mabini', 'Miguel Malvar', 'Artemio Ricarte', 'Macario Sakay', 'Gregoria De Jesus', 'Marina Dizon', 'Paciano Rizal', 'Trinidad Rizal', 'Josefa Rizal'],
-        6: ['Santiago Alvarez', 'Mariano Alvarez', 'Pio Valenzuela', 'Jose Dizon', 'Josefa Llanes', 'Gregoria De Jesus', 'Marina Dizon', 'Candido Tirona', 'Vicente Lim', 'Jose Abad Santos'],
-        7: ['Emilio Jacinto', 'Andres Bonifacio', 'Gregoria De Jesus', 'Procopio Bonifacio', 'Procorpio Bonifacio', 'Maximino Bonifacio', 'Espiridiona Bonifacio', 'Santiago Bonifacio', 'Troadio Bonifacio', 'Ciriaco Bonifacio'],
-        8: ['Jose Rizal', 'Marcelo Del Pilar', 'Graciano Lopez', 'Mariano Ponce', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua'],
-        9: ['Emilio Aguinaldo', 'Apolinario Mabini', 'Miguel Malvar', 'Artemio Ricarte', 'Macario Sakay', 'Gregoria De Jesus', 'Marina Dizon', 'Paciano Rizal', 'Trinidad Rizal', 'Josefa Rizal'],
-        10: ['Santiago Alvarez', 'Mariano Alvarez', 'Pio Valenzuela', 'Jose Dizon', 'Josefa Llanes', 'Gregoria De Jesus', 'Marina Dizon', 'Candido Tirona', 'Vicente Lim', 'Jose Abad Santos'],
-        11: ['Emilio Jacinto', 'Andres Bonifacio', 'Gregoria De Jesus', 'Procopio Bonifacio', 'Procorpio Bonifacio', 'Maximino Bonifacio', 'Espiridiona Bonifacio', 'Santiago Bonifacio', 'Troadio Bonifacio', 'Ciriaco Bonifacio'],
-        12: ['Jose Rizal', 'Marcelo Del Pilar', 'Graciano Lopez', 'Mariano Ponce', 'Jose Alejandrino', 'Antonio Luna', 'Jose Ma. Panganiban', 'Rafael Palma', 'Teodoro Kalaw', 'Tomas Mapua']
-    };
-    
-    const availableNames = branchNames[branchId] || ['Member 1', 'Member 2', 'Member 3', 'Member 4', 'Member 5'];
-    return availableNames[index] || `Member ${index + 1}`;
-}
 
-function generateBranchSpecificSavings(branchId) {
-    const baseAmounts = {
-        2: 28000, // Bauan
-        3: 42000, // San Jose
-        4: 25000, // Rosario
-        5: 22000, // San Juan
-        6: 30000, // Taysan
-        7: 28000, // Lobo
-        8: 32000, // Calaca
-        9: 24000, // Lemery
-        10: 26000, // Agoncillo
-        11: 29000, // San Nicolas
-        12: 31000  // Taal
-    };
-    
-    const baseAmount = baseAmounts[branchId] || 30000;
-    const variation = (Math.random() - 0.5) * 0.4; // ±20% variation
-    return Math.round(baseAmount * (1 + variation));
-}
 
-function generateBranchSpecificDeposits(branchId) {
-    const baseAmounts = {
-        2: 12000, // Bauan
-        3: 18000, // San Jose
-        4: 10000, // Rosario
-        5: 9000,  // San Juan
-        6: 15000, // Taysan
-        7: 14000, // Lobo
-        8: 16000, // Calaca
-        9: 12000, // Lemery
-        10: 13000, // Agoncillo
-        11: 14500, // San Nicolas
-        12: 15500  // Taal
-    };
-    
-    const baseAmount = baseAmounts[branchId] || 15000;
-    const variation = (Math.random() - 0.5) * 0.3; // ±15% variation
-    return Math.round(baseAmount * (1 + variation));
-}
 
-function generateBranchSpecificDisbursement(branchId) {
-    const baseAmounts = {
-        2: 150000, // Bauan
-        3: 180000, // San Jose
-        4: 120000, // Rosario
-        5: 100000, // San Juan
-        6: 140000, // Taysan
-        7: 130000, // Lobo
-        8: 160000, // Calaca
-        9: 110000, // Lemery
-        10: 125000, // Agoncillo
-        11: 135000, // San Nicolas
-        12: 145000  // Taal
-    };
-    
-    const baseAmount = baseAmounts[branchId] || 150000;
-    const variation = (Math.random() - 0.5) * 0.3; // ±15% variation
-    return Math.round(baseAmount * (1 + variation));
-}
 
 // Display report in canvas
 function displayReport(reportData) {
-    const reportCanvas = document.getElementById('reportCanvas');
-    if (!reportCanvas) return;
-    
-    let html = '';
-    
-    switch (reportData.type) {
-        case 'Savings Report':
-        case 'Disbursement Report':
-            html = generateSavingsDisbursementHTML(reportData);
-            break;
-        case 'Member Report':
-            html = generateMemberReportHTML(reportData);
-            break;
-        case 'Branch Performance Report':
-            html = generateBranchReportHTML(reportData);
-            break;
+    try {
+        if (!reportData || !reportData.type) {
+            console.error('Invalid report data provided');
+            return;
+        }
+        
+        const reportCanvas = document.getElementById('reportCanvas');
+        if (!reportCanvas) {
+            console.error('Report canvas element not found');
+            return;
+        }
+        
+        let html = '';
+        
+        switch (reportData.type) {
+            case 'Savings Report':
+            case 'Disbursement Report':
+                html = generateSavingsDisbursementHTML(reportData);
+                break;
+            case 'Member Report':
+                html = generateMemberReportHTML(reportData);
+                break;
+            case 'Branch Performance Report':
+                html = generateBranchReportHTML(reportData);
+                break;
+            default:
+                console.error('Unknown report type:', reportData.type);
+                html = '<div class="error-message">Unknown report type</div>';
+        }
+        
+        if (html) {
+            reportCanvas.innerHTML = html;
+        }
+    } catch (error) {
+        console.error('Error displaying report:', error);
+        const reportCanvas = document.getElementById('reportCanvas');
+        if (reportCanvas) {
+            reportCanvas.innerHTML = '<div class="error-message">Error displaying report</div>';
+        }
     }
-    
-    reportCanvas.innerHTML = html;
 }
 
 // Generate savings/disbursement report HTML
 function generateSavingsDisbursementHTML(reportData) {
     const isSavings = reportData.type === 'Savings Report';
-    const totalAmount = reportData.data.reduce((sum, item) => sum + (isSavings ? item.totalSavings : item.totalDisbursements), 0);
-    const totalMembers = reportData.data.reduce((sum, item) => sum + (isSavings ? 0 : item.totalMembers), 0);
-    const uniqueBranches = [...new Set(reportData.data.map(item => item.branch))];
     const currentDate = new Date().toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'long', 
@@ -829,15 +529,15 @@ function generateSavingsDisbursementHTML(reportData) {
         <div class="report-content">
             <div class="report-stats">
                 <div class="stat-card">
-                    <div class="stat-value">${uniqueBranches.length}</div>
+                    <div class="stat-value">0</div>
                     <div class="stat-label">Branches</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${isSavings ? reportData.data.length * 30 : totalMembers}</div>
-                    <div class="stat-label">Total Members</div>
+                    <div class="stat-value">${getMonthName(reportData.period.split(' ')[0])}</div>
+                    <div class="stat-label">Month</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱${totalAmount.toLocaleString()}</div>
+                    <div class="stat-value">₱0</div>
                     <div class="stat-label">Total ${isSavings ? 'Savings' : 'Disbursements'}</div>
                 </div>
                 <div class="stat-card">
@@ -852,23 +552,22 @@ function generateSavingsDisbursementHTML(reportData) {
                         <tr>
                             <th>Branch</th>
                             <th>${isSavings ? 'Total Savings Deposits' : 'Total Disbursements'}</th>
-                            <th>Month</th>
+                            <th>Total Members</th>
                             <th>Year</th>
                         </tr>
                     </thead>
                     <tbody>
         `;
         
-    reportData.data.forEach(item => {
-            html += `
+    // Show empty data since no database is connected
+    html += `
                 <tr>
-                    <td>${item.branch}</td>
-                    <td>₱${(isSavings ? (item.totalSavings + item.deposits) : item.totalDisbursements).toLocaleString()}</td>
-                    <td>${getMonthName(item.month)}</td>
-                    <td>${item.year}</td>
+                    <td colspan="4" style="text-align: center; padding: 40px; color: #9ca3af;">
+                        <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+                        No data available - Database not connected
+                    </td>
                 </tr>
             `;
-        });
         
         html += `
                     </tbody>
@@ -882,61 +581,64 @@ function generateSavingsDisbursementHTML(reportData) {
 
 // Generate member report HTML
 function generateMemberReportHTML(reportData) {
-    const totalTransactions = reportData.data.length;
-    const totalAmount = reportData.data.reduce((sum, item) => sum + item.amount, 0);
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
     
     let html = `
         <div class="report-content">
-        <div class="report-stats">
+            <div class="report-stats">
                 <div class="stat-card">
                     <div class="stat-value">${reportData.member}</div>
                     <div class="stat-label">Member</div>
-            </div>
+                </div>
                 <div class="stat-card">
-                    <div class="stat-value">${totalTransactions}</div>
+                    <div class="stat-value">0</div>
                     <div class="stat-label">Total Transactions</div>
-            </div>
+                </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱${totalAmount.toLocaleString()}</div>
+                    <div class="stat-value">₱0</div>
                     <div class="stat-label">Total Amount</div>
-            </div>
+                </div>
                 <div class="stat-card">
                     <div class="stat-value">${reportData.transactionType}</div>
                     <div class="stat-label">Transaction Type</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${currentDate}</div>
+                    <div class="stat-label">Generated</div>
+                </div>
             </div>
-        </div>
     
             <div class="report-table">
                 <table>
                     <thead>
                         <tr>
-                            <th>Transaction ID</th>
-                            <th>Type</th>
+                            <th>Reference</th>
                             <th>Amount</th>
-                            <th>Description</th>
                             <th>Date</th>
                         </tr>
                     </thead>
                     <tbody>
         `;
         
-    reportData.data.forEach(item => {
-            html += `
+    // Show empty data since no database is connected
+    html += `
                 <tr>
-                <td>${item.transactionId}</td>
-                <td><span class="badge ${item.type}">${item.type.toUpperCase()}</span></td>
-                <td>₱${item.amount.toLocaleString()}</td>
-                <td>${item.description}</td>
-                <td>${item.date.toLocaleDateString()}</td>
+                    <td colspan="3" style="text-align: center; padding: 40px; color: #9ca3af;">
+                        <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+                        No data available - Database not connected
+                    </td>
                 </tr>
             `;
-        });
         
         html += `
                     </tbody>
                 </table>
             </div>
-            </div>
+        </div>
         `;
     
     return html;
@@ -944,6 +646,14 @@ function generateMemberReportHTML(reportData) {
 
 // Generate branch report HTML
 function generateBranchReportHTML(reportData) {
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    const month = reportData.period.split(' ')[0];
+    const year = reportData.period.split(' ')[1];
+    
     let html = `
         <div class="report-content">
             <div class="report-stats">
@@ -952,16 +662,16 @@ function generateBranchReportHTML(reportData) {
                     <div class="stat-label">Branch</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${reportData.data.members}</div>
-                    <div class="stat-label">Total Members</div>
+                    <div class="stat-value">${getMonthName(month)}</div>
+                    <div class="stat-label">Month</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱${reportData.data.savings.toLocaleString()}</div>
-                    <div class="stat-label">Total Savings</div>
+                    <div class="stat-value">${year}</div>
+                    <div class="stat-label">Year</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱${reportData.data.disbursements.toLocaleString()}</div>
-                    <div class="stat-label">Total Disbursements</div>
+                    <div class="stat-value">${currentDate}</div>
+                    <div class="stat-label">Generated Date</div>
                 </div>
             </div>
             
@@ -970,7 +680,7 @@ function generateBranchReportHTML(reportData) {
                     <thead>
                         <tr>
                             <th>Branch Name</th>
-                            <th>Members</th>
+                            <th>Total Members</th>
                             <th>Total Savings</th>
                             <th>Total Disbursements</th>
                             <th>Performance %</th>
@@ -978,11 +688,10 @@ function generateBranchReportHTML(reportData) {
                     </thead>
                     <tbody>
                         <tr>
-                            <td>${reportData.data.branchName}</td>
-                            <td>${reportData.data.members}</td>
-                            <td>₱${reportData.data.savings.toLocaleString()}</td>
-                            <td>₱${reportData.data.disbursements.toLocaleString()}</td>
-                            <td>${reportData.data.performance}%</td>
+                            <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">
+                                <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+                                No data available - Database not connected
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -1007,64 +716,103 @@ function clearReportCanvas() {
     }
 }
 
-// Show export section
-function showExportSection() {
-    const exportSection = document.getElementById('exportSection');
-    if (exportSection) {
-        exportSection.style.display = 'block';
+// Show send finance section
+function showSendFinanceSection() {
+    const sendFinanceSection = document.getElementById('sendFinanceSection');
+    if (sendFinanceSection) {
+        sendFinanceSection.style.display = 'block';
     }
 }
 
-// Hide export section
-function hideExportSection() {
-    const exportSection = document.getElementById('exportSection');
-    if (exportSection) {
-        exportSection.style.display = 'none';
+// Hide send finance section
+function hideSendFinanceSection() {
+    const sendFinanceSection = document.getElementById('sendFinanceSection');
+    if (sendFinanceSection) {
+        sendFinanceSection.style.display = 'none';
     }
 }
 
 // Clear configuration based on report type
 function clearConfiguration(reportType) {
-    switch (reportType) {
-        case 'savings':
-            clearSavingsConfig();
-            break;
-        case 'disbursement':
-            clearDisbursementConfig();
-            break;
-        case 'member':
-            clearMemberConfig();
-            break;
-        case 'branch':
-            clearBranchConfig();
-            break;
-    }
-    
-    // Clear report canvas and hide export section
+    try {
+        if (!reportType) {
+            showMessage('Invalid report type for clearing.', 'error');
+            return;
+        }
+        
+        switch (reportType) {
+            case 'savings':
+                clearSavingsConfig();
+                break;
+            case 'disbursement':
+                clearDisbursementConfig();
+                break;
+            case 'member':
+                clearMemberConfig();
+                break;
+            case 'branch':
+                clearBranchConfig();
+                break;
+            default:
+                showMessage('Unknown report type.', 'error');
+                return;
+        }
+        
+    // Clear report canvas and hide send finance section
     clearReportCanvas();
-    hideExportSection();
-    
-    showMessage('Configuration cleared successfully!', 'success');
+    hideSendFinanceSection();
+        
+        showMessage('Configuration cleared successfully!', 'success');
+    } catch (error) {
+        console.error('Error clearing configuration:', error);
+        showMessage('An error occurred while clearing the configuration.', 'error');
+    }
 }
 
 // Clear savings configuration
 function clearSavingsConfig() {
-    const configSection = document.getElementById('savingsConfig');
-    configSection.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    document.getElementById('savingsYear').value = '2025';
-    document.getElementById('savingsMonth').value = '1';
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    // Clear branch selection for main branch users
+    if (isMainBranchUser) {
+        const configSection = document.getElementById('savingsConfig');
+        if (configSection) {
+            const checkboxes = configSection.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    }
+    
+    // Clear year and month fields
+    const yearElement = document.getElementById('savingsYear');
+    const monthElement = document.getElementById('savingsMonth');
+    
+    if (yearElement) yearElement.value = '2025';
+    if (monthElement) monthElement.value = '1';
 }
 
 // Clear disbursement configuration
 function clearDisbursementConfig() {
-    const configSection = document.getElementById('disbursementConfig');
-    configSection.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    document.getElementById('disbursementYear').value = '2025';
-    document.getElementById('disbursementMonth').value = '1';
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    // Clear branch selection for main branch users
+    if (isMainBranchUser) {
+        const configSection = document.getElementById('disbursementConfig');
+        if (configSection) {
+            const checkboxes = configSection.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    }
+    
+    // Clear year and month fields
+    const yearElement = document.getElementById('disbursementYear');
+    const monthElement = document.getElementById('disbursementMonth');
+    
+    if (yearElement) yearElement.value = '2025';
+    if (monthElement) monthElement.value = '1';
 }
 
 // Clear member configuration
@@ -1087,9 +835,187 @@ function clearBranchConfig() {
     });
 }
 
-// Export to PDF
-function exportToPDF() {
-    showMessage('PDF export functionality will be implemented here.', 'info');
+// Send to Finance Officer
+function sendToFinanceOfficer() {
+    const activeReportType = document.querySelector('.report-type-btn.active');
+    if (!activeReportType) {
+        showMessage('Please generate a report first.', 'error');
+        return;
+    }
+    
+    const reportType = activeReportType.getAttribute('data-type');
+    const reportData = generateReportData(reportType);
+    
+    if (!reportData) {
+        showMessage('No report data available to send.', 'error');
+        return;
+    }
+    
+    // Create sent report entry
+    const sentReport = createSentReportEntry(reportData);
+    
+    // Add to sent reports list
+    addToSentReportsList(sentReport);
+    
+    // Show sent reports section for this report type
+    showSentReportsSection(reportType);
+    
+    showMessage('Report sent to Finance Officer successfully!', 'success');
+}
+
+// Create sent report entry
+function createSentReportEntry(reportData) {
+    const now = new Date();
+    const timestamp = now.getTime();
+    
+    // Generate filename
+    const reportTypeName = reportData.type.replace(' Report', '');
+    const branchInfo = getBranchInfoForReport(reportData);
+    const dateStr = now.toISOString().split('T')[0];
+    const filename = `${reportTypeName}_${branchInfo}_${dateStr}.pdf`;
+    
+    return {
+        id: timestamp,
+        reportType: reportData.type,
+        branch: branchInfo,
+        filename: filename,
+        sentTime: now.toLocaleTimeString('en-US', { 
+            hour12: true, 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        }),
+        sentDate: now.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        }),
+        timestamp: timestamp
+    };
+}
+
+// Get branch info for report
+function getBranchInfoForReport(reportData) {
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    if (isMainBranchUser) {
+        if (reportData.branches && reportData.branches.length > 0) {
+            if (reportData.branches.length === 1) {
+                const branchId = reportData.branches[0].replace('branch', '');
+                const branchLocation = getBranchLocation(branchId);
+                return `Branch ${branchId} - ${branchLocation}`;
+            } else {
+                return `Multiple Branches (${reportData.branches.length})`;
+            }
+        }
+        return 'All Branches';
+    } else {
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const userBranchName = localStorage.getItem('user_branch_name');
+        const userBranchLocation = localStorage.getItem('user_branch_location');
+        return `${userBranchName} - ${userBranchLocation}` || `Branch ${userBranchId}`;
+    }
+}
+
+// Add to sent reports list
+function addToSentReportsList(sentReport) {
+    let sentReports = JSON.parse(localStorage.getItem('sentReports') || '[]');
+    sentReports.unshift(sentReport); // Add to beginning of array
+    localStorage.setItem('sentReports', JSON.stringify(sentReports));
+}
+
+// Show sent reports section for specific report type
+function showSentReportsSection(reportType) {
+    const reportTypeName = getReportTypeDisplayName(reportType);
+    const sentReportsSection = document.getElementById('sentReportsSection');
+    const sentReportsTitle = document.getElementById('sentReportsTitle');
+    
+    if (!sentReportsSection || !sentReportsTitle) return;
+    
+    // Update the title to show specific report type
+    sentReportsTitle.textContent = `Sent ${reportTypeName} History`;
+    
+    // Show the section
+    sentReportsSection.style.display = 'block';
+    
+    // Load reports for this specific type
+    loadSentReports(reportType);
+}
+
+// Load and display sent reports for specific type
+function loadSentReports(reportType) {
+    const allSentReports = JSON.parse(localStorage.getItem('sentReports') || '[]');
+    const sentReportsList = document.getElementById('sentReportsList');
+    
+    if (!sentReportsList) return;
+    
+    // Filter reports by type - exact match
+    const reportTypeName = getReportTypeDisplayName(reportType);
+    const filteredReports = allSentReports.filter(report => {
+        return report.reportType === reportTypeName;
+    });
+    
+    if (filteredReports.length === 0) {
+        sentReportsList.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #9ca3af;">
+                <i class="fas fa-inbox" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                No ${reportTypeName} sent yet
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    filteredReports.forEach(report => {
+        html += `
+            <div class="sent-report-item-compact">
+                <div class="sent-report-content">
+                    <span class="sent-report-type">${report.reportType}</span>
+                    <span class="sent-report-branch-info">${report.branch}</span>
+                    <span class="sent-report-filename">${report.filename}</span>
+                    <span class="sent-report-timestamp">${report.sentTime} - ${report.sentDate}</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    sentReportsList.innerHTML = html;
+}
+
+// Get report type class for styling
+function getReportTypeClass(reportType) {
+    if (reportType.includes('Savings')) return 'savings';
+    if (reportType.includes('Disbursement')) return 'disbursement';
+    if (reportType.includes('Member')) return 'member';
+    if (reportType.includes('Branch')) return 'branch';
+    return 'savings';
+}
+
+// Get report icon class
+function getReportIconClass(reportType) {
+    if (reportType.includes('Savings')) return 'fa-piggy-bank';
+    if (reportType.includes('Disbursement')) return 'fa-money-bill-wave';
+    if (reportType.includes('Member')) return 'fa-user';
+    if (reportType.includes('Branch')) return 'fa-store';
+    return 'fa-file-alt';
+}
+
+// Get report type display name
+function getReportTypeDisplayName(reportType) {
+    switch (reportType) {
+        case 'savings': return 'Savings Report';
+        case 'disbursement': return 'Disbursement Report';
+        case 'member': return 'Member Report';
+        case 'branch': return 'Branch Performance Report';
+        default: return 'Report';
+    }
+}
+
+// Load sent reports on initialization
+function loadSentReportsOnInit() {
+    const sentReports = JSON.parse(localStorage.getItem('sentReports') || '[]');
+    if (sentReports.length > 0) {
+        showSentReportsSection();
+    }
 }
 
 // Show message
