@@ -24,46 +24,9 @@ function initializeDynamicUserHeader() {
     }
 }
 
-// Sample transaction data (empty for now as requested)
-let transactions = [
-    // Add a few sample transactions to demonstrate scroll functionality
-    {
-        id: 1,
-        date: '2024-01-15',
-        payee: 'Sample Member 1',
-        reference: 'REF001',
-        crossReference: 'CR001',
-        checkNumber: 'CHK001',
-        particulars: 'Initial savings deposit',
-        debit: 0,
-        credit: 5000,
-        cashInBank: 5000,
-        loanReceivables: 0,
-        savingsDeposits: 5000,
-        interestIncome: 0,
-        serviceCharge: 0,
-        sundries: 0
-    },
-    {
-        id: 2,
-        date: '2024-01-16',
-        payee: 'Sample Member 2',
-        reference: 'REF002',
-        crossReference: 'CR002',
-        checkNumber: 'CHK002',
-        particulars: 'Loan disbursement',
-        debit: 10000,
-        credit: 0,
-        cashInBank: -10000,
-        loanReceivables: 10000,
-        savingsDeposits: 0,
-        interestIncome: 0,
-        serviceCharge: 0,
-        sundries: 0
-    }
-];
-
-let currentTransactions = [...transactions];
+// Transaction data from database
+let transactions = [];
+let currentTransactions = [];
 let editingTransactionId = null;
 let currentZoom = 90;
 
@@ -71,7 +34,7 @@ let currentZoom = 90;
 function initializeTransactionLedger() {
     // Ensure DOM is ready
     setTimeout(() => {
-        renderTransactionTable();
+        loadTransactionsFromDatabase();
         setDefaultDate();
         initializeScrollControls();
         setupScrollButtons(); // Setup scroll button event listeners
@@ -80,6 +43,69 @@ function initializeTransactionLedger() {
         window.scrollRight = scrollRight;
         console.log('Scroll functions initialized');
     }, 100);
+}
+
+// API Configuration
+const API_BASE_URL = 'http://localhost:3001/api/auth';
+
+// Get authentication token
+function getAuthToken() {
+    return localStorage.getItem('access_token');
+}
+
+// API Helper function
+async function apiRequest(endpoint, options = {}) {
+    const token = getAuthToken();
+    const url = `${API_BASE_URL}${endpoint}`;
+    
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    };
+    
+    const config = { ...defaultOptions, ...options };
+    
+    try {
+        const response = await fetch(url, config);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'API request failed');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        showNotification(`Error: ${error.message}`, 'error');
+        throw error;
+    }
+}
+
+// Load transactions from database
+async function loadTransactionsFromDatabase() {
+    try {
+        showLoadingState();
+        const response = await apiRequest('/transactions');
+        
+        if (response.success) {
+            transactions = response.data || [];
+            currentTransactions = [...transactions];
+            renderTransactionTable();
+            showNotification('Transactions loaded successfully', 'success');
+        } else {
+            throw new Error(response.message || 'Failed to load transactions');
+        }
+    } catch (error) {
+        console.error('Error loading transactions:', error);
+        transactions = [];
+        currentTransactions = [];
+        renderTransactionTable();
+        showNotification('Failed to load transactions', 'error');
+    } finally {
+        hideLoadingState();
+    }
 }
 
 // Set default date to today
@@ -123,23 +149,26 @@ function renderTransactionTable() {
     }
     
     tbody.innerHTML = currentTransactions.map(transaction => `
-        <tr>
-            <td>${formatDate(transaction.date)}</td>
+        <tr class="transaction-row" data-transaction-id="${transaction.id}">
+            <td>${formatDate(transaction.transaction_date || transaction.date)}</td>
             <td>${transaction.payee}</td>
             <td>${transaction.reference || ''}</td>
-            <td>${transaction.crossReference || ''}</td>
-            <td>${transaction.checkNumber || ''}</td>
-            <td>${formatAmount(transaction.cashInBank)}</td>
-            <td>${formatAmount(transaction.loanReceivables)}</td>
-            <td>${formatAmount(transaction.savingsDeposits)}</td>
-            <td>${formatAmount(transaction.interestIncome)}</td>
-            <td>${formatAmount(transaction.serviceCharge)}</td>
+            <td>${transaction.cross_reference || transaction.crossReference || ''}</td>
+            <td>${transaction.check_number || transaction.checkNumber || ''}</td>
+            <td>${formatAmount(transaction.cash_in_bank || transaction.cashInBank)}</td>
+            <td>${formatAmount(transaction.loan_receivables || transaction.loanReceivables)}</td>
+            <td>${formatAmount(transaction.savings_deposits || transaction.savingsDeposits)}</td>
+            <td>${formatAmount(transaction.interest_income || transaction.interestIncome)}</td>
+            <td>${formatAmount(transaction.service_charge || transaction.serviceCharge)}</td>
             <td>${formatAmount(transaction.sundries)}</td>
             <td>${transaction.particulars}</td>
-            <td>${formatAmount(transaction.debit)}</td>
-            <td>${formatAmount(transaction.credit)}</td>
+            <td>${formatAmount(transaction.debit_amount || transaction.debit)}</td>
+            <td>${formatAmount(transaction.credit_amount || transaction.credit)}</td>
         </tr>
     `).join('');
+    
+    // Add click event listeners to transaction rows
+    addTransactionRowListeners();
 }
 
 // Format date for display
@@ -159,6 +188,241 @@ function formatAmount(amount) {
     return parseFloat(amount).toFixed(2);
 }
 
+// Add click event listeners to transaction rows
+function addTransactionRowListeners() {
+    const rows = document.querySelectorAll('.transaction-row');
+    rows.forEach(row => {
+        row.addEventListener('click', function() {
+            const transactionId = this.getAttribute('data-transaction-id');
+            const transaction = currentTransactions.find(t => t.id == transactionId);
+            if (transaction) {
+                showTransactionModal(transaction);
+            }
+        });
+        
+        // Add hover effect
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f0f8ff';
+            this.style.cursor = 'pointer';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+}
+
+// Show transaction modal for edit/update/delete
+function showTransactionModal(transaction) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('transactionModal');
+    if (!modal) {
+        modal = createTransactionModal();
+        document.body.appendChild(modal);
+    }
+    
+    // Populate modal with transaction data
+    populateTransactionModal(transaction);
+    
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+// Create transaction modal
+function createTransactionModal() {
+    const modal = document.createElement('div');
+    modal.id = 'transactionModal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content transaction-modal">
+            <div class="modal-header">
+                <h3>Transaction Details</h3>
+                <span class="close" onclick="closeTransactionModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="transaction-details">
+                    <div class="detail-row">
+                        <label>Date:</label>
+                        <span id="modalDate"></span>
+                    </div>
+                    <div class="detail-row">
+                        <label>Payee:</label>
+                        <span id="modalPayee"></span>
+                    </div>
+                    <div class="detail-row">
+                        <label>Reference:</label>
+                        <span id="modalReference"></span>
+                    </div>
+                    <div class="detail-row">
+                        <label>Cross Reference:</label>
+                        <span id="modalCrossReference"></span>
+                    </div>
+                    <div class="detail-row">
+                        <label>Check Number:</label>
+                        <span id="modalCheckNumber"></span>
+                    </div>
+                    <div class="detail-row">
+                        <label>Particulars:</label>
+                        <span id="modalParticulars"></span>
+                    </div>
+                    <div class="detail-row">
+                        <label>Debit Amount:</label>
+                        <span id="modalDebit"></span>
+                    </div>
+                    <div class="detail-row">
+                        <label>Credit Amount:</label>
+                        <span id="modalCredit"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTransactionModal()">Close</button>
+                <button class="btn btn-warning" onclick="editTransaction()">Edit</button>
+                <button class="btn btn-danger" onclick="deleteTransaction()">Delete</button>
+            </div>
+        </div>
+    `;
+    
+    // Add modal styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .transaction-modal {
+            max-width: 600px;
+            width: 90%;
+        }
+        .transaction-details {
+            display: grid;
+            gap: 12px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-row label {
+            font-weight: bold;
+            color: #333;
+        }
+        .detail-row span {
+            color: #666;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    return modal;
+}
+
+// Populate transaction modal with data
+function populateTransactionModal(transaction) {
+    document.getElementById('modalDate').textContent = formatDate(transaction.transaction_date || transaction.date);
+    document.getElementById('modalPayee').textContent = transaction.payee;
+    document.getElementById('modalReference').textContent = transaction.reference || '';
+    document.getElementById('modalCrossReference').textContent = transaction.cross_reference || transaction.crossReference || '';
+    document.getElementById('modalCheckNumber').textContent = transaction.check_number || transaction.checkNumber || '';
+    document.getElementById('modalParticulars').textContent = transaction.particulars;
+    document.getElementById('modalDebit').textContent = formatAmount(transaction.debit_amount || transaction.debit);
+    document.getElementById('modalCredit').textContent = formatAmount(transaction.credit_amount || transaction.credit);
+    
+    // Store current transaction for edit/delete operations
+    window.currentTransaction = transaction;
+}
+
+// Close transaction modal
+function closeTransactionModal() {
+    const modal = document.getElementById('transactionModal');
+    if (modal) {
+        modal.style.display = 'none';
+        window.currentTransaction = null;
+    }
+}
+
+// Edit transaction
+function editTransaction() {
+    if (!window.currentTransaction) return;
+    
+    closeTransactionModal();
+    
+    // Populate the form with current transaction data
+    const transaction = window.currentTransaction;
+    
+    document.getElementById('transactionDate').value = transaction.transaction_date || transaction.date;
+    document.getElementById('payee').value = transaction.payee;
+    document.getElementById('reference').value = transaction.reference || '';
+    document.getElementById('crossReference').value = transaction.cross_reference || transaction.crossReference || '';
+    document.getElementById('checkNumber').value = transaction.check_number || transaction.checkNumber || '';
+    document.getElementById('particulars').value = transaction.particulars;
+    document.getElementById('debitAmount').value = transaction.debit_amount || transaction.debit || '';
+    document.getElementById('creditAmount').value = transaction.credit_amount || transaction.credit || '';
+    
+    // Set editing mode
+    editingTransactionId = transaction.id;
+    
+    // Show form if hidden
+    const form = document.getElementById('transactionForm');
+    if (form) {
+        form.style.display = 'block';
+    }
+    
+    showNotification('Transaction loaded for editing', 'info');
+}
+
+// Delete transaction
+async function deleteTransaction() {
+    if (!window.currentTransaction) return;
+    
+    const confirmed = confirm('Are you sure you want to delete this transaction? This action cannot be undone.');
+    if (!confirmed) return;
+    
+    try {
+        showLoadingState();
+        const response = await apiRequest(`/transactions/${window.currentTransaction.id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.success) {
+            showNotification('Transaction deleted successfully', 'success');
+            closeTransactionModal();
+            await loadTransactionsFromDatabase(); // Reload data
+        } else {
+            throw new Error(response.message || 'Failed to delete transaction');
+        }
+    } catch (error) {
+        console.error('Error deleting transaction:', error);
+        showNotification('Failed to delete transaction', 'error');
+    } finally {
+        hideLoadingState();
+    }
+}
+
 // Open add transaction form
 function openAddTransactionForm() {
     editingTransactionId = null;
@@ -169,15 +433,15 @@ function openAddTransactionForm() {
 }
 
 // Save transaction
-function saveTransaction() {
+async function saveTransaction() {
     const date = document.getElementById('transactionDate').value;
-    const payee = document.getElementById('transactionPayee').value.trim();
-    const reference = document.getElementById('transactionReference').value.trim();
-    const crossReference = document.getElementById('transactionCrossRef').value.trim();
-    const checkNumber = document.getElementById('transactionCheck').value.trim();
-    const particulars = document.getElementById('transactionParticulars').value.trim();
-    const debit = parseFloat(document.getElementById('transactionDebit').value) || 0;
-    const credit = parseFloat(document.getElementById('transactionCredit').value) || 0;
+    const payee = document.getElementById('payee').value.trim();
+    const reference = document.getElementById('reference').value.trim();
+    const crossReference = document.getElementById('crossReference').value.trim();
+    const checkNumber = document.getElementById('checkNumber').value.trim();
+    const particulars = document.getElementById('particulars').value.trim();
+    const debit = parseFloat(document.getElementById('debitAmount').value) || 0;
+    const credit = parseFloat(document.getElementById('creditAmount').value) || 0;
     
     if (!date || !payee || !particulars) {
         alert('Please fill in all required fields (Date, Payee, Particulars).');
@@ -189,41 +453,63 @@ function saveTransaction() {
         return;
     }
     
-    const newTransaction = {
-        id: Date.now(),
-        date,
+    const transactionData = {
+        transaction_date: date,
         payee,
         reference,
-        crossReference,
-        checkNumber,
+        cross_reference: crossReference,
+        check_number: checkNumber,
         particulars,
-        debit,
-        credit,
+        debit_amount: debit,
+        credit_amount: credit,
         // Calculate account balances based on transaction type
-        cashInBank: calculateCashInBank(debit, credit, particulars),
-        loanReceivables: calculateLoanReceivables(debit, credit, particulars),
-        savingsDeposits: calculateSavingsDeposits(debit, credit, particulars),
-        interestIncome: calculateInterestIncome(debit, credit, particulars),
-        serviceCharge: calculateServiceCharge(debit, credit, particulars),
+        cash_in_bank: calculateCashInBank(debit, credit, particulars),
+        loan_receivables: calculateLoanReceivables(debit, credit, particulars),
+        savings_deposits: calculateSavingsDeposits(debit, credit, particulars),
+        interest_income: calculateInterestIncome(debit, credit, particulars),
+        service_charge: calculateServiceCharge(debit, credit, particulars),
         sundries: calculateSundries(debit, credit, particulars)
     };
     
-    if (editingTransactionId) {
-        // Update existing transaction
-        const transactionIndex = transactions.findIndex(t => t.id === editingTransactionId);
-        if (transactionIndex !== -1) {
-            transactions[transactionIndex] = newTransaction;
+    try {
+        showLoadingState();
+        
+        if (editingTransactionId) {
+            // Update existing transaction
+            const response = await apiRequest(`/transactions/${editingTransactionId}`, {
+                method: 'PUT',
+                body: JSON.stringify(transactionData)
+            });
+            
+            if (response.success) {
+                showNotification('Transaction updated successfully!', 'success');
+            } else {
+                throw new Error(response.message || 'Failed to update transaction');
+            }
+        } else {
+            // Add new transaction
+            const response = await apiRequest('/transactions', {
+                method: 'POST',
+                body: JSON.stringify(transactionData)
+            });
+            
+            if (response.success) {
+                showNotification('Transaction added successfully!', 'success');
+            } else {
+                throw new Error(response.message || 'Failed to create transaction');
+            }
         }
-    } else {
-        // Add new transaction
-        transactions.push(newTransaction);
+        
+        // Reload transactions from database
+        await loadTransactionsFromDatabase();
+        closeTransactionForm();
+        
+    } catch (error) {
+        console.error('Error saving transaction:', error);
+        showNotification('Failed to save transaction', 'error');
+    } finally {
+        hideLoadingState();
     }
-    
-    currentTransactions = [...transactions];
-    renderTransactionTable();
-    closeTransactionForm();
-    
-    showSuccessMessage(editingTransactionId ? 'Transaction updated successfully!' : 'Transaction added successfully!');
 }
 
 // Calculate account balances based on transaction type
@@ -614,3 +900,96 @@ function downloadCSV(content, filename) {
         document.body.removeChild(link);
     }
 }
+
+// Show loading state
+function showLoadingState() {
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.id = 'loadingOverlay';
+    loadingOverlay.innerHTML = `
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading...</span>
+        </div>
+    `;
+    loadingOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    document.body.appendChild(loadingOverlay);
+}
+
+// Hide loading state
+function hideLoadingState() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        document.body.removeChild(loadingOverlay);
+    }
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas ${getNotificationIcon(type)}"></i>
+        <span>${message}</span>
+    `;
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${getNotificationColor(type)};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideInRight 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove notification after 4 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
+    }, 4000);
+}
+
+// Get notification icon
+function getNotificationIcon(type) {
+    switch (type) {
+        case 'success': return 'fa-check-circle';
+        case 'error': return 'fa-exclamation-circle';
+        case 'warning': return 'fa-exclamation-triangle';
+        case 'info': return 'fa-info-circle';
+        default: return 'fa-info-circle';
+    }
+}
+
+// Get notification color
+function getNotificationColor(type) {
+    switch (type) {
+        case 'success': return '#28a745';
+        case 'error': return '#dc3545';
+        case 'warning': return '#ffc107';
+        case 'info': return '#17a2b8';
+        default: return '#17a2b8';
+    }
+} 

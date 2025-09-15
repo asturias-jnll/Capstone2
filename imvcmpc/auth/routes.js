@@ -1,6 +1,7 @@
 const express = require('express');
 const authService = require('./authService');
 const { authenticateToken, checkPermission, checkRole, loginRateLimit, auditLog } = require('./middleware');
+const transactionRoutes = require('./transactionRoutes');
 
 const router = express.Router();
 
@@ -300,6 +301,9 @@ router.get('/roles/:roleId/permissions',
         }
     }
 );
+
+// Transaction routes
+router.use('/transactions', transactionRoutes);
 
 // Health check endpoint
 router.get('/health', async (req, res) => {

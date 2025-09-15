@@ -175,15 +175,19 @@ async function setupDatabase() {
                     (11, 'write:mcda_analysis', 'Write MCDA Analysis', 'Can perform MCDA analysis', 'mcda_analysis', 'write'),
                     (12, 'read:budget_data', 'Read Budget Data', 'Can view budget information', 'budget_data', 'read'),
                     (13, 'write:budget_data', 'Write Budget Data', 'Can create and update budget information', 'budget_data', 'write'),
-                    (14, '*:*', 'Full Access', 'Full access to all resources', '*', '*')
+                    (14, 'transactions:read', 'Read Transactions', 'Can view transaction data', 'transactions', 'read'),
+                    (15, 'transactions:create', 'Create Transactions', 'Can create new transactions', 'transactions', 'create'),
+                    (16, 'transactions:update', 'Update Transactions', 'Can update existing transactions', 'transactions', 'update'),
+                    (17, 'transactions:delete', 'Delete Transactions', 'Can delete transactions', 'transactions', 'delete'),
+                    (18, '*:*', 'Full Access', 'Full access to all resources', '*', '*')
                 `);
                 
                 // Insert role permissions
                 await dbClient.query(`
                     INSERT INTO role_permissions (role_id, permission_id) VALUES
-                    (1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
-                    (2, 1), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (2, 12), (2, 13),
-                    (3, 14)
+                    (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 14), (1, 15), (1, 16), (1, 17),
+                    (2, 1), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 16), (2, 17),
+                    (3, 18)
                 `);
                 
                 console.log('   ✅ Schema data re-inserted successfully');
