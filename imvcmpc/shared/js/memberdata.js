@@ -171,6 +171,7 @@ function renderTransactionTable() {
     addTransactionRowListeners();
 }
 
+
 // Format date for display
 function formatDate(dateString) {
     if (!dateString) return '';
@@ -784,16 +785,12 @@ function updateZoom(value) {
         slider.value = currentZoom;
         percentage.textContent = `${currentZoom}%`;
         
-        // Adjust container to accommodate scaled table
-        const baseHeight = 60; // 60vh base height
-        const newHeight = baseHeight * scale;
-        tableContainer.style.maxHeight = `${newHeight}vh`;
+        // Keep container height fixed for consistent scrolling
+        tableContainer.style.maxHeight = '60vh';
         
-        // Ensure proper spacing and prevent cutting
-        tableContainer.style.overflow = 'hidden';
-        
-        // Maintain consistent padding regardless of zoom
-        tableContainer.style.padding = '16px';
+        // Ensure only vertical scrolling in container, horizontal via bottom controls
+        tableContainer.style.overflowX = 'hidden';
+        tableContainer.style.overflowY = 'auto';
         
         // Update table width to prevent horizontal cutting
         const scaledWidth = 1400 * scale;
@@ -803,6 +800,7 @@ function updateZoom(value) {
         // Ensure container doesn't exceed wrapper bounds
         tableContainer.style.width = '100%';
         tableContainer.style.maxWidth = '100%';
+        
         
         // Update scroll thumb size based on new zoom level
         setTimeout(() => {
