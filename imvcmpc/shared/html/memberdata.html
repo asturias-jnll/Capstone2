@@ -95,7 +95,7 @@
             <div class="search-section">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="payeeSearch" placeholder="Search payee..." onkeyup="searchPayee()">
+                    <input type="text" id="payeeSearch" placeholder="Search transactions..." onkeyup="searchPayee()">
                 </div>
             </div>
             <button class="add-transaction-btn" onclick="openAddTransactionForm()">
@@ -166,51 +166,104 @@
     <!-- Transaction Form Dialog -->
     <div id="transactionFormDialog" class="modal" style="display: none;">
         <div class="modal-content">
-            <h3 id="transactionFormTitle">Add Transaction</h3>
+            <div class="modal-header">
+                <h3 id="transactionFormTitle">Add Transaction</h3>
+                <button type="button" class="close-btn" onclick="closeTransactionForm()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <form id="transactionForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="transactionDate">Date</label>
-                        <input type="date" id="transactionDate" required>
+                <div class="form-section">
+                    <h4 class="section-title">Basic Information</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="transactionDate">Date *</label>
+                            <input type="date" id="transactionDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="payee">Payee *</label>
+                            <input type="text" id="payee" placeholder="Enter payee name" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="transactionPayee">Payee</label>
-                        <input type="text" id="transactionPayee" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="transactionReference">Reference</label>
-                        <input type="text" id="transactionReference">
-                    </div>
-                    <div class="form-group">
-                        <label for="transactionCrossRef">Cross Reference</label>
-                        <input type="text" id="transactionCrossRef">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="transactionCheck">Check Number</label>
-                        <input type="text" id="transactionCheck">
-                    </div>
-                    <div class="form-group">
-                        <label for="transactionParticulars">Particulars</label>
-                        <input type="text" id="transactionParticulars" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="reference">Reference</label>
+                            <input type="text" id="reference" placeholder="Transaction reference">
+                        </div>
+                        <div class="form-group">
+                            <label for="crossReference">Cross Reference</label>
+                            <input type="text" id="crossReference" placeholder="Cross reference number">
+                        </div>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="transactionDebit">Debit Amount</label>
-                        <input type="number" id="transactionDebit" step="0.01" min="0">
+
+                <div class="form-section">
+                    <h4 class="section-title">Transaction Details</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="checkNumber">Check Number</label>
+                            <input type="text" id="checkNumber" placeholder="Check number">
+                        </div>
+                        <div class="form-group">
+                            <label for="particulars">Particulars *</label>
+                            <input type="text" id="particulars" placeholder="Transaction description" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="transactionCredit">Credit Amount</label>
-                        <input type="number" id="transactionCredit" step="0.01" min="0">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="debitAmount">Debit Amount</label>
+                            <input type="number" id="debitAmount" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="creditAmount">Credit Amount</label>
+                            <input type="number" id="creditAmount" step="0.01" min="0" placeholder="0.00">
+                        </div>
                     </div>
                 </div>
+
+                <div class="form-section">
+                    <h4 class="section-title">Account Balances</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cashInBank">Cash in Bank</label>
+                            <input type="number" id="cashInBank" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="loanReceivables">Loan Receivables</label>
+                            <input type="number" id="loanReceivables" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="savingsDeposits">Savings Deposits</label>
+                            <input type="number" id="savingsDeposits" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="interestIncome">Interest Income</label>
+                            <input type="number" id="interestIncome" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="serviceCharge">Service Charge</label>
+                            <input type="number" id="serviceCharge" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="sundries">Sundries</label>
+                            <input type="number" id="sundries" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
-                    <button type="button" class="cancel-btn" onclick="closeTransactionForm()">Cancel</button>
-                    <button type="submit" class="save-btn">Save</button>
+                    <button type="button" class="cancel-btn" onclick="closeTransactionForm()">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </button>
+                    <button type="submit" class="save-btn">
+                        <i class="fas fa-save"></i>
+                        Save Transaction
+                    </button>
                 </div>
             </form>
         </div>

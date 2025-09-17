@@ -20,6 +20,8 @@ function initializeReports() {
     // Initialize branch-specific reports
     initializeBranchSpecificReports();
     
+    // Initialize report histories
+    initializeReportHistories();
 }
 
 // Initialize branch-specific reports
@@ -129,6 +131,9 @@ function setupReportTypeSelector() {
             // Show corresponding configuration section
             showConfigurationSection(this.getAttribute('data-type'));
             
+            // Show corresponding history section
+            showReportHistory(this.getAttribute('data-type'));
+            
             // Clear report canvas
             clearReportCanvas();
             
@@ -149,6 +154,8 @@ function showConfigurationSection(reportType) {
     // Hide all configuration sections
     const configSections = document.querySelectorAll('.config-section');
     configSections.forEach(section => section.classList.remove('active'));
+    
+    // Don't hide all histories - let each report type show its own history
     
     // Show selected configuration section
     const selectedSection = document.getElementById(reportType + 'Config');
@@ -854,11 +861,11 @@ function sendToFinanceOfficer() {
     // Create sent report entry
     const sentReport = createSentReportEntry(reportData);
     
-    // Add to sent reports list
-    addToSentReportsList(sentReport);
+    // Save to report history
+    saveReportHistory(reportType, reportData);
     
-    // Show sent reports section for this report type
-    showSentReportsSection(reportType);
+    // Show report history for this report type
+    showReportHistory(reportType);
     
     showMessage('Report sent to Finance Officer successfully!', 'success');
 }
@@ -916,88 +923,8 @@ function getBranchInfoForReport(reportData) {
     }
 }
 
-// Add to sent reports list
-function addToSentReportsList(sentReport) {
-    let sentReports = JSON.parse(localStorage.getItem('sentReports') || '[]');
-    sentReports.unshift(sentReport); // Add to beginning of array
-    localStorage.setItem('sentReports', JSON.stringify(sentReports));
-}
 
-// Show sent reports section for specific report type
-function showSentReportsSection(reportType) {
-    const reportTypeName = getReportTypeDisplayName(reportType);
-    const sentReportsSection = document.getElementById('sentReportsSection');
-    const sentReportsTitle = document.getElementById('sentReportsTitle');
-    
-    if (!sentReportsSection || !sentReportsTitle) return;
-    
-    // Update the title to show specific report type
-    sentReportsTitle.textContent = `Sent ${reportTypeName} History`;
-    
-    // Show the section
-    sentReportsSection.style.display = 'block';
-    
-    // Load reports for this specific type
-    loadSentReports(reportType);
-}
 
-// Load and display sent reports for specific type
-function loadSentReports(reportType) {
-    const allSentReports = JSON.parse(localStorage.getItem('sentReports') || '[]');
-    const sentReportsList = document.getElementById('sentReportsList');
-    
-    if (!sentReportsList) return;
-    
-    // Filter reports by type - exact match
-    const reportTypeName = getReportTypeDisplayName(reportType);
-    const filteredReports = allSentReports.filter(report => {
-        return report.reportType === reportTypeName;
-    });
-    
-    if (filteredReports.length === 0) {
-        sentReportsList.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #9ca3af;">
-                <i class="fas fa-inbox" style="font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                No ${reportTypeName} sent yet
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '';
-    filteredReports.forEach(report => {
-        html += `
-            <div class="sent-report-item-compact">
-                <div class="sent-report-content">
-                    <span class="sent-report-type">${report.reportType}</span>
-                    <span class="sent-report-branch-info">${report.branch}</span>
-                    <span class="sent-report-filename">${report.filename}</span>
-                    <span class="sent-report-timestamp">${report.sentTime} - ${report.sentDate}</span>
-                </div>
-            </div>
-        `;
-    });
-    
-    sentReportsList.innerHTML = html;
-}
-
-// Get report type class for styling
-function getReportTypeClass(reportType) {
-    if (reportType.includes('Savings')) return 'savings';
-    if (reportType.includes('Disbursement')) return 'disbursement';
-    if (reportType.includes('Member')) return 'member';
-    if (reportType.includes('Branch')) return 'branch';
-    return 'savings';
-}
-
-// Get report icon class
-function getReportIconClass(reportType) {
-    if (reportType.includes('Savings')) return 'fa-piggy-bank';
-    if (reportType.includes('Disbursement')) return 'fa-money-bill-wave';
-    if (reportType.includes('Member')) return 'fa-user';
-    if (reportType.includes('Branch')) return 'fa-store';
-    return 'fa-file-alt';
-}
 
 // Get report type display name
 function getReportTypeDisplayName(reportType) {
@@ -1010,13 +937,6 @@ function getReportTypeDisplayName(reportType) {
     }
 }
 
-// Load sent reports on initialization
-function loadSentReportsOnInit() {
-    const sentReports = JSON.parse(localStorage.getItem('sentReports') || '[]');
-    if (sentReports.length > 0) {
-        showSentReportsSection();
-    }
-}
 
 // Show message
 function showMessage(message, type = 'info') {
@@ -1104,4 +1024,195 @@ function updateCurrentDateTime() {
             second: '2-digit' 
         });
     }
+}
+
+// Initialize report histories
+function initializeReportHistories() {
+    // Load existing report histories from localStorage
+    loadReportHistories();
+}
+
+// Load report histories for all report types
+function loadReportHistories() {
+    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    
+    reportTypes.forEach(type => {
+        const history = getReportHistory(type);
+        displayReportHistory(type, history);
+    });
+}
+
+// Get report history for a specific type
+function getReportHistory(reportType) {
+    const key = `reportHistory_${reportType}`;
+    const history = localStorage.getItem(key);
+    return history ? JSON.parse(history) : [];
+}
+
+// Save report history for a specific type
+function saveReportHistory(reportType, reportData) {
+    const key = `reportHistory_${reportType}`;
+    const history = getReportHistory(reportType);
+    
+    const newReport = {
+        id: Date.now(),
+        title: generateReportTitle(reportType, reportData),
+        details: generateReportDetails(reportType, reportData),
+        date: new Date().toISOString(),
+        status: 'sent',
+        type: reportType
+    };
+    
+    history.unshift(newReport); // Add to beginning
+    
+    // Keep only last 10 reports
+    if (history.length > 10) {
+        history.splice(10);
+    }
+    
+    localStorage.setItem(key, JSON.stringify(history));
+    displayReportHistory(reportType, history);
+}
+
+// Display report history for a specific type
+function displayReportHistory(reportType, history) {
+    const historySection = document.getElementById(`${reportType}ReportHistory`);
+    const historyList = document.getElementById(`${reportType}HistoryList`);
+    
+    if (!historySection || !historyList) return;
+    
+    if (history.length === 0) {
+        historyList.innerHTML = `
+            <div class="empty-history">
+                <i class="fas fa-history"></i>
+                <h5>No Reports Sent</h5>
+                <p>No ${reportType} reports have been sent yet.</p>
+            </div>
+        `;
+    } else {
+        historyList.innerHTML = history.map(report => `
+            <div class="history-item">
+                <div class="history-info">
+                    <div class="history-title">${report.title}</div>
+                    <div class="history-details">${report.details}</div>
+                </div>
+                <div class="history-meta">
+                    <div class="history-date">${formatReportDate(report.date)}</div>
+                    <div class="history-status ${report.status}">${report.status}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// Generate report title based on type and data
+function generateReportTitle(reportType, data) {
+    switch (reportType) {
+        case 'savings':
+            return `Savings Report - ${data.month || 'All'} ${data.year || new Date().getFullYear()}`;
+        case 'disbursement':
+            return `Disbursement Report - ${data.month || 'All'} ${data.year || new Date().getFullYear()}`;
+        case 'member':
+            return `Member Report - ${data.memberName || 'All Members'}`;
+        case 'branch':
+            return `Branch Report - ${data.branchName || 'All Branches'}`;
+        default:
+            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+    }
+}
+
+// Generate report details based on type and data
+function generateReportDetails(reportType, data) {
+    const details = [];
+    
+    switch (reportType) {
+        case 'savings':
+        case 'disbursement':
+            if (data.branches && data.branches.length > 0) {
+                details.push(`${data.branches.length} branch(es) selected`);
+            }
+            if (data.month) {
+                details.push(`Month: ${getMonthName(data.month)}`);
+            }
+            if (data.year) {
+                details.push(`Year: ${data.year}`);
+            }
+            break;
+        case 'member':
+            if (data.transactionType) {
+                details.push(`Transaction Type: ${data.transactionType}`);
+            }
+            if (data.memberName) {
+                details.push(`Member: ${data.memberName}`);
+            }
+            break;
+        case 'branch':
+            if (data.branchName) {
+                details.push(`Branch: ${data.branchName}`);
+            }
+            if (data.transactionTypes && data.transactionTypes.length > 0) {
+                details.push(`Types: ${data.transactionTypes.join(', ')}`);
+            }
+            break;
+    }
+    
+    return details.join(' • ') || 'Report generated';
+}
+
+// Format report date for display
+function formatReportDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// Get month name from number
+function getMonthName(monthNumber) {
+    const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[monthNumber - 1] || 'Unknown';
+}
+
+// Show report history for a specific type
+function showReportHistory(reportType) {
+    console.log('Showing report history for:', reportType);
+    
+    // Hide all other report histories first
+    hideAllReportHistories();
+    
+    // Show the selected report history
+    const historySection = document.getElementById(`${reportType}ReportHistory`);
+    console.log('History section found:', historySection);
+    
+    if (historySection) {
+        historySection.style.display = 'block';
+        console.log('History section displayed for:', reportType);
+    } else {
+        console.error('History section not found for:', reportType);
+    }
+}
+
+// Hide report history for a specific type
+function hideReportHistory(reportType) {
+    const historySection = document.getElementById(`${reportType}ReportHistory`);
+    if (historySection) {
+        historySection.style.display = 'none';
+    }
+}
+
+// Hide all report histories
+function hideAllReportHistories() {
+    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    console.log('Hiding all report histories');
+    reportTypes.forEach(type => {
+        console.log('Hiding history for:', type);
+        hideReportHistory(type);
+    });
 }

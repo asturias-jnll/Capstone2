@@ -235,51 +235,103 @@ function createTransactionModal() {
     modal.id = 'transactionModal';
     modal.className = 'modal';
     modal.innerHTML = `
-        <div class="modal-content transaction-modal">
+        <div class="modal-content transaction-details-modal">
             <div class="modal-header">
                 <h3>Transaction Details</h3>
-                <span class="close" onclick="closeTransactionModal()">&times;</span>
+                <button type="button" class="close-btn" onclick="closeTransactionModal()">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <div class="modal-body">
                 <div class="transaction-details">
-                    <div class="detail-row">
-                        <label>Date:</label>
-                        <span id="modalDate"></span>
+                    <div class="details-section">
+                        <h4 class="section-title">Basic Information</h4>
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <label>Date</label>
+                                <span id="modalDate"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Payee</label>
+                                <span id="modalPayee"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Reference</label>
+                                <span id="modalReference"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Cross Reference</label>
+                                <span id="modalCrossReference"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-row">
-                        <label>Payee:</label>
-                        <span id="modalPayee"></span>
+                    
+                    <div class="details-section">
+                        <h4 class="section-title">Transaction Details</h4>
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <label>Check Number</label>
+                                <span id="modalCheckNumber"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Particulars</label>
+                                <span id="modalParticulars"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Debit Amount</label>
+                                <span id="modalDebit" class="amount"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Credit Amount</label>
+                                <span id="modalCredit" class="amount"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-row">
-                        <label>Reference:</label>
-                        <span id="modalReference"></span>
-                    </div>
-                    <div class="detail-row">
-                        <label>Cross Reference:</label>
-                        <span id="modalCrossReference"></span>
-                    </div>
-                    <div class="detail-row">
-                        <label>Check Number:</label>
-                        <span id="modalCheckNumber"></span>
-                    </div>
-                    <div class="detail-row">
-                        <label>Particulars:</label>
-                        <span id="modalParticulars"></span>
-                    </div>
-                    <div class="detail-row">
-                        <label>Debit Amount:</label>
-                        <span id="modalDebit"></span>
-                    </div>
-                    <div class="detail-row">
-                        <label>Credit Amount:</label>
-                        <span id="modalCredit"></span>
+                    
+                    <div class="details-section">
+                        <h4 class="section-title">Account Balances</h4>
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <label>Cash in Bank</label>
+                                <span id="modalCashInBank" class="amount"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Loan Receivables</label>
+                                <span id="modalLoanReceivables" class="amount"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Savings Deposits</label>
+                                <span id="modalSavingsDeposits" class="amount"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Interest Income</label>
+                                <span id="modalInterestIncome" class="amount"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Service Charge</label>
+                                <span id="modalServiceCharge" class="amount"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Sundries</label>
+                                <span id="modalSundries" class="amount"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeTransactionModal()">Close</button>
-                <button class="btn btn-warning" onclick="editTransaction()">Edit</button>
-                <button class="btn btn-danger" onclick="deleteTransaction()">Delete</button>
+                <button class="btn btn-secondary" onclick="closeTransactionModal()">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+                <button class="btn btn-warning" onclick="editTransaction()">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                </button>
+                <button class="btn btn-danger" onclick="deleteTransaction()">
+                    <i class="fas fa-trash"></i>
+                    Delete
+                </button>
             </div>
         </div>
     `;
@@ -287,54 +339,172 @@ function createTransactionModal() {
     // Add modal styles
     const style = document.createElement('style');
     style.textContent = `
-        .transaction-modal {
-            max-width: 600px;
+        .transaction-details-modal {
+            max-width: 800px;
             width: 90%;
+            background: var(--white);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--gray-100);
+            overflow: hidden;
         }
-        .transaction-details {
-            display: grid;
-            gap: 12px;
-        }
-        .detail-row {
+        
+        .transaction-details-modal .modal-header {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
+            align-items: center;
+            padding: 24px 24px 0 24px;
+            border-bottom: 1px solid var(--gray-100);
+            margin-bottom: 24px;
         }
-        .detail-row label {
-            font-weight: bold;
-            color: #333;
+        
+        .transaction-details-modal .modal-header h3 {
+            margin: 0;
+            color: var(--dark-green);
+            font-weight: 600;
+            font-size: 1.25rem;
         }
-        .detail-row span {
-            color: #666;
+        
+        .transaction-details-modal .modal-body {
+            padding: 0 24px;
+            max-height: 60vh;
+            overflow-y: auto;
         }
+        
+        .transaction-details {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .details-section {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--gray-100);
+        }
+        
+        .details-section .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-green);
+            margin: 0 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .detail-item label {
+            font-weight: 500;
+            color: var(--gray-600);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .detail-item span {
+            color: var(--gray-800);
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 12px;
+            background: var(--white);
+            border-radius: 6px;
+            border: 1px solid var(--gray-200);
+            min-height: 20px;
+        }
+        
+        .detail-item .amount {
+            font-weight: 600;
+            color: var(--dark-green);
+            text-align: right;
+        }
+        
         .modal-footer {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: flex-end;
-            margin-top: 20px;
+            margin-top: 24px;
+            padding: 24px;
+            border-top: 1px solid var(--gray-100);
+            background: var(--gray-50);
         }
+        
         .btn {
-            padding: 8px 16px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        
         .btn-secondary {
-            background: #6c757d;
-            color: white;
+            background: var(--white);
+            color: var(--gray-600);
+            border: 1px solid var(--gray-300);
         }
+        
         .btn-warning {
-            background: #ffc107;
-            color: #212529;
+            background: var(--dark-green);
+            color: var(--white);
         }
+        
         .btn-danger {
-            background: #dc3545;
-            color: white;
+            background: var(--red);
+            color: var(--white);
         }
+        
         .btn:hover {
-            opacity: 0.8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+        }
+        
+        .btn-warning:hover {
+            background: #0A4F18;
+        }
+        
+        .btn-danger:hover {
+            background: #DC2626;
+        }
+        
+        @media (max-width: 768px) {
+            .transaction-details-modal {
+                max-width: 95%;
+                margin: 20px;
+            }
+            
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-footer {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
     `;
     document.head.appendChild(style);
@@ -352,6 +522,14 @@ function populateTransactionModal(transaction) {
     document.getElementById('modalParticulars').textContent = transaction.particulars;
     document.getElementById('modalDebit').textContent = formatAmount(transaction.debit_amount || transaction.debit);
     document.getElementById('modalCredit').textContent = formatAmount(transaction.credit_amount || transaction.credit);
+    
+    // Populate account balance fields
+    document.getElementById('modalCashInBank').textContent = formatAmount(transaction.cash_in_bank || transaction.cashInBank);
+    document.getElementById('modalLoanReceivables').textContent = formatAmount(transaction.loan_receivables || transaction.loanReceivables);
+    document.getElementById('modalSavingsDeposits').textContent = formatAmount(transaction.savings_deposits || transaction.savingsDeposits);
+    document.getElementById('modalInterestIncome').textContent = formatAmount(transaction.interest_income || transaction.interestIncome);
+    document.getElementById('modalServiceCharge').textContent = formatAmount(transaction.service_charge || transaction.serviceCharge);
+    document.getElementById('modalSundries').textContent = formatAmount(transaction.sundries);
     
     // Store current transaction for edit/delete operations
     window.currentTransaction = transaction;
@@ -383,6 +561,14 @@ function editTransaction() {
     document.getElementById('particulars').value = transaction.particulars;
     document.getElementById('debitAmount').value = transaction.debit_amount || transaction.debit || '';
     document.getElementById('creditAmount').value = transaction.credit_amount || transaction.credit || '';
+    
+    // Populate account balance fields
+    document.getElementById('cashInBank').value = transaction.cash_in_bank || transaction.cashInBank || '';
+    document.getElementById('loanReceivables').value = transaction.loan_receivables || transaction.loanReceivables || '';
+    document.getElementById('savingsDeposits').value = transaction.savings_deposits || transaction.savingsDeposits || '';
+    document.getElementById('interestIncome').value = transaction.interest_income || transaction.interestIncome || '';
+    document.getElementById('serviceCharge').value = transaction.service_charge || transaction.serviceCharge || '';
+    document.getElementById('sundries').value = transaction.sundries || '';
     
     // Set editing mode
     editingTransactionId = transaction.id;
@@ -444,6 +630,14 @@ async function saveTransaction() {
     const debit = parseFloat(document.getElementById('debitAmount').value) || 0;
     const credit = parseFloat(document.getElementById('creditAmount').value) || 0;
     
+    // Get account balance values from form
+    const cashInBank = parseFloat(document.getElementById('cashInBank').value) || 0;
+    const loanReceivables = parseFloat(document.getElementById('loanReceivables').value) || 0;
+    const savingsDeposits = parseFloat(document.getElementById('savingsDeposits').value) || 0;
+    const interestIncome = parseFloat(document.getElementById('interestIncome').value) || 0;
+    const serviceCharge = parseFloat(document.getElementById('serviceCharge').value) || 0;
+    const sundries = parseFloat(document.getElementById('sundries').value) || 0;
+    
     if (!date || !payee || !particulars) {
         alert('Please fill in all required fields (Date, Payee, Particulars).');
         return;
@@ -463,13 +657,13 @@ async function saveTransaction() {
         particulars,
         debit_amount: debit,
         credit_amount: credit,
-        // Calculate account balances based on transaction type
-        cash_in_bank: calculateCashInBank(debit, credit, particulars),
-        loan_receivables: calculateLoanReceivables(debit, credit, particulars),
-        savings_deposits: calculateSavingsDeposits(debit, credit, particulars),
-        interest_income: calculateInterestIncome(debit, credit, particulars),
-        service_charge: calculateServiceCharge(debit, credit, particulars),
-        sundries: calculateSundries(debit, credit, particulars)
+        // Use form values for account balances
+        cash_in_bank: cashInBank,
+        loan_receivables: loanReceivables,
+        savings_deposits: savingsDeposits,
+        interest_income: interestIncome,
+        service_charge: serviceCharge,
+        sundries: sundries
     };
     
     try {

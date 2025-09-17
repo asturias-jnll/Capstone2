@@ -131,25 +131,31 @@ body {
 }
 
 .add-transaction-btn {
-    padding: 8px 16px;
+    padding: 12px 20px;
     background: var(--dark-green);
     color: var(--white);
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 14px;
     font-weight: 500;
     transition: all 0.3s ease;
     white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(11, 94, 28, 0.1);
 }
 
 .add-transaction-btn:hover {
     background: #0A4F18;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(11, 94, 28, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(11, 94, 28, 0.25);
+}
+
+.add-transaction-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(11, 94, 28, 0.1);
 }
 
 /* Transaction Table Wrapper */
@@ -572,28 +578,78 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 2000;
+    backdrop-filter: blur(4px);
 }
 
 .modal-content {
-    background: var(--background);
-    border-radius: 24px;
-    padding: 24px;
-    max-width: 600px;
+    background: var(--white);
+    border-radius: 16px;
+    padding: 0;
+    max-width: 700px;
     width: 90%;
     text-align: left;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
     max-height: 90vh;
-    overflow-y: auto;
+    overflow: hidden;
+    border: 1px solid var(--gray-100);
 }
 
-.modal-content h3 {
-    text-align: center;
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 0 24px;
+    border-bottom: 1px solid var(--gray-100);
     margin-bottom: 24px;
+}
+
+.modal-header h3 {
+    margin: 0;
     color: var(--dark-green);
     font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--gray-600);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    background: var(--gray-100);
+    color: var(--dark-green);
 }
 
 /* Form Styles */
+#transactionForm {
+    padding: 0 24px 24px 24px;
+    max-height: calc(90vh - 100px);
+    overflow-y: auto;
+}
+
+.form-section {
+    margin-bottom: 32px;
+}
+
+.form-section:last-of-type {
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark-green);
+    margin: 0 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--gray-100);
+}
+
 .form-row {
     display: flex;
     gap: 16px;
@@ -607,61 +663,81 @@ body {
 #transactionForm label {
     display: block;
     margin-bottom: 6px;
-    font-weight: 600;
-    color: var(--dark-green);
+    font-weight: 500;
+    color: var(--gray-700);
     font-size: 14px;
 }
 
 #transactionForm input {
     width: 100%;
-    padding: 10px 12px;
-    border: 2px solid var(--dark-green);
-    border-radius: 6px;
+    padding: 12px 16px;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
     font-size: 14px;
     transition: all 0.3s ease;
+    background: var(--white);
 }
 
 #transactionForm input:focus {
     outline: none;
-    border-color: var(--yellow-green);
-    box-shadow: 0 0 0 3px rgba(184, 213, 61, 0.2);
+    border-color: var(--dark-green);
+    box-shadow: 0 0 0 3px rgba(11, 94, 28, 0.1);
+}
+
+#transactionForm input::placeholder {
+    color: var(--gray-500);
+    font-style: italic;
 }
 
 .form-actions {
     display: flex;
     gap: 12px;
     justify-content: flex-end;
-    margin-top: 24px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--gray-100);
 }
 
 .cancel-btn {
-    padding: 10px 20px;
-    background: var(--gray-100);
+    padding: 12px 24px;
+    background: var(--white);
     color: var(--gray-600);
-    border: none;
+    border: 1px solid var(--gray-300);
     border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
+    font-size: 14px;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .save-btn {
-    padding: 10px 20px;
+    padding: 12px 24px;
     background: var(--dark-green);
     color: var(--white);
     border: none;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
+    font-size: 14px;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .cancel-btn:hover {
-    background: var(--gray-300);
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+    color: var(--gray-700);
 }
 
 .save-btn:hover {
     background: #0A4F18;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
 }
 
 /* Delete Dialog */
@@ -813,12 +889,33 @@ body {
     }
     
     .modal-content {
-        padding: 20px;
-        border-radius: 20px;
+        padding: 0;
+        border-radius: 16px;
+        max-width: 95%;
+        margin: 20px;
     }
     
     .form-row {
         flex-direction: column;
         gap: 12px;
+    }
+    
+    .modal-header {
+        padding: 20px 20px 0 20px;
+    }
+    
+    #transactionForm {
+        padding: 0 20px 20px 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .cancel-btn,
+    .save-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
