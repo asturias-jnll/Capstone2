@@ -192,8 +192,8 @@ CREATE TRIGGER update_savings_updated_at BEFORE UPDATE ON savings
 CREATE TRIGGER update_disbursements_updated_at BEFORE UPDATE ON disbursements
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Transactions table (Member Data/Transaction Ledger)
-CREATE TABLE IF NOT EXISTS transactions (
+-- Ibaan Transactions table (Main Branch Transaction Ledger)
+CREATE TABLE IF NOT EXISTS ibaan_transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     transaction_date DATE NOT NULL,
     payee VARCHAR(255) NOT NULL,
@@ -215,8 +215,35 @@ CREATE TABLE IF NOT EXISTS transactions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions
+CREATE TRIGGER update_ibaan_transactions_updated_at BEFORE UPDATE ON ibaan_transactions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- All Branch Transactions table (Consolidated Transaction Ledger)
+CREATE TABLE IF NOT EXISTS all_branch_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_all_branch_transactions_updated_at BEFORE UPDATE ON all_branch_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 
 -- Create additional indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_members_member_number ON members(member_number);
@@ -225,7 +252,12 @@ CREATE INDEX IF NOT EXISTS idx_savings_member_id ON savings(member_id);
 CREATE INDEX IF NOT EXISTS idx_savings_account_number ON savings(account_number);
 CREATE INDEX IF NOT EXISTS idx_disbursements_member_id ON disbursements(member_id);
 CREATE INDEX IF NOT EXISTS idx_disbursements_branch_id ON disbursements(branch_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_transactions_payee ON transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_transactions_branch_id ON transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_created_by ON transactions(created_by);
+CREATE INDEX IF NOT EXISTS idx_ibaan_transactions_date ON ibaan_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_ibaan_transactions_payee ON ibaan_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_ibaan_transactions_branch_id ON ibaan_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_ibaan_transactions_created_by ON ibaan_transactions(created_by);
+
+CREATE INDEX IF NOT EXISTS idx_all_branch_transactions_date ON all_branch_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_all_branch_transactions_payee ON all_branch_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_all_branch_transactions_branch_id ON all_branch_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_all_branch_transactions_created_by ON all_branch_transactions(created_by);

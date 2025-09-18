@@ -207,19 +207,24 @@ async function insertSampleTransactions() {
         }
         const userId = userResult.rows[0].id;
         
-        // Insert sample transactions
+        // Insert sample transactions into both tables
         for (let i = 0; i < sampleTransactions.length; i++) {
             const transaction = sampleTransactions[i];
             transaction.created_by = userId; // Use actual user ID
             
+            // Generate a single UUID for this transaction to use in both tables
+            const transactionId = require('crypto').randomUUID();
+            
+            // Insert into ibaan_transactions (main branch transactions)
             await client.query(`
-                INSERT INTO transactions (
-                    transaction_date, payee, reference, cross_reference, check_number,
+                INSERT INTO ibaan_transactions (
+                    id, transaction_date, payee, reference, cross_reference, check_number,
                     particulars, debit_amount, credit_amount, cash_in_bank, loan_receivables,
                     savings_deposits, interest_income, service_charge, sundries,
                     branch_id, created_by
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             `, [
+                transactionId,
                 transaction.transaction_date,
                 transaction.payee,
                 transaction.reference,
@@ -238,7 +243,35 @@ async function insertSampleTransactions() {
                 transaction.created_by
             ]);
             
-            console.log(`   ✅ Inserted transaction ${i + 1}: ${transaction.payee} - ${transaction.particulars}`);
+            // Insert into all_branch_transactions (consolidated view) with the same ID
+            await client.query(`
+                INSERT INTO all_branch_transactions (
+                    id, transaction_date, payee, reference, cross_reference, check_number,
+                    particulars, debit_amount, credit_amount, cash_in_bank, loan_receivables,
+                    savings_deposits, interest_income, service_charge, sundries,
+                    branch_id, created_by
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            `, [
+                transactionId,
+                transaction.transaction_date,
+                transaction.payee,
+                transaction.reference,
+                transaction.cross_reference,
+                transaction.check_number,
+                transaction.particulars,
+                transaction.debit_amount,
+                transaction.credit_amount,
+                transaction.cash_in_bank,
+                transaction.loan_receivables,
+                transaction.savings_deposits,
+                transaction.interest_income,
+                transaction.service_charge,
+                transaction.sundries,
+                transaction.branch_id,
+                transaction.created_by
+            ]);
+            
+            console.log(`   ✅ Inserted transaction ${i + 1}: ${transaction.payee} - ${transaction.particulars} (ID: ${transactionId})`);
         }
         
         console.log(`\n🎉 Successfully inserted ${sampleTransactions.length} sample transactions!`);
@@ -249,8 +282,10 @@ async function insertSampleTransactions() {
         console.log('   - All assigned to Main Branch (Branch 1)');
         
         // Verify insertion
-        const countResult = await client.query('SELECT COUNT(*) as count FROM transactions');
-        console.log(`\n📈 Total transactions in database: ${countResult.rows[0].count}`);
+        const ibaanCountResult = await client.query('SELECT COUNT(*) as count FROM ibaan_transactions');
+        const allBranchCountResult = await client.query('SELECT COUNT(*) as count FROM all_branch_transactions');
+        console.log(`\n📈 Total transactions in ibaan_transactions: ${ibaanCountResult.rows[0].count}`);
+        console.log(`📈 Total transactions in all_branch_transactions: ${allBranchCountResult.rows[0].count}`);
         
     } catch (error) {
         console.error('❌ Error inserting sample transactions:', error.message);

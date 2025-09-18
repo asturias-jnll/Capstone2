@@ -34,6 +34,17 @@ let currentZoom = 90;
 function initializeTransactionLedger() {
     // Ensure DOM is ready
     setTimeout(() => {
+        // Check user access and hide/show transaction controls accordingly
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+        const userRole = localStorage.getItem('user_role');
+        const hasAccess = isMainBranchUser || userRole === 'admin' || userRole === 'finance_officer';
+        
+        // Hide Add Transaction button if user doesn't have access
+        const addTransactionBtn = document.querySelector('.add-transaction-btn');
+        if (addTransactionBtn) {
+            addTransactionBtn.style.display = hasAccess ? 'block' : 'none';
+        }
+        
         loadTransactionsFromDatabase();
         setDefaultDate();
         initializeScrollControls();
@@ -86,6 +97,16 @@ async function apiRequest(endpoint, options = {}) {
 // Load transactions from database
 async function loadTransactionsFromDatabase() {
     try {
+        // Check if user has access to transaction data (main branch only)
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+        const userRole = localStorage.getItem('user_role');
+        
+        if (!isMainBranchUser && userRole !== 'admin' && userRole !== 'finance_officer') {
+            showNotification('Access denied. Transaction data is only available to main branch users.', 'error');
+            hideLoadingState();
+            return;
+        }
+
         showLoadingState();
         const response = await apiRequest('/transactions');
         
@@ -548,6 +569,15 @@ function closeTransactionModal() {
 function editTransaction() {
     if (!window.currentTransaction) return;
     
+    // Check if user has access to edit transactions (main branch only)
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    const userRole = localStorage.getItem('user_role');
+    
+    if (!isMainBranchUser && userRole !== 'admin' && userRole !== 'finance_officer') {
+        showNotification('Access denied. Only main branch users can edit transactions.', 'error');
+        return;
+    }
+    
     closeTransactionModal();
     
     // Populate the form with current transaction data
@@ -586,6 +616,15 @@ function editTransaction() {
 async function deleteTransaction() {
     if (!window.currentTransaction) return;
     
+    // Check if user has access to delete transactions (main branch only)
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    const userRole = localStorage.getItem('user_role');
+    
+    if (!isMainBranchUser && userRole !== 'admin' && userRole !== 'finance_officer') {
+        showNotification('Access denied. Only main branch users can delete transactions.', 'error');
+        return;
+    }
+    
     const confirmed = confirm('Are you sure you want to delete this transaction? This action cannot be undone.');
     if (!confirmed) return;
     
@@ -612,6 +651,15 @@ async function deleteTransaction() {
 
 // Open add transaction form
 function openAddTransactionForm() {
+    // Check if user has access to create transactions (main branch only)
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    const userRole = localStorage.getItem('user_role');
+    
+    if (!isMainBranchUser && userRole !== 'admin' && userRole !== 'finance_officer') {
+        showNotification('Access denied. Only main branch users can create transactions.', 'error');
+        return;
+    }
+
     editingTransactionId = null;
     document.getElementById('transactionFormTitle').textContent = 'Add Transaction';
     document.getElementById('transactionForm').reset();
@@ -621,6 +669,15 @@ function openAddTransactionForm() {
 
 // Save transaction
 async function saveTransaction() {
+    // Check if user has access to create/update transactions (main branch only)
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    const userRole = localStorage.getItem('user_role');
+    
+    if (!isMainBranchUser && userRole !== 'admin' && userRole !== 'finance_officer') {
+        showNotification('Access denied. Only main branch users can create or update transactions.', 'error');
+        return;
+    }
+
     const date = document.getElementById('transactionDate').value;
     const payee = document.getElementById('payee').value.trim();
     const reference = document.getElementById('reference').value.trim();

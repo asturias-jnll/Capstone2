@@ -6,10 +6,22 @@ class TransactionService {
         this.pool = new Pool(config.database);
     }
 
-    // Create a new transaction
-    async createTransaction(transactionData, userId, branchId) {
+    // Determine which table to use based on user role and branch
+    getTableName(userRole, branchId, isMainBranch) {
+        // Main branch users (Ibaan) use ibaan_transactions
+        if (isMainBranch || userRole === 'admin' || userRole === 'finance_officer') {
+            return 'ibaan_transactions';
+        }
+        // All other users use all_branch_transactions
+        return 'all_branch_transactions';
+    }
+
+    // Create a new transaction in both tables
+    async createTransaction(transactionData, userId, branchId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            await client.query('BEGIN');
+            
             const {
                 transaction_date,
                 payee,
@@ -27,17 +39,11 @@ class TransactionService {
                 sundries
             } = transactionData;
 
-            const query = `
-                INSERT INTO transactions (
-                    transaction_date, payee, reference, cross_reference, check_number,
-                    particulars, debit_amount, credit_amount, cash_in_bank,
-                    loan_receivables, savings_deposits, interest_income,
-                    service_charge, sundries, branch_id, created_by
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-                RETURNING *
-            `;
+            // Generate a single UUID for this transaction to use in both tables
+            const transactionId = require('crypto').randomUUID();
 
             const values = [
+                transactionId,
                 transaction_date,
                 payee,
                 reference || null,
@@ -56,17 +62,51 @@ class TransactionService {
                 userId
             ];
 
-            const result = await client.query(query, values);
-            return result.rows[0];
+            // Insert into ibaan_transactions
+            const ibaanQuery = `
+                INSERT INTO ibaan_transactions (
+                    id, transaction_date, payee, reference, cross_reference, check_number,
+                    particulars, debit_amount, credit_amount, cash_in_bank,
+                    loan_receivables, savings_deposits, interest_income,
+                    service_charge, sundries, branch_id, created_by
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                RETURNING *
+            `;
+
+            const ibaanResult = await client.query(ibaanQuery, values);
+
+            // Insert into all_branch_transactions
+            const allBranchQuery = `
+                INSERT INTO all_branch_transactions (
+                    id, transaction_date, payee, reference, cross_reference, check_number,
+                    particulars, debit_amount, credit_amount, cash_in_bank,
+                    loan_receivables, savings_deposits, interest_income,
+                    service_charge, sundries, branch_id, created_by
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                RETURNING *
+            `;
+
+            const allBranchResult = await client.query(allBranchQuery, values);
+
+            await client.query('COMMIT');
+            
+            // Return the transaction data (both should be identical)
+            return ibaanResult.rows[0];
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }
     }
 
     // Get all transactions with optional filtering
-    async getTransactions(filters = {}) {
+    async getTransactions(filters = {}, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, filters.branch_id, isMainBranch);
+            
             let query = `
                 SELECT 
                     t.*,
@@ -75,7 +115,7 @@ class TransactionService {
                     u.first_name,
                     u.last_name,
                     u.username
-                FROM transactions t
+                FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
                 LEFT JOIN users u ON t.created_by = u.id
                 WHERE 1=1
@@ -139,9 +179,12 @@ class TransactionService {
     }
 
     // Get transaction by ID
-    async getTransactionById(transactionId) {
+    async getTransactionById(transactionId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, null, isMainBranch);
+            
             const query = `
                 SELECT 
                     t.*,
@@ -150,7 +193,7 @@ class TransactionService {
                     u.first_name,
                     u.last_name,
                     u.username
-                FROM transactions t
+                FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
                 LEFT JOIN users u ON t.created_by = u.id
                 WHERE t.id = $1
@@ -164,7 +207,7 @@ class TransactionService {
     }
 
     // Update transaction
-    async updateTransaction(transactionId, updateData, userId) {
+    async updateTransaction(transactionId, updateData, userId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
             const {
@@ -184,8 +227,11 @@ class TransactionService {
                 sundries
             } = updateData;
 
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, null, isMainBranch);
+
             const query = `
-                UPDATE transactions SET
+                UPDATE ${tableName} SET
                     transaction_date = $1,
                     payee = $2,
                     reference = $3,
@@ -230,22 +276,60 @@ class TransactionService {
         }
     }
 
-    // Delete transaction
-    async deleteTransaction(transactionId) {
+    // Delete transaction from both tables
+    async deleteTransaction(transactionId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
-            const query = 'DELETE FROM transactions WHERE id = $1 RETURNING *';
-            const result = await client.query(query, [transactionId]);
-            return result.rows[0];
+            await client.query('BEGIN');
+            
+            let deletedFromIbaan = null;
+            let deletedFromAllBranch = null;
+            
+            // Try to delete from ibaan_transactions table
+            try {
+                const ibaanQuery = `DELETE FROM ibaan_transactions WHERE id = $1 RETURNING *`;
+                const ibaanResult = await client.query(ibaanQuery, [transactionId]);
+                deletedFromIbaan = ibaanResult.rows[0];
+            } catch (error) {
+                // Transaction might not exist in ibaan_transactions, continue
+                console.log('Transaction not found in ibaan_transactions:', error.message);
+            }
+            
+            // Try to delete from all_branch_transactions table
+            try {
+                const allBranchQuery = `DELETE FROM all_branch_transactions WHERE id = $1 RETURNING *`;
+                const allBranchResult = await client.query(allBranchQuery, [transactionId]);
+                deletedFromAllBranch = allBranchResult.rows[0];
+            } catch (error) {
+                // Transaction might not exist in all_branch_transactions, continue
+                console.log('Transaction not found in all_branch_transactions:', error.message);
+            }
+            
+            // Check if transaction was deleted from at least one table
+            if (!deletedFromIbaan && !deletedFromAllBranch) {
+                await client.query('ROLLBACK');
+                throw new Error('Transaction not found in any table');
+            }
+            
+            await client.query('COMMIT');
+            
+            // Return the deleted transaction data (prefer ibaan_transactions if available)
+            return deletedFromIbaan || deletedFromAllBranch;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }
     }
 
     // Get transaction statistics
-    async getTransactionStats(filters = {}) {
+    async getTransactionStats(filters = {}, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, filters.branch_id, isMainBranch);
+            
             let query = `
                 SELECT 
                     COUNT(*) as total_transactions,
@@ -257,7 +341,7 @@ class TransactionService {
                     SUM(interest_income) as total_interest_income,
                     SUM(service_charge) as total_service_charge,
                     SUM(sundries) as total_sundries
-                FROM transactions t
+                FROM ${tableName} t
                 WHERE 1=1
             `;
             
@@ -291,15 +375,18 @@ class TransactionService {
     }
 
     // Search transactions by payee
-    async searchTransactionsByPayee(searchTerm, branchId = null) {
+    async searchTransactionsByPayee(searchTerm, branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            
             let query = `
                 SELECT 
                     t.*,
                     b.name as branch_name,
                     b.location as branch_location
-                FROM transactions t
+                FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
                 WHERE t.payee ILIKE $1
             `;
@@ -323,15 +410,18 @@ class TransactionService {
     }
 
     // Get transactions by date range
-    async getTransactionsByDateRange(startDate, endDate, branchId = null) {
+    async getTransactionsByDateRange(startDate, endDate, branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            
             let query = `
                 SELECT 
                     t.*,
                     b.name as branch_name,
                     b.location as branch_location
-                FROM transactions t
+                FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
                 WHERE t.transaction_date BETWEEN $1 AND $2
             `;
@@ -448,9 +538,12 @@ class TransactionService {
     }
 
     // Get transaction summary for dashboard
-    async getTransactionSummary(branchId = null) {
+    async getTransactionSummary(branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            
             let query = `
                 SELECT 
                     COUNT(*) as total_transactions,
@@ -464,7 +557,7 @@ class TransactionService {
                     SUM(sundries) as total_sundries,
                     AVG(debit_amount) as avg_debit,
                     AVG(credit_amount) as avg_credit
-                FROM transactions t
+                FROM ${tableName} t
                 WHERE 1=1
             `;
             
@@ -485,9 +578,12 @@ class TransactionService {
     }
 
     // Get recent transactions
-    async getRecentTransactions(limit = 10, branchId = null) {
+    async getRecentTransactions(limit = 10, branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            
             let query = `
                 SELECT 
                     t.*,
@@ -496,7 +592,7 @@ class TransactionService {
                     u.first_name,
                     u.last_name,
                     u.username
-                FROM transactions t
+                FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
                 LEFT JOIN users u ON t.created_by = u.id
                 WHERE 1=1
@@ -522,15 +618,18 @@ class TransactionService {
     }
 
     // Get transactions by month
-    async getTransactionsByMonth(year, month, branchId = null) {
+    async getTransactionsByMonth(year, month, branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Determine which table to use
+            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            
             let query = `
                 SELECT 
                     t.*,
                     b.name as branch_name,
                     b.location as branch_location
-                FROM transactions t
+                FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
                 WHERE EXTRACT(YEAR FROM t.transaction_date) = $1 
                 AND EXTRACT(MONTH FROM t.transaction_date) = $2

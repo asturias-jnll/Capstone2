@@ -15,7 +15,7 @@ async function createTransactionsTable() {
     const client = await pool.connect();
     
     try {
-        console.log('🚀 Creating transactions table...');
+        console.log('🚀 Creating transaction tables...');
         
         // Read the SQL file
         const sql = fs.readFileSync('./create-transactions-table.sql', 'utf8');
@@ -23,19 +23,31 @@ async function createTransactionsTable() {
         // Execute the SQL
         await client.query(sql);
         
-        console.log('✅ Transactions table created successfully!');
+        console.log('✅ Transaction tables created successfully!');
         
-        // Verify the table was created
-        const result = await client.query(`
+        // Verify the tables were created
+        const ibaanResult = await client.query(`
             SELECT table_name 
             FROM information_schema.tables 
-            WHERE table_schema = 'public' AND table_name = 'transactions'
+            WHERE table_schema = 'public' AND table_name = 'ibaan_transactions'
         `);
         
-        if (result.rows.length > 0) {
-            console.log('✅ Transactions table verified in database');
+        const allBranchResult = await client.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'all_branch_transactions'
+        `);
+        
+        if (ibaanResult.rows.length > 0) {
+            console.log('✅ Ibaan transactions table verified in database');
         } else {
-            console.log('❌ Transactions table not found');
+            console.log('❌ Ibaan transactions table not found');
+        }
+        
+        if (allBranchResult.rows.length > 0) {
+            console.log('✅ All branch transactions table verified in database');
+        } else {
+            console.log('❌ All branch transactions table not found');
         }
         
     } catch (error) {
