@@ -2,6 +2,7 @@ const express = require('express');
 const authService = require('./authService');
 const { authenticateToken, checkPermission, checkRole, loginRateLimit, auditLog } = require('./middleware');
 const transactionRoutes = require('./transactionRoutes');
+const AnalyticsService = require('./analyticsService');
 
 const router = express.Router();
 
@@ -304,6 +305,220 @@ router.get('/roles/:roleId/permissions',
 
 // Transaction routes
 router.use('/transactions', transactionRoutes);
+
+// Analytics routes
+const analyticsService = new AnalyticsService();
+
+// Get analytics summary (4 main cards)
+router.get('/analytics/summary',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const { filter = 'today', startDate, endDate, branchId } = req.query;
+            const userRole = req.user.role_name;
+            const isMainBranch = req.user.is_main_branch_user;
+            
+            let filters = { branch_id: branchId };
+            
+            // Set date range based on filter
+            if (filter === 'custom' && startDate && endDate) {
+                filters.date_from = startDate;
+                filters.date_to = endDate;
+            } else {
+                const dateRange = analyticsService.getDateRange(filter);
+                filters.date_from = dateRange.start.toISOString().split('T')[0];
+                filters.date_to = dateRange.end.toISOString().split('T')[0];
+            }
+            
+            const summary = await analyticsService.getAnalyticsSummary(filters, userRole, isMainBranch);
+            
+            res.json({
+                success: true,
+                data: summary
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
+// Get savings trend data
+router.get('/analytics/savings-trend',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const { filter = 'today', startDate, endDate, branchId } = req.query;
+            const userRole = req.user.role_name;
+            const isMainBranch = req.user.is_main_branch_user;
+            
+            let filters = { branch_id: branchId };
+            
+            if (filter === 'custom' && startDate && endDate) {
+                filters.date_from = startDate;
+                filters.date_to = endDate;
+            } else {
+                const dateRange = analyticsService.getDateRange(filter);
+                filters.date_from = dateRange.start.toISOString().split('T')[0];
+                filters.date_to = dateRange.end.toISOString().split('T')[0];
+            }
+            
+            const trend = await analyticsService.getSavingsTrend(filters, userRole, isMainBranch);
+            
+            res.json({
+                success: true,
+                data: trend
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
+// Get disbursement trend data
+router.get('/analytics/disbursement-trend',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const { filter = 'today', startDate, endDate, branchId } = req.query;
+            const userRole = req.user.role_name;
+            const isMainBranch = req.user.is_main_branch_user;
+            
+            let filters = { branch_id: branchId };
+            
+            if (filter === 'custom' && startDate && endDate) {
+                filters.date_from = startDate;
+                filters.date_to = endDate;
+            } else {
+                const dateRange = analyticsService.getDateRange(filter);
+                filters.date_from = dateRange.start.toISOString().split('T')[0];
+                filters.date_to = dateRange.end.toISOString().split('T')[0];
+            }
+            
+            const trend = await analyticsService.getDisbursementTrend(filters, userRole, isMainBranch);
+            
+            res.json({
+                success: true,
+                data: trend
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
+// Get branch performance data
+router.get('/analytics/branch-performance',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const { filter = 'today', startDate, endDate, branchId } = req.query;
+            const userRole = req.user.role_name;
+            const isMainBranch = req.user.is_main_branch_user;
+            
+            let filters = { branch_id: branchId };
+            
+            if (filter === 'custom' && startDate && endDate) {
+                filters.date_from = startDate;
+                filters.date_to = endDate;
+            } else {
+                const dateRange = analyticsService.getDateRange(filter);
+                filters.date_from = dateRange.start.toISOString().split('T')[0];
+                filters.date_to = dateRange.end.toISOString().split('T')[0];
+            }
+            
+            const performance = await analyticsService.getBranchPerformance(filters, userRole, isMainBranch);
+            
+            res.json({
+                success: true,
+                data: performance
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
+// Get member activity data
+router.get('/analytics/member-activity',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const { filter = 'today', startDate, endDate, branchId } = req.query;
+            const userRole = req.user.role_name;
+            const isMainBranch = req.user.is_main_branch_user;
+            
+            let filters = { branch_id: branchId };
+            
+            if (filter === 'custom' && startDate && endDate) {
+                filters.date_from = startDate;
+                filters.date_to = endDate;
+            } else {
+                const dateRange = analyticsService.getDateRange(filter);
+                filters.date_from = dateRange.start.toISOString().split('T')[0];
+                filters.date_to = dateRange.end.toISOString().split('T')[0];
+            }
+            
+            const activity = await analyticsService.getMemberActivity(filters, userRole, isMainBranch);
+            
+            res.json({
+                success: true,
+                data: activity
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
+// Get top members data
+router.get('/analytics/top-members',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const { filter = 'today', startDate, endDate, branchId } = req.query;
+            const userRole = req.user.role_name;
+            const isMainBranch = req.user.is_main_branch_user;
+            
+            let filters = { branch_id: branchId };
+            
+            if (filter === 'custom' && startDate && endDate) {
+                filters.date_from = startDate;
+                filters.date_to = endDate;
+            } else {
+                const dateRange = analyticsService.getDateRange(filter);
+                filters.date_from = dateRange.start.toISOString().split('T')[0];
+                filters.date_to = dateRange.end.toISOString().split('T')[0];
+            }
+            
+            const topMembers = await analyticsService.getTopMembers(filters, userRole, isMainBranch);
+            
+            res.json({
+                success: true,
+                data: topMembers
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
 
 // Health check endpoint
 router.get('/health', async (req, res) => {

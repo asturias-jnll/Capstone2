@@ -1,10 +1,77 @@
 // Dashboard JavaScript
 let chartInstances = {};
+let authToken = null;
+
+// API base URL
+const API_BASE_URL = 'http://localhost:3001/api/auth';
 
 // Initialize Dashboard
 function initializeDashboard() {
     initializeCharts();
+    loadDashboardData();
     console.log('Dashboard initialized');
+}
+
+// Get authentication token from localStorage
+function getAuthToken() {
+    if (!authToken) {
+        authToken = localStorage.getItem('authToken');
+    }
+    return authToken;
+}
+
+// Automatic login function for dashboard page
+async function autoLogin() {
+    try {
+        console.log('🔐 Attempting automatic login for dashboard...');
+        
+        // Try to login with the test analytics user
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: 'test.analytics',
+                password: 'Test12345!'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Login failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.tokens && result.tokens.access_token) {
+            // Store the token in localStorage
+            localStorage.setItem('authToken', result.tokens.access_token);
+            authToken = result.tokens.access_token; // Update the global variable
+            console.log('✅ Automatic login successful!');
+            return result.tokens.access_token;
+        } else {
+            throw new Error('Invalid login response');
+        }
+    } catch (error) {
+        console.error('❌ Automatic login failed:', error.message);
+        return null;
+    }
+}
+
+// Enhanced function to get or create auth token
+async function ensureAuthToken() {
+    let token = getAuthToken();
+    
+    if (!token) {
+        console.log('🔑 No auth token found, attempting automatic login...');
+        token = await autoLogin();
+    }
+    
+    if (!token) {
+        throw new Error('Unable to authenticate. Please check your login credentials.');
+    }
+    
+    return token;
 }
 
 // Initialize empty charts
@@ -61,6 +128,285 @@ function getChartOptions(type) {
     return baseOptions;
 }
 
+// Load dashboard data
+async function loadDashboardData() {
+    try {
+        showLoadingState();
+        console.log('Loading dashboard data...');
+        
+        // Fetch all dashboard data in parallel
+        const [summary, savingsTrend, branchPerformance, topMembers] = await Promise.all([
+            fetchDashboardSummary(),
+            fetchSavingsTrend(),
+            fetchBranchPerformance(),
+            fetchTopMembers()
+        ]);
+        
+        // Update dashboard with real data
+        updateSummaryCards(summary);
+        updateSavingsPreviewChart(savingsTrend);
+        updateBranchPreviewChart(branchPerformance);
+        updateTopMembersInsight(topMembers);
+        
+        hideLoadingState();
+        console.log('Dashboard data loaded successfully');
+        
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        hideLoadingState();
+        showNotification('Failed to load dashboard data', 'error');
+    }
+}
+
+// Fetch dashboard summary data (cumulative from oldest transaction to today)
+async function fetchDashboardSummary() {
+    const token = await ensureAuthToken();
+    
+    // Use custom date range from oldest transaction (2024-01-15) to today
+    const startDate = '2024-01-15';
+    const endDate = new Date().toISOString().split('T')[0];
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/summary?filter=custom&startDate=${startDate}&endDate=${endDate}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch summary: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch savings trend data for preview (cumulative from oldest transaction to today)
+async function fetchSavingsTrend() {
+    const token = await ensureAuthToken();
+    
+    // Use custom date range from oldest transaction (2024-01-15) to today
+    const startDate = '2024-01-15';
+    const endDate = new Date().toISOString().split('T')[0];
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/savings-trend?filter=custom&startDate=${startDate}&endDate=${endDate}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch savings trend: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch branch performance data for preview (cumulative from oldest transaction to today)
+async function fetchBranchPerformance() {
+    const token = await ensureAuthToken();
+    
+    // Use custom date range from oldest transaction (2024-01-15) to today
+    const startDate = '2024-01-15';
+    const endDate = new Date().toISOString().split('T')[0];
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/branch-performance?filter=custom&startDate=${startDate}&endDate=${endDate}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch branch performance: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch top members data for insights (cumulative from oldest transaction to today)
+async function fetchTopMembers() {
+    const token = await ensureAuthToken();
+    
+    // Use custom date range from oldest transaction (2024-01-15) to today
+    const startDate = '2024-01-15';
+    const endDate = new Date().toISOString().split('T')[0];
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/top-members?filter=custom&startDate=${startDate}&endDate=${endDate}&limit=5`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch top members: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Update summary cards with real data
+function updateSummaryCards(data) {
+    if (!data) return;
+    
+    // Update Total Savings (cumulative)
+    const savingsCard = document.querySelector('.summary-card:nth-child(1) .card-value');
+    const savingsChange = document.querySelector('.summary-card:nth-child(1) .card-change');
+    if (savingsCard) {
+        savingsCard.textContent = formatCurrency(data.total_savings || 0);
+        savingsChange.innerHTML = `
+            <span class="change-indicator positive">+</span>
+            <span class="change-text">All-time total</span>
+        `;
+    }
+    
+    // Update Total Disbursements (cumulative)
+    const disbursementCard = document.querySelector('.summary-card:nth-child(2) .card-value');
+    const disbursementChange = document.querySelector('.summary-card:nth-child(2) .card-change');
+    if (disbursementCard) {
+        disbursementCard.textContent = formatCurrency(data.total_disbursements || 0);
+        disbursementChange.innerHTML = `
+            <span class="change-indicator negative">-</span>
+            <span class="change-text">All-time total</span>
+        `;
+    }
+    
+    // Update Net Growth (cumulative)
+    const growthCard = document.querySelector('.summary-card:nth-child(3) .card-value');
+    const growthChange = document.querySelector('.summary-card:nth-child(3) .card-change');
+    if (growthCard) {
+        const netGrowth = data.net_growth || 0;
+        growthCard.textContent = formatCurrency(netGrowth);
+        const indicator = netGrowth >= 0 ? 'positive' : 'negative';
+        const symbol = netGrowth >= 0 ? '+' : '';
+        growthChange.innerHTML = `
+            <span class="change-indicator ${indicator}">${symbol}</span>
+            <span class="change-text">All-time position</span>
+        `;
+    }
+    
+    // Update Active Members (cumulative)
+    const membersCard = document.querySelector('.summary-card:nth-child(4) .card-value');
+    const membersChange = document.querySelector('.summary-card:nth-child(4) .card-change');
+    if (membersCard) {
+        membersCard.textContent = data.active_members || 0;
+        membersChange.innerHTML = `
+            <span class="change-indicator positive">+</span>
+            <span class="change-text">All-time unique</span>
+        `;
+    }
+}
+
+// Update savings preview chart
+function updateSavingsPreviewChart(data) {
+    const canvas = document.getElementById('savingsPreviewChart');
+    const noDataMessage = canvas.closest('.chart-content').querySelector('.no-data-message');
+    
+    if (!data || data.length === 0) {
+        canvas.style.display = 'none';
+        noDataMessage.style.display = 'block';
+        return;
+    }
+    
+    canvas.style.display = 'block';
+    noDataMessage.style.display = 'none';
+    
+    const labels = data.map(item => new Date(item.date).toLocaleDateString());
+    const values = data.map(item => parseFloat(item.daily_savings) || 0);
+    
+    if (chartInstances.savingsPreviewChart) {
+        chartInstances.savingsPreviewChart.destroy();
+    }
+    
+    chartInstances.savingsPreviewChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daily Savings',
+                data: values,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: getChartOptions('line')
+    });
+}
+
+// Update branch preview chart
+function updateBranchPreviewChart(data) {
+    const canvas = document.getElementById('branchPreviewChart');
+    const noDataMessage = canvas.closest('.chart-content').querySelector('.no-data-message');
+    
+    if (!data || data.length === 0) {
+        canvas.style.display = 'none';
+        noDataMessage.style.display = 'block';
+        return;
+    }
+    
+    canvas.style.display = 'block';
+    noDataMessage.style.display = 'none';
+    
+    const labels = data.map(item => item.branch_name);
+    const savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+    
+    if (chartInstances.branchPreviewChart) {
+        chartInstances.branchPreviewChart.destroy();
+    }
+    
+    chartInstances.branchPreviewChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Savings',
+                data: savingsData,
+                backgroundColor: '#3b82f6',
+                borderColor: '#2563eb',
+                borderWidth: 1
+            }]
+        },
+        options: getChartOptions('bar')
+    });
+}
+
+// Update top members insight
+function updateTopMembersInsight(data) {
+    const insightContent = document.querySelector('.insight-card:nth-child(1) .insight-content');
+    
+    if (!data || data.length === 0) {
+        insightContent.innerHTML = `
+            <div class="no-data-message">
+                <i class="fas fa-users"></i>
+                <p>No member data available</p>
+                <small>Member data will appear here once they start transactions</small>
+            </div>
+        `;
+        return;
+    }
+    
+    const membersList = data.slice(0, 5).map((member, index) => `
+        <div class="member-item">
+            <div class="member-rank">${index + 1}</div>
+            <div class="member-info">
+                <div class="member-name">${member.member_name}</div>
+                <div class="member-transactions">${member.transaction_count} transactions</div>
+            </div>
+            <div class="member-amount">${formatCurrency(member.total_amount || 0)}</div>
+        </div>
+    `).join('');
+    
+    insightContent.innerHTML = `
+        <div class="members-list">
+            ${membersList}
+        </div>
+    `;
+}
+
 // Refresh individual chart
 function refreshChart(chartType) {
     console.log('Refreshing chart:', chartType);
@@ -68,11 +414,14 @@ function refreshChart(chartType) {
     // Show loading state for specific chart
     showChartLoading(chartType);
     
-    // Simulate refresh
-    setTimeout(() => {
+    // Reload dashboard data
+    loadDashboardData().then(() => {
         hideChartLoading(chartType);
         showNotification(`${chartType} chart refreshed`, 'info');
-    }, 800);
+    }).catch(() => {
+        hideChartLoading(chartType);
+        showNotification(`Failed to refresh ${chartType} chart`, 'error');
+    });
 }
 
 
@@ -186,15 +535,19 @@ function getNotificationColor(type) {
 
 // Utility function to format currency
 function formatCurrency(amount) {
+    // Convert to number and handle null/undefined values
+    const numAmount = parseFloat(amount) || 0;
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
         currency: 'PHP'
-    }).format(amount);
+    }).format(numAmount);
 }
 
 // Utility function to format percentage
 function formatPercentage(value) {
-    return `${value.toFixed(1)}%`;
+    // Convert to number and handle null/undefined values
+    const numValue = parseFloat(value) || 0;
+    return `${numValue.toFixed(1)}%`;
 }
 
 // Export functions for global access

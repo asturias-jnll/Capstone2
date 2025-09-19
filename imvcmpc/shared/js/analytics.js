@@ -1,6 +1,7 @@
 // Analytics Dashboard JavaScript
 let currentFilter = 'today';
 let chartInstances = {};
+let authToken = null;
 
 // Initialize Analytics Dashboard
 function initializeAnalytics() {
@@ -8,8 +9,74 @@ function initializeAnalytics() {
     setupDateInputs();
     initializeCharts();
     updateFilterDisplay();
+    loadAnalyticsData();
     console.log('Analytics dashboard initialized');
 }
+
+// Get authentication token from localStorage
+function getAuthToken() {
+    if (!authToken) {
+        authToken = localStorage.getItem('authToken');
+    }
+    return authToken;
+}
+
+// Automatic login function for analytics page
+async function autoLogin() {
+    try {
+        console.log('🔐 Attempting automatic login for analytics...');
+        
+        // Try to login with the test analytics user
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: 'test.analytics',
+                password: 'Test12345!'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Login failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.tokens && result.tokens.access_token) {
+            // Store the token in localStorage
+            localStorage.setItem('authToken', result.tokens.access_token);
+            authToken = result.tokens.access_token; // Update the global variable
+            console.log('✅ Automatic login successful!');
+            return result.tokens.access_token;
+        } else {
+            throw new Error('Invalid login response');
+        }
+    } catch (error) {
+        console.error('❌ Automatic login failed:', error.message);
+        return null;
+    }
+}
+
+// Enhanced function to get or create auth token
+async function ensureAuthToken() {
+    let token = getAuthToken();
+    
+    if (!token) {
+        console.log('🔑 No auth token found, attempting automatic login...');
+        token = await autoLogin();
+    }
+    
+    if (!token) {
+        throw new Error('Unable to authenticate. Please check your login credentials.');
+    }
+    
+    return token;
+}
+
+// API base URL
+const API_BASE_URL = 'http://localhost:3001/api/auth';
 
 // Setup filter button event listeners
 function setupFilterButtons() {
@@ -104,21 +171,276 @@ function formatDate(dateString) {
 function applyFilters() {
     console.log('Applying filters:', currentFilter);
     
-    // Update summary cards
-    updateSummaryCards();
-    
-    // Update charts
-    updateCharts();
-    
-    // Update tables
-    updateTables();
+    // Load fresh data with current filters
+    loadAnalyticsData();
 }
 
-// Update summary cards with placeholder data
-function updateSummaryCards() {
-    // Since there's no real data, we'll keep the placeholder values
-    // In a real implementation, this would fetch data from the API
-    console.log('Summary cards updated (placeholder data)');
+// Load all analytics data
+async function loadAnalyticsData() {
+    try {
+        showLoadingState();
+        
+        // Load all data in parallel
+        const [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers] = await Promise.all([
+            fetchAnalyticsSummary(),
+            fetchSavingsTrend(),
+            fetchDisbursementTrend(),
+            fetchBranchPerformance(),
+            fetchMemberActivity(),
+            fetchTopMembers()
+        ]);
+        
+        // Update UI with real data
+        updateSummaryCards(summaryData);
+        updateCharts(savingsTrend, disbursementTrend, branchPerformance, memberActivity);
+        updateTables(topMembers, branchPerformance);
+        
+        hideLoadingState();
+    } catch (error) {
+        console.error('Error loading analytics data:', error);
+        hideLoadingState();
+        showNotification('Failed to load analytics data', 'error');
+    }
+}
+
+// Fetch analytics summary data
+async function fetchAnalyticsSummary() {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter
+    });
+    
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/summary?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch savings trend data
+async function fetchSavingsTrend() {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter
+    });
+    
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/savings-trend?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch disbursement trend data
+async function fetchDisbursementTrend() {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter
+    });
+    
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/disbursement-trend?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch branch performance data
+async function fetchBranchPerformance() {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter
+    });
+    
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/branch-performance?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch member activity data
+async function fetchMemberActivity() {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter
+    });
+    
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/member-activity?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch top members data
+async function fetchTopMembers() {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter
+    });
+    
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/top-members?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Update summary cards with real data
+function updateSummaryCards(data) {
+    if (!data) {
+        console.log('No summary data available');
+        return;
+    }
+    
+    // Update Total Savings card
+    const totalSavingsElement = document.querySelector('.summary-card:nth-child(1) .card-value');
+    const totalSavingsChange = document.querySelector('.summary-card:nth-child(1) .change-text');
+    if (totalSavingsElement) {
+        totalSavingsElement.textContent = formatCurrency(data.total_savings || 0);
+    }
+    if (totalSavingsChange) {
+        totalSavingsChange.textContent = data.total_savings > 0 ? 'Data available' : 'No data available';
+    }
+    
+    // Update Total Disbursements card
+    const totalDisbursementsElement = document.querySelector('.summary-card:nth-child(2) .card-value');
+    const totalDisbursementsChange = document.querySelector('.summary-card:nth-child(2) .change-text');
+    if (totalDisbursementsElement) {
+        totalDisbursementsElement.textContent = formatCurrency(data.total_disbursements || 0);
+    }
+    if (totalDisbursementsChange) {
+        totalDisbursementsChange.textContent = data.total_disbursements > 0 ? 'Data available' : 'No data available';
+    }
+    
+    // Update Net Growth card
+    const netGrowthElement = document.querySelector('.summary-card:nth-child(3) .card-value');
+    const netGrowthChange = document.querySelector('.summary-card:nth-child(3) .change-text');
+    if (netGrowthElement) {
+        netGrowthElement.textContent = formatCurrency(data.net_growth || 0);
+    }
+    if (netGrowthChange) {
+        const changeIndicator = document.querySelector('.summary-card:nth-child(3) .change-indicator');
+        if (data.net_growth > 0) {
+            netGrowthChange.textContent = 'Positive growth';
+            if (changeIndicator) changeIndicator.textContent = '+';
+        } else if (data.net_growth < 0) {
+            netGrowthChange.textContent = 'Negative growth';
+            if (changeIndicator) changeIndicator.textContent = '-';
+        } else {
+            netGrowthChange.textContent = 'No change';
+            if (changeIndicator) changeIndicator.textContent = '--';
+        }
+    }
+    
+    // Update Active Members card
+    const activeMembersElement = document.querySelector('.summary-card:nth-child(4) .card-value');
+    const activeMembersChange = document.querySelector('.summary-card:nth-child(4) .change-text');
+    if (activeMembersElement) {
+        activeMembersElement.textContent = data.active_members || 0;
+    }
+    if (activeMembersChange) {
+        activeMembersChange.textContent = data.active_members > 0 ? 'Active members' : 'No data available';
+    }
+    
+    console.log('Summary cards updated with real data');
 }
 
 // Initialize empty charts
@@ -166,37 +488,320 @@ function getChartOptions(type) {
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: false
+                display: type === 'bar' || type === 'doughnut',
+                position: 'top'
             },
             tooltip: {
-                enabled: false
+                enabled: true,
+                mode: 'index',
+                intersect: false
             }
-        },
-        scales: type !== 'doughnut' ? {
+        }
+    };
+    
+    if (type === 'line') {
+        baseOptions.scales = {
             x: {
-                display: false
+                display: true,
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
             },
             y: {
-                display: false
+                display: true,
+                title: {
+                    display: true,
+                    text: 'Amount (₱)'
+                },
+                ticks: {
+                    callback: function(value) {
+                        return '₱' + value.toLocaleString();
+                    }
+                }
             }
-        } : {}
-    };
+        };
+    } else if (type === 'bar') {
+        baseOptions.scales = {
+            x: {
+                display: true,
+                title: {
+                    display: true,
+                    text: 'Branch'
+                }
+            },
+            y: {
+                display: true,
+                title: {
+                    display: true,
+                    text: 'Amount (₱)'
+                },
+                ticks: {
+                    callback: function(value) {
+                        return '₱' + value.toLocaleString();
+                    }
+                }
+            }
+        };
+    } else if (type === 'doughnut') {
+        baseOptions.plugins.legend = {
+            display: true,
+            position: 'right'
+        };
+    }
     
     return baseOptions;
 }
 
-// Update charts with new data
-function updateCharts() {
-    // Since there's no real data, charts remain empty
-    // In a real implementation, this would update with actual data
-    console.log('Charts updated (no data available)');
+// Update charts with real data
+function updateCharts(savingsTrend, disbursementTrend, branchPerformance, memberActivity) {
+    updateSavingsTrendChart(savingsTrend);
+    updateDisbursementTrendChart(disbursementTrend);
+    updateBranchPerformanceChart(branchPerformance);
+    updateMemberActivityChart(memberActivity);
+    console.log('Charts updated with real data');
 }
 
-// Update tables with new data
-function updateTables() {
-    // Since there's no real data, tables remain empty
-    // In a real implementation, this would update with actual data
-    console.log('Tables updated (no data available)');
+// Update savings trend chart
+function updateSavingsTrendChart(data) {
+    const canvas = document.getElementById('savingsTrendChart');
+    const noDataMessage = canvas.parentElement.querySelector('.no-data-message');
+    
+    if (!data || data.length === 0) {
+        canvas.style.display = 'none';
+        noDataMessage.style.display = 'block';
+        return;
+    }
+    
+    canvas.style.display = 'block';
+    noDataMessage.style.display = 'none';
+    
+    const labels = data.map(item => new Date(item.date).toLocaleDateString());
+    const values = data.map(item => parseFloat(item.daily_savings) || 0);
+    
+    if (chartInstances.savingsTrendChart) {
+        chartInstances.savingsTrendChart.destroy();
+    }
+    
+    chartInstances.savingsTrendChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daily Savings',
+                data: values,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: getChartOptions('line')
+    });
+}
+
+// Update disbursement trend chart
+function updateDisbursementTrendChart(data) {
+    const canvas = document.getElementById('disbursementTrendChart');
+    const noDataMessage = canvas.parentElement.querySelector('.no-data-message');
+    
+    if (!data || data.length === 0) {
+        canvas.style.display = 'none';
+        noDataMessage.style.display = 'block';
+        return;
+    }
+    
+    canvas.style.display = 'block';
+    noDataMessage.style.display = 'none';
+    
+    const labels = data.map(item => new Date(item.date).toLocaleDateString());
+    const values = data.map(item => parseFloat(item.daily_disbursements) || 0);
+    
+    if (chartInstances.disbursementTrendChart) {
+        chartInstances.disbursementTrendChart.destroy();
+    }
+    
+    chartInstances.disbursementTrendChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daily Disbursements',
+                data: values,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: getChartOptions('line')
+    });
+}
+
+// Update branch performance chart
+function updateBranchPerformanceChart(data) {
+    const canvas = document.getElementById('branchPerformanceChart');
+    const noDataMessage = canvas.parentElement.querySelector('.no-data-message');
+    
+    if (!data || data.length === 0) {
+        canvas.style.display = 'none';
+        noDataMessage.style.display = 'block';
+        return;
+    }
+    
+    canvas.style.display = 'block';
+    noDataMessage.style.display = 'none';
+    
+    const labels = data.map(item => item.branch_name);
+    const savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+    const disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
+    
+    if (chartInstances.branchPerformanceChart) {
+        chartInstances.branchPerformanceChart.destroy();
+    }
+    
+    chartInstances.branchPerformanceChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Savings',
+                data: savingsData,
+                backgroundColor: '#10b981',
+                borderColor: '#059669',
+                borderWidth: 1
+            }, {
+                label: 'Total Disbursements',
+                data: disbursementData,
+                backgroundColor: '#ef4444',
+                borderColor: '#dc2626',
+                borderWidth: 1
+            }]
+        },
+        options: getChartOptions('bar')
+    });
+}
+
+// Update member activity chart
+function updateMemberActivityChart(data) {
+    const canvas = document.getElementById('memberActivityChart');
+    const noDataMessage = canvas.parentElement.querySelector('.no-data-message');
+    
+    if (!data || data.length === 0) {
+        canvas.style.display = 'none';
+        noDataMessage.style.display = 'block';
+        return;
+    }
+    
+    canvas.style.display = 'block';
+    noDataMessage.style.display = 'none';
+    
+    const labels = data.slice(0, 5).map(item => item.member_name);
+    const values = data.slice(0, 5).map(item => parseFloat(item.transaction_count) || 0);
+    
+    if (chartInstances.memberActivityChart) {
+        chartInstances.memberActivityChart.destroy();
+    }
+    
+    chartInstances.memberActivityChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: [
+                    '#10b981',
+                    '#3b82f6',
+                    '#f59e0b',
+                    '#ef4444',
+                    '#8b5cf6'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: getChartOptions('doughnut')
+    });
+}
+
+// Update tables with real data
+function updateTables(topMembers, branchPerformance) {
+    updateTopMembersTable(topMembers);
+    updateBranchPerformanceTable(branchPerformance);
+    console.log('Tables updated with real data');
+}
+
+// Update top members table
+function updateTopMembersTable(data) {
+    const tbody = document.querySelector('.table-container:first-child .data-table tbody');
+    if (!tbody) return;
+    
+    // Clear existing rows
+    tbody.innerHTML = '';
+    
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `
+            <tr class="no-data-row">
+                <td colspan="5">
+                    <div class="no-data-message">
+                        <i class="fas fa-users"></i>
+                        <p>No member data available</p>
+                        <small>Member data will appear here once they start transactions</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    data.forEach(member => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${member.rank}</td>
+            <td>${member.member_name}</td>
+            <td>${formatCurrency(member.total_savings)}</td>
+            <td>${formatCurrency(member.total_disbursements)}</td>
+            <td>${formatCurrency(member.net_position)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Update branch performance table
+function updateBranchPerformanceTable(data) {
+    const tbody = document.querySelector('.table-container:last-child .data-table tbody');
+    if (!tbody) return;
+    
+    // Clear existing rows
+    tbody.innerHTML = '';
+    
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `
+            <tr class="no-data-row">
+                <td colspan="4">
+                    <div class="no-data-message">
+                        <i class="fas fa-building"></i>
+                        <p>No branch data available</p>
+                        <small>Branch data will appear here once they start operations</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    data.forEach(branch => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${branch.branch_name}</td>
+            <td>${formatCurrency(branch.total_savings)}</td>
+            <td>${formatCurrency(branch.total_disbursements)}</td>
+            <td>${formatPercentage(branch.growth_rate)}</td>
+        `;
+        tbody.appendChild(row);
+    });
 }
 
 // Refresh individual chart
@@ -206,11 +811,14 @@ function refreshChart(chartType) {
     // Show loading state for specific chart
     showChartLoading(chartType);
     
-    // Simulate refresh
-    setTimeout(() => {
+    // Refresh the specific chart data
+    loadAnalyticsData().then(() => {
         hideChartLoading(chartType);
-        showNotification(`${chartType} chart refreshed`, 'info');
-    }, 800);
+        showNotification(`${chartType} chart refreshed`, 'success');
+    }).catch(error => {
+        hideChartLoading(chartType);
+        showNotification(`Failed to refresh ${chartType} chart`, 'error');
+    });
 }
 
 // Refresh individual table
@@ -220,11 +828,14 @@ function refreshTable(tableType) {
     // Show loading state for specific table
     showTableLoading(tableType);
     
-    // Simulate refresh
-    setTimeout(() => {
+    // Refresh the specific table data
+    loadAnalyticsData().then(() => {
         hideTableLoading(tableType);
-        showNotification(`${tableType} table refreshed`, 'info');
-    }, 800);
+        showNotification(`${tableType} table refreshed`, 'success');
+    }).catch(error => {
+        hideTableLoading(tableType);
+        showNotification(`Failed to refresh ${tableType} table`, 'error');
+    });
 }
 
 // Show loading state
@@ -341,15 +952,19 @@ function getNotificationColor(type) {
 
 // Utility function to format currency
 function formatCurrency(amount) {
+    // Convert to number and handle null/undefined values
+    const numAmount = parseFloat(amount) || 0;
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
         currency: 'PHP'
-    }).format(amount);
+    }).format(numAmount);
 }
 
 // Utility function to format percentage
 function formatPercentage(value) {
-    return `${value.toFixed(1)}%`;
+    // Convert to number and handle null/undefined values
+    const numValue = parseFloat(value) || 0;
+    return `${numValue.toFixed(1)}%`;
 }
 
 // Utility function to get date range based on filter
