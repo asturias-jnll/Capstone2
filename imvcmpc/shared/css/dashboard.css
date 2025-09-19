@@ -1,10 +1,22 @@
 /* Dashboard Content */
 .dashboard-content {
     padding: 120px 32px 40px;
-    max-width: none;
-    margin: 0;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     min-height: 100vh;
+    width: 100%;
+}
+
+/* Override body background for dashboard */
+body {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    min-height: 100vh;
+}
+
+/* Ensure main content extends properly */
+.main-content {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    min-height: 100vh;
+    width: 100%;
 }
 
 /* Title Section - Same as Analytics */
@@ -381,22 +393,18 @@
 }
 
 .insight-content {
-    height: 150px;
+    min-height: 150px;
     position: relative;
 }
 
 .insight-content .no-data-message {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 1rem;
+    min-height: 150px;
 }
 
 /* Mobile Responsive */
@@ -484,6 +492,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    width: 100%;
+    min-height: 150px;
 }
 
 .member-item {

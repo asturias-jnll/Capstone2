@@ -1194,25 +1194,34 @@ function showNotification(message, type = 'info') {
     
     notification.style.cssText = `
         position: fixed;
-        top: 20px;
+        top: 80px;
         right: 20px;
         background: ${getNotificationColor(type)};
         color: white;
         padding: 12px 20px;
-        border-radius: 4px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
         z-index: 10000;
         display: flex;
         align-items: center;
-        gap: 10px;
-        animation: slideInRight 0.3s ease;
+        gap: 12px;
+        min-height: 48px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        word-wrap: break-word;
     `;
     
     document.body.appendChild(notification);
     
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
     // Remove notification after 4 seconds
     setTimeout(() => {
-        notification.style.animation = 'slideOutRight 0.3s ease';
+        notification.style.transform = 'translateX(100%)';
         setTimeout(() => {
             if (document.body.contains(notification)) {
                 document.body.removeChild(notification);
@@ -1235,10 +1244,10 @@ function getNotificationIcon(type) {
 // Get notification color
 function getNotificationColor(type) {
     switch (type) {
-        case 'success': return '#28a745';
-        case 'error': return '#dc3545';
-        case 'warning': return '#ffc107';
-        case 'info': return '#17a2b8';
-        default: return '#17a2b8';
+        case 'success': return '#22C55E'; // Green for success
+        case 'error': return '#EF4444';   // Red for error
+        case 'warning': return '#F59E0B'; // Orange for warning
+        case 'info': return '#3B82F6';    // Blue for info
+        default: return '#3B82F6';
     }
 } 

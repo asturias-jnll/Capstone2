@@ -944,52 +944,70 @@ function showMessage(message, type = 'info') {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
     messageDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        <i class="fas fa-${getNotificationIcon(type)}"></i>
         <span>${message}</span>
     `;
     
     // Add styles
     messageDiv.style.cssText = `
         position: fixed;
-        top: 120px;
+        top: 80px;
         right: 20px;
-        padding: 16px 24px;
-        border-radius: 8px;
+        background: ${getNotificationColor(type)};
         color: white;
-        font-weight: 600;
-        z-index: 1000;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        z-index: 10000;
         display: flex;
         align-items: center;
         gap: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        animation: slideIn 0.3s ease;
-        background: ${type === 'success' ? '#059669' : type === 'error' ? '#dc2626' : '#3b82f6'};
+        min-height: 48px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 400px;
+        word-wrap: break-word;
     `;
-    
-    // Add animation styles
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
     
     // Add to page
     document.body.appendChild(messageDiv);
     
+    // Animate in
+    setTimeout(() => {
+        messageDiv.style.transform = 'translateX(0)';
+    }, 100);
+    
     // Remove after 4 seconds
     setTimeout(() => {
-        messageDiv.style.animation = 'slideOut 0.3s ease';
         messageDiv.style.transform = 'translateX(100%)';
-        messageDiv.style.opacity = '0';
         setTimeout(() => {
             if (messageDiv.parentNode) {
                 messageDiv.parentNode.removeChild(messageDiv);
             }
         }, 300);
     }, 4000);
+}
+
+// Get notification icon
+function getNotificationIcon(type) {
+    switch (type) {
+        case 'success': return 'check-circle';
+        case 'error': return 'exclamation-circle';
+        case 'warning': return 'exclamation-triangle';
+        case 'info': return 'info-circle';
+        default: return 'info-circle';
+    }
+}
+
+// Get notification color
+function getNotificationColor(type) {
+    switch (type) {
+        case 'success': return '#22C55E'; // Green for success
+        case 'error': return '#EF4444';   // Red for error
+        case 'warning': return '#F59E0B'; // Orange for warning
+        case 'info': return '#3B82F6';    // Blue for info
+        default: return '#3B82F6';
+    }
 }
 
 // Helper function to get month name

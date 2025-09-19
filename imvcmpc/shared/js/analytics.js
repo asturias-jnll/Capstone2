@@ -884,6 +884,14 @@ function hideTableLoading(tableType) {
 
 // Show notification
 function showNotification(message, type = 'info') {
+    // Remove any existing notifications to prevent stacking
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    });
+    
     // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
@@ -897,16 +905,22 @@ function showNotification(message, type = 'info') {
     // Add styles
     notification.style.cssText = `
         position: fixed;
-        top: 100px;
+        top: 80px;
         right: 20px;
         background: ${getNotificationColor(type)};
         color: white;
-        padding: 1rem 1.5rem;
+        padding: 12px 20px;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 48px;
         transform: translateX(100%);
         transition: transform 0.3s ease;
+        max-width: 400px;
+        word-wrap: break-word;
     `;
     
     // Add to page
@@ -925,7 +939,7 @@ function showNotification(message, type = 'info') {
                 notification.parentNode.removeChild(notification);
             }
         }, 300);
-    }, 3000);
+    }, 4000);
 }
 
 // Get notification icon
@@ -942,12 +956,12 @@ function getNotificationIcon(type) {
 // Get notification color
 function getNotificationColor(type) {
     const colors = {
-        success: '#10b981',
-        error: '#ef4444',
-        warning: '#f59e0b',
-        info: '#3b82f6'
+        success: '#22C55E', // Green for success
+        error: '#EF4444',   // Red for error
+        warning: '#F59E0B', // Orange for warning
+        info: '#3B82F6'     // Blue for info
     };
-    return colors[type] || '#3b82f6';
+    return colors[type] || '#3B82F6';
 }
 
 // Utility function to format currency
