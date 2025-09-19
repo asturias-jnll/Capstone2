@@ -604,13 +604,13 @@ function getChartOptions(type, isTrendChart = false) {
         };
     } else if (type === 'bar') {
         if (isTrendChart) {
-            // For trend charts, use Date as x-axis
+            // For trend charts, use Month as x-axis
             baseOptions.scales = {
                 x: {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Date'
+                        text: 'Month'
                     }
                 },
                 y: {
@@ -699,7 +699,10 @@ function updateSavingsTrendChart(data) {
         canvas.height = container.clientHeight;
     }
     
-    const labels = data.map(item => new Date(item.date).toLocaleDateString());
+    const labels = data.map(item => new Date(item.date).toLocaleDateString('en-US', { 
+        month: 'short', 
+        year: 'numeric' 
+    }));
     const values = data.map(item => parseFloat(item.daily_savings) || 0);
     
     console.log('Chart labels:', labels);
@@ -725,7 +728,7 @@ function updateSavingsTrendChart(data) {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Daily Savings (Bar)',
+                    label: 'Monthly Savings (Bar)',
                     data: values,
                     backgroundColor: 'rgba(16, 185, 129, 0.6)',
                     borderColor: '#10b981',
@@ -795,7 +798,10 @@ function updateDisbursementTrendChart(data) {
         canvas.height = container.clientHeight;
     }
     
-    const labels = data.map(item => new Date(item.date).toLocaleDateString());
+    const labels = data.map(item => new Date(item.date).toLocaleDateString('en-US', { 
+        month: 'short', 
+        year: 'numeric' 
+    }));
     const values = data.map(item => parseFloat(item.daily_disbursements) || 0);
     
     console.log('Disbursement chart labels:', labels);
@@ -821,7 +827,7 @@ function updateDisbursementTrendChart(data) {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Daily Disbursements (Bar)',
+                    label: 'Monthly Disbursements (Bar)',
                     data: values,
                     backgroundColor: 'rgba(239, 68, 68, 0.6)',
                     borderColor: '#ef4444',
@@ -1323,10 +1329,9 @@ function generateSampleData() {
     const today = new Date();
     const dates = [];
     
-    // Generate dates for the last 7 days
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
+    // Generate dates for the last 12 months
+    for (let i = 11; i >= 0; i--) {
+        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
         dates.push(date.toISOString().split('T')[0]);
     }
     
@@ -1339,11 +1344,11 @@ function generateSampleData() {
         },
         savingsTrend: dates.map(date => ({
             date: date,
-            daily_savings: Math.floor(Math.random() * 20000) + 10000
+            daily_savings: Math.floor(Math.random() * 50000) + 30000
         })),
         disbursementTrend: dates.map(date => ({
             date: date,
-            daily_disbursements: Math.floor(Math.random() * 15000) + 5000
+            daily_disbursements: Math.floor(Math.random() * 40000) + 20000
         })),
         branchPerformance: [
             { branch_name: 'Main Branch', total_savings: 75000, total_disbursements: 45000, growth_rate: 40.0 },
