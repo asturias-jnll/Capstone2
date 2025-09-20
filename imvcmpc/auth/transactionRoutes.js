@@ -8,13 +8,8 @@ const transactionService = new TransactionService();
 // Get all transactions with optional filtering
 router.get('/', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Check if user has access to transaction data (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Transaction data is only available to main branch users.'
-            });
-        }
+        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now access transaction data
 
         const filters = {
             branch_id: req.user.branch_id,
@@ -49,13 +44,8 @@ router.get('/', authenticateToken, checkPermission('transactions:read'), async (
 // Get transaction by ID
 router.get('/:id', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Check if user has access to transaction data (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Transaction data is only available to main branch users.'
-            });
-        }
+        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now access transaction data
 
         const { id } = req.params;
         const transaction = await transactionService.getTransactionById(
@@ -96,13 +86,8 @@ router.get('/:id', authenticateToken, checkPermission('transactions:read'), asyn
 // Create new transaction
 router.post('/', authenticateToken, checkPermission('transactions:create'), async (req, res) => {
     try {
-        // Check if user has access to create transactions (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Only main branch users can create transactions.'
-            });
-        }
+        // Allow all users to create transactions (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now create transactions
 
         const transactionData = req.body;
         
@@ -156,13 +141,8 @@ router.post('/', authenticateToken, checkPermission('transactions:create'), asyn
 // Update transaction
 router.put('/:id', authenticateToken, checkPermission('transactions:update'), async (req, res) => {
     try {
-        // Check if user has access to update transactions (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Only main branch users can update transactions.'
-            });
-        }
+        // Allow all users to update transactions (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now update transactions
 
         const { id } = req.params;
         const updateData = req.body;
@@ -238,13 +218,8 @@ router.put('/:id', authenticateToken, checkPermission('transactions:update'), as
 // Delete transaction
 router.delete('/:id', authenticateToken, checkPermission('transactions:delete'), async (req, res) => {
     try {
-        // Check if user has access to delete transactions (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Only main branch users can delete transactions.'
-            });
-        }
+        // Allow all users to delete transactions (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now delete transactions
 
         const { id } = req.params;
 
@@ -316,13 +291,8 @@ router.delete('/:id', authenticateToken, checkPermission('transactions:delete'),
 // Get transaction statistics
 router.get('/stats/summary', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Check if user has access to transaction data (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Transaction data is only available to main branch users.'
-            });
-        }
+        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now access transaction data
 
         const filters = {
             branch_id: req.user.branch_id,
@@ -352,13 +322,8 @@ router.get('/stats/summary', authenticateToken, checkPermission('transactions:re
 // Get transaction summary for dashboard
 router.get('/stats/dashboard', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Check if user has access to transaction data (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Transaction data is only available to main branch users.'
-            });
-        }
+        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now access transaction data
 
         const summary = await transactionService.getTransactionSummary(
             req.user.branch_id, 
@@ -383,13 +348,8 @@ router.get('/stats/dashboard', authenticateToken, checkPermission('transactions:
 // Get recent transactions
 router.get('/recent/:limit?', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Check if user has access to transaction data (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Transaction data is only available to main branch users.'
-            });
-        }
+        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now access transaction data
 
         const limit = parseInt(req.params.limit) || 10;
         const recentTransactions = await transactionService.getRecentTransactions(
@@ -417,13 +377,8 @@ router.get('/recent/:limit?', authenticateToken, checkPermission('transactions:r
 // Search transactions by payee
 router.get('/search/payee/:term', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Check if user has access to transaction data (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Transaction data is only available to main branch users.'
-            });
-        }
+        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now access transaction data
 
         const { term } = req.params;
         const transactions = await transactionService.searchTransactionsByPayee(
@@ -451,13 +406,8 @@ router.get('/search/payee/:term', authenticateToken, checkPermission('transactio
 // Get transactions by date range
 router.get('/date-range/:startDate/:endDate', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Check if user has access to transaction data (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Transaction data is only available to main branch users.'
-            });
-        }
+        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now access transaction data
 
         const { startDate, endDate } = req.params;
         const transactions = await transactionService.getTransactionsByDateRange(
@@ -486,13 +436,8 @@ router.get('/date-range/:startDate/:endDate', authenticateToken, checkPermission
 // Get transactions by month
 router.get('/month/:year/:month', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Check if user has access to transaction data (main branch only)
-        if (!req.user.is_main_branch_user && req.user.role !== 'admin' && req.user.role !== 'finance_officer') {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. Transaction data is only available to main branch users.'
-            });
-        }
+        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
+        // Removed access restriction - all users can now access transaction data
 
         const { year, month } = req.params;
         const transactions = await transactionService.getTransactionsByMonth(
