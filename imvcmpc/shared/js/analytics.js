@@ -1110,9 +1110,17 @@ function getChartOptions(type, isTrendChart = false) {
     } else if (currentFilter === 'last-7-days') {
         timeGranularity = 'day';
     } else if (currentFilter === 'last-30-days') {
-        timeGranularity = 'day';
+        timeGranularity = 'week';
     } else if (currentFilter === 'custom') {
-        timeGranularity = customType; // week, month, or year
+        if (customType === 'week') {
+            timeGranularity = 'day';
+        } else if (customType === 'month') {
+            timeGranularity = 'week';
+        } else if (customType === 'year') {
+            timeGranularity = 'month';
+        } else {
+            timeGranularity = 'day';
+        }
     }
     
     if (type === 'line') {
@@ -1198,8 +1206,16 @@ function getChartOptions(type, isTrendChart = false) {
     return baseOptions;
 }
 
-// Get time axis label based on granularity
+// Get time axis label based on granularity and current filter
 function getTimeAxisLabel(granularity) {
+    if (currentFilter === 'last-30-days') {
+        return 'Weekly Periods';
+    }
+    
+    if (currentFilter === 'custom' && customType === 'year') {
+        return 'Month';
+    }
+    
     switch (granularity) {
         case 'hour':
             return 'Time (Hours)';
@@ -1232,6 +1248,355 @@ function getMaxTicksLimit(granularity) {
         default:
             return 8;
     }
+}
+
+// Generate date labels for Last 7 Days filter (starting from yesterday)
+function generateLast7DaysLabels() {
+    const labels = [];
+    
+    for (let i = 7; i >= 1; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateLabel = date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+        });
+        labels.push(dateLabel);
+    }
+    
+    return labels;
+}
+
+// Generate weekly date ranges for Last 30 Days filter (4 weeks)
+function generateLast30DaysWeeklyLabels() {
+    const labels = [];
+    const today = new Date();
+    
+    // Generate 4 weekly periods (7 days each = 28 days, covering last 30 days)
+    for (let week = 3; week >= 0; week--) {
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - (week * 7 + 6)); // Start of week
+        
+        const endDate = new Date(today);
+        endDate.setDate(today.getDate() - (week * 7)); // End of week
+        
+        // Format as "Aug 20-27, 2025" or "Aug 28-Sep 03, 2025"
+        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+        const startDay = startDate.getDate();
+        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+        const endDay = endDate.getDate();
+        const year = endDate.getFullYear();
+        
+        let weekLabel;
+        if (startMonth === endMonth) {
+            // Same month: "Aug 20-27, 2025"
+            weekLabel = `${startMonth} ${startDay}-${endDay}, ${year}`;
+        } else {
+            // Different months: "Aug 28-Sep 03, 2025"
+            weekLabel = `${startMonth} ${startDay}-${endMonth} ${endDay}, ${year}`;
+        }
+        
+        labels.push(weekLabel);
+    }
+    
+    return labels;
+}
+
+// Generate custom week labels based on selected start date
+function generateCustomWeekLabels() {
+    const labels = [];
+    const startDate = new Date(document.getElementById('startDate').value);
+    
+    if (!startDate || isNaN(startDate.getTime())) {
+        return generateLast7DaysLabels(); // Fallback to default
+    }
+    
+    // Generate 7 days starting from selected start date
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        const dateLabel = date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+        });
+        labels.push(dateLabel);
+    }
+    
+    return labels;
+}
+
+// Generate weekly labels for custom month (4 weeks within the month)
+function generateCustomMonthWeeklyLabels() {
+    const labels = [];
+    const monthSelect = document.getElementById('monthSelect');
+    const yearSelect = document.getElementById('yearSelect');
+    
+    if (!monthSelect || !yearSelect || !monthSelect.value || !yearSelect.value) {
+        return generateLast30DaysWeeklyLabels(); // Fallback to default
+    }
+    
+    const selectedMonth = parseInt(monthSelect.value);
+    const selectedYear = parseInt(yearSelect.value);
+    
+    // Get first and last day of the month
+    const firstDay = new Date(selectedYear, selectedMonth - 1, 1);
+    const lastDay = new Date(selectedYear, selectedMonth, 0);
+    const totalDays = lastDay.getDate();
+    
+    // Calculate days per week (distribute evenly)
+    const daysPerWeek = Math.ceil(totalDays / 4);
+    
+    // Generate 4 weekly periods within the month
+    for (let week = 0; week < 4; week++) {
+        const startDayNum = (week * daysPerWeek) + 1;
+        const endDayNum = Math.min((week + 1) * daysPerWeek, totalDays);
+        
+        // Skip if start day is beyond the month
+        if (startDayNum > totalDays) {
+            break;
+        }
+        
+        const startDate = new Date(selectedYear, selectedMonth - 1, startDayNum);
+        const endDate = new Date(selectedYear, selectedMonth - 1, endDayNum);
+        
+        // Format as "Aug 1-7, 2025" or "Aug 8-14, 2025"
+        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+        const year = endDate.getFullYear();
+        
+        let weekLabel;
+        if (startMonth === endMonth) {
+            // Same month: "Aug 1-7, 2025"
+            weekLabel = `${startMonth} ${startDayNum}-${endDayNum}, ${year}`;
+        } else {
+            // Different months: "Aug 29-Sep 4, 2025"
+            weekLabel = `${startMonth} ${startDayNum}-${endMonth} ${endDayNum}, ${year}`;
+        }
+        
+        labels.push(weekLabel);
+    }
+    
+    return labels;
+}
+
+// Generate monthly labels for custom year (12 months)
+function generateCustomYearMonthlyLabels() {
+    const labels = [];
+    const yearSelect = document.getElementById('yearSelectOnly');
+    
+    if (!yearSelect || !yearSelect.value) {
+        // Fallback to current year if no year selected
+        const currentYear = new Date().getFullYear();
+        for (let month = 1; month <= 12; month++) {
+            const date = new Date(currentYear, month - 1, 1);
+            const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+            labels.push(monthName);
+        }
+        return labels;
+    }
+    
+    const selectedYear = parseInt(yearSelect.value);
+    
+    // Generate 12 months for the selected year
+    for (let month = 1; month <= 12; month++) {
+        const date = new Date(selectedYear, month - 1, 1);
+        const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+        labels.push(monthName);
+    }
+    
+    return labels;
+}
+
+// Generate labels based on current filter
+function generateChartLabels(data, filter) {
+    if (filter === 'last-7-days') {
+        return generateLast7DaysLabels();
+    } else if (filter === 'yesterday') {
+        return ['Yesterday'];
+    } else if (filter === 'last-30-days') {
+        return generateLast30DaysWeeklyLabels();
+    } else if (filter === 'custom') {
+        if (customType === 'week') {
+            return generateCustomWeekLabels(); // Use custom week labels
+        } else if (customType === 'month') {
+            return generateCustomMonthWeeklyLabels(); // Use custom month weekly labels
+        } else if (customType === 'year') {
+            return generateCustomYearMonthlyLabels();
+        }
+    }
+    
+    // Default fallback
+    return data.map(item => new Date(item.date).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+    }));
+}
+
+// Align data with date labels for Last 7 Days filter
+function alignDataWithLast7Days(data, valueKey) {
+    const alignedData = new Array(7).fill(0);
+    
+    // Create a map of dates to their index
+    const dateIndexMap = {};
+    for (let i = 7; i >= 1; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        dateIndexMap[dateString] = 7 - i; // Index for proper order
+    }
+    
+    // Align data with date labels
+    data.forEach(item => {
+        const itemDate = new Date(item.date);
+        const dateString = itemDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const index = dateIndexMap[dateString];
+        
+        if (index !== undefined) {
+            alignedData[index] = parseFloat(item[valueKey]) || 0;
+        }
+    });
+    
+    return alignedData;
+}
+
+// Align data with weekly periods for Last 30 Days filter
+function alignDataWithLast30DaysWeekly(data, valueKey) {
+    const alignedData = new Array(4).fill(0);
+    const today = new Date();
+    
+    // Group data by weekly periods
+    data.forEach(item => {
+        const itemDate = new Date(item.date);
+        const daysDiff = Math.floor((today - itemDate) / (1000 * 60 * 60 * 24));
+        
+        // Determine which week this data belongs to
+        let weekIndex;
+        if (daysDiff >= 0 && daysDiff <= 6) {
+            weekIndex = 3; // Most recent week
+        } else if (daysDiff >= 7 && daysDiff <= 13) {
+            weekIndex = 2; // Second week
+        } else if (daysDiff >= 14 && daysDiff <= 20) {
+            weekIndex = 1; // Third week
+        } else if (daysDiff >= 21 && daysDiff <= 27) {
+            weekIndex = 0; // Fourth week
+        }
+        
+        if (weekIndex !== undefined) {
+            alignedData[weekIndex] += parseFloat(item[valueKey]) || 0;
+        }
+    });
+    
+    return alignedData;
+}
+
+// Align data with custom week dates (7 days from selected start date)
+function alignDataWithCustomWeek(data, valueKey) {
+    const alignedData = new Array(7).fill(0);
+    const startDate = new Date(document.getElementById('startDate').value);
+    
+    if (!startDate || isNaN(startDate.getTime())) {
+        return alignedData;
+    }
+    
+    // Create a map of dates to their index for the selected week
+    const dateIndexMap = {};
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        dateIndexMap[dateString] = i;
+    }
+    
+    // Align data with date labels
+    data.forEach(item => {
+        const itemDate = new Date(item.date);
+        const dateString = itemDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const index = dateIndexMap[dateString];
+        
+        if (index !== undefined) {
+            alignedData[index] = parseFloat(item[valueKey]) || 0;
+        }
+    });
+    
+    return alignedData;
+}
+
+// Align data with custom month weekly periods (4 weeks within the month)
+function alignDataWithCustomMonthWeekly(data, valueKey) {
+    const alignedData = new Array(4).fill(0);
+    const monthSelect = document.getElementById('monthSelect');
+    const yearSelect = document.getElementById('yearSelect');
+    
+    if (!monthSelect || !yearSelect || !monthSelect.value || !yearSelect.value) {
+        return alignedData;
+    }
+    
+    const selectedMonth = parseInt(monthSelect.value);
+    const selectedYear = parseInt(yearSelect.value);
+    const lastDay = new Date(selectedYear, selectedMonth, 0).getDate(); // Get actual last day of month
+    const totalDays = lastDay;
+    
+    // Calculate days per week (distribute evenly)
+    const daysPerWeek = Math.ceil(totalDays / 4);
+    
+    // Group data by weekly periods within the month
+    data.forEach(item => {
+        const itemDate = new Date(item.date);
+        
+        // Check if the item date is within the selected month
+        if (itemDate.getMonth() === selectedMonth - 1 && itemDate.getFullYear() === selectedYear) {
+            const dayOfMonth = itemDate.getDate();
+            
+            // Determine which week this data belongs to (0-3)
+            // Use the same distribution as the label generation
+            let weekIndex;
+            for (let week = 0; week < 4; week++) {
+                const startDayNum = (week * daysPerWeek) + 1;
+                const endDayNum = Math.min((week + 1) * daysPerWeek, totalDays);
+                
+                if (dayOfMonth >= startDayNum && dayOfMonth <= endDayNum) {
+                    weekIndex = week;
+                    break;
+                }
+            }
+            
+            if (weekIndex !== undefined) {
+                alignedData[weekIndex] += parseFloat(item[valueKey]) || 0;
+            }
+        }
+    });
+    
+    return alignedData;
+}
+
+// Align data with custom year monthly periods (12 months)
+function alignDataWithCustomYearMonthly(data, valueKey) {
+    const alignedData = new Array(12).fill(0);
+    const yearSelect = document.getElementById('yearSelectOnly');
+    
+    if (!yearSelect || !yearSelect.value) {
+        return alignedData;
+    }
+    
+    const selectedYear = parseInt(yearSelect.value);
+    
+    // Group data by months within the selected year
+    data.forEach(item => {
+        const itemDate = new Date(item.date);
+        
+        // Check if the item date is within the selected year
+        if (itemDate.getFullYear() === selectedYear) {
+            const monthIndex = itemDate.getMonth(); // 0-11
+            
+            if (monthIndex >= 0 && monthIndex < 12) {
+                alignedData[monthIndex] += parseFloat(item[valueKey]) || 0;
+            }
+        }
+    });
+    
+    return alignedData;
 }
 
 // Update charts with real data
@@ -1281,30 +1646,26 @@ function updateSavingsTrendChart(data) {
     if (noDataMessage) noDataMessage.style.display = 'none';
     if (canvas) canvas.style.display = 'block';
     
-    // Ensure canvas has proper dimensions
-    const container = canvas.parentElement;
-    if (container) {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-    }
+    const labels = generateChartLabels(data, currentFilter);
+    let values;
+    if (currentFilter === 'last-7-days') {
+        values = alignDataWithLast7Days(data, 'daily_savings');
+    } else if (currentFilter === 'last-30-days') {
+        values = alignDataWithLast30DaysWeekly(data, 'daily_savings');
+    } else if (currentFilter === 'custom' && customType === 'week') {
+        values = alignDataWithCustomWeek(data, 'daily_savings');
+        } else if (currentFilter === 'custom' && customType === 'month') {
+            values = alignDataWithCustomMonthWeekly(data, 'daily_savings');
+        } else if (currentFilter === 'custom' && customType === 'year') {
+            values = alignDataWithCustomYearMonthly(data, 'daily_savings');
+        } else {
+            values = data.map(item => parseFloat(item.daily_savings) || 0);
+        }
     
-    const labels = data.map(item => new Date(item.date).toLocaleDateString('en-US', { 
-        month: 'short', 
-        year: 'numeric' 
-    }));
-    const values = data.map(item => parseFloat(item.daily_savings) || 0);
-    
-    console.log('Chart labels:', labels);
-    console.log('Chart values:', values);
-    
-    // Validate data before creating chart
+    // Validate data
     if (labels.length === 0 || values.length === 0) {
         console.error('❌ Invalid chart data: empty labels or values');
         return;
-    }
-    
-    if (values.every(v => v === 0)) {
-        console.warn('⚠️ All chart values are zero');
     }
     
     if (chartInstances.savingsTrendChart) {
@@ -1342,18 +1703,7 @@ function updateSavingsTrendChart(data) {
         });
         
         console.log('✅ Savings trend chart created successfully');
-        console.log('Chart instance:', chartInstances.savingsTrendChart);
-        
-        // Force chart to render
         chartInstances.savingsTrendChart.update();
-        
-        // Additional rendering fixes
-        setTimeout(() => {
-            if (chartInstances.savingsTrendChart) {
-                chartInstances.savingsTrendChart.resize();
-                chartInstances.savingsTrendChart.update();
-            }
-        }, 100);
         
     } catch (error) {
         console.error('❌ Error creating savings trend chart:', error);
@@ -1383,30 +1733,26 @@ function updateDisbursementTrendChart(data) {
     if (noDataMessage) noDataMessage.style.display = 'none';
     if (canvas) canvas.style.display = 'block';
     
-    // Ensure canvas has proper dimensions
-    const container = canvas.parentElement;
-    if (container) {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+    const labels = generateChartLabels(data, currentFilter);
+    let values;
+    if (currentFilter === 'last-7-days') {
+        values = alignDataWithLast7Days(data, 'daily_disbursements');
+    } else if (currentFilter === 'last-30-days') {
+        values = alignDataWithLast30DaysWeekly(data, 'daily_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'week') {
+        values = alignDataWithCustomWeek(data, 'daily_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'month') {
+        values = alignDataWithCustomMonthWeekly(data, 'daily_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'year') {
+        values = alignDataWithCustomYearMonthly(data, 'daily_disbursements');
+    } else {
+        values = data.map(item => parseFloat(item.daily_disbursements) || 0);
     }
     
-    const labels = data.map(item => new Date(item.date).toLocaleDateString('en-US', { 
-        month: 'short', 
-        year: 'numeric' 
-    }));
-    const values = data.map(item => parseFloat(item.daily_disbursements) || 0);
-    
-    console.log('Disbursement chart labels:', labels);
-    console.log('Disbursement chart values:', values);
-    
-    // Validate data before creating chart
+    // Validate data
     if (labels.length === 0 || values.length === 0) {
         console.error('❌ Invalid disbursement chart data: empty labels or values');
         return;
-    }
-    
-    if (values.every(v => v === 0)) {
-        console.warn('⚠️ All disbursement chart values are zero');
     }
     
     if (chartInstances.disbursementTrendChart) {
@@ -1446,14 +1792,6 @@ function updateDisbursementTrendChart(data) {
         console.log('✅ Disbursement trend chart created successfully');
         chartInstances.disbursementTrendChart.update();
         
-        // Additional rendering fixes
-        setTimeout(() => {
-            if (chartInstances.disbursementTrendChart) {
-                chartInstances.disbursementTrendChart.resize();
-                chartInstances.disbursementTrendChart.update();
-            }
-        }, 100);
-        
     } catch (error) {
         console.error('❌ Error creating disbursement trend chart:', error);
     }
@@ -1486,18 +1824,10 @@ function updateBranchPerformanceChart(data) {
     const savingsData = data.map(item => parseFloat(item.total_savings) || 0);
     const disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
     
-    console.log('Branch chart labels:', labels);
-    console.log('Branch savings data:', savingsData);
-    console.log('Branch disbursement data:', disbursementData);
-    
-    // Validate data before creating chart
+    // Validate data
     if (labels.length === 0 || savingsData.length === 0 || disbursementData.length === 0) {
         console.error('❌ Invalid branch chart data: empty labels or values');
         return;
-    }
-    
-    if (savingsData.every(v => v === 0) && disbursementData.every(v => v === 0)) {
-        console.warn('⚠️ All branch chart values are zero');
     }
     
     if (chartInstances.branchPerformanceChart) {
@@ -1528,14 +1858,6 @@ function updateBranchPerformanceChart(data) {
         
         console.log('✅ Branch performance chart created successfully');
         chartInstances.branchPerformanceChart.update();
-        
-        // Additional rendering fixes
-        setTimeout(() => {
-            if (chartInstances.branchPerformanceChart) {
-                chartInstances.branchPerformanceChart.resize();
-                chartInstances.branchPerformanceChart.update();
-            }
-        }, 100);
         
     } catch (error) {
         console.error('❌ Error creating branch performance chart:', error);

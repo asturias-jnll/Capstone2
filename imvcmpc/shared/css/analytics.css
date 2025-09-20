@@ -697,7 +697,7 @@
 
 .data-table th {
     background: #f9fafb;
-    color: #374151;
+    color: #000000; /* Dark black color */
     font-weight: 600;
     padding: 0.8rem 0.6rem;
     text-align: left;
@@ -715,6 +715,35 @@
 
 .data-table tr:hover {
     background: #f9fafb;
+}
+
+/* Table row striping - alternating colors */
+.data-table tbody tr:nth-child(odd) {
+    background-color: transparent; /* No color (white/transparent) */
+    transition: background-color 0.2s ease;
+}
+
+.data-table tbody tr:nth-child(even) {
+    background-color: #f0f9f0; /* Very light green */
+    transition: background-color 0.2s ease;
+}
+
+/* Ensure hover effect works on striped rows */
+.data-table tbody tr:nth-child(odd):hover {
+    background: #f9fafb !important; /* Override striping on hover */
+}
+
+.data-table tbody tr:nth-child(even):hover {
+    background: #e8f5e8 !important; /* Slightly darker green on hover */
+}
+
+/* Ensure no-data rows don't get striped */
+.data-table tbody tr.no-data-row {
+    background-color: transparent !important;
+}
+
+.data-table tbody tr.no-data-row:hover {
+    background-color: transparent !important;
 }
 
 .no-data-row td {
@@ -835,6 +864,15 @@
     .chart-container,
     .table-container {
         padding: 1rem;
+    }
+    
+    /* Ensure table striping works on mobile */
+    .data-table tbody tr:nth-child(even) {
+        background-color: #f0f9f0;
+    }
+    
+    .data-table tbody tr:nth-child(odd) {
+        background-color: transparent;
     }
 }
 
