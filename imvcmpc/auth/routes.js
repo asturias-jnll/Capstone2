@@ -318,16 +318,22 @@ router.get('/analytics/summary',
             const userRole = req.user.role_name;
             const isMainBranch = req.user.is_main_branch_user;
             
+            console.log(`📊 Analytics summary request - Filter: ${filter}, StartDate: ${startDate}, EndDate: ${endDate}`);
+            
             let filters = { branch_id: branchId };
             
             // Set date range based on filter
-            if (filter === 'custom' && startDate && endDate) {
+            if (startDate && endDate) {
+                // Use provided date parameters for all filters
                 filters.date_from = startDate;
                 filters.date_to = endDate;
-            } else {
+                console.log(`📅 Using provided dates: ${startDate} to ${endDate}`);
+            } else if (filter !== 'custom') {
+                // Fallback to calculated date range if no dates provided
                 const dateRange = analyticsService.getDateRange(filter);
                 filters.date_from = dateRange.start.toISOString().split('T')[0];
                 filters.date_to = dateRange.end.toISOString().split('T')[0];
+                console.log(`📅 Using calculated dates: ${filters.date_from} to ${filters.date_to}`);
             }
             
             const summary = await analyticsService.getAnalyticsSummary(filters, userRole, isMainBranch);
@@ -356,10 +362,13 @@ router.get('/analytics/savings-trend',
             
             let filters = { branch_id: branchId };
             
-            if (filter === 'custom' && startDate && endDate) {
+            // Set date range based on filter
+            if (startDate && endDate) {
+                // Use provided date parameters for all filters
                 filters.date_from = startDate;
                 filters.date_to = endDate;
-            } else {
+            } else if (filter !== 'custom') {
+                // Fallback to calculated date range if no dates provided
                 const dateRange = analyticsService.getDateRange(filter);
                 filters.date_from = dateRange.start.toISOString().split('T')[0];
                 filters.date_to = dateRange.end.toISOString().split('T')[0];
@@ -391,10 +400,13 @@ router.get('/analytics/disbursement-trend',
             
             let filters = { branch_id: branchId };
             
-            if (filter === 'custom' && startDate && endDate) {
+            // Set date range based on filter
+            if (startDate && endDate) {
+                // Use provided date parameters for all filters
                 filters.date_from = startDate;
                 filters.date_to = endDate;
-            } else {
+            } else if (filter !== 'custom') {
+                // Fallback to calculated date range if no dates provided
                 const dateRange = analyticsService.getDateRange(filter);
                 filters.date_from = dateRange.start.toISOString().split('T')[0];
                 filters.date_to = dateRange.end.toISOString().split('T')[0];
@@ -426,10 +438,13 @@ router.get('/analytics/branch-performance',
             
             let filters = { branch_id: branchId };
             
-            if (filter === 'custom' && startDate && endDate) {
+            // Set date range based on filter
+            if (startDate && endDate) {
+                // Use provided date parameters for all filters
                 filters.date_from = startDate;
                 filters.date_to = endDate;
-            } else {
+            } else if (filter !== 'custom') {
+                // Fallback to calculated date range if no dates provided
                 const dateRange = analyticsService.getDateRange(filter);
                 filters.date_from = dateRange.start.toISOString().split('T')[0];
                 filters.date_to = dateRange.end.toISOString().split('T')[0];
@@ -461,10 +476,13 @@ router.get('/analytics/member-activity',
             
             let filters = { branch_id: branchId };
             
-            if (filter === 'custom' && startDate && endDate) {
+            // Set date range based on filter
+            if (startDate && endDate) {
+                // Use provided date parameters for all filters
                 filters.date_from = startDate;
                 filters.date_to = endDate;
-            } else {
+            } else if (filter !== 'custom') {
+                // Fallback to calculated date range if no dates provided
                 const dateRange = analyticsService.getDateRange(filter);
                 filters.date_from = dateRange.start.toISOString().split('T')[0];
                 filters.date_to = dateRange.end.toISOString().split('T')[0];
@@ -496,10 +514,13 @@ router.get('/analytics/top-members',
             
             let filters = { branch_id: branchId };
             
-            if (filter === 'custom' && startDate && endDate) {
+            // Set date range based on filter
+            if (startDate && endDate) {
+                // Use provided date parameters for all filters
                 filters.date_from = startDate;
                 filters.date_to = endDate;
-            } else {
+            } else if (filter !== 'custom') {
+                // Fallback to calculated date range if no dates provided
                 const dateRange = analyticsService.getDateRange(filter);
                 filters.date_from = dateRange.start.toISOString().split('T')[0];
                 filters.date_to = dateRange.end.toISOString().split('T')[0];

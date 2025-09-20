@@ -94,21 +94,82 @@
                 <div class="filter-section">
                         <div class="filter-container">
                         <div class="quick-filters">
-                            <button class="filter-btn active" data-filter="today">Today</button>
-                            <button class="filter-btn" data-filter="yesterday">Yesterday</button>
-                            <button class="filter-btn" data-filter="last-month">Last Month</button>
-                            <button class="filter-btn" data-filter="custom">Custom Range</button>
+                            <button class="filter-btn active" data-filter="yesterday">Yesterday</button>
+                            <button class="filter-btn" data-filter="last-7-days">Last 7 Days</button>
+                            <button class="filter-btn" data-filter="last-30-days">Last 30 Days</button>
+                            <button class="filter-btn" data-filter="custom">Custom</button>
                         </div>
                         
                         <div class="custom-range" id="customRange" style="display: none;">
-                            <div class="date-inputs">
-                                <div class="input-group">
-                                    <label>From:</label>
-                                    <input type="date" id="startDate" class="date-input">
+                            <div class="custom-options">
+                                <div class="custom-type-selector">
+                                    <button class="custom-type-btn active" data-type="week">By Week</button>
+                                    <button class="custom-type-btn" data-type="month">By Month</button>
+                                    <button class="custom-type-btn" data-type="year">By Year</button>
                                 </div>
-                                <div class="input-group">
-                                    <label>To:</label>
-                                    <input type="date" id="endDate" class="date-input">
+                                <!-- Week picker for week custom type -->
+                                <div class="week-picker" id="weekPicker" style="display: none;">
+                                    <div class="input-group">
+                                        <label>Select Week:</label>
+                                        <input type="date" id="weekDate" class="date-input">
+                                        <small class="date-hint" id="weekDateHint">Select any day of the week</small>
+                                    </div>
+                                    <div class="week-preview" id="weekPreview">
+                                        <div class="week-preview-header">Week Range:</div>
+                                        <div class="week-dates" id="weekDates"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Date inputs for other custom types -->
+                                <div class="date-inputs" id="dateInputs">
+                                    <div class="input-group">
+                                        <label>From:</label>
+                                        <input type="date" id="startDate" class="date-input">
+                                        <small class="date-hint" id="startDateHint">Select start date</small>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>To:</label>
+                                        <input type="date" id="endDate" class="date-input">
+                                        <small class="date-hint" id="endDateHint">Auto-calculated</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Month/Year selector for month custom type -->
+                                <div class="month-year-selector" id="monthYearSelector" style="display: none;">
+                                    <div class="input-group">
+                                        <label>Month:</label>
+                                        <select id="monthSelect" class="date-input">
+                                            <option value="">Select Month</option>
+                                            <option value="01">January</option>
+                                            <option value="02">February</option>
+                                            <option value="03">March</option>
+                                            <option value="04">April</option>
+                                            <option value="05">May</option>
+                                            <option value="06">June</option>
+                                            <option value="07">July</option>
+                                            <option value="08">August</option>
+                                            <option value="09">September</option>
+                                            <option value="10">October</option>
+                                            <option value="11">November</option>
+                                            <option value="12">December</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Year:</label>
+                                        <select id="yearSelect" class="date-input">
+                                            <option value="">Select Year</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- Year selector for year custom type -->
+                                <div class="year-selector" id="yearSelector" style="display: none;">
+                                    <div class="input-group">
+                                        <label>Year:</label>
+                                        <select id="yearSelectOnly" class="date-input">
+                                            <option value="">Select Year</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>

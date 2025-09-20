@@ -1,5 +1,6 @@
 // Analytics Dashboard JavaScript
-let currentFilter = 'today'; // Default filter set to today
+let currentFilter = 'yesterday'; // Default filter set to yesterday
+let customType = 'week'; // Default custom type set to week
 let chartInstances = {};
 let authToken = null;
 
@@ -30,8 +31,13 @@ function initializeAnalyticsContent() {
     }
     
     setupFilterButtons();
+    setupCustomTypeButtons();
     setupDateInputs();
     updateFilterDisplay();
+    
+    // Initialize custom inputs and date hints
+    toggleCustomInputs(customType);
+    updateDateHints(customType);
     
     // Add a small delay to ensure DOM is fully rendered
     setTimeout(() => {
@@ -126,8 +132,21 @@ function setupFilterButtons() {
             const customRange = document.getElementById('customRange');
             if (currentFilter === 'custom') {
                 customRange.style.display = 'block';
+                // Auto-set date range based on current custom type
+                if (customType === 'month') {
+                    setMonthRange();
+                } else if (customType === 'year') {
+                    setYearRange();
+                } else {
+                    setCustomDateRange(customType);
+                }
             } else {
                 customRange.style.display = 'none';
+                // Remove auto-calculated styling when not in custom mode
+                const endDateInput = document.getElementById('endDate');
+                if (endDateInput) {
+                    endDateInput.classList.remove('auto-calculated');
+                }
             }
             
             // Auto-apply filters
@@ -136,10 +155,101 @@ function setupFilterButtons() {
     });
 }
 
+// Setup custom type button event listeners
+function setupCustomTypeButtons() {
+    const customTypeButtons = document.querySelectorAll('.custom-type-btn');
+    
+    customTypeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all custom type buttons
+            customTypeButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Update current custom type
+            customType = this.dataset.type;
+            
+            // Show/hide appropriate input controls
+            toggleCustomInputs(customType);
+            
+            // Auto-set date ranges based on custom type
+            if (customType === 'month') {
+                setMonthRange();
+            } else if (customType === 'year') {
+                setYearRange();
+            } else {
+                setCustomDateRange(customType);
+            }
+            
+            // Auto-apply filters if custom is selected
+            if (currentFilter === 'custom') {
+                applyFilters();
+            }
+        });
+    });
+}
+
+// Toggle between date inputs and month/year selector
+function toggleCustomInputs(type) {
+    const dateInputs = document.getElementById('dateInputs');
+    const weekPicker = document.getElementById('weekPicker');
+    const monthYearSelector = document.getElementById('monthYearSelector');
+    const yearSelector = document.getElementById('yearSelector');
+    
+    if (type === 'week') {
+        dateInputs.style.display = 'none';
+        weekPicker.style.display = 'flex';
+        monthYearSelector.style.display = 'none';
+        yearSelector.style.display = 'none';
+    } else if (type === 'month') {
+        dateInputs.style.display = 'none';
+        weekPicker.style.display = 'none';
+        monthYearSelector.style.display = 'flex';
+        yearSelector.style.display = 'none';
+        // Populate year options if not already done
+        populateYearOptions();
+    } else if (type === 'year') {
+        dateInputs.style.display = 'none';
+        weekPicker.style.display = 'none';
+        monthYearSelector.style.display = 'none';
+        yearSelector.style.display = 'flex';
+        // Populate year options for year selector
+        populateYearOptions('yearSelectOnly');
+    } else {
+        dateInputs.style.display = 'flex';
+        weekPicker.style.display = 'none';
+        monthYearSelector.style.display = 'none';
+        yearSelector.style.display = 'none';
+    }
+}
+
+// Populate year options for month/year selector
+function populateYearOptions(selectorId = 'yearSelect') {
+    const yearSelect = document.getElementById(selectorId);
+    if (!yearSelect || yearSelect.children.length > 1) return; // Already populated
+    
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 5; // 5 years back
+    const endYear = currentYear + 1; // 1 year forward
+    
+    for (let year = endYear; year >= startYear; year--) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+    }
+    
+    // Set current year as default
+    yearSelect.value = currentYear;
+}
+
 // Setup date input event listeners
 function setupDateInputs() {
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
+    const monthSelect = document.getElementById('monthSelect');
+    const yearSelect = document.getElementById('yearSelect');
     
     // Set default dates
     const today = new Date();
@@ -149,9 +259,340 @@ function setupDateInputs() {
     endDateInput.value = today.toISOString().split('T')[0];
     startDateInput.value = yesterday.toISOString().split('T')[0];
     
-    // Add change listeners
-    startDateInput.addEventListener('change', applyFilters);
-    endDateInput.addEventListener('change', applyFilters);
+    // Add change listeners for date inputs
+    startDateInput.addEventListener('change', function() {
+        // Auto-set end date based on custom type when start date changes
+        if (currentFilter === 'custom' && customType) {
+            if (customType === 'week') {
+                setWeekRangeFromStart(this.value);
+            } else {
+                setCustomDateRange(customType, this.value);
+            }
+        }
+        applyFilters();
+    });
+    
+    endDateInput.addEventListener('change', function() {
+        // Auto-set start date based on custom type when end date changes
+        if (currentFilter === 'custom' && customType) {
+            if (customType === 'week') {
+                setWeekRangeFromEnd(this.value);
+            }
+        }
+        applyFilters();
+    });
+    
+    // Add change listeners for month/year selectors
+    if (monthSelect) {
+        monthSelect.addEventListener('change', function() {
+            if (currentFilter === 'custom' && customType === 'month') {
+                setMonthRange();
+            }
+        });
+    }
+    
+    if (yearSelect) {
+        yearSelect.addEventListener('change', function() {
+            if (currentFilter === 'custom' && customType === 'month') {
+                setMonthRange();
+            }
+        });
+    }
+    
+    const yearSelectOnly = document.getElementById('yearSelectOnly');
+    if (yearSelectOnly) {
+        yearSelectOnly.addEventListener('change', function() {
+            if (currentFilter === 'custom' && customType === 'year') {
+                setYearRange();
+            }
+        });
+    }
+    
+    const weekDate = document.getElementById('weekDate');
+    if (weekDate) {
+        weekDate.addEventListener('change', function() {
+            if (currentFilter === 'custom' && customType === 'week') {
+                setWeekRangeFromSingleDate(this.value);
+            }
+        });
+    }
+}
+
+// Set custom date range based on type
+function setCustomDateRange(type, startDate = null) {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (!startDateInput || !endDateInput) return;
+    
+    let start, end;
+    
+    if (startDate) {
+        // Use provided start date
+        start = new Date(startDate);
+    } else {
+        // Use current start date or default to today
+        const currentStart = startDateInput.value;
+        start = currentStart ? new Date(currentStart) : new Date();
+    }
+    
+    switch (type) {
+        case 'week':
+            // Set end date to 7 days after start date
+            end = new Date(start);
+            end.setDate(end.getDate() + 6); // 7 days total (start + 6 more days)
+            break;
+            
+        case 'month':
+            // Set end date to last day of the month
+            end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+            // Set start date to first day of the month
+            start = new Date(start.getFullYear(), start.getMonth(), 1);
+            break;
+            
+        case 'year':
+            // Set end date to last day of the year
+            end = new Date(start.getFullYear(), 11, 31);
+            // Set start date to first day of the year
+            start = new Date(start.getFullYear(), 0, 1);
+            break;
+            
+        default:
+            return; // No change for other types
+    }
+    
+    // Update the input fields
+    startDateInput.value = start.toISOString().split('T')[0];
+    endDateInput.value = end.toISOString().split('T')[0];
+    
+    // Add visual feedback for auto-calculation
+    endDateInput.style.backgroundColor = '#f0f9ff';
+    endDateInput.classList.add('auto-calculated');
+    setTimeout(() => {
+        endDateInput.style.backgroundColor = '';
+    }, 1000);
+    
+    // Update hint text
+    updateDateHints(type);
+}
+
+// Set week range from start date (7 days forward)
+function setWeekRangeFromStart(startDate) {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (!startDateInput || !endDateInput) return;
+    
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6); // 7 days total (including start date)
+    
+    startDateInput.value = start.toISOString().split('T')[0];
+    endDateInput.value = end.toISOString().split('T')[0];
+    
+    // Add visual feedback
+    endDateInput.style.backgroundColor = '#f0f9ff';
+    setTimeout(() => {
+        endDateInput.style.backgroundColor = '';
+    }, 1000);
+    
+    updateDateHints('week');
+}
+
+// Set week range from end date (7 days backward)
+function setWeekRangeFromEnd(endDate) {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (!startDateInput || !endDateInput) return;
+    
+    const end = new Date(endDate);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6); // 7 days total (including end date)
+    
+    startDateInput.value = start.toISOString().split('T')[0];
+    endDateInput.value = end.toISOString().split('T')[0];
+    
+    // Add visual feedback
+    startDateInput.style.backgroundColor = '#f0f9ff';
+    setTimeout(() => {
+        startDateInput.style.backgroundColor = '';
+    }, 1000);
+    
+    updateDateHints('week');
+}
+
+// Set month range from month/year selectors
+function setMonthRange() {
+    const monthSelect = document.getElementById('monthSelect');
+    const yearSelect = document.getElementById('yearSelect');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (!monthSelect || !yearSelect || !startDateInput || !endDateInput) return;
+    
+    const month = monthSelect.value;
+    const year = yearSelect.value;
+    
+    if (!month || !year) return;
+    
+    // Set start date to first day of the month
+    const start = new Date(year, month - 1, 1);
+    
+    // Set end date to last day of the month
+    const end = new Date(year, month, 0);
+    
+    startDateInput.value = start.toISOString().split('T')[0];
+    endDateInput.value = end.toISOString().split('T')[0];
+    
+    // Add visual feedback
+    startDateInput.style.backgroundColor = '#f0f9ff';
+    endDateInput.style.backgroundColor = '#f0f9ff';
+    setTimeout(() => {
+        startDateInput.style.backgroundColor = '';
+        endDateInput.style.backgroundColor = '';
+    }, 1000);
+    
+    updateDateHints('month');
+    
+    // Auto-apply filters
+    console.log('📅 Month range set, auto-applying filters...');
+    applyFilters();
+}
+
+// Set year range (full year)
+function setYearRange() {
+    const yearSelectOnly = document.getElementById('yearSelectOnly');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (!yearSelectOnly || !startDateInput || !endDateInput) return;
+    
+    const selectedYear = parseInt(yearSelectOnly.value);
+    if (!selectedYear) return;
+    
+    // Set start date to January 1st of selected year
+    const startDate = new Date(selectedYear, 0, 1);
+    // Set end date to December 31st of selected year
+    const endDate = new Date(selectedYear, 11, 31);
+    
+    startDateInput.value = startDate.toISOString().split('T')[0];
+    endDateInput.value = endDate.toISOString().split('T')[0];
+    
+    // Add visual feedback
+    endDateInput.style.backgroundColor = '#f0f9ff';
+    setTimeout(() => {
+        endDateInput.style.backgroundColor = '';
+    }, 1000);
+    
+    // Update hint text
+    updateDateHints('year');
+    
+    // Auto-apply filters
+    console.log('📅 Year range set, auto-applying filters...');
+    applyFilters();
+}
+
+// Set week range from single date selection
+function setWeekRangeFromSingleDate(selectedDate) {
+    const weekDate = document.getElementById('weekDate');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (!weekDate || !startDateInput || !endDateInput) return;
+    
+    if (!selectedDate) return;
+    
+    const selected = new Date(selectedDate);
+    const startOfWeek = new Date(selected);
+    
+    // Set end date to 7 days after start date
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // 7 days total (start + 6 more days)
+    
+    // Update the hidden date inputs
+    startDateInput.value = startOfWeek.toISOString().split('T')[0];
+    endDateInput.value = endOfWeek.toISOString().split('T')[0];
+    
+    // Update week preview
+    updateWeekPreview(startOfWeek, endOfWeek, selected);
+    
+    // Add visual feedback
+    endDateInput.style.backgroundColor = '#f0f9ff';
+    setTimeout(() => {
+        endDateInput.style.backgroundColor = '';
+    }, 1000);
+    
+    // Apply filters
+    applyFilters();
+}
+
+// Update week preview display
+function updateWeekPreview(startDate, endDate, selectedDate) {
+    const weekDates = document.getElementById('weekDates');
+    if (!weekDates) return;
+    
+    // Clear existing content
+    weekDates.innerHTML = '';
+    
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const currentDate = new Date(startDate);
+    
+    for (let i = 0; i < 7; i++) {
+        const dateItem = document.createElement('div');
+        dateItem.className = 'week-date-item';
+        
+        const dayNumber = currentDate.getDate();
+        const dayName = dayNames[i];
+        
+        dateItem.innerHTML = `
+            <span class="date-day">${dayNumber}</span>
+            <span class="date-name">${dayName}</span>
+        `;
+        
+        // Check if this is the selected date
+        if (currentDate.toDateString() === selectedDate.toDateString()) {
+            dateItem.classList.add('selected');
+        } else {
+            dateItem.classList.add('range');
+        }
+        
+        weekDates.appendChild(dateItem);
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+}
+
+// Update date input hints based on custom type
+function updateDateHints(type) {
+    const startDateHint = document.getElementById('startDateHint');
+    const endDateHint = document.getElementById('endDateHint');
+    const weekDateHint = document.getElementById('weekDateHint');
+    
+    if (type === 'week' && weekDateHint) {
+        weekDateHint.textContent = 'Select any day of the week (7-day range will be calculated)';
+    }
+    
+    if (!startDateHint || !endDateHint) return;
+    
+    switch (type) {
+        case 'week':
+            startDateHint.textContent = 'Select any day of the week';
+            endDateHint.textContent = 'Auto-calculated (7 days)';
+            break;
+        case 'month':
+            startDateHint.textContent = 'Use month/year selectors below';
+            endDateHint.textContent = 'Auto-calculated (full month)';
+            break;
+        case 'year':
+            startDateHint.textContent = 'Use year selector below';
+            endDateHint.textContent = 'Auto-calculated (full year)';
+            break;
+        default:
+            startDateHint.textContent = 'Select start date';
+            endDateHint.textContent = 'Auto-calculated';
+    }
 }
 
 // Update filter display based on current selection
@@ -160,22 +601,22 @@ function updateFilterDisplay() {
     let displayText = '';
     
     switch (currentFilter) {
-        case 'today':
-            displayText = 'Today\'s Data';
-            break;
         case 'yesterday':
             displayText = 'Yesterday\'s Data';
             break;
-        case 'last-month':
-            displayText = 'Last Month\'s Data';
+        case 'last-7-days':
+            displayText = 'Last 7 Days Data';
+            break;
+        case 'last-30-days':
+            displayText = 'Last 30 Days Data';
             break;
         case 'custom':
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             if (startDate && endDate) {
-                displayText = `Custom Range: ${formatDate(startDate)} - ${formatDate(endDate)}`;
+                displayText = `Custom Range (${customType}): ${formatDate(startDate)} - ${formatDate(endDate)}`;
             } else {
-                displayText = 'Custom Range (Select Dates)';
+                displayText = `Custom Range (${customType}) - Select Dates`;
             }
             break;
     }
@@ -207,7 +648,22 @@ function formatDate(dateString) {
 
 // Auto-apply filters when selection changes
 function applyFilters() {
-    console.log('Applying filters:', currentFilter);
+    console.log('🔄 Applying filters:', currentFilter);
+    
+    // Log date range for debugging
+    if (currentFilter !== 'custom') {
+        const dateRange = getDateRange(currentFilter);
+        console.log('📅 Date range:', {
+            start: dateRange.start.toISOString().split('T')[0],
+            end: dateRange.end.toISOString().split('T')[0],
+            startTime: dateRange.start.toISOString(),
+            endTime: dateRange.end.toISOString()
+        });
+    } else {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        console.log('📅 Custom date range:', { startDate, endDate, customType });
+    }
     
     // Load fresh data with current filters
     loadAnalyticsData();
@@ -217,10 +673,12 @@ function applyFilters() {
 async function loadAnalyticsData() {
     try {
         console.log('🔄 Starting to load analytics data...');
+        console.log('🔍 Current filter:', currentFilter);
         showLoadingState();
         
         // Try to load real data first
         try {
+            console.log('📡 Fetching analytics data from API...');
             const [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers] = await Promise.all([
                 fetchAnalyticsSummary(),
                 fetchSavingsTrend(),
@@ -229,6 +687,15 @@ async function loadAnalyticsData() {
                 fetchMemberActivity(),
                 fetchTopMembers()
             ]);
+            
+            console.log('📊 Fetched data:', {
+                summaryData,
+                savingsTrend: savingsTrend?.length || 0,
+                disbursementTrend: disbursementTrend?.length || 0,
+                branchPerformance: branchPerformance?.length || 0,
+                memberActivity: memberActivity?.length || 0,
+                topMembers: topMembers?.length || 0
+            });
             
             // Check if we have real data
             const hasData = summaryData && (
@@ -274,12 +741,21 @@ async function fetchAnalyticsSummary() {
         filter: currentFilter
     });
     
+    // Add date range parameters for all filters
     if (currentFilter === 'custom') {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
+    
+    console.log('📊 Fetching analytics summary with params:', params.toString());
     
     const response = await fetch(`${API_BASE_URL}/analytics/summary?${params}`, {
         headers: {
@@ -288,11 +764,16 @@ async function fetchAnalyticsSummary() {
         }
     });
     
+    console.log('📊 Analytics summary response status:', response.status);
+    
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Analytics summary API error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
     
     const result = await response.json();
+    console.log('📊 Analytics summary result:', result);
     return result.data;
 }
 
@@ -304,12 +785,21 @@ async function fetchSavingsTrend() {
         filter: currentFilter
     });
     
+    // Add date range parameters for all filters
     if (currentFilter === 'custom') {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
+    
+    console.log('📈 Fetching savings trend with params:', params.toString());
     
     const response = await fetch(`${API_BASE_URL}/analytics/savings-trend?${params}`, {
         headers: {
@@ -334,11 +824,18 @@ async function fetchDisbursementTrend() {
         filter: currentFilter
     });
     
+    // Add date range parameters for all filters
     if (currentFilter === 'custom') {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
     
     const response = await fetch(`${API_BASE_URL}/analytics/disbursement-trend?${params}`, {
@@ -364,11 +861,18 @@ async function fetchBranchPerformance() {
         filter: currentFilter
     });
     
+    // Add date range parameters for all filters
     if (currentFilter === 'custom') {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
     
     const response = await fetch(`${API_BASE_URL}/analytics/branch-performance?${params}`, {
@@ -394,11 +898,18 @@ async function fetchMemberActivity() {
         filter: currentFilter
     });
     
+    // Add date range parameters for all filters
     if (currentFilter === 'custom') {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
     
     const response = await fetch(`${API_BASE_URL}/analytics/member-activity?${params}`, {
@@ -424,11 +935,18 @@ async function fetchTopMembers() {
         filter: currentFilter
     });
     
+    // Add date range parameters for all filters
     if (currentFilter === 'custom') {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
     
     const response = await fetch(`${API_BASE_URL}/analytics/top-members?${params}`, {
@@ -567,7 +1085,7 @@ function initializeCharts() {
     console.log('📊 Chart initialization completed');
 }
 
-// Get chart options based on type
+// Get chart options based on type and current filter
 function getChartOptions(type, isTrendChart = false) {
     const baseOptions = {
         responsive: true,
@@ -585,13 +1103,25 @@ function getChartOptions(type, isTrendChart = false) {
         }
     };
     
+    // Determine time granularity based on current filter
+    let timeGranularity = 'day';
+    if (currentFilter === 'yesterday') {
+        timeGranularity = 'hour';
+    } else if (currentFilter === 'last-7-days') {
+        timeGranularity = 'day';
+    } else if (currentFilter === 'last-30-days') {
+        timeGranularity = 'day';
+    } else if (currentFilter === 'custom') {
+        timeGranularity = customType; // week, month, or year
+    }
+    
     if (type === 'line') {
         baseOptions.scales = {
             x: {
                 display: true,
                 title: {
                     display: true,
-                    text: 'Date'
+                    text: getTimeAxisLabel(timeGranularity)
                 }
             },
             y: {
@@ -609,13 +1139,16 @@ function getChartOptions(type, isTrendChart = false) {
         };
     } else if (type === 'bar') {
         if (isTrendChart) {
-            // For trend charts, use Month as x-axis
+            // For trend charts, use dynamic x-axis based on filter
             baseOptions.scales = {
                 x: {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Month'
+                        text: getTimeAxisLabel(timeGranularity)
+                    },
+                    ticks: {
+                        maxTicksLimit: getMaxTicksLimit(timeGranularity)
                     }
                 },
                 y: {
@@ -665,14 +1198,64 @@ function getChartOptions(type, isTrendChart = false) {
     return baseOptions;
 }
 
+// Get time axis label based on granularity
+function getTimeAxisLabel(granularity) {
+    switch (granularity) {
+        case 'hour':
+            return 'Time (Hours)';
+        case 'day':
+            return 'Date';
+        case 'week':
+            return 'Week';
+        case 'month':
+            return 'Month';
+        case 'year':
+            return 'Year';
+        default:
+            return 'Date';
+    }
+}
+
+// Get max ticks limit based on granularity
+function getMaxTicksLimit(granularity) {
+    switch (granularity) {
+        case 'hour':
+            return 12; // 12 hours max
+        case 'day':
+            return 7; // 7 days max
+        case 'week':
+            return 8; // 8 weeks max
+        case 'month':
+            return 12; // 12 months max
+        case 'year':
+            return 10; // 10 years max
+        default:
+            return 8;
+    }
+}
+
 // Update charts with real data
 function updateCharts(savingsTrend, disbursementTrend, branchPerformance, memberActivity) {
     console.log('🔄 Updating all charts with real data...');
+    
+    // Destroy existing charts to ensure proper recreation with new options
+    destroyExistingCharts();
+    
     updateSavingsTrendChart(savingsTrend);
     updateDisbursementTrendChart(disbursementTrend);
     updateBranchPerformanceChart(branchPerformance);
     updateMemberActivityChart(memberActivity);
     console.log('✅ All charts updated with real data');
+}
+
+// Destroy existing chart instances
+function destroyExistingCharts() {
+    Object.keys(chartInstances).forEach(chartId => {
+        if (chartInstances[chartId]) {
+            chartInstances[chartId].destroy();
+            chartInstances[chartId] = null;
+        }
+    });
 }
 
 // Update savings trend chart
@@ -1358,17 +1941,17 @@ function formatPercentage(value) {
 function getDateRange(filter) {
     const today = new Date();
     const ranges = {
-        today: {
-            start: new Date(today),
-            end: new Date(today)
-        },
         yesterday: {
             start: new Date(today.getTime() - 24 * 60 * 60 * 1000),
             end: new Date(today.getTime() - 24 * 60 * 60 * 1000)
         },
-        'last-month': {
-            start: new Date(today.getFullYear(), today.getMonth() - 1, 1),
-            end: new Date(today.getFullYear(), today.getMonth(), 0)
+        'last-7-days': {
+            start: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
+            end: new Date(today)
+        },
+        'last-30-days': {
+            start: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000),
+            end: new Date(today)
         },
         custom: {
             start: new Date(document.getElementById('startDate').value),
@@ -1376,7 +1959,7 @@ function getDateRange(filter) {
         }
     };
     
-    return ranges[filter] || ranges.today;
+    return ranges[filter] || ranges.yesterday;
 }
 
 
