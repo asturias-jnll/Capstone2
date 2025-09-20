@@ -36,7 +36,7 @@ function initializeAnalyticsContent() {
     // Add a small delay to ensure DOM is fully rendered
     setTimeout(() => {
         initializeCharts();
-        // Always load data (will use sample data if API fails)
+        // Load real data only
         loadAnalyticsData();
         console.log('✅ Analytics dashboard initialized successfully');
     }, 200);
@@ -219,17 +219,7 @@ async function loadAnalyticsData() {
         console.log('🔄 Starting to load analytics data...');
         showLoadingState();
         
-        // For now, always use sample data to ensure charts display
-        console.log('🔄 Using sample data to ensure charts display...');
-        const sampleData = generateSampleData();
-        updateSummaryCards(sampleData.summary);
-        updateCharts(sampleData.savingsTrend, sampleData.disbursementTrend, sampleData.branchPerformance, sampleData.memberActivity);
-        updateTables(sampleData.topMembers, sampleData.branchPerformance);
-        
-        hideLoadingState();
-        console.log('✅ Analytics data loaded and UI updated successfully');
-        
-        // Try to load real data in background (optional)
+        // Try to load real data first
         try {
             const [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers] = await Promise.all([
                 fetchAnalyticsSummary(),
@@ -253,23 +243,26 @@ async function loadAnalyticsData() {
                 updateCharts(savingsTrend, disbursementTrend, branchPerformance, memberActivity);
                 updateTables(topMembers, branchPerformance);
                 showNotification('Real data loaded successfully', 'success');
+            } else {
+                console.log('📊 No real data available, showing empty state');
+                // Show empty state when no real data
+                showEmptyState();
             }
+            
+            hideLoadingState();
+            console.log('✅ Analytics data loading completed');
+            
         } catch (apiError) {
-            console.log('API not available, continuing with sample data');
+            console.log('API not available, showing empty state');
+            showEmptyState();
+            hideLoadingState();
         }
         
     } catch (error) {
         console.error('❌ Error loading analytics data:', error);
         hideLoadingState();
-        
-        // Use sample data as fallback
-        console.log('🔄 Using sample data as fallback...');
-        const sampleData = generateSampleData();
-        updateSummaryCards(sampleData.summary);
-        updateCharts(sampleData.savingsTrend, sampleData.disbursementTrend, sampleData.branchPerformance, sampleData.memberActivity);
-        updateTables(sampleData.topMembers, sampleData.branchPerformance);
-        
-        showNotification(`Using sample data - Error: ${error.message}`, 'warning');
+        showEmptyState();
+        showNotification(`Error loading data: ${error.message}`, 'error');
     }
 }
 
@@ -547,6 +540,18 @@ function initializeCharts() {
         
         if (canvas) {
             try {
+                // Destroy existing chart if it exists
+                if (chartInstances[chartId]) {
+                    chartInstances[chartId].destroy();
+                }
+                
+                // Show canvas by default, hide no-data message initially
+                canvas.style.display = 'block';
+                const noDataMessage = canvas.parentElement.querySelector('.no-data-message');
+                if (noDataMessage) {
+                    noDataMessage.style.display = 'none';
+                }
+                
                 chartInstances[chartId] = new Chart(canvas, {
                     type: chartConfigs[chartId].type,
                     data: chartConfigs[chartId].data,
@@ -684,13 +689,14 @@ function updateSavingsTrendChart(data) {
     
     if (!data || data.length === 0) {
         console.log('⚠️ No savings data available, showing no-data message');
-        if (noDataMessage) noDataMessage.style.display = 'block';
-        // Don't hide canvas, just show no-data message
+        if (noDataMessage) noDataMessage.style.display = 'flex';
+        if (canvas) canvas.style.display = 'none';
         return;
     }
     
     console.log('✅ Savings data available, showing chart');
     if (noDataMessage) noDataMessage.style.display = 'none';
+    if (canvas) canvas.style.display = 'block';
     
     // Ensure canvas has proper dimensions
     const container = canvas.parentElement;
@@ -730,21 +736,23 @@ function updateSavingsTrendChart(data) {
                 datasets: [{
                     label: 'Monthly Savings (Bar)',
                     data: values,
-                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                    borderColor: '#10b981',
-                    borderWidth: 1,
+                    backgroundColor: 'rgba(0, 117, 66, 0.7)',
+                    borderColor: '#007542',
+                    borderWidth: 2,
                     type: 'bar'
                 }, {
                     label: 'Savings Trend (Line)',
                     data: values,
-                    borderColor: '#059669',
+                    borderColor: '#58BB43',
                     backgroundColor: 'transparent',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.4,
                     type: 'line',
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#007542',
+                    pointBorderColor: '#58BB43'
                 }]
             },
             options: getChartOptions('bar', true)
@@ -783,13 +791,14 @@ function updateDisbursementTrendChart(data) {
     
     if (!data || data.length === 0) {
         console.log('No disbursement data available, showing no-data message');
-        if (noDataMessage) noDataMessage.style.display = 'block';
-        // Don't hide canvas, just show no-data message
+        if (noDataMessage) noDataMessage.style.display = 'flex';
+        if (canvas) canvas.style.display = 'none';
         return;
     }
     
     console.log('Disbursement data available, showing chart');
     if (noDataMessage) noDataMessage.style.display = 'none';
+    if (canvas) canvas.style.display = 'block';
     
     // Ensure canvas has proper dimensions
     const container = canvas.parentElement;
@@ -829,21 +838,23 @@ function updateDisbursementTrendChart(data) {
                 datasets: [{
                     label: 'Monthly Disbursements (Bar)',
                     data: values,
-                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
-                    borderColor: '#ef4444',
-                    borderWidth: 1,
+                    backgroundColor: 'rgba(88, 187, 67, 0.6)',
+                    borderColor: '#58BB43',
+                    borderWidth: 2,
                     type: 'bar'
                 }, {
                     label: 'Disbursement Trend (Line)',
                     data: values,
-                    borderColor: '#dc2626',
+                    borderColor: '#1E8C45',
                     backgroundColor: 'transparent',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.4,
                     type: 'line',
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#58BB43',
+                    pointBorderColor: '#1E8C45'
                 }]
             },
             options: getChartOptions('bar', true)
@@ -879,13 +890,14 @@ function updateBranchPerformanceChart(data) {
     
     if (!data || data.length === 0) {
         console.log('No branch performance data available, showing no-data message');
-        if (noDataMessage) noDataMessage.style.display = 'block';
-        // Don't hide canvas, just show no-data message
+        if (noDataMessage) noDataMessage.style.display = 'flex';
+        if (canvas) canvas.style.display = 'none';
         return;
     }
     
     console.log('Branch performance data available, showing chart');
     if (noDataMessage) noDataMessage.style.display = 'none';
+    if (canvas) canvas.style.display = 'block';
     
     const labels = data.map(item => item.branch_name);
     const savingsData = data.map(item => parseFloat(item.total_savings) || 0);
@@ -917,14 +929,14 @@ function updateBranchPerformanceChart(data) {
                 datasets: [{
                     label: 'Total Savings',
                     data: savingsData,
-                    backgroundColor: '#10b981',
-                    borderColor: '#059669',
+                    backgroundColor: '#007542',
+                    borderColor: '#1E8C45',
                     borderWidth: 1
                 }, {
                     label: 'Total Disbursements',
                     data: disbursementData,
-                    backgroundColor: '#ef4444',
-                    borderColor: '#dc2626',
+                    backgroundColor: '#78D23D',
+                    borderColor: '#58BB43',
                     borderWidth: 1
                 }]
             },
@@ -961,13 +973,14 @@ function updateMemberActivityChart(data) {
     
     if (!data || data.length === 0) {
         console.log('No member activity data available, showing no-data message');
-        if (noDataMessage) noDataMessage.style.display = 'block';
-        // Don't hide canvas, just show no-data message
+        if (noDataMessage) noDataMessage.style.display = 'flex';
+        if (canvas) canvas.style.display = 'none';
         return;
     }
     
     console.log('Member activity data available, showing chart');
     if (noDataMessage) noDataMessage.style.display = 'none';
+    if (canvas) canvas.style.display = 'block';
     
     const labels = data.slice(0, 5).map(item => item.member_name);
     const values = data.slice(0, 5).map(item => parseFloat(item.transaction_count) || 0);
@@ -997,11 +1010,11 @@ function updateMemberActivityChart(data) {
                 datasets: [{
                     data: values,
                     backgroundColor: [
-                        '#10b981',
-                        '#3b82f6',
-                        '#f59e0b',
-                        '#ef4444',
-                        '#8b5cf6'
+                        '#007542',
+                        '#1E8C45',
+                        '#3AA346',
+                        '#58BB43',
+                        '#78D23D'
                     ],
                     borderWidth: 2,
                     borderColor: '#ffffff'
@@ -1058,12 +1071,17 @@ function updateTopMembersTable(data) {
     
     data.forEach(member => {
         const row = document.createElement('tr');
+        
+        // Determine color for net position
+        const netPosition = parseFloat(member.net_position) || 0;
+        const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+        
         row.innerHTML = `
             <td>${member.rank}</td>
             <td>${member.member_name}</td>
             <td>${formatCurrency(member.total_savings)}</td>
             <td>${formatCurrency(member.total_disbursements)}</td>
-            <td>${formatCurrency(member.net_position)}</td>
+            <td style="color: ${netPositionColor}; font-weight: 600;">${formatCurrency(member.net_position)}</td>
         `;
         tbody.appendChild(row);
     });
@@ -1094,11 +1112,16 @@ function updateBranchPerformanceTable(data) {
     
     data.forEach(branch => {
         const row = document.createElement('tr');
+        
+        // Determine color for growth rate
+        const growthRate = parseFloat(branch.growth_rate) || 0;
+        const growthRateColor = growthRate >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+        
         row.innerHTML = `
             <td>${branch.branch_name}</td>
             <td>${formatCurrency(branch.total_savings)}</td>
             <td>${formatCurrency(branch.total_disbursements)}</td>
-            <td>${formatPercentage(branch.growth_rate)}</td>
+            <td style="color: ${growthRateColor}; font-weight: 600;">${formatPercentage(branch.growth_rate)}</td>
         `;
         tbody.appendChild(row);
     });
@@ -1160,6 +1183,38 @@ function refreshTable(tableType) {
 function showLoadingState() {
     // Add loading class to main content
     document.querySelector('.analytics-content').classList.add('loading');
+}
+
+
+// Show empty state when no data is available
+function showEmptyState() {
+    console.log('📊 Showing empty state for all components');
+    
+    // Reset summary cards to empty state
+    updateSummaryCards({
+        total_savings: 0,
+        total_disbursements: 0,
+        net_growth: 0,
+        active_members: 0
+    });
+    
+    // Show no-data messages for all charts
+    const chartIds = ['savingsTrendChart', 'disbursementTrendChart', 'branchPerformanceChart', 'memberActivityChart'];
+    chartIds.forEach(chartId => {
+        const canvas = document.getElementById(chartId);
+        if (canvas) {
+            const noDataMessage = canvas.parentElement.querySelector('.no-data-message');
+            if (noDataMessage) {
+                noDataMessage.style.display = 'flex';
+            }
+            canvas.style.display = 'none';
+        }
+    });
+    
+    // Clear all tables
+    updateTables([], []);
+    
+    console.log('✅ Empty state displayed successfully');
 }
 
 // Hide loading state
@@ -1324,53 +1379,6 @@ function getDateRange(filter) {
     return ranges[filter] || ranges.today;
 }
 
-// Generate sample data for demonstration
-function generateSampleData() {
-    const today = new Date();
-    const dates = [];
-    
-    // Generate dates for the last 12 months
-    for (let i = 11; i >= 0; i--) {
-        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        dates.push(date.toISOString().split('T')[0]);
-    }
-    
-    return {
-        summary: {
-            total_savings: 125000,
-            total_disbursements: 85000,
-            net_growth: 40000,
-            active_members: 15
-        },
-        savingsTrend: dates.map(date => ({
-            date: date,
-            daily_savings: Math.floor(Math.random() * 50000) + 30000
-        })),
-        disbursementTrend: dates.map(date => ({
-            date: date,
-            daily_disbursements: Math.floor(Math.random() * 40000) + 20000
-        })),
-        branchPerformance: [
-            { branch_name: 'Main Branch', total_savings: 75000, total_disbursements: 45000, growth_rate: 40.0 },
-            { branch_name: 'Branch 2', total_savings: 35000, total_disbursements: 25000, growth_rate: 28.6 },
-            { branch_name: 'Branch 3', total_savings: 15000, total_disbursements: 15000, growth_rate: 0.0 }
-        ],
-        memberActivity: [
-            { member_name: 'Juan Dela Cruz', transaction_count: 12 },
-            { member_name: 'Maria Santos', transaction_count: 8 },
-            { member_name: 'Pedro Rodriguez', transaction_count: 6 },
-            { member_name: 'Ana Garcia', transaction_count: 5 },
-            { member_name: 'Carlos Lopez', transaction_count: 4 }
-        ],
-        topMembers: [
-            { rank: 1, member_name: 'Juan Dela Cruz', total_savings: 25000, total_disbursements: 10000, net_position: 15000 },
-            { rank: 2, member_name: 'Maria Santos', total_savings: 20000, total_disbursements: 8000, net_position: 12000 },
-            { rank: 3, member_name: 'Pedro Rodriguez', total_savings: 18000, total_disbursements: 12000, net_position: 6000 },
-            { rank: 4, member_name: 'Ana Garcia', total_savings: 15000, total_disbursements: 9000, net_position: 6000 },
-            { rank: 5, member_name: 'Carlos Lopez', total_savings: 12000, total_disbursements: 7000, net_position: 5000 }
-        ]
-    };
-}
 
 // Export functions for global access
 window.applyFilters = applyFilters;
