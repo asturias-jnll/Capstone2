@@ -6,17 +6,37 @@ class TransactionService {
         this.pool = new Pool(config.database);
     }
 
-    // Determine which table to use based on user role and branch
-    getTableName(userRole, branchId, isMainBranch) {
-        // Main branch users use ibaan_transactions for historical compatibility
-        if (isMainBranch || userRole === 'admin' || userRole === 'finance_officer') {
-            return 'ibaan_transactions';
+    // Determine which table to use based on branch ID
+    getTableName(branchId) {
+        const branchTableMap = {
+            1: 'ibaan_transactions',        // Main Branch - IBAAN
+            2: 'bauan_transactions',        // Branch 2 - BAUAN
+            3: 'sanjose_transactions',      // Branch 3 - SAN JOSE
+            4: 'rosario_transactions',      // Branch 4 - ROSARIO
+            5: 'sanjuan_transactions',      // Branch 5 - SAN JUAN
+            6: 'padregarcia_transactions',  // Branch 6 - PADRE GARCIA
+            7: 'lipacity_transactions',     // Branch 7 - LIPA CITY
+            8: 'batangascity_transactions', // Branch 8 - BATANGAS CITY
+            9: 'mabinilipa_transactions',   // Branch 9 - MABINI LIPA
+            10: 'calamias_transactions',    // Branch 10 - CALAMIAS
+            11: 'lemery_transactions',      // Branch 11 - LEMERY
+            12: 'mataasnakahoy_transactions', // Branch 12 - MATAAS NA KAHOY
+            13: 'tanauan_transactions'      // Branch 13 - TANAUAN
+        };
+
+        if (!branchId) {
+            throw new Error('Branch ID is required to determine transaction table');
         }
-        // Non-main branch users use all_branch_transactions
-        return 'all_branch_transactions';
+
+        const tableName = branchTableMap[branchId];
+        if (!tableName) {
+            throw new Error(`Invalid branch ID: ${branchId}. No corresponding transaction table found.`);
+        }
+
+        return tableName;
     }
 
-    // Create a new transaction in both tables
+    // Create a new transaction in the appropriate branch table
     async createTransaction(transactionData, userId, branchId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
@@ -39,7 +59,7 @@ class TransactionService {
                 sundries
             } = transactionData;
 
-            // Generate a single UUID for this transaction to use in both tables
+            // Generate a single UUID for this transaction
             const transactionId = require('crypto').randomUUID();
 
             const values = [
@@ -62,9 +82,12 @@ class TransactionService {
                 userId
             ];
 
-            // Insert into ibaan_transactions
-            const ibaanQuery = `
-                INSERT INTO ibaan_transactions (
+            // Get the appropriate table name for this branch
+            const tableName = this.getTableName(branchId);
+
+            // Insert into the branch-specific table
+            const query = `
+                INSERT INTO ${tableName} (
                     id, transaction_date, payee, reference, cross_reference, check_number,
                     particulars, debit_amount, credit_amount, cash_in_bank,
                     loan_receivables, savings_deposits, interest_income,
@@ -73,9 +96,9 @@ class TransactionService {
                 RETURNING *
             `;
 
-            const ibaanResult = await client.query(ibaanQuery, values);
+            const result = await client.query(query, values);
 
-            // Insert into all_branch_transactions
+            // Also insert into all_branch_transactions for consolidated reporting
             const allBranchQuery = `
                 INSERT INTO all_branch_transactions (
                     id, transaction_date, payee, reference, cross_reference, check_number,
@@ -86,12 +109,12 @@ class TransactionService {
                 RETURNING *
             `;
 
-            const allBranchResult = await client.query(allBranchQuery, values);
+            await client.query(allBranchQuery, values);
 
             await client.query('COMMIT');
             
-            // Return the transaction data (both should be identical)
-            return ibaanResult.rows[0];
+            // Return the transaction data
+            return result.rows[0];
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
@@ -104,8 +127,13 @@ class TransactionService {
     async getTransactions(filters = {}, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, filters.branch_id, isMainBranch);
+            // CRITICAL: Always filter by branch_id for data isolation
+            if (!filters.branch_id) {
+                throw new Error('Branch ID is required for data access');
+            }
+
+            // Determine which table to use based on branch
+            const tableName = this.getTableName(filters.branch_id);
             
             let query = `
                 SELECT 
@@ -118,21 +146,11 @@ class TransactionService {
                 FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
                 LEFT JOIN users u ON t.created_by = u.id
-                WHERE 1=1
+                WHERE t.branch_id = $1
             `;
             
-            const values = [];
-            let paramCount = 0;
-
-            // CRITICAL: Always filter by branch_id for data isolation
-            if (filters.branch_id) {
-                paramCount++;
-                query += ` AND t.branch_id = $${paramCount}`;
-                values.push(filters.branch_id);
-            } else {
-                // If no branch_id provided, this is an error for non-main branch users
-                throw new Error('Branch ID is required for data access');
-            }
+            const values = [filters.branch_id];
+            let paramCount = 1;
 
             if (filters.payee) {
                 paramCount++;
@@ -181,13 +199,21 @@ class TransactionService {
         }
     }
 
-    // Get transaction by ID
+    // Get transaction by ID - search across all branch tables
     async getTransactionById(transactionId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, null, isMainBranch);
-            
+            // Get all branch table names
+            const branchTables = [
+                'ibaan_transactions', 'bauan_transactions', 'sanjose_transactions',
+                'rosario_transactions', 'sanjuan_transactions', 'padregarcia_transactions',
+                'lipacity_transactions', 'batangascity_transactions', 'mabinilipa_transactions',
+                'calamias_transactions', 'lemery_transactions', 'mataasnakahoy_transactions',
+                'tanauan_transactions'
+            ];
+
+            // Search through all branch tables
+            for (const tableName of branchTables) {
             const query = `
                 SELECT 
                     t.*,
@@ -203,13 +229,18 @@ class TransactionService {
             `;
 
             const result = await client.query(query, [transactionId]);
+                if (result.rows.length > 0) {
             return result.rows[0];
+                }
+            }
+
+            return null; // Transaction not found in any table
         } finally {
             client.release();
         }
     }
 
-    // Update transaction
+    // Update transaction - search across all branch tables
     async updateTransaction(transactionId, updateData, userId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
@@ -230,29 +261,14 @@ class TransactionService {
                 sundries
             } = updateData;
 
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, null, isMainBranch);
-
-            const query = `
-                UPDATE ${tableName} SET
-                    transaction_date = $1,
-                    payee = $2,
-                    reference = $3,
-                    cross_reference = $4,
-                    check_number = $5,
-                    particulars = $6,
-                    debit_amount = $7,
-                    credit_amount = $8,
-                    cash_in_bank = $9,
-                    loan_receivables = $10,
-                    savings_deposits = $11,
-                    interest_income = $12,
-                    service_charge = $13,
-                    sundries = $14,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = $15
-                RETURNING *
-            `;
+            // Get all branch table names
+            const branchTables = [
+                'ibaan_transactions', 'bauan_transactions', 'sanjose_transactions',
+                'rosario_transactions', 'sanjuan_transactions', 'padregarcia_transactions',
+                'lipacity_transactions', 'batangascity_transactions', 'mabinilipa_transactions',
+                'calamias_transactions', 'lemery_transactions', 'mataasnakahoy_transactions',
+                'tanauan_transactions'
+            ];
 
             const values = [
                 transaction_date,
@@ -272,52 +288,104 @@ class TransactionService {
                 transactionId
             ];
 
+            // Try to update in each branch table until we find the transaction
+            for (const tableName of branchTables) {
+                const query = `
+                    UPDATE ${tableName} SET
+                        transaction_date = $1,
+                        payee = $2,
+                        reference = $3,
+                        cross_reference = $4,
+                        check_number = $5,
+                        particulars = $6,
+                        debit_amount = $7,
+                        credit_amount = $8,
+                        cash_in_bank = $9,
+                        loan_receivables = $10,
+                        savings_deposits = $11,
+                        interest_income = $12,
+                        service_charge = $13,
+                        sundries = $14,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $15
+                    RETURNING *
+                `;
+
             const result = await client.query(query, values);
+                if (result.rows.length > 0) {
+                    // Also update in all_branch_transactions for consistency
+                    const allBranchQuery = `
+                        UPDATE all_branch_transactions SET
+                            transaction_date = $1,
+                            payee = $2,
+                            reference = $3,
+                            cross_reference = $4,
+                            check_number = $5,
+                            particulars = $6,
+                            debit_amount = $7,
+                            credit_amount = $8,
+                            cash_in_bank = $9,
+                            loan_receivables = $10,
+                            savings_deposits = $11,
+                            interest_income = $12,
+                            service_charge = $13,
+                            sundries = $14,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $15
+                    `;
+                    await client.query(allBranchQuery, values);
+                    
             return result.rows[0];
+                }
+            }
+
+            throw new Error('Transaction not found in any branch table');
         } finally {
             client.release();
         }
     }
 
-    // Delete transaction from both tables
+    // Delete transaction from branch table and all_branch_transactions
     async deleteTransaction(transactionId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
             await client.query('BEGIN');
             
-            let deletedFromIbaan = null;
-            let deletedFromAllBranch = null;
+            // Get all branch table names
+            const branchTables = [
+                'ibaan_transactions', 'bauan_transactions', 'sanjose_transactions',
+                'rosario_transactions', 'sanjuan_transactions', 'padregarcia_transactions',
+                'lipacity_transactions', 'batangascity_transactions', 'mabinilipa_transactions',
+                'calamias_transactions', 'lemery_transactions', 'mataasnakahoy_transactions',
+                'tanauan_transactions'
+            ];
+
+            let deletedFromBranch = null;
             
-            // Try to delete from ibaan_transactions table
-            try {
-                const ibaanQuery = `DELETE FROM ibaan_transactions WHERE id = $1 RETURNING *`;
-                const ibaanResult = await client.query(ibaanQuery, [transactionId]);
-                deletedFromIbaan = ibaanResult.rows[0];
-            } catch (error) {
-                // Transaction might not exist in ibaan_transactions, continue
-                console.log('Transaction not found in ibaan_transactions:', error.message);
+            // Try to delete from each branch table until we find the transaction
+            for (const tableName of branchTables) {
+                const query = `DELETE FROM ${tableName} WHERE id = $1 RETURNING *`;
+                const result = await client.query(query, [transactionId]);
+                if (result.rows.length > 0) {
+                    deletedFromBranch = result.rows[0];
+                    break;
+                }
             }
             
-            // Try to delete from all_branch_transactions table
-            try {
+            // Also delete from all_branch_transactions
                 const allBranchQuery = `DELETE FROM all_branch_transactions WHERE id = $1 RETURNING *`;
                 const allBranchResult = await client.query(allBranchQuery, [transactionId]);
-                deletedFromAllBranch = allBranchResult.rows[0];
-            } catch (error) {
-                // Transaction might not exist in all_branch_transactions, continue
-                console.log('Transaction not found in all_branch_transactions:', error.message);
-            }
             
             // Check if transaction was deleted from at least one table
-            if (!deletedFromIbaan && !deletedFromAllBranch) {
+            if (!deletedFromBranch && allBranchResult.rows.length === 0) {
                 await client.query('ROLLBACK');
                 throw new Error('Transaction not found in any table');
             }
             
             await client.query('COMMIT');
             
-            // Return the deleted transaction data (prefer ibaan_transactions if available)
-            return deletedFromIbaan || deletedFromAllBranch;
+            // Return the deleted transaction data (prefer branch table if available)
+            return deletedFromBranch || allBranchResult.rows[0];
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
@@ -330,8 +398,13 @@ class TransactionService {
     async getTransactionStats(filters = {}, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, filters.branch_id, isMainBranch);
+            // CRITICAL: Always filter by branch_id for data isolation
+            if (!filters.branch_id) {
+                throw new Error('Branch ID is required for data access');
+            }
+
+            // Determine which table to use based on branch
+            const tableName = this.getTableName(filters.branch_id);
             
             let query = `
                 SELECT 
@@ -345,20 +418,11 @@ class TransactionService {
                     SUM(service_charge) as total_service_charge,
                     SUM(sundries) as total_sundries
                 FROM ${tableName} t
-                WHERE 1=1
+                WHERE t.branch_id = $1
             `;
             
-            const values = [];
-            let paramCount = 0;
-
-            // CRITICAL: Always filter by branch_id for data isolation
-            if (filters.branch_id) {
-                paramCount++;
-                query += ` AND t.branch_id = $${paramCount}`;
-                values.push(filters.branch_id);
-            } else {
-                throw new Error('Branch ID is required for data access');
-            }
+            const values = [filters.branch_id];
+            let paramCount = 1;
 
             if (filters.date_from) {
                 paramCount++;
@@ -388,8 +452,8 @@ class TransactionService {
                 throw new Error('Branch ID is required for data access');
             }
 
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            // Determine which table to use based on branch
+            const tableName = this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -421,8 +485,8 @@ class TransactionService {
                 throw new Error('Branch ID is required for data access');
             }
 
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            // Determine which table to use based on branch
+            const tableName = this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -547,8 +611,8 @@ class TransactionService {
                 throw new Error('Branch ID is required for data access');
             }
 
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            // Determine which table to use based on branch
+            const tableName = this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -585,8 +649,8 @@ class TransactionService {
                 throw new Error('Branch ID is required for data access');
             }
 
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            // Determine which table to use based on branch
+            const tableName = this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -621,8 +685,8 @@ class TransactionService {
                 throw new Error('Branch ID is required for data access');
             }
 
-            // Determine which table to use
-            const tableName = this.getTableName(userRole, branchId, isMainBranch);
+            // Determine which table to use based on branch
+            const tableName = this.getTableName(branchId);
             
             let query = `
                 SELECT 
