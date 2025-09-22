@@ -260,33 +260,12 @@ router.delete('/:id', authenticateToken, checkPermission('transactions:delete'),
 
         const { id } = req.params;
 
-        // Check if transaction exists in either table (for validation purposes)
-        // We need to check both tables to ensure the transaction exists
-        let existingTransaction = null;
-        
-        try {
-            // Try to find in ibaan_transactions first
-            existingTransaction = await transactionService.getTransactionById(
-                id, 
-                'admin', // Use admin role to access ibaan_transactions
-                true // isMainBranch = true
-            );
-        } catch (error) {
-            // If not found in ibaan_transactions, try all_branch_transactions
-            try {
-                existingTransaction = await transactionService.getTransactionById(
-                    id, 
-                    'user', // Use regular user role to access all_branch_transactions
-                    false // isMainBranch = false
-                );
-            } catch (error2) {
-                // Transaction not found in either table
-                return res.status(404).json({
-                    success: false,
-                    message: 'Transaction not found'
-                });
-            }
-        }
+        // Check if transaction exists (searches across all branch tables)
+        const existingTransaction = await transactionService.getTransactionById(
+            id, 
+            req.user.role,
+            req.user.is_main_branch_user
+        );
 
         if (!existingTransaction) {
             return res.status(404).json({

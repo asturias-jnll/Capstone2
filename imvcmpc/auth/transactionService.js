@@ -104,19 +104,6 @@ class TransactionService {
 
             const result = await client.query(query, values);
 
-            // Also insert into all_branch_transactions for consolidated reporting
-            const allBranchQuery = `
-                INSERT INTO all_branch_transactions (
-                    id, transaction_date, payee, reference, cross_reference, check_number,
-                    particulars, debit_amount, credit_amount, cash_in_bank,
-                    loan_receivables, savings_deposits, interest_income,
-                    service_charge, sundries, branch_id, created_by
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-                RETURNING *
-            `;
-
-            await client.query(allBranchQuery, values);
-
             await client.query('COMMIT');
             
             // Return the transaction data
@@ -205,33 +192,56 @@ class TransactionService {
         }
     }
 
-    // Get transaction by ID - use consolidated table for efficient lookup
+    // Get transaction by ID - search across all branch tables
     async getTransactionById(transactionId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
-            // Use all_branch_transactions for efficient lookup
-            const query = `
-                SELECT 
-                    t.*,
-                    b.name as branch_name,
-                    b.location as branch_location,
-                    u.first_name,
-                    u.last_name,
-                    u.username
-                FROM all_branch_transactions t
-                LEFT JOIN branches b ON t.branch_id = b.id
-                LEFT JOIN users u ON t.created_by = u.id
-                WHERE t.id = $1
-            `;
+            // Get all branch table names
+            const branchTableMap = {
+                1: 'ibaan_transactions',        // Main Branch - IBAAN
+                2: 'bauan_transactions',        // Branch 2 - BAUAN
+                3: 'sanjose_transactions',      // Branch 3 - SAN JOSE
+                4: 'rosario_transactions',      // Branch 4 - ROSARIO
+                5: 'sanjuan_transactions',      // Branch 5 - SAN JUAN
+                6: 'padregarcia_transactions',  // Branch 6 - PADRE GARCIA
+                7: 'lipacity_transactions',     // Branch 7 - LIPA CITY
+                8: 'batangascity_transactions', // Branch 8 - BATANGAS CITY
+                9: 'mabinilipa_transactions',   // Branch 9 - MABINI LIPA
+                10: 'calamias_transactions',    // Branch 10 - CALAMIAS
+                11: 'lemery_transactions',      // Branch 11 - LEMERY
+                12: 'mataasnakahoy_transactions', // Branch 12 - MATAAS NA KAHOY
+                13: 'tanauan_transactions'      // Branch 13 - TANAUAN
+            };
 
-            const result = await client.query(query, [transactionId]);
-            return result.rows.length > 0 ? result.rows[0] : null;
+            // Search through each branch table to find the transaction
+            for (const [branchId, tableName] of Object.entries(branchTableMap)) {
+                const query = `
+                    SELECT 
+                        t.*,
+                        b.name as branch_name,
+                        b.location as branch_location,
+                        u.first_name,
+                        u.last_name,
+                        u.username
+                    FROM ${tableName} t
+                    LEFT JOIN branches b ON t.branch_id = b.id
+                    LEFT JOIN users u ON t.created_by = u.id
+                    WHERE t.id = $1
+                `;
+
+                const result = await client.query(query, [transactionId]);
+                if (result.rows.length > 0) {
+                    return result.rows[0];
+                }
+            }
+
+            return null;
         } finally {
             client.release();
         }
     }
 
-    // Update transaction - use consolidated table for efficient lookup and update
+    // Update transaction - search across branch tables to find and update
     async updateTransaction(transactionId, updateData, userId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
@@ -272,68 +282,65 @@ class TransactionService {
                 transactionId
             ];
 
-            // First, get the transaction to determine which branch table to update
-            const getTransactionQuery = `
-                SELECT branch_id FROM all_branch_transactions WHERE id = $1
-            `;
-            const transactionResult = await client.query(getTransactionQuery, [transactionId]);
+            // Get all branch table names to search for the transaction
+            const branchTableMap = {
+                1: 'ibaan_transactions',        // Main Branch - IBAAN
+                2: 'bauan_transactions',        // Branch 2 - BAUAN
+                3: 'sanjose_transactions',      // Branch 3 - SAN JOSE
+                4: 'rosario_transactions',      // Branch 4 - ROSARIO
+                5: 'sanjuan_transactions',      // Branch 5 - SAN JUAN
+                6: 'padregarcia_transactions',  // Branch 6 - PADRE GARCIA
+                7: 'lipacity_transactions',     // Branch 7 - LIPA CITY
+                8: 'batangascity_transactions', // Branch 8 - BATANGAS CITY
+                9: 'mabinilipa_transactions',   // Branch 9 - MABINI LIPA
+                10: 'calamias_transactions',    // Branch 10 - CALAMIAS
+                11: 'lemery_transactions',      // Branch 11 - LEMERY
+                12: 'mataasnakahoy_transactions', // Branch 12 - MATAAS NA KAHOY
+                13: 'tanauan_transactions'      // Branch 13 - TANAUAN
+            };
+
+            let transactionFound = false;
+            let result = null;
+
+            // Search through each branch table to find and update the transaction
+            for (const [branchId, tableName] of Object.entries(branchTableMap)) {
+                // First check if transaction exists in this table
+                const checkQuery = `SELECT id FROM ${tableName} WHERE id = $1`;
+                const checkResult = await client.query(checkQuery, [transactionId]);
+                
+                if (checkResult.rows.length > 0) {
+                    // Update in the specific branch table
+                    const updateQuery = `
+                        UPDATE ${tableName} SET
+                            transaction_date = $1,
+                            payee = $2,
+                            reference = $3,
+                            cross_reference = $4,
+                            check_number = $5,
+                            particulars = $6,
+                            debit_amount = $7,
+                            credit_amount = $8,
+                            cash_in_bank = $9,
+                            loan_receivables = $10,
+                            savings_deposits = $11,
+                            interest_income = $12,
+                            service_charge = $13,
+                            sundries = $14,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $15
+                        RETURNING *
+                    `;
+
+                    result = await client.query(updateQuery, values);
+                    transactionFound = true;
+                    break;
+                }
+            }
             
-            if (transactionResult.rows.length === 0) {
+            if (!transactionFound) {
+                await client.query('ROLLBACK');
                 throw new TransactionNotFoundError(transactionId);
             }
-
-            const branchId = transactionResult.rows[0].branch_id;
-            const tableName = this.getTableName(branchId);
-
-            // Update in the specific branch table
-            const updateQuery = `
-                UPDATE ${tableName} SET
-                    transaction_date = $1,
-                    payee = $2,
-                    reference = $3,
-                    cross_reference = $4,
-                    check_number = $5,
-                    particulars = $6,
-                    debit_amount = $7,
-                    credit_amount = $8,
-                    cash_in_bank = $9,
-                    loan_receivables = $10,
-                    savings_deposits = $11,
-                    interest_income = $12,
-                    service_charge = $13,
-                    sundries = $14,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = $15
-                RETURNING *
-            `;
-
-            const result = await client.query(updateQuery, values);
-            
-            if (result.rows.length === 0) {
-                throw new TransactionNotFoundError(transactionId);
-            }
-
-            // Also update in all_branch_transactions for consistency
-            const allBranchQuery = `
-                UPDATE all_branch_transactions SET
-                    transaction_date = $1,
-                    payee = $2,
-                    reference = $3,
-                    cross_reference = $4,
-                    check_number = $5,
-                    particulars = $6,
-                    debit_amount = $7,
-                    credit_amount = $8,
-                    cash_in_bank = $9,
-                    loan_receivables = $10,
-                    savings_deposits = $11,
-                    interest_income = $12,
-                    service_charge = $13,
-                    sundries = $14,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = $15
-            `;
-            await client.query(allBranchQuery, values);
             
             await client.query('COMMIT');
             return result.rows[0];
@@ -345,38 +352,51 @@ class TransactionService {
         }
     }
 
-    // Delete transaction from branch table and all_branch_transactions
+    // Delete transaction from branch table
     async deleteTransaction(transactionId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
             await client.query('BEGIN');
             
-            // First, get the transaction to determine which branch table to delete from
-            const getTransactionQuery = `
-                SELECT branch_id FROM all_branch_transactions WHERE id = $1
-            `;
-            const transactionResult = await client.query(getTransactionQuery, [transactionId]);
+            // Get all branch table names to search for the transaction
+            const branchTableMap = {
+                1: 'ibaan_transactions',        // Main Branch - IBAAN
+                2: 'bauan_transactions',        // Branch 2 - BAUAN
+                3: 'sanjose_transactions',      // Branch 3 - SAN JOSE
+                4: 'rosario_transactions',      // Branch 4 - ROSARIO
+                5: 'sanjuan_transactions',      // Branch 5 - SAN JUAN
+                6: 'padregarcia_transactions',  // Branch 6 - PADRE GARCIA
+                7: 'lipacity_transactions',     // Branch 7 - LIPA CITY
+                8: 'batangascity_transactions', // Branch 8 - BATANGAS CITY
+                9: 'mabinilipa_transactions',   // Branch 9 - MABINI LIPA
+                10: 'calamias_transactions',    // Branch 10 - CALAMIAS
+                11: 'lemery_transactions',      // Branch 11 - LEMERY
+                12: 'mataasnakahoy_transactions', // Branch 12 - MATAAS NA KAHOY
+                13: 'tanauan_transactions'      // Branch 13 - TANAUAN
+            };
+
+            let transactionFound = false;
+            let result = null;
+
+            // Search through each branch table to find and delete the transaction
+            for (const [branchId, tableName] of Object.entries(branchTableMap)) {
+                // First check if transaction exists in this table
+                const checkQuery = `SELECT id FROM ${tableName} WHERE id = $1`;
+                const checkResult = await client.query(checkQuery, [transactionId]);
+                
+                if (checkResult.rows.length > 0) {
+                    // Delete from the specific branch table
+                    const deleteQuery = `DELETE FROM ${tableName} WHERE id = $1 RETURNING *`;
+                    result = await client.query(deleteQuery, [transactionId]);
+                    transactionFound = true;
+                    break;
+                }
+            }
             
-            if (transactionResult.rows.length === 0) {
+            if (!transactionFound) {
                 await client.query('ROLLBACK');
                 throw new TransactionNotFoundError(transactionId);
             }
-
-            const branchId = transactionResult.rows[0].branch_id;
-            const tableName = this.getTableName(branchId);
-
-            // Delete from the specific branch table
-            const deleteQuery = `DELETE FROM ${tableName} WHERE id = $1 RETURNING *`;
-            const result = await client.query(deleteQuery, [transactionId]);
-            
-            if (result.rows.length === 0) {
-                await client.query('ROLLBACK');
-                throw new TransactionNotFoundError(transactionId);
-            }
-            
-            // Also delete from all_branch_transactions
-            const allBranchQuery = `DELETE FROM all_branch_transactions WHERE id = $1 RETURNING *`;
-            await client.query(allBranchQuery, [transactionId]);
             
             await client.query('COMMIT');
             
