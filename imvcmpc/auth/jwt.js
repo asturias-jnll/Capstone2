@@ -18,7 +18,7 @@ class JWTManager {
             username: user.username,
             role: user.role,
             branch_id: user.branch_id,
-            is_main_branch_user: user.is_main_branch_user,
+            is_main_branch: user.is_main_branch,
             permissions: user.permissions || [],
             type: 'access'
         };

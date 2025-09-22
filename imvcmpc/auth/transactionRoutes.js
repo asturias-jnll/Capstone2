@@ -34,7 +34,7 @@ router.get('/', authenticateToken, checkPermission('transactions:read'), async (
         const transactions = await transactionService.getTransactions(
             filters, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         
         res.json({
@@ -71,7 +71,7 @@ router.get('/:id', authenticateToken, checkPermission('transactions:read'), asyn
         const transaction = await transactionService.getTransactionById(
             id, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         
         if (!transaction) {
@@ -153,7 +153,7 @@ router.post('/', authenticateToken, checkPermission('transactions:create'), asyn
             req.user.id,
             req.user.branch_id,
             req.user.role,
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
 
         res.status(201).json({
@@ -184,7 +184,7 @@ router.put('/:id', authenticateToken, checkPermission('transactions:update'), as
         const existingTransaction = await transactionService.getTransactionById(
             id, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         if (!existingTransaction) {
             return res.status(404).json({
@@ -234,7 +234,7 @@ router.put('/:id', authenticateToken, checkPermission('transactions:update'), as
             updateData,
             req.user.id,
             req.user.role,
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
 
         res.json({
@@ -264,7 +264,7 @@ router.delete('/:id', authenticateToken, checkPermission('transactions:delete'),
         const existingTransaction = await transactionService.getTransactionById(
             id, 
             req.user.role,
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
 
         if (!existingTransaction) {
@@ -286,7 +286,7 @@ router.delete('/:id', authenticateToken, checkPermission('transactions:delete'),
         const deletedTransaction = await transactionService.deleteTransaction(
             id, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
 
         res.json({
@@ -318,7 +318,7 @@ router.get('/stats/summary', authenticateToken, checkPermission('transactions:re
         const stats = await transactionService.getTransactionStats(
             filters, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         
         res.json({
@@ -344,7 +344,7 @@ router.get('/stats/dashboard', authenticateToken, checkPermission('transactions:
         const summary = await transactionService.getTransactionSummary(
             req.user.branch_id, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         
         res.json({
@@ -372,7 +372,7 @@ router.get('/recent/:limit?', authenticateToken, checkPermission('transactions:r
             limit, 
             req.user.branch_id, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         
         res.json({
@@ -401,7 +401,7 @@ router.get('/search/payee/:term', authenticateToken, checkPermission('transactio
             term, 
             req.user.branch_id, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         
         res.json({
@@ -431,7 +431,7 @@ router.get('/date-range/:startDate/:endDate', authenticateToken, checkPermission
             endDate, 
             req.user.branch_id, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         
         res.json({
@@ -461,7 +461,7 @@ router.get('/month/:year/:month', authenticateToken, checkPermission('transactio
             parseInt(month), 
             req.user.branch_id, 
             req.user.role, 
-            req.user.is_main_branch_user
+            req.user.is_main_branch
         );
         
         res.json({

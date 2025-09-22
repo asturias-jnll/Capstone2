@@ -122,7 +122,7 @@ const checkBranchAccess = (req, res, next) => {
         }
 
         // Main branch users have access to all branches
-        if (req.user.is_main_branch_user) {
+        if (req.user.is_main_branch) {
             return next();
         }
 
