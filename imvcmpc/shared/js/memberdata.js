@@ -18,9 +18,28 @@ function initializeDynamicUserHeader() {
     const userRoleElement = document.getElementById('userRole');
     
     if (userNameElement && userRoleElement) {
-        const userBranch = localStorage.getItem('user_branch_name') || 'Main Branch';
-        userNameElement.textContent = 'Marketing Clerk';
+        const userRole = localStorage.getItem('user_role') || 'User';
+        const userBranch = localStorage.getItem('user_branch_name') || 'Unknown Branch';
+        const isMainBranch = localStorage.getItem('is_main_branch_user') === 'true';
+        
+        userNameElement.textContent = userRole;
         userRoleElement.textContent = `IMVCMPC - ${userBranch}`;
+        
+        // Update branch status section
+        const branchStatusElement = document.getElementById('branchStatus');
+        const branchStatusTextElement = document.getElementById('branchStatusText');
+        
+        if (branchStatusElement && branchStatusTextElement) {
+            if (isMainBranch) {
+                branchStatusTextElement.textContent = `Main Branch - Access limited to this branch`;
+                branchStatusElement.style.borderLeftColor = '#22C55E';
+                branchStatusElement.style.background = '#f0fdf4';
+            } else {
+                branchStatusTextElement.textContent = `${userBranch} - Access limited to this branch`;
+                branchStatusElement.style.borderLeftColor = '#22C55E';
+                branchStatusElement.style.background = '#f0fdf4';
+            }
+        }
     }
 }
 
@@ -98,20 +117,29 @@ async function apiRequest(endpoint, options = {}) {
 // Load transactions from database
 async function loadTransactionsFromDatabase() {
     try {
-        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
         const userRole = localStorage.getItem('user_role');
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const userBranchName = localStorage.getItem('user_branch_name');
         
-        // Removed access restriction - all users can now access transaction data
+        // Validate that we have branch information
+        if (!userBranchId) {
+            throw new Error('Branch information not found. Please log in again.');
+        }
 
         showLoadingState();
-        const response = await apiRequest('/transactions');
+        
+        // Always include branch_id in the request for proper data isolation
+        const response = await apiRequest(`/transactions?branch_id=${userBranchId}`);
         
         if (response.success) {
             transactions = response.data || [];
             currentTransactions = [...transactions];
             renderTransactionTable();
-            showNotification('Transactions loaded successfully', 'success');
+            
+            // Show branch-specific success message
+            const branchInfo = isMainBranchUser ? 'Main Branch' : userBranchName;
+            showNotification(`Transactions loaded successfully for ${branchInfo}`, 'success');
         } else {
             throw new Error(response.message || 'Failed to load transactions');
         }
@@ -120,7 +148,7 @@ async function loadTransactionsFromDatabase() {
         transactions = [];
         currentTransactions = [];
         renderTransactionTable();
-        showNotification('Failed to load transactions', 'error');
+        showNotification(`Failed to load transactions: ${error.message}`, 'error');
     } finally {
         hideLoadingState();
     }
@@ -657,11 +685,16 @@ function openAddTransactionForm() {
 
 // Save transaction
 async function saveTransaction() {
-    // Allow all users to create/update transactions (main branch, non-main branch, admin, finance officer)
     const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     const userRole = localStorage.getItem('user_role');
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const userBranchName = localStorage.getItem('user_branch_name');
     
-    // Removed access restriction - all users can now create or update transactions
+    // Validate branch information
+    if (!userBranchId) {
+        showNotification('Branch information not found. Please log in again.', 'error');
+        return;
+    }
 
     const date = document.getElementById('transactionDate').value;
     const payee = document.getElementById('payee').value.trim();
@@ -705,7 +738,9 @@ async function saveTransaction() {
         savings_deposits: savingsDeposits,
         interest_income: interestIncome,
         service_charge: serviceCharge,
-        sundries: sundries
+        sundries: sundries,
+        // Include branch_id for proper data isolation
+        branch_id: parseInt(userBranchId)
     };
     
     try {
@@ -719,7 +754,8 @@ async function saveTransaction() {
             });
             
             if (response.success) {
-                showNotification('Transaction updated successfully!', 'success');
+                const branchInfo = isMainBranchUser ? 'Main Branch' : userBranchName;
+                showNotification(`Transaction updated successfully for ${branchInfo}!`, 'success');
             } else {
                 throw new Error(response.message || 'Failed to update transaction');
             }
@@ -731,7 +767,8 @@ async function saveTransaction() {
             });
             
             if (response.success) {
-                showNotification('Transaction added successfully!', 'success');
+                const branchInfo = isMainBranchUser ? 'Main Branch' : userBranchName;
+                showNotification(`Transaction added successfully for ${branchInfo}!`, 'success');
             } else {
                 throw new Error(response.message || 'Failed to create transaction');
             }

@@ -8,11 +8,11 @@ class TransactionService {
 
     // Determine which table to use based on user role and branch
     getTableName(userRole, branchId, isMainBranch) {
-        // Main branch users (Ibaan) use ibaan_transactions
+        // Main branch users use ibaan_transactions for historical compatibility
         if (isMainBranch || userRole === 'admin' || userRole === 'finance_officer') {
             return 'ibaan_transactions';
         }
-        // All other users use all_branch_transactions
+        // Non-main branch users use all_branch_transactions
         return 'all_branch_transactions';
     }
 
@@ -124,11 +124,14 @@ class TransactionService {
             const values = [];
             let paramCount = 0;
 
-            // Add filters
+            // CRITICAL: Always filter by branch_id for data isolation
             if (filters.branch_id) {
                 paramCount++;
                 query += ` AND t.branch_id = $${paramCount}`;
                 values.push(filters.branch_id);
+            } else {
+                // If no branch_id provided, this is an error for non-main branch users
+                throw new Error('Branch ID is required for data access');
             }
 
             if (filters.payee) {
@@ -348,11 +351,13 @@ class TransactionService {
             const values = [];
             let paramCount = 0;
 
-            // Add filters
+            // CRITICAL: Always filter by branch_id for data isolation
             if (filters.branch_id) {
                 paramCount++;
                 query += ` AND t.branch_id = $${paramCount}`;
                 values.push(filters.branch_id);
+            } else {
+                throw new Error('Branch ID is required for data access');
             }
 
             if (filters.date_from) {
@@ -378,6 +383,11 @@ class TransactionService {
     async searchTransactionsByPayee(searchTerm, branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Branch ID is required for data isolation
+            if (!branchId) {
+                throw new Error('Branch ID is required for data access');
+            }
+
             // Determine which table to use
             const tableName = this.getTableName(userRole, branchId, isMainBranch);
             
@@ -388,17 +398,10 @@ class TransactionService {
                     b.location as branch_location
                 FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
-                WHERE t.payee ILIKE $1
+                WHERE t.payee ILIKE $1 AND t.branch_id = $2
             `;
             
-            const values = [`%${searchTerm}%`];
-            let paramCount = 1;
-
-            if (branchId) {
-                paramCount++;
-                query += ` AND t.branch_id = $${paramCount}`;
-                values.push(branchId);
-            }
+            const values = [`%${searchTerm}%`, branchId];
 
             query += ` ORDER BY t.transaction_date DESC, t.created_at DESC LIMIT 50`;
 
@@ -413,6 +416,11 @@ class TransactionService {
     async getTransactionsByDateRange(startDate, endDate, branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Branch ID is required for data isolation
+            if (!branchId) {
+                throw new Error('Branch ID is required for data access');
+            }
+
             // Determine which table to use
             const tableName = this.getTableName(userRole, branchId, isMainBranch);
             
@@ -423,17 +431,10 @@ class TransactionService {
                     b.location as branch_location
                 FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
-                WHERE t.transaction_date BETWEEN $1 AND $2
+                WHERE t.transaction_date BETWEEN $1 AND $2 AND t.branch_id = $3
             `;
             
-            const values = [startDate, endDate];
-            let paramCount = 2;
-
-            if (branchId) {
-                paramCount++;
-                query += ` AND t.branch_id = $${paramCount}`;
-                values.push(branchId);
-            }
+            const values = [startDate, endDate, branchId];
 
             query += ` ORDER BY t.transaction_date DESC, t.created_at DESC`;
 
@@ -541,6 +542,11 @@ class TransactionService {
     async getTransactionSummary(branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Branch ID is required for data isolation
+            if (!branchId) {
+                throw new Error('Branch ID is required for data access');
+            }
+
             // Determine which table to use
             const tableName = this.getTableName(userRole, branchId, isMainBranch);
             
@@ -558,17 +564,10 @@ class TransactionService {
                     AVG(debit_amount) as avg_debit,
                     AVG(credit_amount) as avg_credit
                 FROM ${tableName} t
-                WHERE 1=1
+                WHERE t.branch_id = $1
             `;
             
-            const values = [];
-            let paramCount = 0;
-
-            if (branchId) {
-                paramCount++;
-                query += ` AND t.branch_id = $${paramCount}`;
-                values.push(branchId);
-            }
+            const values = [branchId];
 
             const result = await client.query(query, values);
             return result.rows[0];
@@ -581,6 +580,11 @@ class TransactionService {
     async getRecentTransactions(limit = 10, branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Branch ID is required for data isolation
+            if (!branchId) {
+                throw new Error('Branch ID is required for data access');
+            }
+
             // Determine which table to use
             const tableName = this.getTableName(userRole, branchId, isMainBranch);
             
@@ -595,20 +599,11 @@ class TransactionService {
                 FROM ${tableName} t
                 LEFT JOIN branches b ON t.branch_id = b.id
                 LEFT JOIN users u ON t.created_by = u.id
-                WHERE 1=1
+                WHERE t.branch_id = $1
+                ORDER BY t.created_at DESC LIMIT $2
             `;
             
-            const values = [];
-            let paramCount = 0;
-
-            if (branchId) {
-                paramCount++;
-                query += ` AND t.branch_id = $${paramCount}`;
-                values.push(branchId);
-            }
-
-            query += ` ORDER BY t.created_at DESC LIMIT $${paramCount + 1}`;
-            values.push(limit);
+            const values = [branchId, limit];
 
             const result = await client.query(query, values);
             return result.rows;
@@ -621,6 +616,11 @@ class TransactionService {
     async getTransactionsByMonth(year, month, branchId = null, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
+            // Branch ID is required for data isolation
+            if (!branchId) {
+                throw new Error('Branch ID is required for data access');
+            }
+
             // Determine which table to use
             const tableName = this.getTableName(userRole, branchId, isMainBranch);
             
@@ -633,16 +633,10 @@ class TransactionService {
                 LEFT JOIN branches b ON t.branch_id = b.id
                 WHERE EXTRACT(YEAR FROM t.transaction_date) = $1 
                 AND EXTRACT(MONTH FROM t.transaction_date) = $2
+                AND t.branch_id = $3
             `;
             
-            const values = [year, month];
-            let paramCount = 2;
-
-            if (branchId) {
-                paramCount++;
-                query += ` AND t.branch_id = $${paramCount}`;
-                values.push(branchId);
-            }
+            const values = [year, month, branchId];
 
             query += ` ORDER BY t.transaction_date DESC, t.created_at DESC`;
 

@@ -8,13 +8,19 @@ const transactionService = new TransactionService();
 // Get all transactions with optional filtering
 router.get('/', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
     try {
-        // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
-        // Removed access restriction - all users can now access transaction data
-
+        // Ensure branch_id is always provided for data isolation
         const filters = {
             branch_id: req.user.branch_id,
             ...req.query
         };
+
+        // Validate that branch_id is present
+        if (!filters.branch_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Branch ID is required for data access'
+            });
+        }
 
         // Convert string parameters to appropriate types
         if (filters.limit) filters.limit = parseInt(filters.limit);
