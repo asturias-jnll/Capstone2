@@ -335,3 +335,324 @@ CREATE INDEX IF NOT EXISTS idx_all_branch_transactions_date ON all_branch_transa
 CREATE INDEX IF NOT EXISTS idx_all_branch_transactions_payee ON all_branch_transactions(payee);
 CREATE INDEX IF NOT EXISTS idx_all_branch_transactions_branch_id ON all_branch_transactions(branch_id);
 CREATE INDEX IF NOT EXISTS idx_all_branch_transactions_created_by ON all_branch_transactions(created_by);
+
+-- ===========================================
+-- BRANCH-SPECIFIC TRANSACTION TABLES
+-- ===========================================
+
+-- Bauan Transactions table
+CREATE TABLE IF NOT EXISTS bauan_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- San Jose Transactions table
+CREATE TABLE IF NOT EXISTS sanjose_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Rosario Transactions table
+CREATE TABLE IF NOT EXISTS rosario_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- San Juan Transactions table
+CREATE TABLE IF NOT EXISTS sanjuan_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Padre Garcia Transactions table
+CREATE TABLE IF NOT EXISTS padregarcia_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Lipa City Transactions table
+CREATE TABLE IF NOT EXISTS lipacity_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Batangas City Transactions table
+CREATE TABLE IF NOT EXISTS batangascity_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Mabini Lipa Transactions table
+CREATE TABLE IF NOT EXISTS mabinilipa_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Calamias Transactions table
+CREATE TABLE IF NOT EXISTS calamias_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Lemery Transactions table
+CREATE TABLE IF NOT EXISTS lemery_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Mataas Na Kahoy Transactions table
+CREATE TABLE IF NOT EXISTS mataasnakahoy_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tanauan Transactions table
+CREATE TABLE IF NOT EXISTS tanauan_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_date DATE NOT NULL,
+    payee VARCHAR(255) NOT NULL,
+    reference VARCHAR(100),
+    cross_reference VARCHAR(100),
+    check_number VARCHAR(50),
+    particulars TEXT NOT NULL,
+    debit_amount DECIMAL(15,2) DEFAULT 0.00,
+    credit_amount DECIMAL(15,2) DEFAULT 0.00,
+    cash_in_bank DECIMAL(15,2) DEFAULT 0.00,
+    loan_receivables DECIMAL(15,2) DEFAULT 0.00,
+    savings_deposits DECIMAL(15,2) DEFAULT 0.00,
+    interest_income DECIMAL(15,2) DEFAULT 0.00,
+    service_charge DECIMAL(15,2) DEFAULT 0.00,
+    sundries DECIMAL(15,2) DEFAULT 0.00,
+    branch_id INTEGER REFERENCES branches(id),
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================
+-- TRIGGERS FOR BRANCH-SPECIFIC TABLES
+-- ===========================================
+
+-- Create triggers for updated_at on all branch tables
+CREATE TRIGGER update_bauan_transactions_updated_at BEFORE UPDATE ON bauan_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sanjose_transactions_updated_at BEFORE UPDATE ON sanjose_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_rosario_transactions_updated_at BEFORE UPDATE ON rosario_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sanjuan_transactions_updated_at BEFORE UPDATE ON sanjuan_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_padregarcia_transactions_updated_at BEFORE UPDATE ON padregarcia_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_lipacity_transactions_updated_at BEFORE UPDATE ON lipacity_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_batangascity_transactions_updated_at BEFORE UPDATE ON batangascity_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_mabinilipa_transactions_updated_at BEFORE UPDATE ON mabinilipa_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_calamias_transactions_updated_at BEFORE UPDATE ON calamias_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_lemery_transactions_updated_at BEFORE UPDATE ON lemery_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_mataasnakahoy_transactions_updated_at BEFORE UPDATE ON mataasnakahoy_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_tanauan_transactions_updated_at BEFORE UPDATE ON tanauan_transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

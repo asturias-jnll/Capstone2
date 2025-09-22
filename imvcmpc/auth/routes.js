@@ -2,7 +2,6 @@ const express = require('express');
 const authService = require('./authService');
 const { authenticateToken, checkPermission, checkRole, loginRateLimit, auditLog } = require('./middleware');
 const transactionRoutes = require('./transactionRoutes');
-const AnalyticsService = require('./analyticsService');
 
 const router = express.Router();
 
@@ -307,40 +306,21 @@ router.get('/roles/:roleId/permissions',
 router.use('/transactions', transactionRoutes);
 
 // Analytics routes
-const analyticsService = new AnalyticsService();
 
 // Get analytics summary (4 main cards)
 router.get('/analytics/summary',
     authenticateToken,
     async (req, res) => {
         try {
-            const { filter = 'today', startDate, endDate, branchId } = req.query;
-            const userRole = req.user.role_name;
-            const isMainBranch = req.user.is_main_branch_user;
-            
-            console.log(`📊 Analytics summary request - Filter: ${filter}, StartDate: ${startDate}, EndDate: ${endDate}`);
-            
-            let filters = { branch_id: branchId };
-            
-            // Set date range based on filter
-            if (startDate && endDate) {
-                // Use provided date parameters for all filters
-                filters.date_from = startDate;
-                filters.date_to = endDate;
-                console.log(`📅 Using provided dates: ${startDate} to ${endDate}`);
-            } else if (filter !== 'custom') {
-                // Fallback to calculated date range if no dates provided
-                const dateRange = analyticsService.getDateRange(filter);
-                filters.date_from = dateRange.start.toISOString().split('T')[0];
-                filters.date_to = dateRange.end.toISOString().split('T')[0];
-                console.log(`📅 Using calculated dates: ${filters.date_from} to ${filters.date_to}`);
-            }
-            
-            const summary = await analyticsService.getAnalyticsSummary(filters, userRole, isMainBranch);
             
             res.json({
                 success: true,
-                data: summary
+                data: {
+                    total_savings: 0,
+                    total_disbursements: 0,
+                    net_growth: 0,
+                    active_members: 0
+                }
             });
         } catch (error) {
             res.status(500).json({
@@ -356,29 +336,9 @@ router.get('/analytics/savings-trend',
     authenticateToken,
     async (req, res) => {
         try {
-            const { filter = 'today', startDate, endDate, branchId } = req.query;
-            const userRole = req.user.role_name;
-            const isMainBranch = req.user.is_main_branch_user;
-            
-            let filters = { branch_id: branchId };
-            
-            // Set date range based on filter
-            if (startDate && endDate) {
-                // Use provided date parameters for all filters
-                filters.date_from = startDate;
-                filters.date_to = endDate;
-            } else if (filter !== 'custom') {
-                // Fallback to calculated date range if no dates provided
-                const dateRange = analyticsService.getDateRange(filter);
-                filters.date_from = dateRange.start.toISOString().split('T')[0];
-                filters.date_to = dateRange.end.toISOString().split('T')[0];
-            }
-            
-            const trend = await analyticsService.getSavingsTrend(filters, userRole, isMainBranch);
-            
             res.json({
                 success: true,
-                data: trend
+                data: []
             });
         } catch (error) {
             res.status(500).json({
@@ -394,29 +354,9 @@ router.get('/analytics/disbursement-trend',
     authenticateToken,
     async (req, res) => {
         try {
-            const { filter = 'today', startDate, endDate, branchId } = req.query;
-            const userRole = req.user.role_name;
-            const isMainBranch = req.user.is_main_branch_user;
-            
-            let filters = { branch_id: branchId };
-            
-            // Set date range based on filter
-            if (startDate && endDate) {
-                // Use provided date parameters for all filters
-                filters.date_from = startDate;
-                filters.date_to = endDate;
-            } else if (filter !== 'custom') {
-                // Fallback to calculated date range if no dates provided
-                const dateRange = analyticsService.getDateRange(filter);
-                filters.date_from = dateRange.start.toISOString().split('T')[0];
-                filters.date_to = dateRange.end.toISOString().split('T')[0];
-            }
-            
-            const trend = await analyticsService.getDisbursementTrend(filters, userRole, isMainBranch);
-            
             res.json({
                 success: true,
-                data: trend
+                data: []
             });
         } catch (error) {
             res.status(500).json({
@@ -432,29 +372,9 @@ router.get('/analytics/branch-performance',
     authenticateToken,
     async (req, res) => {
         try {
-            const { filter = 'today', startDate, endDate, branchId } = req.query;
-            const userRole = req.user.role_name;
-            const isMainBranch = req.user.is_main_branch_user;
-            
-            let filters = { branch_id: branchId };
-            
-            // Set date range based on filter
-            if (startDate && endDate) {
-                // Use provided date parameters for all filters
-                filters.date_from = startDate;
-                filters.date_to = endDate;
-            } else if (filter !== 'custom') {
-                // Fallback to calculated date range if no dates provided
-                const dateRange = analyticsService.getDateRange(filter);
-                filters.date_from = dateRange.start.toISOString().split('T')[0];
-                filters.date_to = dateRange.end.toISOString().split('T')[0];
-            }
-            
-            const performance = await analyticsService.getBranchPerformance(filters, userRole, isMainBranch);
-            
             res.json({
                 success: true,
-                data: performance
+                data: []
             });
         } catch (error) {
             res.status(500).json({
@@ -470,29 +390,9 @@ router.get('/analytics/member-activity',
     authenticateToken,
     async (req, res) => {
         try {
-            const { filter = 'today', startDate, endDate, branchId } = req.query;
-            const userRole = req.user.role_name;
-            const isMainBranch = req.user.is_main_branch_user;
-            
-            let filters = { branch_id: branchId };
-            
-            // Set date range based on filter
-            if (startDate && endDate) {
-                // Use provided date parameters for all filters
-                filters.date_from = startDate;
-                filters.date_to = endDate;
-            } else if (filter !== 'custom') {
-                // Fallback to calculated date range if no dates provided
-                const dateRange = analyticsService.getDateRange(filter);
-                filters.date_from = dateRange.start.toISOString().split('T')[0];
-                filters.date_to = dateRange.end.toISOString().split('T')[0];
-            }
-            
-            const activity = await analyticsService.getMemberActivity(filters, userRole, isMainBranch);
-            
             res.json({
                 success: true,
-                data: activity
+                data: []
             });
         } catch (error) {
             res.status(500).json({
@@ -508,29 +408,9 @@ router.get('/analytics/top-members',
     authenticateToken,
     async (req, res) => {
         try {
-            const { filter = 'today', startDate, endDate, branchId } = req.query;
-            const userRole = req.user.role_name;
-            const isMainBranch = req.user.is_main_branch_user;
-            
-            let filters = { branch_id: branchId };
-            
-            // Set date range based on filter
-            if (startDate && endDate) {
-                // Use provided date parameters for all filters
-                filters.date_from = startDate;
-                filters.date_to = endDate;
-            } else if (filter !== 'custom') {
-                // Fallback to calculated date range if no dates provided
-                const dateRange = analyticsService.getDateRange(filter);
-                filters.date_from = dateRange.start.toISOString().split('T')[0];
-                filters.date_to = dateRange.end.toISOString().split('T')[0];
-            }
-            
-            const topMembers = await analyticsService.getTopMembers(filters, userRole, isMainBranch);
-            
             res.json({
                 success: true,
-                data: topMembers
+                data: []
             });
         } catch (error) {
             res.status(500).json({

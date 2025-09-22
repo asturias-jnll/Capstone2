@@ -7,14 +7,14 @@ const {
     DatabaseConnectionError 
 } = require('./errors');
 
-class TransactionService {
+class TransactionServiceOptimized {
     constructor() {
         this.pool = new Pool(config.database);
     }
 
-    // Determine which table to use based on branch ID
-    getTableName(branchId) {
-        const branchTableMap = {
+    // Get all branch table names for reference
+    getBranchTableMap() {
+        return {
             1: 'ibaan_transactions',        // Main Branch - IBAAN
             2: 'bauan_transactions',        // Branch 2 - BAUAN
             3: 'sanjose_transactions',      // Branch 3 - SAN JOSE
@@ -29,6 +29,11 @@ class TransactionService {
             12: 'mataasnakahoy_transactions', // Branch 12 - MATAAS NA KAHOY
             13: 'tanauan_transactions'      // Branch 13 - TANAUAN
         };
+    }
+
+    // Determine which table to use based on branch ID
+    getTableName(branchId) {
+        const branchTableMap = this.getBranchTableMap();
 
         if (!branchId) {
             throw new Error('Branch ID is required to determine transaction table');
@@ -42,7 +47,7 @@ class TransactionService {
         return tableName;
     }
 
-    // Create a new transaction in the appropriate branch table
+    // Create a new transaction in the appropriate branch table only
     async createTransaction(transactionData, userId, branchId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
@@ -91,7 +96,7 @@ class TransactionService {
             // Get the appropriate table name for this branch
             const tableName = this.getTableName(branchId);
 
-            // Insert into the branch-specific table
+            // Insert into the branch-specific table only
             const query = `
                 INSERT INTO ${tableName} (
                     id, transaction_date, payee, reference, cross_reference, check_number,
@@ -103,20 +108,6 @@ class TransactionService {
             `;
 
             const result = await client.query(query, values);
-
-            // Also insert into all_branch_transactions for consolidated reporting
-            const allBranchQuery = `
-                INSERT INTO all_branch_transactions (
-                    id, transaction_date, payee, reference, cross_reference, check_number,
-                    particulars, debit_amount, credit_amount, cash_in_bank,
-                    loan_receivables, savings_deposits, interest_income,
-                    service_charge, sundries, branch_id, created_by
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-                RETURNING *
-            `;
-
-            await client.query(allBranchQuery, values);
-
             await client.query('COMMIT');
             
             // Return the transaction data
@@ -129,7 +120,7 @@ class TransactionService {
         }
     }
 
-    // Get all transactions with optional filtering
+    // Get all transactions with optional filtering - use consolidated view
     async getTransactions(filters = {}, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
@@ -138,52 +129,56 @@ class TransactionService {
                 throw new Error('Branch ID is required for data access');
             }
 
-            // Determine which table to use based on branch
-            const tableName = this.getTableName(filters.branch_id);
-            
-            let query = `
-                SELECT 
-                    t.*,
-                    b.name as branch_name,
-                    b.location as branch_location,
-                    u.first_name,
-                    u.last_name,
-                    u.username
-                FROM ${tableName} t
-                LEFT JOIN branches b ON t.branch_id = b.id
-                LEFT JOIN users u ON t.created_by = u.id
-                WHERE t.branch_id = $1
-            `;
-            
-            const values = [filters.branch_id];
-            let paramCount = 1;
+            // Use a UNION query to get data from all branch tables
+            const branchTables = Object.values(this.getBranchTableMap());
+            const unionQueries = branchTables.map((tableName, index) => {
+                const paramOffset = index * 2; // Each query uses 2 parameters
+                return `
+                    SELECT 
+                        t.*,
+                        b.name as branch_name,
+                        b.location as branch_location,
+                        u.first_name,
+                        u.last_name,
+                        u.username
+                    FROM ${tableName} t
+                    LEFT JOIN branches b ON t.branch_id = b.id
+                    LEFT JOIN users u ON t.created_by = u.id
+                    WHERE t.branch_id = $${paramOffset + 1}
+                `;
+            });
 
+            let query = unionQueries.join(' UNION ALL ');
+            const values = branchTables.map(() => filters.branch_id);
+            let paramCount = values.length;
+
+            // Add additional filters
             if (filters.payee) {
                 paramCount++;
-                query += ` AND t.payee ILIKE $${paramCount}`;
+                query = `SELECT * FROM (${query}) AS combined WHERE payee ILIKE $${paramCount}`;
                 values.push(`%${filters.payee}%`);
             }
 
             if (filters.date_from) {
                 paramCount++;
-                query += ` AND t.transaction_date >= $${paramCount}`;
+                query = `SELECT * FROM (${query}) AS combined WHERE transaction_date >= $${paramCount}`;
                 values.push(filters.date_from);
             }
 
             if (filters.date_to) {
                 paramCount++;
-                query += ` AND t.transaction_date <= $${paramCount}`;
+                query = `SELECT * FROM (${query}) AS combined WHERE transaction_date <= $${paramCount}`;
                 values.push(filters.date_to);
             }
 
             if (filters.reference) {
                 paramCount++;
-                query += ` AND t.reference ILIKE $${paramCount}`;
+                query = `SELECT * FROM (${query}) AS combined WHERE reference ILIKE $${paramCount}`;
                 values.push(`%${filters.reference}%`);
             }
 
             // Add ordering
-            query += ` ORDER BY t.transaction_date DESC, t.created_at DESC`;
+            query += ` ORDER BY transaction_date DESC, created_at DESC`;
 
             // Add pagination if specified
             if (filters.limit) {
@@ -205,33 +200,38 @@ class TransactionService {
         }
     }
 
-    // Get transaction by ID - use consolidated table for efficient lookup
+    // Get transaction by ID - search across all branch tables efficiently
     async getTransactionById(transactionId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
-            // Use all_branch_transactions for efficient lookup
-            const query = `
-                SELECT 
-                    t.*,
-                    b.name as branch_name,
-                    b.location as branch_location,
-                    u.first_name,
-                    u.last_name,
-                    u.username
-                FROM all_branch_transactions t
-                LEFT JOIN branches b ON t.branch_id = b.id
-                LEFT JOIN users u ON t.created_by = u.id
-                WHERE t.id = $1
-            `;
+            // Use a UNION query to search all branch tables
+            const branchTables = Object.values(this.getBranchTableMap());
+            const unionQueries = branchTables.map((tableName) => {
+                return `
+                    SELECT 
+                        t.*,
+                        b.name as branch_name,
+                        b.location as branch_location,
+                        u.first_name,
+                        u.last_name,
+                        u.username
+                    FROM ${tableName} t
+                    LEFT JOIN branches b ON t.branch_id = b.id
+                    LEFT JOIN users u ON t.created_by = u.id
+                    WHERE t.id = $1
+                `;
+            });
 
+            const query = unionQueries.join(' UNION ALL ');
             const result = await client.query(query, [transactionId]);
+            
             return result.rows.length > 0 ? result.rows[0] : null;
         } finally {
             client.release();
         }
     }
 
-    // Update transaction - use consolidated table for efficient lookup and update
+    // Update transaction - find and update in the correct branch table
     async updateTransaction(transactionId, updateData, userId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
@@ -272,18 +272,24 @@ class TransactionService {
                 transactionId
             ];
 
-            // First, get the transaction to determine which branch table to update
-            const getTransactionQuery = `
-                SELECT branch_id FROM all_branch_transactions WHERE id = $1
-            `;
-            const transactionResult = await client.query(getTransactionQuery, [transactionId]);
-            
-            if (transactionResult.rows.length === 0) {
-                throw new TransactionNotFoundError(transactionId);
+            // Find which branch table contains this transaction
+            const branchTables = Object.values(this.getBranchTableMap());
+            let updatedTransaction = null;
+            let tableName = null;
+
+            for (const table of branchTables) {
+                const checkQuery = `SELECT branch_id FROM ${table} WHERE id = $1`;
+                const checkResult = await client.query(checkQuery, [transactionId]);
+                
+                if (checkResult.rows.length > 0) {
+                    tableName = table;
+                    break;
+                }
             }
 
-            const branchId = transactionResult.rows[0].branch_id;
-            const tableName = this.getTableName(branchId);
+            if (!tableName) {
+                throw new TransactionNotFoundError(transactionId);
+            }
 
             // Update in the specific branch table
             const updateQuery = `
@@ -313,28 +319,6 @@ class TransactionService {
                 throw new TransactionNotFoundError(transactionId);
             }
 
-            // Also update in all_branch_transactions for consistency
-            const allBranchQuery = `
-                UPDATE all_branch_transactions SET
-                    transaction_date = $1,
-                    payee = $2,
-                    reference = $3,
-                    cross_reference = $4,
-                    check_number = $5,
-                    particulars = $6,
-                    debit_amount = $7,
-                    credit_amount = $8,
-                    cash_in_bank = $9,
-                    loan_receivables = $10,
-                    savings_deposits = $11,
-                    interest_income = $12,
-                    service_charge = $13,
-                    sundries = $14,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = $15
-            `;
-            await client.query(allBranchQuery, values);
-            
             await client.query('COMMIT');
             return result.rows[0];
         } catch (error) {
@@ -345,25 +329,32 @@ class TransactionService {
         }
     }
 
-    // Delete transaction from branch table and all_branch_transactions
+    // Delete transaction from the correct branch table
     async deleteTransaction(transactionId, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
             await client.query('BEGIN');
             
-            // First, get the transaction to determine which branch table to delete from
-            const getTransactionQuery = `
-                SELECT branch_id FROM all_branch_transactions WHERE id = $1
-            `;
-            const transactionResult = await client.query(getTransactionQuery, [transactionId]);
-            
-            if (transactionResult.rows.length === 0) {
+            // Find which branch table contains this transaction
+            const branchTables = Object.values(this.getBranchTableMap());
+            let deletedTransaction = null;
+            let tableName = null;
+
+            for (const table of branchTables) {
+                const checkQuery = `SELECT * FROM ${table} WHERE id = $1`;
+                const checkResult = await client.query(checkQuery, [transactionId]);
+                
+                if (checkResult.rows.length > 0) {
+                    tableName = table;
+                    deletedTransaction = checkResult.rows[0];
+                    break;
+                }
+            }
+
+            if (!tableName) {
                 await client.query('ROLLBACK');
                 throw new TransactionNotFoundError(transactionId);
             }
-
-            const branchId = transactionResult.rows[0].branch_id;
-            const tableName = this.getTableName(branchId);
 
             // Delete from the specific branch table
             const deleteQuery = `DELETE FROM ${tableName} WHERE id = $1 RETURNING *`;
@@ -374,13 +365,7 @@ class TransactionService {
                 throw new TransactionNotFoundError(transactionId);
             }
             
-            // Also delete from all_branch_transactions
-            const allBranchQuery = `DELETE FROM all_branch_transactions WHERE id = $1 RETURNING *`;
-            await client.query(allBranchQuery, [transactionId]);
-            
             await client.query('COMMIT');
-            
-            // Return the deleted transaction data
             return result.rows[0];
         } catch (error) {
             await client.query('ROLLBACK');
@@ -390,7 +375,7 @@ class TransactionService {
         }
     }
 
-    // Get transaction statistics
+    // Get transaction statistics - use UNION query for all branches
     async getTransactionStats(filters = {}, userRole = null, isMainBranch = false) {
         const client = await this.pool.connect();
         try {
@@ -399,107 +384,70 @@ class TransactionService {
                 throw new Error('Branch ID is required for data access');
             }
 
-            // Determine which table to use based on branch
-            const tableName = this.getTableName(filters.branch_id);
-            
+            // Use UNION query to get stats from all branch tables
+            const branchTables = Object.values(this.getBranchTableMap());
+            const unionQueries = branchTables.map((tableName, index) => {
+                const paramOffset = index * 2;
+                return `
+                    SELECT 
+                        COUNT(*) as total_transactions,
+                        SUM(debit_amount) as total_debits,
+                        SUM(credit_amount) as total_credits,
+                        SUM(cash_in_bank) as total_cash_in_bank,
+                        SUM(loan_receivables) as total_loan_receivables,
+                        SUM(savings_deposits) as total_savings_deposits,
+                        SUM(interest_income) as total_interest_income,
+                        SUM(service_charge) as total_service_charge,
+                        SUM(sundries) as total_sundries
+                    FROM ${tableName} t
+                    WHERE t.branch_id = $${paramOffset + 1}
+                `;
+            });
+
             let query = `
                 SELECT 
-                    COUNT(*) as total_transactions,
-                    SUM(debit_amount) as total_debits,
-                    SUM(credit_amount) as total_credits,
-                    SUM(cash_in_bank) as total_cash_in_bank,
-                    SUM(loan_receivables) as total_loan_receivables,
-                    SUM(savings_deposits) as total_savings_deposits,
-                    SUM(interest_income) as total_interest_income,
-                    SUM(service_charge) as total_service_charge,
-                    SUM(sundries) as total_sundries
-                FROM ${tableName} t
-                WHERE t.branch_id = $1
+                    SUM(total_transactions) as total_transactions,
+                    SUM(total_debits) as total_debits,
+                    SUM(total_credits) as total_credits,
+                    SUM(total_cash_in_bank) as total_cash_in_bank,
+                    SUM(total_loan_receivables) as total_loan_receivables,
+                    SUM(total_savings_deposits) as total_savings_deposits,
+                    SUM(total_interest_income) as total_interest_income,
+                    SUM(total_service_charge) as total_service_charge,
+                    SUM(total_sundries) as total_sundries
+                FROM (${unionQueries.join(' UNION ALL ')}) AS combined_stats
             `;
             
-            const values = [filters.branch_id];
-            let paramCount = 1;
+            const values = branchTables.map(() => filters.branch_id);
+            let paramCount = values.length;
 
             if (filters.date_from) {
                 paramCount++;
-                query += ` AND t.transaction_date >= $${paramCount}`;
+                query = `
+                    SELECT 
+                        SUM(total_transactions) as total_transactions,
+                        SUM(total_debits) as total_debits,
+                        SUM(total_credits) as total_credits,
+                        SUM(total_cash_in_bank) as total_cash_in_bank,
+                        SUM(total_loan_receivables) as total_loan_receivables,
+                        SUM(total_savings_deposits) as total_savings_deposits,
+                        SUM(total_interest_income) as total_interest_income,
+                        SUM(total_service_charge) as total_service_charge,
+                        SUM(total_sundries) as total_sundries
+                    FROM (${unionQueries.join(' UNION ALL ')}) AS combined_stats
+                    WHERE transaction_date >= $${paramCount}
+                `;
                 values.push(filters.date_from);
             }
 
             if (filters.date_to) {
                 paramCount++;
-                query += ` AND t.transaction_date <= $${paramCount}`;
+                query += ` AND transaction_date <= $${paramCount}`;
                 values.push(filters.date_to);
             }
 
             const result = await client.query(query, values);
             return result.rows[0];
-        } finally {
-            client.release();
-        }
-    }
-
-    // Search transactions by payee
-    async searchTransactionsByPayee(searchTerm, branchId = null, userRole = null, isMainBranch = false) {
-        const client = await this.pool.connect();
-        try {
-            // Branch ID is required for data isolation
-            if (!branchId) {
-                throw new Error('Branch ID is required for data access');
-            }
-
-            // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
-            
-            let query = `
-                SELECT 
-                    t.*,
-                    b.name as branch_name,
-                    b.location as branch_location
-                FROM ${tableName} t
-                LEFT JOIN branches b ON t.branch_id = b.id
-                WHERE t.payee ILIKE $1 AND t.branch_id = $2
-            `;
-            
-            const values = [`%${searchTerm}%`, branchId];
-
-            query += ` ORDER BY t.transaction_date DESC, t.created_at DESC LIMIT 50`;
-
-            const result = await client.query(query, values);
-            return result.rows;
-        } finally {
-            client.release();
-        }
-    }
-
-    // Get transactions by date range
-    async getTransactionsByDateRange(startDate, endDate, branchId = null, userRole = null, isMainBranch = false) {
-        const client = await this.pool.connect();
-        try {
-            // Branch ID is required for data isolation
-            if (!branchId) {
-                throw new Error('Branch ID is required for data access');
-            }
-
-            // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
-            
-            let query = `
-                SELECT 
-                    t.*,
-                    b.name as branch_name,
-                    b.location as branch_location
-                FROM ${tableName} t
-                LEFT JOIN branches b ON t.branch_id = b.id
-                WHERE t.transaction_date BETWEEN $1 AND $2 AND t.branch_id = $3
-            `;
-            
-            const values = [startDate, endDate, branchId];
-
-            query += ` ORDER BY t.transaction_date DESC, t.created_at DESC`;
-
-            const result = await client.query(query, values);
-            return result.rows;
         } finally {
             client.release();
         }
@@ -602,119 +550,10 @@ class TransactionService {
         return 0;
     }
 
-    // Get transaction summary for dashboard
-    async getTransactionSummary(branchId = null, userRole = null, isMainBranch = false) {
-        const client = await this.pool.connect();
-        try {
-            // Branch ID is required for data isolation
-            if (!branchId) {
-                throw new Error('Branch ID is required for data access');
-            }
-
-            // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
-            
-            let query = `
-                SELECT 
-                    COUNT(*) as total_transactions,
-                    SUM(debit_amount) as total_debits,
-                    SUM(credit_amount) as total_credits,
-                    SUM(cash_in_bank) as total_cash_in_bank,
-                    SUM(loan_receivables) as total_loan_receivables,
-                    SUM(savings_deposits) as total_savings_deposits,
-                    SUM(interest_income) as total_interest_income,
-                    SUM(service_charge) as total_service_charge,
-                    SUM(sundries) as total_sundries,
-                    AVG(debit_amount) as avg_debit,
-                    AVG(credit_amount) as avg_credit
-                FROM ${tableName} t
-                WHERE t.branch_id = $1
-            `;
-            
-            const values = [branchId];
-
-            const result = await client.query(query, values);
-            return result.rows[0];
-        } finally {
-            client.release();
-        }
-    }
-
-    // Get recent transactions
-    async getRecentTransactions(limit = 10, branchId = null, userRole = null, isMainBranch = false) {
-        const client = await this.pool.connect();
-        try {
-            // Branch ID is required for data isolation
-            if (!branchId) {
-                throw new Error('Branch ID is required for data access');
-            }
-
-            // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
-            
-            let query = `
-                SELECT 
-                    t.*,
-                    b.name as branch_name,
-                    b.location as branch_location,
-                    u.first_name,
-                    u.last_name,
-                    u.username
-                FROM ${tableName} t
-                LEFT JOIN branches b ON t.branch_id = b.id
-                LEFT JOIN users u ON t.created_by = u.id
-                WHERE t.branch_id = $1
-                ORDER BY t.created_at DESC LIMIT $2
-            `;
-            
-            const values = [branchId, limit];
-
-            const result = await client.query(query, values);
-            return result.rows;
-        } finally {
-            client.release();
-        }
-    }
-
-    // Get transactions by month
-    async getTransactionsByMonth(year, month, branchId = null, userRole = null, isMainBranch = false) {
-        const client = await this.pool.connect();
-        try {
-            // Branch ID is required for data isolation
-            if (!branchId) {
-                throw new Error('Branch ID is required for data access');
-            }
-
-            // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
-            
-            let query = `
-                SELECT 
-                    t.*,
-                    b.name as branch_name,
-                    b.location as branch_location
-                FROM ${tableName} t
-                LEFT JOIN branches b ON t.branch_id = b.id
-                WHERE EXTRACT(YEAR FROM t.transaction_date) = $1 
-                AND EXTRACT(MONTH FROM t.transaction_date) = $2
-                AND t.branch_id = $3
-            `;
-            
-            const values = [year, month, branchId];
-
-            query += ` ORDER BY t.transaction_date DESC, t.created_at DESC`;
-
-            const result = await client.query(query, values);
-            return result.rows;
-        } finally {
-            client.release();
-        }
-    }
-
     // Close database connection
     async close() {
         await this.pool.end();
     }
 }
 
-module.exports = TransactionService;
+module.exports = TransactionServiceOptimized;

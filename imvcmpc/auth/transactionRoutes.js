@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const TransactionService = require('./transactionService');
 const { authenticateToken, checkPermission, checkBranchAccess } = require('./middleware');
+const { 
+    TransactionNotFoundError, 
+    BranchNotFoundError, 
+    InvalidTransactionDataError 
+} = require('./errors');
 
 const transactionService = new TransactionService();
 
@@ -39,6 +44,15 @@ router.get('/', authenticateToken, checkPermission('transactions:read'), async (
         });
     } catch (error) {
         console.error('Error fetching transactions:', error);
+        
+        if (error instanceof BranchNotFoundError) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid branch ID',
+                error: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Failed to fetch transactions',
@@ -81,6 +95,15 @@ router.get('/:id', authenticateToken, checkPermission('transactions:read'), asyn
         });
     } catch (error) {
         console.error('Error fetching transaction:', error);
+        
+        if (error instanceof TransactionNotFoundError) {
+            return res.status(404).json({
+                success: false,
+                message: 'Transaction not found',
+                error: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Failed to fetch transaction',
@@ -98,13 +121,17 @@ router.post('/', authenticateToken, checkPermission('transactions:create'), asyn
         const transactionData = req.body;
         
         // Validate transaction data
-        const validation = transactionService.validateTransactionData(transactionData);
-        if (!validation.isValid) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid transaction data',
-                errors: validation.errors
-            });
+        try {
+            transactionService.validateTransactionData(transactionData);
+        } catch (error) {
+            if (error instanceof InvalidTransactionDataError) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid transaction data',
+                    errors: error.errors
+                });
+            }
+            throw error;
         }
 
         // Calculate account balances if not provided
@@ -175,13 +202,17 @@ router.put('/:id', authenticateToken, checkPermission('transactions:update'), as
         }
 
         // Validate update data
-        const validation = transactionService.validateTransactionData(updateData);
-        if (!validation.isValid) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid transaction data',
-                errors: validation.errors
-            });
+        try {
+            transactionService.validateTransactionData(updateData);
+        } catch (error) {
+            if (error instanceof InvalidTransactionDataError) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid transaction data',
+                    errors: error.errors
+                });
+            }
+            throw error;
         }
 
         // Calculate account balances if not provided
