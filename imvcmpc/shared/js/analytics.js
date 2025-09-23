@@ -1434,6 +1434,24 @@ function generateCustomYearMonthlyLabels() {
     return labels;
 }
 
+// Generate past 12 months labels with year indication for branch performance
+function generatePast12MonthsLabels() {
+    const labels = [];
+    const today = new Date();
+    
+    // Generate past 12 months starting from the oldest month (left to right for chart)
+    for (let i = 12; i >= 1; i--) {
+        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+        const year = date.getFullYear();
+        
+        // Add year indication for clarity
+        labels.push(`${monthName} ${year}`);
+    }
+    
+    return labels;
+}
+
 // Generate labels based on current filter
 function generateChartLabels(data, filter) {
     if (filter === 'last-7-days') {
@@ -1618,6 +1636,33 @@ function alignDataWithCustomYearMonthly(data, valueKey) {
             if (monthIndex >= 0 && monthIndex < 12) {
                 alignedData[monthIndex] += parseFloat(item[valueKey]) || 0;
             }
+        }
+    });
+    
+    return alignedData;
+}
+
+// Align data with past 12 months for branch performance
+function alignDataWithPast12Months(data, valueKey) {
+    const alignedData = new Array(12).fill(0);
+    const today = new Date();
+    
+    // Create a map of month-year to index (oldest month = index 0, leftmost on chart)
+    const monthIndexMap = {};
+    for (let i = 12; i >= 1; i--) {
+        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthIndexMap[monthYear] = 12 - i; // Index for proper order (0-11, left to right)
+    }
+    
+    // Align data with month-year labels
+    data.forEach(item => {
+        const itemDate = new Date(item.date);
+        const monthYear = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
+        const index = monthIndexMap[monthYear];
+        
+        if (index !== undefined) {
+            alignedData[index] += parseFloat(item[valueKey]) || 0;
         }
     });
     
@@ -1822,9 +1867,9 @@ function updateDisbursementTrendChart(data) {
     }
 }
 
-// Update branch performance chart
+// Update branch performance chart - 12-month trend with three lines
 function updateBranchPerformanceChart(data) {
-    console.log('Updating branch performance chart with data:', data);
+    console.log('📊 Updating branch performance chart with 12-month trend data:', data);
     const canvas = document.getElementById('branchPerformanceChart');
     
     if (!canvas) {
@@ -1835,38 +1880,28 @@ function updateBranchPerformanceChart(data) {
     const noDataMessage = canvas.parentElement.querySelector('.no-data-message');
     
     if (!data || data.length === 0) {
-        console.log('No branch performance data available, showing no-data message');
+        console.log('⚠️ No branch performance data available, showing no-data message');
         if (noDataMessage) noDataMessage.style.display = 'flex';
         if (canvas) canvas.style.display = 'none';
         return;
     }
     
-    console.log('Branch performance data available, showing chart');
+    console.log('✅ Branch performance data available, showing 12-month trend chart');
     if (noDataMessage) noDataMessage.style.display = 'none';
     if (canvas) canvas.style.display = 'block';
     
-    // Get user branch information to determine chart type
-    const userBranchId = localStorage.getItem('user_branch_id') || '1';
-    const userBranchName = localStorage.getItem('user_branch_name') || 'Main Branch';
-    const userBranchLocation = localStorage.getItem('user_branch_location') || 'IBAAN';
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    // Generate 12-month labels with year indication
+    const labels = generatePast12MonthsLabels();
     
-    let labels, savingsData, disbursementData;
+    // Align data with past 12 months
+    const savingsData = alignDataWithPast12Months(data, 'total_savings');
+    const disbursementData = alignDataWithPast12Months(data, 'total_disbursements');
     
-    if (isMainBranchUser) {
-        // Main branch users see all branches performance
-        labels = data.map(item => item.branch_name);
-        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
-        disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
-    } else {
-        // Non-main branch users see 12-month performance trend for their branch
-        labels = data.map(item => {
-            const date = new Date(item.month);
-            return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        });
-        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
-        disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
-    }
+    // Calculate net difference (savings - disbursements)
+    const netDifferenceData = savingsData.map((savings, index) => {
+        const disbursements = disbursementData[index] || 0;
+        return savings - disbursements;
+    });
     
     // Validate data
     if (labels.length === 0 || savingsData.length === 0 || disbursementData.length === 0) {
@@ -1879,53 +1914,111 @@ function updateBranchPerformanceChart(data) {
     }
     
     try {
-        if (isMainBranchUser) {
-            // Main branch users see all branches performance (bar chart)
+        // Create line chart with three trend lines
             chartInstances.branchPerformanceChart = new Chart(canvas, {
-                type: 'bar',
+            type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Total Savings',
+                    label: 'Savings Trend',
                         data: savingsData,
-                        backgroundColor: '#007542',
-                        borderColor: '#1E8C45',
-                        borderWidth: 1
-                    }, {
-                        label: 'Total Disbursements',
+                    borderColor: '#007542', // Theme green for savings
+                    backgroundColor: 'rgba(0, 117, 66, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#007542',
+                    pointBorderColor: '#007542'
+                }, {
+                    label: 'Disbursement Trend',
                         data: disbursementData,
-                        backgroundColor: '#78D23D',
-                        borderColor: '#58BB43',
-                        borderWidth: 1
-                    }]
+                    borderColor: '#58BB43', // Theme green variant for disbursements
+                    backgroundColor: 'rgba(88, 187, 67, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#58BB43',
+                    pointBorderColor: '#58BB43'
+                }, {
+                    label: 'Net Difference',
+                    data: netDifferenceData,
+                    borderColor: '#F59E0B', // Orange for net difference
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#F59E0B',
+                    pointBorderColor: '#F59E0B'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'center',
+                        labels: {
+                            boxWidth: 8,
+                            padding: 16,
+                            usePointStyle: true,
+                            generateLabels: function(chart) {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+                                labels.forEach(label => {
+                                    label.text = '  ' + label.text;
+                                });
+                                return labels;
+                            }
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                return `${context.dataset.label}: ₱${value.toLocaleString()}`;
+                            }
+                        }
+                    }
                 },
-                options: getChartOptions('bar', false)
-            });
-        } else {
-            // Non-main branch users see their branch performance (bar chart)
-            chartInstances.branchPerformanceChart = new Chart(canvas, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Total Savings',
-                        data: savingsData,
-                        backgroundColor: '#007542',
-                        borderColor: '#1E8C45',
-                        borderWidth: 1
-                    }, {
-                        label: 'Total Disbursements',
-                        data: disbursementData,
-                        backgroundColor: '#78D23D',
-                        borderColor: '#58BB43',
-                        borderWidth: 1
-                    }]
-                },
-                options: getChartOptions('bar', false)
-            });
-        }
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Month (Past 12 Months)'
+                        },
+                        ticks: {
+                            maxTicksLimit: 12
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Amount (₱)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₱' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
         
-        console.log('✅ Branch performance chart created successfully');
+        console.log('✅ Branch performance 12-month trend chart created successfully');
         chartInstances.branchPerformanceChart.update();
         
     } catch (error) {
@@ -1994,7 +2087,47 @@ function updateMemberActivityChart(data) {
                     borderColor: '#ffffff'
                 }]
             },
-            options: getChartOptions('doughnut')
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#007542',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return [
+                                    `${value} transactions`,
+                                    `${percentage}% of total activity`
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
         });
         
         console.log('✅ Member activity chart created successfully');
@@ -2061,7 +2194,7 @@ function updateTopMembersTable(data) {
     });
 }
 
-// Update branch performance table
+// Update branch performance table - Monthly performance summary
 function updateBranchPerformanceTable(data) {
     const tbody = document.querySelector('.table-container:last-child .data-table tbody');
     if (!tbody) return;
@@ -2074,9 +2207,9 @@ function updateBranchPerformanceTable(data) {
             <tr class="no-data-row">
                 <td colspan="4">
                     <div class="no-data-message">
-                        <i class="fas fa-building"></i>
-                        <p>No branch data available</p>
-                        <small>Branch data will appear here once they start operations</small>
+                        <i class="fas fa-calendar-alt"></i>
+                        <p>No monthly data available</p>
+                        <small>Monthly performance data will appear here once transactions are recorded</small>
                     </div>
                 </td>
             </tr>
@@ -2084,39 +2217,46 @@ function updateBranchPerformanceTable(data) {
         return;
     }
     
-    // Get user branch information to determine data structure
-    const userBranchId = localStorage.getItem('user_branch_id') || '1';
-    const userBranchName = localStorage.getItem('user_branch_name') || 'Main Branch';
-    const userBranchLocation = localStorage.getItem('user_branch_location') || 'IBAAN';
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    // Get monthly data aligned with past 12 months
+    const monthlySavings = alignDataWithPast12Months(data, 'total_savings');
+    const monthlyDisbursements = alignDataWithPast12Months(data, 'total_disbursements');
+    const labels = generatePast12MonthsLabels();
     
-    data.forEach((branch, index) => {
-        const row = document.createElement('tr');
+    // Show all 12 months in the table (most recent month at top)
+    for (let i = 11; i >= 0; i--) {
+        const monthRow = document.createElement('tr');
+        const monthLabel = labels[i];
+        const monthSavings = monthlySavings[i] || 0;
+        const monthDisbursements = monthlyDisbursements[i] || 0;
+        const monthNet = monthSavings - monthDisbursements;
         
-        // Calculate growth rate from savings and disbursements
-        const totalSavings = parseFloat(branch.total_savings) || 0;
-        const totalDisbursements = parseFloat(branch.total_disbursements) || 0;
-        const netGrowth = totalSavings - totalDisbursements;
-        const growthRate = totalSavings > 0 ? (netGrowth / totalSavings) * 100 : 0;
-        const growthRateColor = growthRate >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+        // Color only for net difference: Green for positive, Red for negative
+        const netColor = monthNet >= 0 ? '#007542' : '#EF4444';
         
-        // Handle different data structures for main branch vs non-main branch users
-        let branchName;
-        if (isMainBranchUser) {
-            branchName = branch.branch_name || 'Unknown Branch';
-        } else {
-            // For non-main branch users, show the branch name from the data
-            branchName = branch.branch_name || `${userBranchLocation} Branch`;
-        }
-        
-        row.innerHTML = `
-            <td>${branchName}</td>
-            <td>${formatCurrency(branch.total_savings)}</td>
-            <td>${formatCurrency(branch.total_disbursements)}</td>
-            <td style="color: ${growthRateColor}; font-weight: 600;">${formatPercentage(growthRate)}</td>
+        monthRow.innerHTML = `
+            <td style="color: #1f2937;">${monthLabel}</td>
+            <td>${formatCurrency(monthSavings)}</td>
+            <td>${formatCurrency(monthDisbursements)}</td>
+            <td style="color: ${netColor}; font-size: 1.05em; font-weight: bold;">${formatCurrency(monthNet)}</td>
         `;
-        tbody.appendChild(row);
-    });
+        tbody.appendChild(monthRow);
+    }
+    
+    // Add total summary row at the bottom
+    const totalSavings = monthlySavings.reduce((sum, val) => sum + val, 0);
+    const totalDisbursements = monthlyDisbursements.reduce((sum, val) => sum + val, 0);
+    const totalNet = totalSavings - totalDisbursements;
+    const totalNetColor = totalNet >= 0 ? '#007542' : '#EF4444';
+    
+    const totalRow = document.createElement('tr');
+    totalRow.style.cssText = 'background-color: #f8fafc; border-top: 2px solid #e5e7eb; font-weight: bold;';
+    totalRow.innerHTML = `
+        <td style="color: #1f2937; font-size: 1.1em; font-weight: bold;">12-Month Total</td>
+        <td style="font-size: 1.1em; font-weight: bold;">${formatCurrency(totalSavings)}</td>
+        <td style="font-size: 1.1em; font-weight: bold;">${formatCurrency(totalDisbursements)}</td>
+        <td style="color: ${totalNetColor}; font-size: 1.15em; font-weight: bold;">${formatCurrency(totalNet)}</td>
+    `;
+    tbody.appendChild(totalRow);
 }
 
 // Refresh individual chart with proper chart type mapping

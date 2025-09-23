@@ -473,7 +473,7 @@
 }
 
 .card-value {
-    font-size: 1.6rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: #0D5B11;
     margin-bottom: 0.2rem;
@@ -854,7 +854,7 @@
     }
     
     .card-value {
-        font-size: 1.4rem;
+        font-size: 1.1rem;
     }
     
     .chart-content {
