@@ -15,7 +15,7 @@ function initializeDashboard() {
 // Get authentication token from localStorage
 function getAuthToken() {
     if (!authToken) {
-        authToken = localStorage.getItem('authToken');
+        authToken = localStorage.getItem('access_token');
     }
     return authToken;
 }
@@ -45,7 +45,7 @@ async function autoLogin() {
         
         if (result.success && result.tokens && result.tokens.access_token) {
             // Store the token in localStorage
-            localStorage.setItem('authToken', result.tokens.access_token);
+            localStorage.setItem('access_token', result.tokens.access_token);
             authToken = result.tokens.access_token; // Update the global variable
             console.log('✅ Automatic login successful!');
             return result.tokens.access_token;
@@ -134,12 +134,21 @@ async function loadDashboardData() {
         showLoadingState();
         console.log('Loading dashboard data...');
         
+        // Get user branch information for branch-specific data access
+        const userBranchId = localStorage.getItem('user_branch_id') || '1';
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+        
+        console.log('🏢 User branch info:', {
+            userBranchId,
+            isMainBranchUser
+        });
+        
         // Fetch all dashboard data in parallel
         const [summary, savingsTrend, branchPerformance, topMembers] = await Promise.all([
-            fetchDashboardSummary(),
-            fetchSavingsTrend(),
-            fetchBranchPerformance(),
-            fetchTopMembers()
+            fetchDashboardSummary(userBranchId, isMainBranchUser),
+            fetchSavingsTrend(userBranchId, isMainBranchUser),
+            fetchBranchPerformance(userBranchId, isMainBranchUser),
+            fetchTopMembers(userBranchId, isMainBranchUser)
         ]);
         
         // Update dashboard with real data
@@ -159,14 +168,14 @@ async function loadDashboardData() {
 }
 
 // Fetch dashboard summary data (cumulative from oldest transaction to today)
-async function fetchDashboardSummary() {
+async function fetchDashboardSummary(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     // Use custom date range from oldest transaction (2024-01-15) to today
     const startDate = '2024-01-15';
     const endDate = new Date().toISOString().split('T')[0];
     
-    const response = await fetch(`${API_BASE_URL}/analytics/summary?filter=custom&startDate=${startDate}&endDate=${endDate}`, {
+    const response = await fetch(`${API_BASE_URL}/analytics/summary?filter=custom&startDate=${startDate}&endDate=${endDate}&branchId=${userBranchId}&isMainBranch=${isMainBranchUser}`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -181,14 +190,14 @@ async function fetchDashboardSummary() {
 }
 
 // Fetch savings trend data for preview (cumulative from oldest transaction to today)
-async function fetchSavingsTrend() {
+async function fetchSavingsTrend(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     // Use custom date range from oldest transaction (2024-01-15) to today
     const startDate = '2024-01-15';
     const endDate = new Date().toISOString().split('T')[0];
     
-    const response = await fetch(`${API_BASE_URL}/analytics/savings-trend?filter=custom&startDate=${startDate}&endDate=${endDate}`, {
+    const response = await fetch(`${API_BASE_URL}/analytics/savings-trend?filter=custom&startDate=${startDate}&endDate=${endDate}&branchId=${userBranchId}&isMainBranch=${isMainBranchUser}`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -203,14 +212,14 @@ async function fetchSavingsTrend() {
 }
 
 // Fetch branch performance data for preview (cumulative from oldest transaction to today)
-async function fetchBranchPerformance() {
+async function fetchBranchPerformance(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     // Use custom date range from oldest transaction (2024-01-15) to today
     const startDate = '2024-01-15';
     const endDate = new Date().toISOString().split('T')[0];
     
-    const response = await fetch(`${API_BASE_URL}/analytics/branch-performance?filter=custom&startDate=${startDate}&endDate=${endDate}`, {
+    const response = await fetch(`${API_BASE_URL}/analytics/branch-performance?filter=custom&startDate=${startDate}&endDate=${endDate}&branchId=${userBranchId}&isMainBranch=${isMainBranchUser}`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -225,14 +234,14 @@ async function fetchBranchPerformance() {
 }
 
 // Fetch top members data for insights (cumulative from oldest transaction to today)
-async function fetchTopMembers() {
+async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     // Use custom date range from oldest transaction (2024-01-15) to today
     const startDate = '2024-01-15';
     const endDate = new Date().toISOString().split('T')[0];
     
-    const response = await fetch(`${API_BASE_URL}/analytics/top-members?filter=custom&startDate=${startDate}&endDate=${endDate}&limit=5`, {
+    const response = await fetch(`${API_BASE_URL}/analytics/top-members?filter=custom&startDate=${startDate}&endDate=${endDate}&branchId=${userBranchId}&isMainBranch=${isMainBranchUser}&limit=5`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -313,7 +322,7 @@ function updateSavingsPreviewChart(data) {
     noDataMessage.style.display = 'none';
     
     const labels = data.map(item => new Date(item.date).toLocaleDateString());
-    const values = data.map(item => parseFloat(item.daily_savings) || 0);
+    const values = data.map(item => parseFloat(item.total_savings) || 0);
     
     if (chartInstances.savingsPreviewChart) {
         chartInstances.savingsPreviewChart.destroy();
@@ -324,7 +333,7 @@ function updateSavingsPreviewChart(data) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Daily Savings',
+                label: 'Daily Savings Trend',
                 data: values,
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -351,8 +360,24 @@ function updateBranchPreviewChart(data) {
     canvas.style.display = 'block';
     noDataMessage.style.display = 'none';
     
-    const labels = data.map(item => item.branch_name);
-    const savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+    // Handle different data structures for main branch vs non-main branch users
+    const userBranchId = localStorage.getItem('user_branch_id') || '1';
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    let labels, savingsData;
+    
+    if (isMainBranchUser) {
+        // Main branch users see branch names
+        labels = data.map(item => item.branch_name);
+        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+    } else {
+        // Non-main branch users see monthly data
+        labels = data.map(item => {
+            const date = new Date(item.month);
+            return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        });
+        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+    }
     
     if (chartInstances.branchPreviewChart) {
         chartInstances.branchPreviewChart.destroy();
@@ -362,13 +387,13 @@ function updateBranchPreviewChart(data) {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Total Savings',
-                data: savingsData,
-                backgroundColor: '#3b82f6',
-                borderColor: '#2563eb',
-                borderWidth: 1
-            }]
+        datasets: [{
+            label: isMainBranchUser ? 'Total Savings by Branch' : 'Monthly Savings Trend',
+            data: savingsData,
+            backgroundColor: '#3b82f6',
+            borderColor: '#2563eb',
+            borderWidth: 1
+        }]
         },
         options: getChartOptions('bar')
     });

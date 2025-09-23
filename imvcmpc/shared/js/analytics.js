@@ -51,7 +51,7 @@ function initializeAnalyticsContent() {
 // Get authentication token from localStorage
 function getAuthToken() {
     if (!authToken) {
-        authToken = localStorage.getItem('authToken');
+        authToken = localStorage.getItem('access_token');
     }
     return authToken;
 }
@@ -81,7 +81,7 @@ async function autoLogin() {
         
         if (result.success && result.tokens && result.tokens.access_token) {
             // Store the token in localStorage
-            localStorage.setItem('authToken', result.tokens.access_token);
+            localStorage.setItem('access_token', result.tokens.access_token);
             authToken = result.tokens.access_token; // Update the global variable
             console.log('✅ Automatic login successful!');
             return result.tokens.access_token;
@@ -676,16 +676,29 @@ async function loadAnalyticsData() {
         console.log('🔍 Current filter:', currentFilter);
         showLoadingState();
         
+        // Get user branch information for branch-specific data access
+        const userBranchId = localStorage.getItem('user_branch_id') || '1';
+        const userBranchName = localStorage.getItem('user_branch_name') || 'Main Branch';
+        const userBranchLocation = localStorage.getItem('user_branch_location') || 'IBAAN';
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+        
+        console.log('🏢 User branch info:', {
+            userBranchId,
+            userBranchName,
+            userBranchLocation,
+            isMainBranchUser
+        });
+        
         // Try to load real data first
         try {
             console.log('📡 Fetching analytics data from API...');
             const [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers] = await Promise.all([
-                fetchAnalyticsSummary(),
-                fetchSavingsTrend(),
-                fetchDisbursementTrend(),
-                fetchBranchPerformance(),
-                fetchMemberActivity(),
-                fetchTopMembers()
+                fetchAnalyticsSummary(userBranchId, isMainBranchUser),
+                fetchSavingsTrend(userBranchId, isMainBranchUser),
+                fetchDisbursementTrend(userBranchId, isMainBranchUser),
+                fetchBranchPerformance(userBranchId, isMainBranchUser),
+                fetchMemberActivity(userBranchId, isMainBranchUser),
+                fetchTopMembers(userBranchId, isMainBranchUser)
             ]);
             
             console.log('📊 Fetched data:', {
@@ -734,11 +747,13 @@ async function loadAnalyticsData() {
 }
 
 // Fetch analytics summary data
-async function fetchAnalyticsSummary() {
+async function fetchAnalyticsSummary(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
-        filter: currentFilter
+        filter: currentFilter,
+        branchId: userBranchId,
+        isMainBranch: isMainBranchUser.toString()
     });
     
     // Add date range parameters for all filters
@@ -778,11 +793,13 @@ async function fetchAnalyticsSummary() {
 }
 
 // Fetch savings trend data
-async function fetchSavingsTrend() {
+async function fetchSavingsTrend(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
-        filter: currentFilter
+        filter: currentFilter,
+        branchId: userBranchId,
+        isMainBranch: isMainBranchUser.toString()
     });
     
     // Add date range parameters for all filters
@@ -817,11 +834,13 @@ async function fetchSavingsTrend() {
 }
 
 // Fetch disbursement trend data
-async function fetchDisbursementTrend() {
+async function fetchDisbursementTrend(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
-        filter: currentFilter
+        filter: currentFilter,
+        branchId: userBranchId,
+        isMainBranch: isMainBranchUser.toString()
     });
     
     // Add date range parameters for all filters
@@ -854,11 +873,13 @@ async function fetchDisbursementTrend() {
 }
 
 // Fetch branch performance data
-async function fetchBranchPerformance() {
+async function fetchBranchPerformance(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
-        filter: currentFilter
+        filter: currentFilter,
+        branchId: userBranchId,
+        isMainBranch: isMainBranchUser.toString()
     });
     
     // Add date range parameters for all filters
@@ -891,11 +912,13 @@ async function fetchBranchPerformance() {
 }
 
 // Fetch member activity data
-async function fetchMemberActivity() {
+async function fetchMemberActivity(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
-        filter: currentFilter
+        filter: currentFilter,
+        branchId: userBranchId,
+        isMainBranch: isMainBranchUser.toString()
     });
     
     // Add date range parameters for all filters
@@ -928,11 +951,13 @@ async function fetchMemberActivity() {
 }
 
 // Fetch top members data
-async function fetchTopMembers() {
+async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
-        filter: currentFilter
+        filter: currentFilter,
+        branchId: userBranchId,
+        isMainBranch: isMainBranchUser.toString()
     });
     
     // Add date range parameters for all filters
@@ -1649,17 +1674,17 @@ function updateSavingsTrendChart(data) {
     const labels = generateChartLabels(data, currentFilter);
     let values;
     if (currentFilter === 'last-7-days') {
-        values = alignDataWithLast7Days(data, 'daily_savings');
+        values = alignDataWithLast7Days(data, 'total_savings');
     } else if (currentFilter === 'last-30-days') {
-        values = alignDataWithLast30DaysWeekly(data, 'daily_savings');
+        values = alignDataWithLast30DaysWeekly(data, 'total_savings');
     } else if (currentFilter === 'custom' && customType === 'week') {
-        values = alignDataWithCustomWeek(data, 'daily_savings');
+        values = alignDataWithCustomWeek(data, 'total_savings');
         } else if (currentFilter === 'custom' && customType === 'month') {
-            values = alignDataWithCustomMonthWeekly(data, 'daily_savings');
+            values = alignDataWithCustomMonthWeekly(data, 'total_savings');
         } else if (currentFilter === 'custom' && customType === 'year') {
-            values = alignDataWithCustomYearMonthly(data, 'daily_savings');
+            values = alignDataWithCustomYearMonthly(data, 'total_savings');
         } else {
-            values = data.map(item => parseFloat(item.daily_savings) || 0);
+            values = data.map(item => parseFloat(item.total_savings) || 0);
         }
     
     // Validate data
@@ -1736,17 +1761,17 @@ function updateDisbursementTrendChart(data) {
     const labels = generateChartLabels(data, currentFilter);
     let values;
     if (currentFilter === 'last-7-days') {
-        values = alignDataWithLast7Days(data, 'daily_disbursements');
+        values = alignDataWithLast7Days(data, 'total_disbursements');
     } else if (currentFilter === 'last-30-days') {
-        values = alignDataWithLast30DaysWeekly(data, 'daily_disbursements');
+        values = alignDataWithLast30DaysWeekly(data, 'total_disbursements');
     } else if (currentFilter === 'custom' && customType === 'week') {
-        values = alignDataWithCustomWeek(data, 'daily_disbursements');
+        values = alignDataWithCustomWeek(data, 'total_disbursements');
     } else if (currentFilter === 'custom' && customType === 'month') {
-        values = alignDataWithCustomMonthWeekly(data, 'daily_disbursements');
+        values = alignDataWithCustomMonthWeekly(data, 'total_disbursements');
     } else if (currentFilter === 'custom' && customType === 'year') {
-        values = alignDataWithCustomYearMonthly(data, 'daily_disbursements');
+        values = alignDataWithCustomYearMonthly(data, 'total_disbursements');
     } else {
-        values = data.map(item => parseFloat(item.daily_disbursements) || 0);
+        values = data.map(item => parseFloat(item.total_disbursements) || 0);
     }
     
     // Validate data
@@ -1820,9 +1845,28 @@ function updateBranchPerformanceChart(data) {
     if (noDataMessage) noDataMessage.style.display = 'none';
     if (canvas) canvas.style.display = 'block';
     
-    const labels = data.map(item => item.branch_name);
-    const savingsData = data.map(item => parseFloat(item.total_savings) || 0);
-    const disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
+    // Get user branch information to determine chart type
+    const userBranchId = localStorage.getItem('user_branch_id') || '1';
+    const userBranchName = localStorage.getItem('user_branch_name') || 'Main Branch';
+    const userBranchLocation = localStorage.getItem('user_branch_location') || 'IBAAN';
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    let labels, savingsData, disbursementData;
+    
+    if (isMainBranchUser) {
+        // Main branch users see all branches performance
+        labels = data.map(item => item.branch_name);
+        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+        disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
+    } else {
+        // Non-main branch users see 12-month performance trend for their branch
+        labels = data.map(item => {
+            const date = new Date(item.month);
+            return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        });
+        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+        disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
+    }
     
     // Validate data
     if (labels.length === 0 || savingsData.length === 0 || disbursementData.length === 0) {
@@ -1835,26 +1879,51 @@ function updateBranchPerformanceChart(data) {
     }
     
     try {
-        chartInstances.branchPerformanceChart = new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Total Savings',
-                    data: savingsData,
-                    backgroundColor: '#007542',
-                    borderColor: '#1E8C45',
-                    borderWidth: 1
-                }, {
-                    label: 'Total Disbursements',
-                    data: disbursementData,
-                    backgroundColor: '#78D23D',
-                    borderColor: '#58BB43',
-                    borderWidth: 1
-                }]
-            },
-            options: getChartOptions('bar', false)
-        });
+        if (isMainBranchUser) {
+            // Main branch users see all branches performance (bar chart)
+            chartInstances.branchPerformanceChart = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Savings',
+                        data: savingsData,
+                        backgroundColor: '#007542',
+                        borderColor: '#1E8C45',
+                        borderWidth: 1
+                    }, {
+                        label: 'Total Disbursements',
+                        data: disbursementData,
+                        backgroundColor: '#78D23D',
+                        borderColor: '#58BB43',
+                        borderWidth: 1
+                    }]
+                },
+                options: getChartOptions('bar', false)
+            });
+        } else {
+            // Non-main branch users see their branch performance (bar chart)
+            chartInstances.branchPerformanceChart = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Savings',
+                        data: savingsData,
+                        backgroundColor: '#007542',
+                        borderColor: '#1E8C45',
+                        borderWidth: 1
+                    }, {
+                        label: 'Total Disbursements',
+                        data: disbursementData,
+                        backgroundColor: '#78D23D',
+                        borderColor: '#58BB43',
+                        borderWidth: 1
+                    }]
+                },
+                options: getChartOptions('bar', false)
+            });
+        }
         
         console.log('✅ Branch performance chart created successfully');
         chartInstances.branchPerformanceChart.update();
@@ -1974,7 +2043,7 @@ function updateTopMembersTable(data) {
         return;
     }
     
-    data.forEach(member => {
+    data.forEach((member, index) => {
         const row = document.createElement('tr');
         
         // Determine color for net position
@@ -1982,7 +2051,7 @@ function updateTopMembersTable(data) {
         const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
         
         row.innerHTML = `
-            <td>${member.rank}</td>
+            <td>${index + 1}</td>
             <td>${member.member_name}</td>
             <td>${formatCurrency(member.total_savings)}</td>
             <td>${formatCurrency(member.total_disbursements)}</td>
@@ -2015,18 +2084,36 @@ function updateBranchPerformanceTable(data) {
         return;
     }
     
-    data.forEach(branch => {
+    // Get user branch information to determine data structure
+    const userBranchId = localStorage.getItem('user_branch_id') || '1';
+    const userBranchName = localStorage.getItem('user_branch_name') || 'Main Branch';
+    const userBranchLocation = localStorage.getItem('user_branch_location') || 'IBAAN';
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    
+    data.forEach((branch, index) => {
         const row = document.createElement('tr');
         
-        // Determine color for growth rate
-        const growthRate = parseFloat(branch.growth_rate) || 0;
+        // Calculate growth rate from savings and disbursements
+        const totalSavings = parseFloat(branch.total_savings) || 0;
+        const totalDisbursements = parseFloat(branch.total_disbursements) || 0;
+        const netGrowth = totalSavings - totalDisbursements;
+        const growthRate = totalSavings > 0 ? (netGrowth / totalSavings) * 100 : 0;
         const growthRateColor = growthRate >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
         
+        // Handle different data structures for main branch vs non-main branch users
+        let branchName;
+        if (isMainBranchUser) {
+            branchName = branch.branch_name || 'Unknown Branch';
+        } else {
+            // For non-main branch users, show the branch name from the data
+            branchName = branch.branch_name || `${userBranchLocation} Branch`;
+        }
+        
         row.innerHTML = `
-            <td>${branch.branch_name}</td>
+            <td>${branchName}</td>
             <td>${formatCurrency(branch.total_savings)}</td>
             <td>${formatCurrency(branch.total_disbursements)}</td>
-            <td style="color: ${growthRateColor}; font-weight: 600;">${formatPercentage(branch.growth_rate)}</td>
+            <td style="color: ${growthRateColor}; font-weight: 600;">${formatPercentage(growthRate)}</td>
         `;
         tbody.appendChild(row);
     });

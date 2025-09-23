@@ -9,16 +9,29 @@ router.get('/summary',
     authenticateToken,
     async (req, res) => {
         try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getAnalyticsSummary(filters, userRole, isMainBranchUser, userBranchId);
+            
             res.json({
                 success: true,
-                data: {
-                    total_savings: 0,
-                    total_disbursements: 0,
-                    net_growth: 0,
-                    active_members: 0
-                }
+                data: data
             });
         } catch (error) {
+            console.error('Analytics summary error:', error);
             res.status(500).json({
                 success: false,
                 error: error.message
@@ -32,11 +45,29 @@ router.get('/savings-trend',
     authenticateToken,
     async (req, res) => {
         try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getSavingsTrend(filters, userRole, isMainBranchUser, userBranchId);
+            
             res.json({
                 success: true,
-                data: []
+                data: data
             });
         } catch (error) {
+            console.error('Savings trend error:', error);
             res.status(500).json({
                 success: false,
                 error: error.message
@@ -50,11 +81,29 @@ router.get('/disbursement-trend',
     authenticateToken,
     async (req, res) => {
         try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getDisbursementTrend(filters, userRole, isMainBranchUser, userBranchId);
+            
             res.json({
                 success: true,
-                data: []
+                data: data
             });
         } catch (error) {
+            console.error('Disbursement trend error:', error);
             res.status(500).json({
                 success: false,
                 error: error.message
@@ -68,11 +117,29 @@ router.get('/branch-performance',
     authenticateToken,
     async (req, res) => {
         try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getBranchPerformance(filters, userRole, isMainBranchUser, userBranchId);
+            
             res.json({
                 success: true,
-                data: []
+                data: data
             });
         } catch (error) {
+            console.error('Branch performance error:', error);
             res.status(500).json({
                 success: false,
                 error: error.message
@@ -86,11 +153,29 @@ router.get('/member-activity',
     authenticateToken,
     async (req, res) => {
         try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getMemberActivity(filters, userRole, isMainBranchUser, userBranchId);
+            
             res.json({
                 success: true,
-                data: []
+                data: data
             });
         } catch (error) {
+            console.error('Member activity error:', error);
             res.status(500).json({
                 success: false,
                 error: error.message
@@ -104,11 +189,29 @@ router.get('/top-members',
     authenticateToken,
     async (req, res) => {
         try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getTopMembers(filters, userRole, isMainBranchUser, userBranchId);
+            
             res.json({
                 success: true,
-                data: []
+                data: data
             });
         } catch (error) {
+            console.error('Top members error:', error);
             res.status(500).json({
                 success: false,
                 error: error.message
