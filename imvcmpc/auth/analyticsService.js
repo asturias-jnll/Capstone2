@@ -341,6 +341,74 @@ class AnalyticsService {
         }
     }
 
+    // Get all branches performance data for IMVCMPC Branches Performance section
+    async getAllBranchesPerformance(filters = {}) {
+        try {
+            const { startDate, endDate } = filters;
+            
+            // Ensure dates are properly formatted for PostgreSQL with timezone handling
+            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
+            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            
+            // Get all branch data using UNION ALL to combine all branch tables
+            const branchQueries = [];
+            const allParams = [startDateFormatted, endDateFormatted];
+            let paramIndex = 3; // Start from $3 since $1 and $2 are used for dates
+            
+            // Define all 13 branches with their details
+            const branches = [
+                { id: '1', name: 'Main Branch', location: 'IBAAN', table: 'ibaan_transactions' },
+                { id: '2', name: 'Bauan Branch', location: 'BAUAN', table: 'bauan_transactions' },
+                { id: '3', name: 'San Jose Branch', location: 'SAN JOSE', table: 'sanjose_transactions' },
+                { id: '4', name: 'Rosario Branch', location: 'ROSARIO', table: 'rosario_transactions' },
+                { id: '5', name: 'San Juan Branch', location: 'SAN JUAN', table: 'sanjuan_transactions' },
+                { id: '6', name: 'Padre Garcia Branch', location: 'PADRE GARCIA', table: 'padregarcia_transactions' },
+                { id: '7', name: 'Lipa City Branch', location: 'LIPA CITY', table: 'lipacity_transactions' },
+                { id: '8', name: 'Batangas City Branch', location: 'BATANGAS CITY', table: 'batangascity_transactions' },
+                { id: '9', name: 'Mabini Lipa Branch', location: 'MABINI LIPA', table: 'mabinilipa_transactions' },
+                { id: '10', name: 'Calamias Branch', location: 'CALAMIAS', table: 'calamias_transactions' },
+                { id: '11', name: 'Lemery Branch', location: 'LEMERY', table: 'lemery_transactions' },
+                { id: '12', name: 'Mataas Na Kahoy Branch', location: 'MATAAS NA KAHOY', table: 'mataasnakahoy_transactions' },
+                { id: '13', name: 'Tanauan Branch', location: 'TANAUAN', table: 'tanauan_transactions' }
+            ];
+            
+            // Build UNION query for all branches
+            branches.forEach((branch, index) => {
+                const branchQuery = `
+                    SELECT 
+                        '${branch.id}' as branch_id,
+                        '${branch.name}' as branch_name,
+                        '${branch.location}' as branch_location,
+                        COALESCE(SUM(savings_deposits), 0) as total_savings,
+                        COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                        COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_position,
+                        COUNT(DISTINCT payee) as active_members,
+                        COUNT(*) as total_transactions
+                    FROM ${branch.table} 
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                `;
+                branchQueries.push(branchQuery);
+            });
+            
+            // Combine all branch queries with UNION ALL
+            const finalQuery = branchQueries.join(' UNION ALL ');
+            
+            const result = await this.pool.query(finalQuery, allParams);
+            
+            // Sort branches by net position (highest first)
+            const sortedBranches = result.rows.sort((a, b) => {
+                const netA = parseFloat(a.net_position) || 0;
+                const netB = parseFloat(b.net_position) || 0;
+                return netB - netA;
+            });
+            
+            return sortedBranches;
+        } catch (error) {
+            console.error('Error fetching all branches performance:', error);
+            return [];
+        }
+    }
+
 
     // Get date range based on filter type
     getDateRange(filter) {

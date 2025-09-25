@@ -617,6 +617,341 @@
     text-align: center;
 }
 
+/* Branches Performance Section */
+.branches-performance-section {
+    margin-bottom: 2rem;
+}
+
+.branches-performance-container {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    transition: all 0.3s ease;
+}
+
+.branches-performance-container:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.branches-performance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.branches-performance-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0D5B11;
+    margin: 0;
+    letter-spacing: -0.2px;
+}
+
+.branches-performance-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.branches-performance-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: #f3f4f6;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.branches-performance-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+    transform: scale(1.05);
+}
+
+.branches-performance-content {
+    overflow-x: auto;
+}
+
+.branches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.8rem;
+    min-height: 200px;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.branch-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 10px;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.branch-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #0D5B11, #187C19, #69B41E);
+}
+
+.branch-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-color: #69B41E;
+}
+
+.branch-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+}
+
+.branch-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #0D5B11;
+    margin: 0;
+}
+
+.branch-location {
+    font-size: 0.7rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.branch-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+}
+
+.branch-metric {
+    text-align: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    border: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.branch-metric-label {
+    font-size: 0.65rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.2rem;
+    line-height: 1.2;
+    min-height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.branch-metric-value {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0D5B11;
+}
+
+.branch-net-position {
+    text-align: center;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 6px;
+    border: 2px solid;
+    margin-top: 0.4rem;
+}
+
+.branch-net-position.positive {
+    border-color: #22C55E;
+    background: rgba(34, 197, 94, 0.05);
+}
+
+.branch-net-position.negative {
+    border-color: #EF4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.branch-net-position.neutral {
+    border-color: #6B7280;
+    background: rgba(107, 114, 128, 0.05);
+}
+
+.branch-net-label {
+    font-size: 0.65rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.2rem;
+}
+
+.branch-net-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.branch-net-value.positive {
+    color: #22C55E;
+}
+
+.branch-net-value.negative {
+    color: #EF4444;
+}
+
+.branch-net-value.neutral {
+    color: #6B7280;
+}
+
+.branch-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.branch-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.branch-stat-label {
+    font-size: 0.6rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.1rem;
+}
+
+.branch-stat-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #0D5B11;
+}
+
+.branch-rank {
+    background: linear-gradient(135deg, #0D5B11, #187C19);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-align: center;
+    min-width: 28px;
+}
+
+/* Mobile Responsive for Branches Performance */
+@media (min-width: 1400px) {
+    .branches-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 1399px) and (min-width: 1200px) {
+    .branches-grid {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 0.9rem;
+    }
+}
+
+@media (max-width: 1199px) and (min-width: 1024px) {
+    .branches-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 0.8rem;
+    }
+}
+
+@media (max-width: 1023px) and (min-width: 768px) {
+    .branches-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.7rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .branches-performance-container {
+        padding: 1rem;
+    }
+    
+    .branches-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.6rem;
+    }
+    
+    .branch-card {
+        padding: 0.8rem;
+    }
+    
+    .branch-name {
+        font-size: 0.75rem;
+    }
+    
+    .branch-location {
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .branches-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .branch-card {
+        padding: 0.7rem;
+    }
+    
+    .branch-name {
+        font-size: 0.7rem;
+    }
+    
+    .branch-location {
+        font-size: 0.6rem;
+    }
+    
+    .branch-metric-label {
+        font-size: 0.6rem;
+    }
+    
+    .branch-metric-value {
+        font-size: 0.75rem;
+    }
+    
+    .branch-net-value {
+        font-size: 0.85rem;
+    }
+}
+
 /* Tables Section */
 .tables-section {
     margin-bottom: 2rem;

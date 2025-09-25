@@ -220,4 +220,37 @@ router.get('/top-members',
     }
 );
 
+// Get all branches performance data for IMVCMPC Branches Performance section
+router.get('/all-branches-performance',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate } = req.query;
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getAllBranchesPerformance(filters);
+            
+            res.json({
+                success: true,
+                data: data
+            });
+        } catch (error) {
+            console.error('All branches performance error:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
 module.exports = router;

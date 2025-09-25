@@ -35,6 +35,12 @@ function initializeAnalyticsContent() {
     setupDateInputs();
     updateFilterDisplay();
     
+    // Check if user is main branch user and show/hide branches performance section
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    if (!isMainBranchUser) {
+        hideBranchesPerformanceSection();
+    }
+    
     // Initialize custom inputs and date hints
     toggleCustomInputs(customType);
     updateDateHints(customType);
@@ -692,13 +698,14 @@ async function loadAnalyticsData() {
         // Try to load real data first
         try {
             console.log('📡 Fetching analytics data from API...');
-            const [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers] = await Promise.all([
+            const [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers, allBranchesPerformance] = await Promise.all([
                 fetchAnalyticsSummary(userBranchId, isMainBranchUser),
                 fetchSavingsTrend(userBranchId, isMainBranchUser),
                 fetchDisbursementTrend(userBranchId, isMainBranchUser),
                 fetchBranchPerformance(userBranchId, isMainBranchUser),
                 fetchMemberActivity(userBranchId, isMainBranchUser),
-                fetchTopMembers(userBranchId, isMainBranchUser)
+                fetchTopMembers(userBranchId, isMainBranchUser),
+                fetchAllBranchesPerformance()
             ]);
             
             console.log('📊 Fetched data:', {
@@ -707,7 +714,8 @@ async function loadAnalyticsData() {
                 disbursementTrend: disbursementTrend?.length || 0,
                 branchPerformance: branchPerformance?.length || 0,
                 memberActivity: memberActivity?.length || 0,
-                topMembers: topMembers?.length || 0
+                topMembers: topMembers?.length || 0,
+                allBranchesPerformance: allBranchesPerformance?.length || 0
             });
             
             // Check if we have real data
@@ -722,6 +730,14 @@ async function loadAnalyticsData() {
                 updateSummaryCards(summaryData);
                 updateCharts(savingsTrend, disbursementTrend, branchPerformance, memberActivity);
                 updateTables(topMembers, branchPerformance);
+                
+                // Only show branches performance for main branch users
+                if (isMainBranchUser) {
+                    updateBranchesPerformance(allBranchesPerformance);
+                } else {
+                    hideBranchesPerformanceSection();
+                }
+                
                 showNotification('Real data loaded successfully', 'success');
             } else {
                 console.log('📊 No real data available, showing empty state');
@@ -981,6 +997,46 @@ async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
     }
     
     const response = await fetch(`${API_BASE_URL}/analytics/top-members?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch all branches performance data
+async function fetchAllBranchesPerformance() {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter
+    });
+    
+    // Add date range parameters for all filters
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
+    }
+    
+    console.log('🏢 Fetching all branches performance with params:', params.toString());
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/all-branches-performance?${params}`, {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -2180,6 +2236,90 @@ function updateTables(topMembers, branchPerformance) {
     console.log('Tables updated with real data');
 }
 
+// Update branches performance section with real data
+function updateBranchesPerformance(data) {
+    console.log('🏢 Updating branches performance with data:', data);
+    const branchesGrid = document.querySelector('.branches-grid');
+    
+    if (!branchesGrid) {
+        console.error('❌ Branches grid not found!');
+        return;
+    }
+    
+    if (!data || data.length === 0) {
+        console.log('⚠️ No branches performance data available, showing no-data message');
+        branchesGrid.innerHTML = `
+            <div class="no-data-message" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #9ca3af; padding: 2rem; position: relative; z-index: 1; grid-column: 1 / -1; min-height: 200px;">
+                <i class="fas fa-building" style="font-size: 2.5rem; margin-bottom: 0.8rem; color: #d1d5db;"></i>
+                <p style="font-size: 1rem; font-weight: 500; margin-bottom: 0.4rem; color: #6b7280; text-align: center;">No branch performance data available</p>
+                <small style="font-size: 0.8rem; color: #9ca3af; text-align: center;">Branch performance data will appear here once branches start operations</small>
+            </div>
+        `;
+        return;
+    }
+    
+    console.log('✅ Branches performance data available, showing branch cards');
+    
+    // Clear existing content
+    branchesGrid.innerHTML = '';
+    
+    // Create branch cards for each branch
+    data.forEach((branch, index) => {
+        const branchCard = createBranchCard(branch, index + 1);
+        branchesGrid.appendChild(branchCard);
+    });
+    
+    console.log(`✅ Created ${data.length} branch performance cards`);
+}
+
+// Create individual branch card
+function createBranchCard(branch, rank) {
+    const card = document.createElement('div');
+    card.className = 'branch-card';
+    
+    const netPosition = parseFloat(branch.net_position) || 0;
+    const netPositionClass = netPosition > 0 ? 'positive' : netPosition < 0 ? 'negative' : 'neutral';
+    
+    card.innerHTML = `
+        <div class="branch-card-header">
+            <div>
+                <h4 class="branch-name">Branch ${branch.branch_id}</h4>
+                <div class="branch-location">${branch.branch_location}</div>
+            </div>
+            <div class="branch-rank">#${rank}</div>
+        </div>
+        
+                <div class="branch-metrics">
+                    <div class="branch-metric">
+                        <div class="branch-metric-label">Total<br>Savings</div>
+                        <div class="branch-metric-value">${formatCurrency(branch.total_savings)}</div>
+                    </div>
+                    <div class="branch-metric">
+                        <div class="branch-metric-label">Total<br>Disbursements</div>
+                        <div class="branch-metric-value">${formatCurrency(branch.total_disbursements)}</div>
+                    </div>
+                </div>
+        
+        <div class="branch-net-position ${netPositionClass}">
+            <div class="branch-net-label">Net Position</div>
+            <div class="branch-net-value ${netPositionClass}">${formatCurrency(netPosition)}</div>
+        </div>
+        
+        <div class="branch-stats">
+            <div class="branch-stat">
+                <span class="branch-stat-label">Active Members:</span>
+                <span class="branch-stat-value">${branch.active_members || 0}</span>
+            </div>
+            <div class="branch-stat">
+                <span class="branch-stat-label">Total Transactions:</span>
+                <span class="branch-stat-value">${branch.total_transactions || 0}</span>
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
 // Update top members table
 function updateTopMembersTable(data) {
     const tbody = document.querySelector('.table-container:first-child .data-table tbody');
@@ -2338,6 +2478,23 @@ function refreshTable(tableType) {
     });
 }
 
+// Refresh branches performance section
+function refreshBranchesPerformance() {
+    console.log('🔄 Refreshing branches performance...');
+    
+    // Show loading state for branches performance
+    showBranchesPerformanceLoading();
+    
+    // Refresh the branches performance data
+    loadAnalyticsData().then(() => {
+        hideBranchesPerformanceLoading();
+        showNotification('Branches performance refreshed', 'success');
+    }).catch(error => {
+        hideBranchesPerformanceLoading();
+        showNotification('Failed to refresh branches performance', 'error');
+    });
+}
+
 // Show loading state
 function showLoadingState() {
     // Add loading class to main content
@@ -2372,6 +2529,14 @@ function showEmptyState() {
     
     // Clear all tables
     updateTables([], []);
+    
+    // Clear branches performance section (only for main branch users)
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    if (isMainBranchUser) {
+        updateBranchesPerformance([]);
+    } else {
+        hideBranchesPerformanceSection();
+    }
     
     console.log('✅ Empty state displayed successfully');
 }
@@ -2411,6 +2576,22 @@ function hideTableLoading(tableType) {
     const tableContainer = document.querySelector(`.table-container`);
     if (tableContainer) {
         tableContainer.classList.remove('loading');
+    }
+}
+
+// Show branches performance loading
+function showBranchesPerformanceLoading() {
+    const branchesContainer = document.querySelector('.branches-performance-container');
+    if (branchesContainer) {
+        branchesContainer.classList.add('loading');
+    }
+}
+
+// Hide branches performance loading
+function hideBranchesPerformanceLoading() {
+    const branchesContainer = document.querySelector('.branches-performance-container');
+    if (branchesContainer) {
+        branchesContainer.classList.remove('loading');
     }
 }
 
@@ -2554,10 +2735,29 @@ function getDateRange(filter) {
 }
 
 
+// Hide branches performance section for non-main branch users
+function hideBranchesPerformanceSection() {
+    const branchesSection = document.querySelector('.branches-performance-section');
+    if (branchesSection) {
+        branchesSection.style.display = 'none';
+        console.log('🏢 Branches performance section hidden for non-main branch user');
+    }
+}
+
+// Show branches performance section for main branch users
+function showBranchesPerformanceSection() {
+    const branchesSection = document.querySelector('.branches-performance-section');
+    if (branchesSection) {
+        branchesSection.style.display = 'block';
+        console.log('🏢 Branches performance section shown for main branch user');
+    }
+}
+
 // Export functions for global access
 window.applyFilters = applyFilters;
 window.refreshChart = refreshChart;
 window.refreshTable = refreshTable;
+window.refreshBranchesPerformance = refreshBranchesPerformance;
 
 // Auto-initialize when script loads
 if (document.readyState === 'loading') {
