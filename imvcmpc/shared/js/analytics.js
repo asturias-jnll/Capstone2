@@ -1300,36 +1300,37 @@ function generateLast7DaysLabels() {
     return labels;
 }
 
-// Generate weekly date ranges for Last 30 Days filter (4 weeks)
+// Generate 6-day periods for Last 30 Days filter (5 periods of 6 days each)
 function generateLast30DaysWeeklyLabels() {
     const labels = [];
     const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     
-    // Generate 4 weekly periods (7 days each = 28 days, covering last 30 days)
-    for (let week = 3; week >= 0; week--) {
-        const startDate = new Date(today);
-        startDate.setDate(today.getDate() - (week * 7 + 6)); // Start of week
+    // Generate 5 periods of 6 days each (30 days total, ending yesterday)
+    for (let period = 4; period >= 0; period--) {
+        const endDate = new Date(yesterday);
+        endDate.setDate(yesterday.getDate() - (period * 6)); // End of period
         
-        const endDate = new Date(today);
-        endDate.setDate(today.getDate() - (week * 7)); // End of week
+        const startDate = new Date(endDate);
+        startDate.setDate(endDate.getDate() - 5); // Start of period (6 days total)
         
-        // Format as "Aug 20-27, 2025" or "Aug 28-Sep 03, 2025"
+        // Format as "Aug 20-25, 2025" or "Aug 26-Sep 01, 2025"
         const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
         const startDay = startDate.getDate();
         const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
         const endDay = endDate.getDate();
         const year = endDate.getFullYear();
         
-        let weekLabel;
+        let periodLabel;
         if (startMonth === endMonth) {
-            // Same month: "Aug 20-27, 2025"
-            weekLabel = `${startMonth} ${startDay}-${endDay}, ${year}`;
+            // Same month: "Aug 20-25, 2025"
+            periodLabel = `${startMonth} ${startDay}-${endDay}, ${year}`;
         } else {
-            // Different months: "Aug 28-Sep 03, 2025"
-            weekLabel = `${startMonth} ${startDay}-${endMonth} ${endDay}, ${year}`;
+            // Different months: "Aug 26-Sep 01, 2025"
+            periodLabel = `${startMonth} ${startDay}-${endMonth} ${endDay}, ${year}`;
         }
         
-        labels.push(weekLabel);
+        labels.push(periodLabel);
     }
     
     return labels;
@@ -1519,30 +1520,33 @@ function alignDataWithLast7Days(data, valueKey) {
     return alignedData;
 }
 
-// Align data with weekly periods for Last 30 Days filter
+// Align data with 6-day periods for Last 30 Days filter (5 periods of 6 days each)
 function alignDataWithLast30DaysWeekly(data, valueKey) {
-    const alignedData = new Array(4).fill(0);
+    const alignedData = new Array(5).fill(0);
     const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     
-    // Group data by weekly periods
+    // Group data by 6-day periods
     data.forEach(item => {
         const itemDate = new Date(item.date);
-        const daysDiff = Math.floor((today - itemDate) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.floor((yesterday - itemDate) / (1000 * 60 * 60 * 24));
         
-        // Determine which week this data belongs to
-        let weekIndex;
-        if (daysDiff >= 0 && daysDiff <= 6) {
-            weekIndex = 3; // Most recent week
-        } else if (daysDiff >= 7 && daysDiff <= 13) {
-            weekIndex = 2; // Second week
-        } else if (daysDiff >= 14 && daysDiff <= 20) {
-            weekIndex = 1; // Third week
-        } else if (daysDiff >= 21 && daysDiff <= 27) {
-            weekIndex = 0; // Fourth week
+        // Determine which 6-day period this data belongs to
+        let periodIndex;
+        if (daysDiff >= 0 && daysDiff <= 5) {
+            periodIndex = 4; // Most recent period (6 days)
+        } else if (daysDiff >= 6 && daysDiff <= 11) {
+            periodIndex = 3; // Second period
+        } else if (daysDiff >= 12 && daysDiff <= 17) {
+            periodIndex = 2; // Third period
+        } else if (daysDiff >= 18 && daysDiff <= 23) {
+            periodIndex = 1; // Fourth period
+        } else if (daysDiff >= 24 && daysDiff <= 29) {
+            periodIndex = 0; // Fifth period (oldest)
         }
         
-        if (weekIndex !== undefined) {
-            alignedData[weekIndex] += parseFloat(item[valueKey]) || 0;
+        if (periodIndex !== undefined) {
+            alignedData[periodIndex] += parseFloat(item[valueKey]) || 0;
         }
     });
     
@@ -2538,7 +2542,7 @@ function getDateRange(filter) {
         },
         'last-30-days': {
             start: getStartOfDay(new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)),
-            end: getEndOfDay(new Date(today))
+            end: getEndOfDay(new Date(today.getTime() - 24 * 60 * 60 * 1000))
         },
         custom: {
             start: getStartOfDay(new Date(document.getElementById('startDate').value)),
