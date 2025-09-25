@@ -12,6 +12,10 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
+            // Ensure dates are properly formatted for PostgreSQL with timezone handling
+            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
+            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            
             if (isMainBranch) {
                 // Main branch users see data from all branches
                 query = `
@@ -21,9 +25,9 @@ class AnalyticsService {
                         COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_growth,
                         COUNT(DISTINCT payee) as active_members
                     FROM ibaan_transactions 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
                 const branchTable = this.getBranchTableName(branchId);
@@ -34,9 +38,9 @@ class AnalyticsService {
                         COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_growth,
                         COUNT(DISTINCT payee) as active_members
                     FROM ${branchTable} 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             }
             
             const result = await this.pool.query(query, params);
@@ -102,6 +106,10 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
+            // Ensure dates are properly formatted for PostgreSQL with timezone handling
+            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
+            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            
             if (isMainBranch) {
                 // Main branch users see data from all branches
                 query = `
@@ -109,11 +117,11 @@ class AnalyticsService {
                         DATE_TRUNC('day', transaction_date) as date,
                         SUM(savings_deposits) as total_savings
                     FROM ibaan_transactions 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
                 const branchTable = this.getBranchTableName(branchId);
@@ -122,11 +130,11 @@ class AnalyticsService {
                         DATE_TRUNC('day', transaction_date) as date,
                         SUM(savings_deposits) as total_savings
                     FROM ${branchTable} 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             }
             
             const result = await this.pool.query(query, params);
@@ -143,6 +151,10 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
+            // Ensure dates are properly formatted for PostgreSQL with timezone handling
+            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
+            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            
             if (isMainBranch) {
                 // Main branch users see data from all branches
                 query = `
@@ -150,11 +162,11 @@ class AnalyticsService {
                         DATE_TRUNC('day', transaction_date) as date,
                         SUM(loan_receivables) as total_disbursements
                     FROM ibaan_transactions 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
                 const branchTable = this.getBranchTableName(branchId);
@@ -163,11 +175,11 @@ class AnalyticsService {
                         DATE_TRUNC('day', transaction_date) as date,
                         SUM(loan_receivables) as total_disbursements
                     FROM ${branchTable} 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             }
             
             const result = await this.pool.query(query, params);
@@ -184,6 +196,10 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
+            // Ensure dates are properly formatted for PostgreSQL with timezone handling
+            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
+            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            
             if (isMainBranch) {
                 // Main branch users see all branches performance
                 query = `
@@ -193,11 +209,11 @@ class AnalyticsService {
                         SUM(t.loan_receivables) as total_disbursements
                     FROM ibaan_transactions t
                     JOIN branches b ON t.branch_id = b.id
-                    WHERE t.transaction_date BETWEEN $1 AND $2
+                    WHERE t.transaction_date >= $1::timestamp AND t.transaction_date <= $2::timestamp
                     GROUP BY b.name
                     ORDER BY total_savings DESC
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see their branch performance summary
                 const branchTable = this.getBranchTableName(branchId);
@@ -208,9 +224,9 @@ class AnalyticsService {
                         SUM(savings_deposits) as total_savings,
                         SUM(loan_receivables) as total_disbursements
                     FROM ${branchTable} 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             }
             
             const result = await this.pool.query(query, params);
@@ -227,6 +243,10 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
+            // Ensure dates are properly formatted for PostgreSQL with timezone handling
+            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
+            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            
             if (isMainBranch) {
                 // Main branch users see data from all branches
                 query = `
@@ -234,12 +254,12 @@ class AnalyticsService {
                         payee as member_name,
                         COUNT(*) as transaction_count
                     FROM ibaan_transactions 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                     GROUP BY payee
                     ORDER BY transaction_count DESC
                     LIMIT 5
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
                 const branchTable = this.getBranchTableName(branchId);
@@ -248,12 +268,12 @@ class AnalyticsService {
                         payee as member_name,
                         COUNT(*) as transaction_count
                     FROM ${branchTable} 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                     GROUP BY payee
                     ORDER BY transaction_count DESC
                     LIMIT 5
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             }
             
             const result = await this.pool.query(query, params);
@@ -270,6 +290,10 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
+            // Ensure dates are properly formatted for PostgreSQL with timezone handling
+            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
+            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            
             if (isMainBranch) {
                 // Main branch users see top members from all branches
                 query = `
@@ -281,13 +305,13 @@ class AnalyticsService {
                         SUM(savings_deposits - loan_receivables) as net_position,
                         COUNT(*) as transaction_count
                     FROM ibaan_transactions 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                     GROUP BY payee
                     HAVING SUM(savings_deposits - loan_receivables) > 0
                     ORDER BY net_position DESC
                     LIMIT 10
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see top members from their specific branch
                 const branchTable = this.getBranchTableName(branchId);
@@ -300,13 +324,13 @@ class AnalyticsService {
                         SUM(savings_deposits - loan_receivables) as net_position,
                         COUNT(*) as transaction_count
                     FROM ${branchTable} 
-                    WHERE transaction_date BETWEEN $1 AND $2
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
                     GROUP BY payee
                     HAVING SUM(savings_deposits - loan_receivables) > 0
                     ORDER BY net_position DESC
                     LIMIT 10
                 `;
-                params = [startDate, endDate];
+                params = [startDateFormatted, endDateFormatted];
             }
             
             const result = await this.pool.query(query, params);

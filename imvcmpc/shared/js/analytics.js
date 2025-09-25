@@ -766,6 +766,7 @@ async function fetchAnalyticsSummary(userBranchId = '1', isMainBranchUser = true
     } else {
         // For non-custom filters, calculate and add date range
         const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
         params.append('startDate', dateRange.start.toISOString().split('T')[0]);
         params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
@@ -812,6 +813,7 @@ async function fetchSavingsTrend(userBranchId = '1', isMainBranchUser = true) {
     } else {
         // For non-custom filters, calculate and add date range
         const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
         params.append('startDate', dateRange.start.toISOString().split('T')[0]);
         params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
@@ -853,6 +855,7 @@ async function fetchDisbursementTrend(userBranchId = '1', isMainBranchUser = tru
     } else {
         // For non-custom filters, calculate and add date range
         const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
         params.append('startDate', dateRange.start.toISOString().split('T')[0]);
         params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
@@ -892,6 +895,7 @@ async function fetchBranchPerformance(userBranchId = '1', isMainBranchUser = tru
     } else {
         // For non-custom filters, calculate and add date range
         const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
         params.append('startDate', dateRange.start.toISOString().split('T')[0]);
         params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
@@ -931,6 +935,7 @@ async function fetchMemberActivity(userBranchId = '1', isMainBranchUser = true) 
     } else {
         // For non-custom filters, calculate and add date range
         const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
         params.append('startDate', dateRange.start.toISOString().split('T')[0]);
         params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
@@ -970,6 +975,7 @@ async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
     } else {
         // For non-custom filters, calculate and add date range
         const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
         params.append('startDate', dateRange.start.toISOString().split('T')[0]);
         params.append('endDate', dateRange.end.toISOString().split('T')[0]);
     }
@@ -1275,10 +1281,11 @@ function getMaxTicksLimit(granularity) {
     }
 }
 
-// Generate date labels for Last 7 Days filter (starting from yesterday)
+// Generate date labels for Last 7 Days filter (7 days ending yesterday)
 function generateLast7DaysLabels() {
     const labels = [];
     
+    // Generate 7 days ending yesterday (not including today)
     for (let i = 7; i >= 1; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
@@ -1477,23 +1484,31 @@ function generateChartLabels(data, filter) {
     }));
 }
 
-// Align data with date labels for Last 7 Days filter
+// Align data with date labels for Last 7 Days filter (7 days ending yesterday)
 function alignDataWithLast7Days(data, valueKey) {
     const alignedData = new Array(7).fill(0);
     
-    // Create a map of dates to their index
+    // Create a map of dates to their index (7 days ending yesterday)
     const dateIndexMap = {};
     for (let i = 7; i >= 1; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
-        const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Ensure we get the date in local timezone for proper alignment
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`; // YYYY-MM-DD format
         dateIndexMap[dateString] = 7 - i; // Index for proper order
     }
     
     // Align data with date labels
     data.forEach(item => {
         const itemDate = new Date(item.date);
-        const dateString = itemDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Ensure we get the date in local timezone for proper alignment
+        const year = itemDate.getFullYear();
+        const month = String(itemDate.getMonth() + 1).padStart(2, '0');
+        const day = String(itemDate.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`; // YYYY-MM-DD format
         const index = dateIndexMap[dateString];
         
         if (index !== undefined) {
@@ -1548,14 +1563,22 @@ function alignDataWithCustomWeek(data, valueKey) {
     for (let i = 0; i < 7; i++) {
         const date = new Date(startDate);
         date.setDate(startDate.getDate() + i);
-        const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Ensure we get the date in local timezone for proper alignment
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`; // YYYY-MM-DD format
         dateIndexMap[dateString] = i;
     }
     
     // Align data with date labels
     data.forEach(item => {
         const itemDate = new Date(item.date);
-        const dateString = itemDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Ensure we get the date in local timezone for proper alignment
+        const year = itemDate.getFullYear();
+        const month = String(itemDate.getMonth() + 1).padStart(2, '0');
+        const day = String(itemDate.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`; // YYYY-MM-DD format
         const index = dateIndexMap[dateString];
         
         if (index !== undefined) {
@@ -2489,22 +2512,37 @@ function formatPercentage(value) {
 // Utility function to get date range based on filter
 function getDateRange(filter) {
     const today = new Date();
+    
+    // Helper function to create date at start of day in local timezone
+    function getStartOfDay(date) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+    
+    // Helper function to create date at end of day in local timezone
+    function getEndOfDay(date) {
+        const d = new Date(date);
+        d.setHours(23, 59, 59, 999);
+        return d;
+    }
+    
     const ranges = {
         yesterday: {
-            start: new Date(today.getTime() - 24 * 60 * 60 * 1000),
-            end: new Date(today.getTime() - 24 * 60 * 60 * 1000)
+            start: getStartOfDay(new Date(today.getTime() - 24 * 60 * 60 * 1000)),
+            end: getEndOfDay(new Date(today.getTime() - 24 * 60 * 60 * 1000))
         },
         'last-7-days': {
-            start: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
-            end: new Date(today)
+            start: getStartOfDay(new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000)),
+            end: getEndOfDay(new Date(today.getTime() - 24 * 60 * 60 * 1000))
         },
         'last-30-days': {
-            start: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000),
-            end: new Date(today)
+            start: getStartOfDay(new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)),
+            end: getEndOfDay(new Date(today))
         },
         custom: {
-            start: new Date(document.getElementById('startDate').value),
-            end: new Date(document.getElementById('endDate').value)
+            start: getStartOfDay(new Date(document.getElementById('startDate').value)),
+            end: getEndOfDay(new Date(document.getElementById('endDate').value))
         }
     };
     
