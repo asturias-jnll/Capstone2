@@ -722,15 +722,13 @@ function initializeNavigationToggle() {
         
         // Auto-collapse on smaller screens for better UX
         function handleResize() {
-            if (window.innerWidth <= 768) {
-                // On mobile, use existing mobile navigation logic
-                return;
-            }
-            
-            // Auto-collapse on medium screens for better space usage
-            if (window.innerWidth <= 1024 && navigation.classList.contains('expanded')) {
-                navigation.classList.remove('expanded');
-                localStorage.setItem('navExpanded', 'false');
+            if (window.innerWidth <= 1024) {
+                // Auto-collapse on tablet and mobile screens
+                if (navigation.classList.contains('expanded')) {
+                    navigation.classList.remove('expanded');
+                    document.documentElement.classList.remove('nav-expanded');
+                    localStorage.setItem('navExpanded', 'false');
+                }
             }
         }
         
