@@ -414,16 +414,28 @@ function updateTopMembersInsight(data) {
         return;
     }
     
-    const membersList = data.slice(0, 5).map((member, index) => `
-        <div class="member-item">
-            <div class="member-rank">${index + 1}</div>
-            <div class="member-info">
-                <div class="member-name">${member.member_name}</div>
-                <div class="member-transactions">${member.transaction_count} transactions</div>
+    const membersList = data.slice(0, 5).map((member, index) => {
+        const netPosition = parseFloat(member.net_position) || 0;
+        const netPositionClass = netPosition > 0 ? 'positive' : netPosition < 0 ? 'negative' : 'neutral';
+        const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+        
+        return `
+            <div class="member-item">
+                <div class="member-rank">${index + 1}</div>
+                <div class="member-info">
+                    <div class="member-name">${member.member_name}</div>
+                    <div class="member-details">
+                        <span class="member-savings">Savings: ${formatCurrency(member.total_savings || 0)}</span>
+                        <span class="member-disbursements">Loans: ${formatCurrency(member.total_disbursements || 0)}</span>
+                    </div>
+                </div>
+                <div class="member-net-position ${netPositionClass}" style="color: ${netPositionColor}; font-weight: 600;">
+                    <div class="net-position-label">Net Position</div>
+                    <div class="net-position-value">${formatCurrency(netPosition)}</div>
+                </div>
             </div>
-            <div class="member-amount">${formatCurrency(member.total_amount || 0)}</div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
     
     insightContent.innerHTML = `
         <div class="members-list">

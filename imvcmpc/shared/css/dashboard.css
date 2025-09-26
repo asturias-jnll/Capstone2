@@ -546,9 +546,67 @@ body {
     color: #6b7280;
 }
 
+.member-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-top: 0.25rem;
+}
+
+.member-savings,
+.member-disbursements {
+    font-size: 0.7rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.member-savings {
+    color: #059669;
+}
+
+.member-disbursements {
+    color: #dc2626;
+}
+
 .member-amount {
     font-size: 0.875rem;
     font-weight: 600;
     color: #0D5B11;
     white-space: nowrap;
+}
+
+.member-net-position {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    min-width: 80px;
+}
+
+.net-position-label {
+    font-size: 0.65rem;
+    color: #6b7280;
+    margin-bottom: 0.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.net-position-value {
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.member-net-position.positive .net-position-value {
+    color: #007542;
+}
+
+.member-net-position.negative .net-position-value {
+    color: #ef4444;
+}
+
+.member-net-position.neutral .net-position-value {
+    color: #6b7280;
 }
