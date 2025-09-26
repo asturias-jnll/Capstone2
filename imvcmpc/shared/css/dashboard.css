@@ -407,10 +407,15 @@ body {
     min-height: 150px;
 }
 
-/* Mobile Responsive */
-@media (max-width: 1024px) {
+/* Enhanced Mobile Responsive */
+@media (max-width: 1200px) {
+    .dashboard-content {
+        padding: 120px 24px 40px;
+    }
+    
     .summary-cards {
         grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
     }
     
     .preview-charts {
@@ -422,9 +427,64 @@ body {
     }
 }
 
+@media (max-width: 1024px) {
+    .dashboard-content {
+        padding: 120px 20px 40px;
+    }
+    
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+    }
+    
+    .summary-card {
+        padding: 1rem;
+    }
+    
+    .card-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+    }
+    
+    .card-content h3 {
+        font-size: 0.75rem;
+    }
+    
+    .card-value {
+        font-size: 1.1rem;
+    }
+    
+    .preview-charts {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+    
+    .insights-grid {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+    
+    .chart-content {
+        height: 220px;
+    }
+}
+
 @media (max-width: 768px) {
     .dashboard-content {
-        padding: 120px 20px 20px;
+        padding: 100px 16px 20px;
+    }
+    
+    .title-section {
+        margin: -20px 0 1rem 0;
+    }
+    
+    .page-title {
+        font-size: 1.1rem;
+    }
+    
+    .page-description {
+        font-size: 0.75rem;
     }
     
     .summary-cards {
@@ -434,6 +494,8 @@ body {
     
     .summary-card {
         padding: 0.8rem;
+        flex-direction: row;
+        align-items: center;
     }
     
     .card-icon {
@@ -442,40 +504,138 @@ body {
         font-size: 14px;
     }
     
+    .card-content h3 {
+        font-size: 0.7rem;
+    }
+    
     .card-value {
-        font-size: 1.1rem;
+        font-size: 1rem;
+    }
+    
+    .card-change {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
+    }
+    
+    .change-indicator,
+    .change-text {
+        font-size: 0.55rem;
     }
     
     .quick-actions {
         flex-direction: column;
         align-items: center;
+        gap: 0.8rem;
     }
     
     .action-btn {
         width: 100%;
-        max-width: 200px;
+        max-width: 250px;
         justify-content: center;
+        padding: 0.7rem 1.2rem;
+        font-size: 0.8rem;
+    }
+    
+    .preview-charts {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .preview-chart {
+        padding: 1rem;
+    }
+    
+    .chart-header h3 {
+        font-size: 0.85rem;
     }
     
     .chart-content {
         height: 180px;
     }
     
-    .preview-chart,
+    .insights-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
     .insight-card {
         padding: 1rem;
+    }
+    
+    .insight-header h3 {
+        font-size: 0.85rem;
+    }
+    
+    .insight-content {
+        min-height: 120px;
+    }
+    
+    .no-data-message i {
+        font-size: 1.8rem;
+    }
+    
+    .no-data-message p {
+        font-size: 0.85rem;
+    }
+    
+    .no-data-message small {
+        font-size: 0.65rem;
     }
 }
 
 @media (max-width: 480px) {
+    .dashboard-content {
+        padding: 90px 12px 20px;
+    }
+    
     .summary-card {
         flex-direction: column;
         text-align: center;
         gap: 0.6rem;
+        padding: 0.7rem;
+    }
+    
+    .card-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+    
+    .card-content h3 {
+        font-size: 0.65rem;
+    }
+    
+    .card-value {
+        font-size: 0.9rem;
+    }
+    
+    .action-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.75rem;
+        max-width: 200px;
     }
     
     .chart-content {
         height: 160px;
+    }
+    
+    .chart-header h3 {
+        font-size: 0.8rem;
+    }
+    
+    .chart-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 0.6rem;
+    }
+    
+    .insight-header h3 {
+        font-size: 0.8rem;
+    }
+    
+    .insight-content {
+        min-height: 100px;
     }
     
     .no-data-message i {
@@ -484,6 +644,49 @@ body {
     
     .no-data-message p {
         font-size: 0.8rem;
+    }
+    
+    .no-data-message small {
+        font-size: 0.6rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .dashboard-content {
+        padding: 80px 8px 20px;
+    }
+    
+    .summary-card {
+        padding: 0.6rem;
+    }
+    
+    .card-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
+    }
+    
+    .card-content h3 {
+        font-size: 0.6rem;
+    }
+    
+    .card-value {
+        font-size: 0.85rem;
+    }
+    
+    .action-btn {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.7rem;
+        max-width: 180px;
+    }
+    
+    .chart-content {
+        height: 140px;
+    }
+    
+    .preview-chart,
+    .insight-card {
+        padding: 0.8rem;
     }
 }
 

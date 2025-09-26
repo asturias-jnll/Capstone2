@@ -1087,39 +1087,56 @@
     border: none;
 }
 
-/* Mobile Responsive */
-@media (max-width: 1024px) {
+/* Enhanced Mobile Responsive */
+@media (max-width: 1200px) {
+    .analytics-content {
+        padding: 120px 24px 40px;
+    }
+    
     .summary-cards {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
     }
     
     .charts-grid {
         grid-template-columns: 1fr;
+        gap: 1.2rem;
     }
     
     .tables-grid {
         grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+    
+    .branches-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.8rem;
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .analytics-content {
-        padding: 120px 20px 20px;
+        padding: 120px 20px 40px;
     }
     
     .title-section {
-        padding: 1rem 0;
+        margin: -20px 0 1rem 0;
     }
     
     .page-title {
-        font-size: 2rem;
+        font-size: 1.1rem;
+    }
+    
+    .page-description {
+        font-size: 0.75rem;
     }
     
     .filter-section {
-        padding: 0.8rem 0;
+        padding: 0.5rem 0;
     }
     
     .quick-filters {
+        gap: 0.4rem;
         justify-content: center;
     }
     
@@ -1128,25 +1145,131 @@
         font-size: 0.8rem;
     }
     
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+    }
+    
+    .summary-card {
+        padding: 1.2rem;
+    }
+    
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+    }
+    
+    .card-content h3 {
+        font-size: 0.8rem;
+    }
+    
+    .card-value {
+        font-size: 1.1rem;
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .chart-content {
+        height: 250px;
+    }
+    
+    .tables-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .branches-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.7rem;
+    }
+    
+    .branch-card {
+        padding: 0.8rem;
+    }
+    
+    .branch-name {
+        font-size: 0.75rem;
+    }
+    
+    .branch-location {
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .analytics-content {
+        padding: 100px 16px 20px;
+    }
+    
+    .title-section {
+        margin: -20px 0 0.8rem 0;
+    }
+    
+    .page-title {
+        font-size: 1rem;
+    }
+    
+    .page-description {
+        font-size: 0.7rem;
+    }
+    
+    .filter-section {
+        padding: 0.4rem 0;
+    }
+    
+    .quick-filters {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    
+    .filter-btn {
+        width: 100%;
+        padding: 0.5rem 0.8rem;
+        font-size: 0.75rem;
+        text-align: center;
+    }
+    
+    .custom-range {
+        padding: 0.8rem;
+    }
+    
     .custom-type-selector {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.4rem;
     }
     
     .custom-type-btn {
         width: 100%;
         max-width: 150px;
         margin: 0 auto;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
     }
     
-    .month-year-selector {
+    .date-inputs {
         flex-direction: column;
-        gap: 0.5rem;
+        align-items: center;
+        gap: 0.8rem;
     }
     
+    .input-group {
+        min-width: auto;
+        width: 100%;
+        max-width: 200px;
+    }
+    
+    .month-year-selector,
     .year-selector {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.4rem;
+        padding: 0.8rem;
     }
     
     .week-picker {
@@ -1159,78 +1282,122 @@
     
     .week-date-item {
         padding: 0.4rem;
-        font-size: 0.75rem;
-    }
-    
-    .date-inputs {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .input-group {
-        min-width: auto;
-        width: 100%;
-        max-width: 200px;
+        font-size: 0.7rem;
     }
     
     .summary-cards {
         grid-template-columns: 1fr;
-        gap: 1rem;
+        gap: 0.8rem;
     }
     
     .summary-card {
         padding: 1rem;
+        flex-direction: row;
+        align-items: center;
     }
     
     .card-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 18px;
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .card-content h3 {
+        font-size: 0.75rem;
     }
     
     .card-value {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
     
-    .chart-content {
-        height: 240px;
+    .card-change {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
     }
     
-    .chart-container,
-    .table-container {
+    .change-indicator,
+    .change-text {
+        font-size: 0.7rem;
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .chart-container {
         padding: 1rem;
     }
     
-    /* Ensure table striping works on mobile */
-    .data-table tbody tr:nth-child(even) {
-        background-color: #f0f9f0;
-    }
-    
-    .data-table tbody tr:nth-child(odd) {
-        background-color: transparent;
-    }
-}
-
-@media (max-width: 480px) {
-    .quick-filters {
-        flex-direction: column;
-        align-items: center;
-        gap: 0.4rem;
-    }
-    
-    .filter-btn {
-        width: 100%;
-        max-width: 180px;
-    }
-    
-    .summary-card {
-        flex-direction: column;
-        text-align: center;
-        gap: 0.6rem;
+    .chart-header h3 {
+        font-size: 0.9rem;
     }
     
     .chart-content {
         height: 200px;
+    }
+    
+    .chart-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+    }
+    
+    .tables-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .table-container {
+        padding: 1rem;
+    }
+    
+    .table-header h3 {
+        font-size: 0.9rem;
+    }
+    
+    .data-table {
+        font-size: 0.8rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 0.6rem 0.4rem;
+    }
+    
+    .branches-performance-container {
+        padding: 1rem;
+    }
+    
+    .branches-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.6rem;
+    }
+    
+    .branch-card {
+        padding: 0.7rem;
+    }
+    
+    .branch-name {
+        font-size: 0.7rem;
+    }
+    
+    .branch-location {
+        font-size: 0.6rem;
+    }
+    
+    .branch-metric-label {
+        font-size: 0.6rem;
+        min-height: 2rem;
+    }
+    
+    .branch-metric-value {
+        font-size: 0.7rem;
+    }
+    
+    .branch-net-value {
+        font-size: 0.8rem;
     }
     
     .no-data-message i {
@@ -1239,6 +1406,182 @@
     
     .no-data-message p {
         font-size: 0.9rem;
+    }
+    
+    .no-data-message small {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .analytics-content {
+        padding: 90px 12px 20px;
+    }
+    
+    .page-title {
+        font-size: 0.9rem;
+    }
+    
+    .page-description {
+        font-size: 0.65rem;
+    }
+    
+    .quick-filters {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.3rem;
+        max-width: 250px;
+    }
+    
+    .filter-btn {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.65rem;
+    }
+    
+    .custom-type-btn {
+        max-width: 120px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
+    }
+    
+    .input-group {
+        max-width: 150px;
+    }
+    
+    .date-input {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .summary-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.6rem;
+        padding: 0.8rem;
+    }
+    
+    .card-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+    
+    .card-content h3 {
+        font-size: 0.7rem;
+    }
+    
+    .card-value {
+        font-size: 0.9rem;
+    }
+    
+    .chart-content {
+        height: 180px;
+    }
+    
+    .chart-header h3 {
+        font-size: 0.8rem;
+    }
+    
+    .chart-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 0.6rem;
+    }
+    
+    .data-table {
+        font-size: 0.7rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 0.5rem 0.3rem;
+    }
+    
+    .branches-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .branch-card {
+        padding: 0.6rem;
+    }
+    
+    .branch-name {
+        font-size: 0.65rem;
+    }
+    
+    .branch-location {
+        font-size: 0.55rem;
+    }
+    
+    .branch-metric-label {
+        font-size: 0.55rem;
+        min-height: 1.8rem;
+    }
+    
+    .branch-metric-value {
+        font-size: 0.65rem;
+    }
+    
+    .branch-net-value {
+        font-size: 0.75rem;
+    }
+    
+    .no-data-message i {
+        font-size: 1.8rem;
+    }
+    
+    .no-data-message p {
+        font-size: 0.8rem;
+    }
+    
+    .no-data-message small {
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .analytics-content {
+        padding: 80px 8px 20px;
+    }
+    
+    .summary-card {
+        padding: 0.6rem;
+    }
+    
+    .card-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+    
+    .card-content h3 {
+        font-size: 0.65rem;
+    }
+    
+    .card-value {
+        font-size: 0.85rem;
+    }
+    
+    .chart-content {
+        height: 160px;
+    }
+    
+    .chart-container,
+    .table-container,
+    .branches-performance-container {
+        padding: 0.8rem;
+    }
+    
+    .branch-card {
+        padding: 0.5rem;
+    }
+    
+    .branch-name {
+        font-size: 0.6rem;
+    }
+    
+    .branch-location {
+        font-size: 0.5rem;
     }
 }
 
