@@ -2321,10 +2321,13 @@ function updateTopMembersTable(data) {
     });
 }
 
-// Update branch performance table - Monthly performance summary
+// Update branch performance table - Dynamic performance summary based on filter
 function updateBranchPerformanceTable(data) {
     const tbody = document.querySelector('.table-container:last-child .data-table tbody');
     if (!tbody) return;
+    
+    // Update the date header based on current filter
+    updateBranchPerformanceDateHeader();
     
     // Clear existing rows
     tbody.innerHTML = '';
@@ -2335,8 +2338,8 @@ function updateBranchPerformanceTable(data) {
                 <td colspan="4">
                     <div class="no-data-message">
                         <i class="fas fa-calendar-alt"></i>
-                        <p>No monthly data available</p>
-                        <small>Monthly performance data will appear here once transactions are recorded</small>
+                        <p>No performance data available</p>
+                        <small>Performance data will appear here once transactions are recorded</small>
                     </div>
                 </td>
             </tr>
@@ -2344,46 +2347,94 @@ function updateBranchPerformanceTable(data) {
         return;
     }
     
-    // Get monthly data aligned with past 12 months
-    const monthlySavings = alignDataWithPast12Months(data, 'total_savings');
-    const monthlyDisbursements = alignDataWithPast12Months(data, 'total_disbursements');
-    const labels = generatePast12MonthsLabels();
+    // Generate labels and align data based on current filter
+    const labels = generateChartLabels(data, currentFilter);
+    let savingsData, disbursementData;
     
-    // Show all 12 months in the table (most recent month at top)
-    for (let i = 11; i >= 0; i--) {
-        const monthRow = document.createElement('tr');
-        const monthLabel = labels[i];
-        const monthSavings = monthlySavings[i] || 0;
-        const monthDisbursements = monthlyDisbursements[i] || 0;
-        const monthNet = monthSavings - monthDisbursements;
+    if (currentFilter === 'last-7-days') {
+        savingsData = alignDataWithLast7Days(data, 'total_savings');
+        disbursementData = alignDataWithLast7Days(data, 'total_disbursements');
+    } else if (currentFilter === 'last-30-days') {
+        savingsData = alignDataWithLast30DaysWeekly(data, 'total_savings');
+        disbursementData = alignDataWithLast30DaysWeekly(data, 'total_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'week') {
+        savingsData = alignDataWithCustomWeek(data, 'total_savings');
+        disbursementData = alignDataWithCustomWeek(data, 'total_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'month') {
+        savingsData = alignDataWithCustomMonthWeekly(data, 'total_savings');
+        disbursementData = alignDataWithCustomMonthWeekly(data, 'total_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'year') {
+        savingsData = alignDataWithCustomYearMonthly(data, 'total_savings');
+        disbursementData = alignDataWithCustomYearMonthly(data, 'total_disbursements');
+    } else {
+        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+        disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
+    }
+    
+    // Create table rows for each data point
+    for (let i = 0; i < labels.length; i++) {
+        const row = document.createElement('tr');
+        const dateLabel = labels[i];
+        const savings = savingsData[i] || 0;
+        const disbursements = disbursementData[i] || 0;
+        const net = savings - disbursements;
         
         // Color only for net difference: Green for positive, Red for negative
-        const netColor = monthNet >= 0 ? '#007542' : '#EF4444';
+        const netColor = net >= 0 ? '#007542' : '#EF4444';
         
-        monthRow.innerHTML = `
-            <td style="color: #1f2937;">${monthLabel}</td>
-            <td>${formatCurrency(monthSavings)}</td>
-            <td>${formatCurrency(monthDisbursements)}</td>
-            <td style="color: ${netColor}; font-size: 1.05em; font-weight: bold;">${formatCurrency(monthNet)}</td>
+        row.innerHTML = `
+            <td style="color: #1f2937;">${dateLabel}</td>
+            <td>${formatCurrency(savings)}</td>
+            <td>${formatCurrency(disbursements)}</td>
+            <td style="color: ${netColor}; font-size: 1.05em; font-weight: bold;">${formatCurrency(net)}</td>
         `;
-        tbody.appendChild(monthRow);
+        tbody.appendChild(row);
     }
     
     // Add total summary row at the bottom
-    const totalSavings = monthlySavings.reduce((sum, val) => sum + val, 0);
-    const totalDisbursements = monthlyDisbursements.reduce((sum, val) => sum + val, 0);
+    const totalSavings = savingsData.reduce((sum, val) => sum + val, 0);
+    const totalDisbursements = disbursementData.reduce((sum, val) => sum + val, 0);
     const totalNet = totalSavings - totalDisbursements;
     const totalNetColor = totalNet >= 0 ? '#007542' : '#EF4444';
     
     const totalRow = document.createElement('tr');
     totalRow.style.cssText = 'background-color: #f8fafc; border-top: 2px solid #e5e7eb; font-weight: bold;';
     totalRow.innerHTML = `
-        <td style="color: #1f2937; font-size: 1.1em; font-weight: bold;">12-Month Total</td>
+        <td style="color: #1f2937; font-size: 1.1em; font-weight: bold;">Total</td>
         <td style="font-size: 1.1em; font-weight: bold;">${formatCurrency(totalSavings)}</td>
         <td style="font-size: 1.1em; font-weight: bold;">${formatCurrency(totalDisbursements)}</td>
         <td style="color: ${totalNetColor}; font-size: 1.15em; font-weight: bold;">${formatCurrency(totalNet)}</td>
     `;
     tbody.appendChild(totalRow);
+}
+
+// Update the date header based on current filter
+function updateBranchPerformanceDateHeader() {
+    const headerElement = document.getElementById('branchPerformanceDateHeader');
+    if (!headerElement) return;
+    
+    let headerText = 'Date';
+    
+    if (currentFilter === 'last-7-days') {
+        headerText = 'Date (Last 7 Days)';
+    } else if (currentFilter === 'last-30-days') {
+        headerText = 'Week (Last 30 Days)';
+    } else if (currentFilter === 'custom') {
+        if (customType === 'week') {
+            headerText = 'Date (Custom Week)';
+        } else if (customType === 'month') {
+            headerText = 'Week (Custom Month)';
+        } else if (customType === 'year') {
+            headerText = 'Month (Custom Year)';
+        } else {
+            headerText = 'Date (Custom Period)';
+        }
+    } else {
+        headerText = 'Date';
+    }
+    
+    headerElement.textContent = headerText;
+    console.log(`✅ Updated branch performance table header: "${headerText}"`);
 }
 
 // Refresh individual chart with proper chart type mapping
