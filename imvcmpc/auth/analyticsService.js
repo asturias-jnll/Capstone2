@@ -190,7 +190,7 @@ class AnalyticsService {
         }
     }
 
-    // Get branch performance data
+    // Get branch performance data - time series for charts
     async getBranchPerformance(filters = {}, userRole = null, isMainBranch = false, branchId = '1') {
         try {
             const { startDate, endDate } = filters;
@@ -201,30 +201,30 @@ class AnalyticsService {
             const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
             
             if (isMainBranch) {
-                // Main branch users see all branches performance
+                // Main branch users see data from all branches
                 query = `
                     SELECT 
-                        b.name as branch_name,
-                        SUM(t.savings_deposits) as total_savings,
-                        SUM(t.loan_receivables) as total_disbursements
-                    FROM ibaan_transactions t
-                    JOIN branches b ON t.branch_id = b.id
-                    WHERE t.transaction_date >= $1::timestamp AND t.transaction_date <= $2::timestamp
-                    GROUP BY b.name
-                    ORDER BY total_savings DESC
+                        DATE_TRUNC('day', transaction_date) as date,
+                        SUM(savings_deposits) as total_savings,
+                        SUM(loan_receivables) as total_disbursements
+                    FROM ibaan_transactions 
+                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    GROUP BY DATE_TRUNC('day', transaction_date)
+                    ORDER BY date
                 `;
                 params = [startDateFormatted, endDateFormatted];
             } else {
-                // Non-main branch users see their branch performance summary
+                // Non-main branch users see data from their specific branch
                 const branchTable = this.getBranchTableName(branchId);
-                const branchName = this.getBranchDisplayName(branchId);
                 query = `
                     SELECT 
-                        '${branchName}' as branch_name,
+                        DATE_TRUNC('day', transaction_date) as date,
                         SUM(savings_deposits) as total_savings,
                         SUM(loan_receivables) as total_disbursements
                     FROM ${branchTable} 
                     WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    GROUP BY DATE_TRUNC('day', transaction_date)
+                    ORDER BY date
                 `;
                 params = [startDateFormatted, endDateFormatted];
             }

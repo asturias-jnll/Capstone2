@@ -1950,9 +1950,9 @@ function updateDisbursementTrendChart(data) {
     }
 }
 
-// Update branch performance chart - 12-month trend with three lines
+// Update branch performance chart - time series with three lines
 function updateBranchPerformanceChart(data) {
-    console.log('📊 Updating branch performance chart with 12-month trend data:', data);
+    console.log('📊 Updating branch performance chart with time series data:', data);
     const canvas = document.getElementById('branchPerformanceChart');
     
     if (!canvas) {
@@ -1969,16 +1969,34 @@ function updateBranchPerformanceChart(data) {
         return;
     }
     
-    console.log('✅ Branch performance data available, showing 12-month trend chart');
+    console.log('✅ Branch performance data available, showing time series chart');
     if (noDataMessage) noDataMessage.style.display = 'none';
     if (canvas) canvas.style.display = 'block';
     
-    // Generate 12-month labels with year indication
-    const labels = generatePast12MonthsLabels();
+    // Generate labels based on current filter
+    const labels = generateChartLabels(data, currentFilter);
     
-    // Align data with past 12 months
-    const savingsData = alignDataWithPast12Months(data, 'total_savings');
-    const disbursementData = alignDataWithPast12Months(data, 'total_disbursements');
+    // Align data based on current filter
+    let savingsData, disbursementData;
+    if (currentFilter === 'last-7-days') {
+        savingsData = alignDataWithLast7Days(data, 'total_savings');
+        disbursementData = alignDataWithLast7Days(data, 'total_disbursements');
+    } else if (currentFilter === 'last-30-days') {
+        savingsData = alignDataWithLast30DaysWeekly(data, 'total_savings');
+        disbursementData = alignDataWithLast30DaysWeekly(data, 'total_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'week') {
+        savingsData = alignDataWithCustomWeek(data, 'total_savings');
+        disbursementData = alignDataWithCustomWeek(data, 'total_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'month') {
+        savingsData = alignDataWithCustomMonthWeekly(data, 'total_savings');
+        disbursementData = alignDataWithCustomMonthWeekly(data, 'total_disbursements');
+    } else if (currentFilter === 'custom' && customType === 'year') {
+        savingsData = alignDataWithCustomYearMonthly(data, 'total_savings');
+        disbursementData = alignDataWithCustomYearMonthly(data, 'total_disbursements');
+    } else {
+        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
+        disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
+    }
     
     // Calculate net difference (savings - disbursements)
     const netDifferenceData = savingsData.map((savings, index) => {
@@ -1998,13 +2016,13 @@ function updateBranchPerformanceChart(data) {
     
     try {
         // Create line chart with three trend lines
-            chartInstances.branchPerformanceChart = new Chart(canvas, {
+        chartInstances.branchPerformanceChart = new Chart(canvas, {
             type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
+            data: {
+                labels: labels,
+                datasets: [{
                     label: 'Savings Trend',
-                        data: savingsData,
+                    data: savingsData,
                     borderColor: '#007542', // Theme green for savings
                     backgroundColor: 'rgba(0, 117, 66, 0.1)',
                     borderWidth: 3,
@@ -2016,7 +2034,7 @@ function updateBranchPerformanceChart(data) {
                     pointBorderColor: '#007542'
                 }, {
                     label: 'Disbursement Trend',
-                        data: disbursementData,
+                    data: disbursementData,
                     borderColor: '#58BB43', // Theme green variant for disbursements
                     backgroundColor: 'rgba(88, 187, 67, 0.1)',
                     borderWidth: 3,
@@ -2040,68 +2058,10 @@ function updateBranchPerformanceChart(data) {
                     pointBorderColor: '#F59E0B'
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        align: 'center',
-                        labels: {
-                            boxWidth: 8,
-                            padding: 16,
-                            usePointStyle: true,
-                            generateLabels: function(chart) {
-                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                                const labels = original.call(this, chart);
-                                labels.forEach(label => {
-                                    label.text = '  ' + label.text;
-                                });
-                                return labels;
-                            }
-                        }
-                    },
-                    tooltip: {
-                        enabled: true,
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.parsed.y;
-                                return `${context.dataset.label}: ₱${value.toLocaleString()}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Month (Past 12 Months)'
-                        },
-                        ticks: {
-                            maxTicksLimit: 12
-                        }
-                    },
-                    y: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Amount (₱)'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return '₱' + value.toLocaleString();
-                            }
-                        }
-                    }
-                }
-            }
+            options: getChartOptions('line', true)
         });
         
-        console.log('✅ Branch performance 12-month trend chart created successfully');
+        console.log('✅ Branch performance time series chart created successfully');
         chartInstances.branchPerformanceChart.update();
         
     } catch (error) {
