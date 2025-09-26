@@ -610,3 +610,110 @@ body {
 .member-net-position.neutral .net-position-value {
     color: #6b7280;
 }
+
+/* Branch List Styling */
+.branches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 150px;
+}
+
+.branch-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.branch-item:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.branch-rank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: #0D5B11;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.branch-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.branch-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 0.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.branch-location {
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.branch-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-top: 0.25rem;
+}
+
+.branch-savings,
+.branch-disbursements {
+    font-size: 0.7rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.branch-savings {
+    color: #059669;
+}
+
+.branch-disbursements {
+    color: #dc2626;
+}
+
+.branch-net-position {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    min-width: 80px;
+}
+
+.branch-net-position.positive .net-position-value {
+    color: #007542;
+}
+
+.branch-net-position.negative .net-position-value {
+    color: #ef4444;
+}
+
+.branch-net-position.neutral .net-position-value {
+    color: #6b7280;
+}

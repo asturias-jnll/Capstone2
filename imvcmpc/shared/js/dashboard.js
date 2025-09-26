@@ -143,19 +143,40 @@ async function loadDashboardData() {
             isMainBranchUser
         });
         
+        // Show/hide branch rankings card based on user type
+        const branchRankingsCard = document.getElementById('branchRankingsCard');
+        if (isMainBranchUser) {
+            branchRankingsCard.style.display = 'block';
+        } else {
+            branchRankingsCard.style.display = 'none';
+        }
+        
         // Fetch all dashboard data in parallel
-        const [summary, savingsTrend, branchPerformance, topMembers] = await Promise.all([
+        const dashboardPromises = [
             fetchDashboardSummary(userBranchId, isMainBranchUser),
             fetchSavingsTrend(userBranchId, isMainBranchUser),
             fetchBranchPerformance(userBranchId, isMainBranchUser),
             fetchTopMembers(userBranchId, isMainBranchUser)
-        ]);
+        ];
+        
+        // Add branch rankings fetch for main branch users only
+        if (isMainBranchUser) {
+            dashboardPromises.push(fetchBranchRankings());
+        }
+        
+        const results = await Promise.all(dashboardPromises);
+        const [summary, savingsTrend, branchPerformance, topMembers, branchRankings] = results;
         
         // Update dashboard with real data
         updateSummaryCards(summary);
         updateSavingsPreviewChart(savingsTrend);
         updateBranchPreviewChart(branchPerformance);
         updateTopMembersInsight(topMembers);
+        
+        // Update branch rankings for main branch users
+        if (isMainBranchUser && branchRankings) {
+            updateBranchRankingsInsight(branchRankings);
+        }
         
         hideLoadingState();
         console.log('Dashboard data loaded successfully');
@@ -249,6 +270,28 @@ async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
     
     if (!response.ok) {
         throw new Error(`Failed to fetch top members: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch branch rankings data for main branch users (cumulative from oldest transaction to today)
+async function fetchBranchRankings() {
+    const token = await ensureAuthToken();
+    
+    // Use custom date range from oldest transaction (2024-01-15) to today
+    const startDate = '2024-01-15';
+    const endDate = new Date().toISOString().split('T')[0];
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/all-branches-performance?filter=custom&startDate=${startDate}&endDate=${endDate}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch branch rankings: ${response.status}`);
     }
     
     const result = await response.json();
@@ -440,6 +483,52 @@ function updateTopMembersInsight(data) {
     insightContent.innerHTML = `
         <div class="members-list">
             ${membersList}
+        </div>
+    `;
+}
+
+// Update branch rankings insight
+function updateBranchRankingsInsight(data) {
+    const insightContent = document.querySelector('#branchRankingsCard .insight-content');
+    
+    if (!data || data.length === 0) {
+        insightContent.innerHTML = `
+            <div class="no-data-message">
+                <i class="fas fa-trophy"></i>
+                <p>No branch data available</p>
+                <small>Branch rankings will appear here once they start operations</small>
+            </div>
+        `;
+        return;
+    }
+    
+    const branchesList = data.slice(0, 5).map((branch, index) => {
+        const netPosition = parseFloat(branch.net_position) || 0;
+        const netPositionClass = netPosition > 0 ? 'positive' : netPosition < 0 ? 'negative' : 'neutral';
+        const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+        
+        return `
+            <div class="branch-item">
+                <div class="branch-rank">${index + 1}</div>
+                <div class="branch-info">
+                    <div class="branch-name">${branch.branch_name}</div>
+                    <div class="branch-location">${branch.branch_location}</div>
+                    <div class="branch-details">
+                        <span class="branch-savings">Savings: ${formatCurrency(branch.total_savings || 0)}</span>
+                        <span class="branch-disbursements">Loans: ${formatCurrency(branch.total_disbursements || 0)}</span>
+                    </div>
+                </div>
+                <div class="branch-net-position ${netPositionClass}" style="color: ${netPositionColor}; font-weight: 600;">
+                    <div class="net-position-label">Net Position</div>
+                    <div class="net-position-value">${formatCurrency(netPosition)}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    insightContent.innerHTML = `
+        <div class="branches-list">
+            ${branchesList}
         </div>
     `;
 }
