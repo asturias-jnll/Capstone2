@@ -1,7 +1,6 @@
 // Main navigation and common functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Set user role in localStorage for role detection
-    localStorage.setItem('user_role', 'Marketing Clerk');
+    // Don't override user role - let it come from login process
     
     // Initialize date and time display
     updateDateTime();
@@ -18,6 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize dynamic user header
     initializeDynamicUserHeader();
+    
+    // Initialize navigation toggle
+    initializeNavigationToggle();
+    
+    // Initialize role-based navigation
+    initializeRoleBasedNavigation();
 });
 
 // Update date and time display
@@ -69,10 +74,11 @@ function initializeBranchDisplay() {
     // Update user role display to show branch
     const userRoleElement = document.getElementById('userRole');
     if (userRoleElement && userBranchName) {
+        const userRole = localStorage.getItem('user_role') || 'User';
         if (isMainBranchUser) {
-            userRoleElement.textContent = 'Marketing Clerk (Main Branch)';
+            userRoleElement.textContent = `${userRole} (Main Branch)`;
         } else {
-            userRoleElement.textContent = `Marketing Clerk (${userBranchName})`;
+            userRoleElement.textContent = `${userRole} (${userBranchName})`;
         }
     }
     
@@ -104,6 +110,54 @@ function setActiveNavigation() {
             item.classList.add('active');
         }
     });
+}
+
+// Initialize role-based navigation
+function initializeRoleBasedNavigation() {
+    const userRole = localStorage.getItem('user_role');
+    const navMenu = document.querySelector('.nav-menu');
+    
+    if (!navMenu) return;
+    
+    // Clear existing navigation items
+    navMenu.innerHTML = '';
+    
+    // Define navigation items based on role
+    let navItems = [];
+    
+    if (userRole === 'Finance Officer') {
+        // Finance Officer: No Dashboard, starts with Member Data
+        navItems = [
+            { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
+            { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
+            { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
+            { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
+        ];
+    } else {
+        // Marketing Clerk and other roles: Include Dashboard
+        navItems = [
+            { href: 'dashboard.html', icon: 'fas fa-home', text: 'Dashboard' },
+            { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
+            { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
+            { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
+            { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
+        ];
+    }
+    
+    // Generate navigation HTML
+    navItems.forEach(item => {
+        const navItem = document.createElement('a');
+        navItem.href = item.href;
+        navItem.className = 'nav-item';
+        navItem.innerHTML = `
+            <i class="${item.icon}"></i>
+            <span>${item.text}</span>
+        `;
+        navMenu.appendChild(navItem);
+    });
+    
+    // Set active navigation after generating items
+    setActiveNavigation();
 }
 
 // Logout function - shows confirmation and spinning logo before redirecting
@@ -275,11 +329,10 @@ function performLogout() {
     // Show logout loading with spinning logo
     showLogoutLoading();
     
-    // Clear user session data
-    clearUserSession();
-    
     // Redirect to login page after showing loading
     setTimeout(() => {
+        // Clear user session data before redirect
+        clearUserSession();
         window.location.href = '../../logpage/login.html';
     }, 3000);
 }
@@ -328,11 +381,32 @@ function showLogoutLoading() {
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     `;
 
+    // Get user role before creating the content
+    let userRole = localStorage.getItem('user_role');
+    if (!userRole) {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                userRole = user.role_display_name || user.role || 'User';
+            } catch (e) {
+                userRole = 'User';
+            }
+        } else {
+            userRole = 'User';
+        }
+    }
+    
+    // Ensure we have a valid role
+    if (!userRole || userRole === 'null' || userRole === 'undefined') {
+        userRole = 'User';
+    }
+
     loadingContent.innerHTML = `
         <div class="loading-spinner">
             <img src="../../assets/logo.png" alt="IMVCMPC Logo" class="spinning-logo">
         </div>
-        <p id="logoutLoadingText">Logging out as Marketing Clerk...</p>
+        <p id="logoutLoadingText">Logging out as ${userRole}...</p>
     `;
 
     // Add CSS classes to match login spinner exactly
@@ -366,36 +440,6 @@ function showLogoutLoading() {
         }
     `;
     document.head.appendChild(spinStyle);
-    
-    // Immediately update text with actual user role
-    const loadingText = document.getElementById('logoutLoadingText');
-    if (loadingText) {
-        // Try multiple sources for user role
-        let userRole = localStorage.getItem('user_role');
-        
-        if (!userRole) {
-            // Try to get from user object
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                try {
-                    const user = JSON.parse(userData);
-                    userRole = user.role_display_name || user.role || 'Marketing Clerk';
-                } catch (e) {
-                    userRole = 'Marketing Clerk';
-                }
-            } else {
-                userRole = 'Marketing Clerk';
-            }
-        }
-        
-        // Ensure we have a valid role
-        if (!userRole || userRole === 'null' || userRole === 'undefined') {
-            userRole = 'Marketing Clerk';
-        }
-        
-        loadingText.textContent = `Logging out as ${userRole}...`;
-        console.log('Logout loading text set:', `Logging out as ${userRole}...`);
-    }
 
     loadingOverlay.appendChild(loadingContent);
     document.body.appendChild(loadingOverlay);
@@ -636,7 +680,7 @@ document.head.appendChild(warningStyles);
 // Initialize dynamic user header - Make it globally accessible
 window.initializeDynamicUserHeader = function() {
     // Get user data from localStorage
-    const userRole = localStorage.getItem('user_role') || 'Marketing Clerk';
+    const userRole = localStorage.getItem('user_role') || 'User';
     const userBranchName = localStorage.getItem('user_branch_name') || 'Main Branch';
     const userBranchLocation = localStorage.getItem('user_branch_location') || '';
     
@@ -654,5 +698,62 @@ window.initializeDynamicUserHeader = function() {
         } else {
             userRoleElement.textContent = `IMVCMPC - ${userBranchName}`;
         }
+    }
+}
+
+// Initialize navigation toggle functionality
+function initializeNavigationToggle() {
+    const navToggle = document.getElementById('navToggle');
+    const navigation = document.querySelector('.navigation');
+    
+    if (navToggle && navigation) {
+        // Load saved state from localStorage immediately
+        const isExpanded = localStorage.getItem('navExpanded') === 'true';
+        if (isExpanded) {
+            navigation.classList.add('expanded');
+        } else {
+            navigation.classList.remove('expanded');
+        }
+        
+        // Add click event listener
+        navToggle.addEventListener('click', function() {
+            toggleNavigation();
+        });
+        
+        // Auto-collapse on smaller screens for better UX
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                // On mobile, use existing mobile navigation logic
+                return;
+            }
+            
+            // Auto-collapse on medium screens for better space usage
+            if (window.innerWidth <= 1024 && navigation.classList.contains('expanded')) {
+                navigation.classList.remove('expanded');
+                localStorage.setItem('navExpanded', 'false');
+            }
+        }
+        
+        // Listen for window resize
+        window.addEventListener('resize', handleResize);
+        
+        // Check initial screen size
+        handleResize();
+    }
+}
+
+// Toggle navigation collapse state
+function toggleNavigation() {
+    const navigation = document.querySelector('.navigation');
+    const isExpanded = navigation.classList.contains('expanded');
+    
+    if (isExpanded) {
+        navigation.classList.remove('expanded');
+        document.documentElement.classList.remove('nav-expanded');
+        localStorage.setItem('navExpanded', 'false');
+    } else {
+        navigation.classList.add('expanded');
+        document.documentElement.classList.add('nav-expanded');
+        localStorage.setItem('navExpanded', 'true');
     }
 }

@@ -34,12 +34,18 @@ body {
 
 /* Transaction Data Content */
 .member-data-content {
-    max-width: calc(100vw - 210px - 32px); /* Account for nav + equal margins */
+    max-width: calc(100vw - 60px - 32px); /* Default for collapsed sidebar */
     margin: 0 auto; /* Center the content */
     padding: 120px 16px 80px; /* Equal left and right padding, aligned with date */
     position: relative;
     min-height: 100vh;
     box-sizing: border-box;
+    transition: max-width 0.3s ease;
+}
+
+/* Adjust content width when sidebar is expanded */
+.nav-expanded .member-data-content {
+    max-width: calc(100vw - 210px - 32px);
 }
 
 /* Title Section - Minimalist */

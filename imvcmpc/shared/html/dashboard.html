@@ -9,6 +9,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Prevent flickering by setting navigation state immediately
+        (function() {
+            const isExpanded = localStorage.getItem('navExpanded') === 'true';
+            if (isExpanded) {
+                document.documentElement.classList.add('nav-expanded');
+            }
+        })();
+    </script>
 </head>
 <body>
     <!-- Main Dashboard -->
@@ -18,31 +27,18 @@
             <div class="nav-header">
                 <div class="nav-logo">
                     <img src="../../assets/logo.png" alt="IMVCMPC Logo">
-                    <span>IMVCMPC</span>
+                    <span class="logo-text">IMVCMPC</span>
                 </div>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
             </div>
             
             <div class="nav-menu">
-                <a href="dashboard.html" class="nav-item active">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="memberdata.html" class="nav-item">
-                    <i class="fas fa-users"></i>
-                    <span>Member Data</span>
-                </a>
-                <a href="analytics.html" class="nav-item">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Analytics</span>
-                </a>
-                <a href="reports.html" class="nav-item">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Reports</span>
-                </a>
-                <a href="notifications.html" class="nav-item">
-                    <i class="fas fa-bell"></i>
-                    <span>Notifications</span>
-                </a>
+                <!-- Navigation items will be dynamically populated based on role -->
+                <div id="nav-items-container">
+                    <!-- Items will be inserted here by JavaScript -->
+                </div>
             </div>
             
             <div class="nav-account">
@@ -248,6 +244,7 @@
         </main>
     </div>
 
+    <script src="../js/main.js"></script>
     <script src="../js/shared-utils.js"></script>
     <script src="../js/dashboard.js"></script>
     <script src="../js/topbar.js"></script>
