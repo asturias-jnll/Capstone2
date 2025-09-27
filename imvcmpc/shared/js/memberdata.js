@@ -56,13 +56,15 @@ function initializeTransactionLedger() {
         // Check user access and hide/show transaction controls accordingly
         const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
         const userRole = localStorage.getItem('user_role');
-        // Allow all users to access transaction functionality (main branch, non-main branch, admin, finance officer)
-        const hasAccess = true; // Changed: Allow all users to access transactions
         
-        // Show Add Transaction button for all users
+        // Hide Add Transaction button for Finance Officer role
         const addTransactionBtn = document.querySelector('.add-transaction-btn');
         if (addTransactionBtn) {
-            addTransactionBtn.style.display = 'block'; // Always show the button
+            if (userRole === 'Finance Officer') {
+                addTransactionBtn.style.display = 'none';
+            } else {
+                addTransactionBtn.style.display = 'block';
+            }
         }
         
         loadTransactionsFromDatabase();
@@ -670,11 +672,13 @@ async function deleteTransaction() {
 
 // Open add transaction form
 function openAddTransactionForm() {
-    // Allow all users to create transactions (main branch, non-main branch, admin, finance officer)
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     const userRole = localStorage.getItem('user_role');
     
-    // Removed access restriction - all users can now create transactions
+    // Prevent Finance Officers from accessing the add transaction form
+    if (userRole === 'Finance Officer') {
+        showNotification('Finance Officers cannot add transactions', 'error');
+        return;
+    }
 
     editingTransactionId = null;
     document.getElementById('transactionFormTitle').textContent = 'Add Transaction';
