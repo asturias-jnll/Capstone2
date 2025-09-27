@@ -35,9 +35,10 @@ function initializeAnalyticsContent() {
     setupDateInputs();
     updateFilterDisplay();
     
-    // Check if user is main branch user and show/hide branches performance section
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    if (!isMainBranchUser) {
+    // Check if user is from Ibaan branch and show/hide branches performance section
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const isIbaanBranch = userBranchId === '1'; // Ibaan/Main Branch has ID 1
+    if (!isIbaanBranch) {
         hideBranchesPerformanceSection();
     }
     
@@ -731,8 +732,10 @@ async function loadAnalyticsData() {
                 updateCharts(savingsTrend, disbursementTrend, branchPerformance, memberActivity);
                 updateTables(topMembers, branchPerformance);
                 
-                // Only show branches performance for main branch users
-                if (isMainBranchUser) {
+                // Only show branches performance for Ibaan branch users
+                const userBranchId = localStorage.getItem('user_branch_id');
+                const isIbaanBranch = userBranchId === '1'; // Ibaan/Main Branch has ID 1
+                if (isIbaanBranch) {
                     updateBranchesPerformance(allBranchesPerformance);
                 } else {
                     hideBranchesPerformanceSection();
@@ -2541,9 +2544,10 @@ function showEmptyState() {
     // Clear all tables
     updateTables([], []);
     
-    // Clear branches performance section (only for main branch users)
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    if (isMainBranchUser) {
+    // Clear branches performance section (only for Ibaan branch users)
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const isIbaanBranch = userBranchId === '1'; // Ibaan/Main Branch has ID 1
+    if (isIbaanBranch) {
         updateBranchesPerformance([]);
     } else {
         hideBranchesPerformanceSection();
@@ -2746,21 +2750,21 @@ function getDateRange(filter) {
 }
 
 
-// Hide branches performance section for non-main branch users
+// Hide branches performance section for non-Ibaan branch users
 function hideBranchesPerformanceSection() {
     const branchesSection = document.querySelector('.branches-performance-section');
     if (branchesSection) {
         branchesSection.style.display = 'none';
-        console.log('🏢 Branches performance section hidden for non-main branch user');
+        console.log('🏢 Branches performance section hidden for non-Ibaan branch user');
     }
 }
 
-// Show branches performance section for main branch users
+// Show branches performance section for Ibaan branch users
 function showBranchesPerformanceSection() {
     const branchesSection = document.querySelector('.branches-performance-section');
     if (branchesSection) {
         branchesSection.style.display = 'block';
-        console.log('🏢 Branches performance section shown for main branch user');
+        console.log('🏢 Branches performance section shown for Ibaan branch user');
     }
 }
 

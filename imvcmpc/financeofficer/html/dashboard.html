@@ -7,14 +7,22 @@
 </head>
 <body>
     <script>
-        // Set user role for Finance Officer and redirect to member data
+        // Set user role for Finance Officer
         localStorage.setItem('user_role', 'Finance Officer');
-        localStorage.setItem('user_branch_name', 'Main Branch');
-        localStorage.setItem('user_branch_id', '1');
-        localStorage.setItem('is_main_branch_user', 'true');
         
-        // Redirect to member data page (since dashboard is hidden for Finance Officer)
-        window.location.href = '../../shared/html/memberdata.html';
+        // Branch information should be set by the login system
+        // If not set, redirect to login
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const userBranchName = localStorage.getItem('user_branch_name');
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user');
+        
+        if (!userBranchId || !userBranchName || isMainBranchUser === null) {
+            // Redirect to login if branch information is not available
+            window.location.href = '../../logpage/login.html';
+        } else {
+            // Redirect to member data page (since dashboard is hidden for Finance Officer)
+            window.location.href = '../../shared/html/memberdata.html';
+        }
     </script>
     
     <!-- Fallback content in case JavaScript is disabled -->
