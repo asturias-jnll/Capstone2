@@ -390,6 +390,18 @@ function createTransactionModal() {
     const modal = document.createElement('div');
     modal.id = 'transactionModal';
     modal.className = 'modal';
+    
+    // Check user role to determine if edit button should be shown
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
+    // Create edit button HTML conditionally
+    const editButtonHtml = isFinanceOfficer ? '' : `
+                <button class="btn btn-warning" onclick="editTransaction()">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                </button>`;
+    
     modal.innerHTML = `
         <div class="modal-content transaction-details-modal">
             <div class="modal-header">
@@ -480,10 +492,7 @@ function createTransactionModal() {
                     <i class="fas fa-times"></i>
                     Close
                 </button>
-                <button class="btn btn-warning" onclick="editTransaction()">
-                    <i class="fas fa-edit"></i>
-                    Edit
-                </button>
+                ${editButtonHtml}
                 <button class="btn btn-danger" onclick="deleteTransaction()">
                     <i class="fas fa-trash"></i>
                     Delete
@@ -704,11 +713,14 @@ function closeTransactionModal() {
 function editTransaction() {
     if (!window.currentTransaction) return;
     
-    // Allow all users to edit transactions (main branch, non-main branch, admin, finance officer)
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    // Check user role and prevent Finance Officers from editing
     const userRole = localStorage.getItem('user_role');
+    if (userRole === 'Finance Officer') {
+        showNotification('Finance Officers cannot edit transactions', 'error');
+        return;
+    }
     
-    // Removed access restriction - all users can now edit transactions
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
     closeTransactionModal();
     
