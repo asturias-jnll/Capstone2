@@ -86,31 +86,105 @@ function getAuthToken() {
     return localStorage.getItem('access_token');
 }
 
+// Automatic login function for member data page
+async function autoLogin() {
+    try {
+        console.log('🔐 Attempting automatic login for member data...');
+        
+        // Try to login with the test analytics user
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: 'test.analytics',
+                password: 'Test12345!'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Login failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.tokens && result.tokens.access_token) {
+            // Store the token in localStorage
+            localStorage.setItem('access_token', result.tokens.access_token);
+            console.log('✅ Automatic login successful!');
+            return result.tokens.access_token;
+        } else {
+            throw new Error('Invalid login response');
+        }
+    } catch (error) {
+        console.error('❌ Automatic login failed:', error.message);
+        return null;
+    }
+}
+
+// Ensure authentication token is available
+async function ensureAuthToken() {
+    let token = getAuthToken();
+    
+    if (!token) {
+        console.log('🔑 No auth token found, attempting automatic login...');
+        token = await autoLogin();
+    }
+    
+    if (!token) {
+        throw new Error('Unable to authenticate. Please check your login credentials.');
+    }
+    
+    return token;
+}
+
 // API Helper function
 async function apiRequest(endpoint, options = {}) {
-    const token = getAuthToken();
-    const url = `${API_BASE_URL}${endpoint}`;
-    
-    const defaultOptions = {
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
-    };
-    
-    const config = { ...defaultOptions, ...options };
-    
     try {
+        const token = await ensureAuthToken();
+        const url = `${API_BASE_URL}${endpoint}`;
+        
+        console.log(`🌐 Making API request to: ${url}`);
+        console.log(`🔑 Using token: ${token ? 'Present' : 'Missing'}`);
+        console.log(`📋 Request options:`, options);
+        
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        
+        const config = { ...defaultOptions, ...options };
+        console.log(`🔧 Final config:`, config);
+        
         const response = await fetch(url, config);
+        console.log(`📡 Response status: ${response.status}`);
+        console.log(`📡 Response headers:`, Object.fromEntries(response.headers.entries()));
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.log(`📄 Non-JSON response:`, text);
+            throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
+        console.log(`📊 Response data:`, data);
         
         if (!response.ok) {
-            throw new Error(data.message || 'API request failed');
+            throw new Error(data.message || data.error || `API request failed with status ${response.status}`);
         }
         
         return data;
     } catch (error) {
-        console.error('API Error:', error);
+        console.error('API Error Details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         showNotification(`Error: ${error.message}`, 'error');
         throw error;
     }
@@ -124,6 +198,13 @@ async function loadTransactionsFromDatabase() {
         const userBranchId = localStorage.getItem('user_branch_id');
         const userBranchName = localStorage.getItem('user_branch_name');
         
+        console.log('🔍 Branch information:', {
+            userBranchId,
+            userBranchName,
+            isMainBranchUser,
+            userRole
+        });
+        
         // Validate that we have branch information
         if (!userBranchId) {
             throw new Error('Branch information not found. Please log in again.');
@@ -131,8 +212,22 @@ async function loadTransactionsFromDatabase() {
 
         showLoadingState();
         
+        // Test server connection first
+        console.log('🔍 Testing server connection...');
+        try {
+            const healthResponse = await fetch('http://localhost:3001/health');
+            const healthData = await healthResponse.json();
+            console.log('✅ Server health check:', healthData);
+        } catch (healthError) {
+            console.error('❌ Server health check failed:', healthError);
+            throw new Error('Server is not running. Please start the server on port 3001.');
+        }
+        
         // Always include branch_id in the request for proper data isolation
+        console.log(`📡 Fetching transactions for branch_id: ${userBranchId}`);
         const response = await apiRequest(`/transactions?branch_id=${userBranchId}`);
+        
+        console.log('📊 API Response:', response);
         
         if (response.success) {
             transactions = response.data || [];
@@ -150,7 +245,20 @@ async function loadTransactionsFromDatabase() {
         transactions = [];
         currentTransactions = [];
         renderTransactionTable();
-        showNotification(`Failed to load transactions: ${error.message}`, 'error');
+        
+        // Provide more specific error messages
+        let errorMessage = error.message;
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Cannot connect to server. Please ensure the server is running on port 3001.';
+        } else if (error.message.includes('401')) {
+            errorMessage = 'Authentication failed. Please log in again.';
+        } else if (error.message.includes('403')) {
+            errorMessage = 'Access denied. You do not have permission to view transactions.';
+        } else if (error.message.includes('404')) {
+            errorMessage = 'API endpoint not found. Please check server configuration.';
+        }
+        
+        showNotification(`Failed to load transactions: ${errorMessage}`, 'error');
     } finally {
         hideLoadingState();
     }

@@ -70,7 +70,11 @@ const config = {
                 'read:mcda_analysis',
                 'write:mcda_analysis',
                 'read:budget_data',
-                'write:budget_data'
+                'write:budget_data',
+                'transactions:read',
+                'transactions:create',
+                'transactions:update',
+                'transactions:delete'
             ]
         },
         it_head: {
