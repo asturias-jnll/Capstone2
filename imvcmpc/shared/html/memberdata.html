@@ -16,6 +16,17 @@
                 document.documentElement.classList.add('nav-expanded');
             }
         })();
+        
+        // Hide Add Transaction button for Finance Officers immediately to prevent flash
+        (function() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                // Add CSS to hide the button immediately
+                const style = document.createElement('style');
+                style.textContent = '.add-transaction-btn { display: none !important; }';
+                document.head.appendChild(style);
+            }
+        })();
     </script>
 </head>
 <body>

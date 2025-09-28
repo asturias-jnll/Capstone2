@@ -45,18 +45,27 @@ let currentZoom = 90;
 
 // Initialize transaction ledger
 function initializeTransactionLedger() {
+    // Check user role immediately to prevent button flash
+    const userRole = localStorage.getItem('user_role');
+    const addTransactionBtn = document.querySelector('.add-transaction-btn');
+    
+    // Hide Add Transaction button for Finance Officer role immediately
+    if (addTransactionBtn && userRole === 'Finance Officer') {
+        addTransactionBtn.classList.add('finance-officer-hidden');
+    }
+    
     // Ensure DOM is ready
     setTimeout(() => {
         // Check user access and hide/show transaction controls accordingly
         const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-        const userRole = localStorage.getItem('user_role');
         
-        // Hide Add Transaction button for Finance Officer role
-        const addTransactionBtn = document.querySelector('.add-transaction-btn');
+        // Update button visibility based on role
         if (addTransactionBtn) {
             if (userRole === 'Finance Officer') {
+                addTransactionBtn.classList.add('finance-officer-hidden');
                 addTransactionBtn.style.display = 'none';
             } else {
+                addTransactionBtn.classList.remove('finance-officer-hidden');
                 addTransactionBtn.style.display = 'block';
             }
         }

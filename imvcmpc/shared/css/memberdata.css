@@ -153,6 +153,11 @@ body {
     box-shadow: 0 2px 4px rgba(11, 94, 28, 0.1);
 }
 
+/* Hide Add Transaction button for Finance Officers by default to prevent flash on page load */
+.add-transaction-btn.finance-officer-hidden {
+    display: none !important;
+}
+
 .add-transaction-btn:hover {
     background: #0A4F18;
     transform: translateY(-2px);
