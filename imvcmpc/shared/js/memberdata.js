@@ -77,6 +77,14 @@ function initializeTransactionLedger() {
         // Make sure scroll functions are available
         window.scrollLeft = scrollLeft;
         window.scrollRight = scrollRight;
+        
+        // Load pending requests count for marketing clerks and finance officers
+        const currentUserRole = localStorage.getItem('user_role');
+        if (currentUserRole === 'Marketing Clerk') {
+            updatePendingRequestsCount();
+        } else if (currentUserRole === 'Finance Officer') {
+            updateFinanceOfficerNotifications();
+        }
     }, 100);
 }
 
@@ -91,6 +99,7 @@ function getAuthToken() {
 // Automatic login function for member data page
 async function autoLogin() {
     try {
+        console.log('Attempting auto-login...');
         
         // Try to login with the test analytics user
         const response = await fetch(`${API_BASE_URL}/login`, {
@@ -104,20 +113,25 @@ async function autoLogin() {
             })
         });
 
+        console.log('Login response status:', response.status);
+
         if (!response.ok) {
             throw new Error(`Login failed: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('Login result:', result);
         
         if (result.success && result.tokens && result.tokens.access_token) {
             // Store the token in localStorage
             localStorage.setItem('access_token', result.tokens.access_token);
+            console.log('Auto-login successful, token stored');
             return result.tokens.access_token;
         } else {
             throw new Error('Invalid login response');
         }
     } catch (error) {
+        console.error('Auto-login failed:', error);
         return null;
     }
 }
@@ -125,15 +139,19 @@ async function autoLogin() {
 // Ensure authentication token is available
 async function ensureAuthToken() {
     let token = getAuthToken();
+    console.log('Current token:', token ? 'exists' : 'not found');
     
     if (!token) {
+        console.log('No token found, attempting auto-login...');
         token = await autoLogin();
     }
     
     if (!token) {
+        console.error('Authentication failed - no token available');
         throw new Error('Unable to authenticate. Please check your login credentials.');
     }
     
+    console.log('Authentication successful, token available');
     return token;
 }
 
@@ -177,11 +195,14 @@ async function apiRequest(endpoint, options = {}) {
 // Load transactions from database
 async function loadTransactionsFromDatabase() {
     try {
+        console.log('Loading transactions from database...');
+        
         const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
         const userRole = localStorage.getItem('user_role');
         const userBranchId = localStorage.getItem('user_branch_id');
         const userBranchName = localStorage.getItem('user_branch_name');
         
+        console.log('User info:', { isMainBranchUser, userRole, userBranchId, userBranchName });
         
         // Validate that we have branch information
         if (!userBranchId) {
@@ -192,24 +213,31 @@ async function loadTransactionsFromDatabase() {
         
         // Test server connection first
         try {
+            console.log('Testing server connection...');
             const healthResponse = await fetch('http://localhost:3001/health');
             const healthData = await healthResponse.json();
+            console.log('Server health check:', healthData);
         } catch (healthError) {
+            console.error('Server health check failed:', healthError);
             throw new Error('Server is not running. Please start the server on port 3001.');
         }
         
         // Always include branch_id in the request for proper data isolation
+        console.log('Making API request to:', `/transactions?branch_id=${userBranchId}`);
         const response = await apiRequest(`/transactions?branch_id=${userBranchId}`);
+        console.log('API response:', response);
         
         if (response.success) {
             transactions = response.data || [];
             currentTransactions = [...transactions];
+            console.log('Transactions loaded:', transactions.length);
             renderTransactionTable();
             
         } else {
             throw new Error(response.message || 'Failed to load transactions');
         }
     } catch (error) {
+        console.error('Error loading transactions:', error);
         transactions = [];
         currentTransactions = [];
         renderTransactionTable();
@@ -848,19 +876,31 @@ async function requestChanges() {
         // Collect edited values
         const editedData = collectEditedValues();
         
-        // Update transaction via API
-        const response = await apiRequest(`/transactions/${window.currentTransaction.id}`, {
-            method: 'PUT',
-            body: JSON.stringify(editedData)
+        // Create change request instead of directly updating
+        const changeRequestData = {
+            transaction_id: window.currentTransaction.id,
+            transaction_table: getTransactionTableName(window.currentTransaction.branch_id),
+            original_data: window.currentTransaction,
+            requested_changes: editedData,
+            reason: 'Transaction modification requested by marketing clerk',
+            request_type: 'modification'
+        };
+        
+        const response = await apiRequest('/change-requests', {
+            method: 'POST',
+            body: JSON.stringify(changeRequestData)
         });
         
         if (response.success) {
             closeTransactionModal();
             await loadTransactionsFromDatabase();
+            await updatePendingRequestsCount();
+            showRequestSubmittedMessage();
         } else {
-            throw new Error(response.message || 'Failed to request changes');
+            throw new Error(response.message || 'Failed to submit change request');
         }
     } catch (error) {
+        showErrorMessage('Failed to submit change request. Please try again.');
     } finally {
         hideLoadingState();
     }
@@ -1905,4 +1945,798 @@ async function saveTransactionFromPreview() {
     } finally {
         hideLoadingState();
     }
-} 
+}
+
+// ===========================================
+// PENDING REQUESTS SYSTEM
+// ===========================================
+
+// Get transaction table name based on branch ID
+function getTransactionTableName(branchId) {
+    const branchTableMap = {
+        1: 'ibaan_transactions',        // Main Branch - IBAAN
+        2: 'bauan_transactions',        // Branch 2 - BAUAN
+        3: 'sanjose_transactions',      // Branch 3 - SAN JOSE
+        4: 'rosario_transactions',      // Branch 4 - ROSARIO
+        5: 'sanjuan_transactions',      // Branch 5 - SAN JUAN
+        6: 'padregarcia_transactions',  // Branch 6 - PADRE GARCIA
+        7: 'lipacity_transactions',     // Branch 7 - LIPA CITY
+        8: 'batangascity_transactions', // Branch 8 - BATANGAS CITY
+        9: 'mabinilipa_transactions',   // Branch 9 - MABINI LIPA
+        10: 'calamias_transactions',    // Branch 10 - CALAMIAS
+        11: 'lemery_transactions',      // Branch 11 - LEMERY
+        12: 'mataasnakahoy_transactions', // Branch 12 - MATAAS NA KAHOY
+        13: 'tanauan_transactions'      // Branch 13 - TANAUAN
+    };
+    return branchTableMap[branchId] || 'ibaan_transactions';
+}
+
+// Update pending requests count
+async function updatePendingRequestsCount() {
+    try {
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const response = await apiRequest(`/change-requests/count?branch_id=${userBranchId}&status=pending`);
+        
+        if (response.success) {
+            const count = response.count || 0;
+            const requestCountElement = document.getElementById('requestCount');
+            const pendingRequestsBtn = document.getElementById('pendingRequestsBtn');
+            
+            if (count > 0) {
+                requestCountElement.textContent = count;
+                requestCountElement.style.display = 'inline-flex';
+                pendingRequestsBtn.style.background = '#FF9800';
+            } else {
+                requestCountElement.style.display = 'none';
+                pendingRequestsBtn.style.background = 'var(--orange)';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to update pending requests count:', error);
+    }
+}
+
+// Show pending requests modal
+async function showPendingRequests() {
+    try {
+        showLoadingState();
+        
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const response = await apiRequest(`/change-requests?branch_id=${userBranchId}&status=pending`);
+        
+        if (response.success) {
+            const requests = response.data || [];
+            createPendingRequestsModal(requests);
+        } else {
+            throw new Error(response.message || 'Failed to load pending requests');
+        }
+    } catch (error) {
+        showErrorMessage('Failed to load pending requests. Please try again.');
+    } finally {
+        hideLoadingState();
+    }
+}
+
+// Create pending requests modal
+function createPendingRequestsModal(requests) {
+    const modal = document.createElement('div');
+    modal.id = 'pendingRequestsModal';
+    modal.className = 'modal';
+    
+    modal.innerHTML = `
+        <div class="modal-content pending-requests-modal">
+            <div class="modal-header">
+                <h3>Pending Requests</h3>
+                <button type="button" class="close-btn" onclick="closePendingRequestsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="requests-list">
+                    ${requests.length === 0 ? 
+                        '<div class="empty-requests">No pending requests found</div>' :
+                        requests.map(request => createRequestItem(request)).join('')
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePendingRequestsModal()">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Add styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .pending-requests-modal {
+            max-width: 800px;
+            width: 90%;
+        }
+        
+        .requests-list {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .request-item {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .request-item:hover {
+            background: var(--white);
+            border-color: var(--orange);
+            box-shadow: 0 2px 8px rgba(255, 167, 38, 0.1);
+        }
+        
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .request-id {
+            font-weight: 600;
+            color: var(--dark-green);
+        }
+        
+        .request-date {
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+        
+        .request-details {
+            font-size: 14px;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+        
+        .request-reason {
+            font-size: 13px;
+            color: var(--gray-600);
+            font-style: italic;
+        }
+        
+        .empty-requests {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-600);
+            font-style: italic;
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+}
+
+// Create request item HTML
+function createRequestItem(request) {
+    const requestDate = new Date(request.created_at).toLocaleDateString();
+    const transactionPayee = request.original_data?.payee || 'Unknown';
+    
+    return `
+        <div class="request-item">
+            <div class="request-header">
+                <span class="request-id">Request #${request.id.substring(0, 8)}</span>
+                <span class="request-date">${requestDate}</span>
+            </div>
+            <div class="request-details">
+                <strong>Transaction:</strong> ${transactionPayee}
+            </div>
+            <div class="request-reason">
+                ${request.reason || 'No reason provided'}
+            </div>
+        </div>
+    `;
+}
+
+// Close pending requests modal
+function closePendingRequestsModal() {
+    const modal = document.getElementById('pendingRequestsModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Show request submitted message
+function showRequestSubmittedMessage() {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="success-icon">✓</div>
+            <div class="message-text">Change request has been submitted successfully</div>
+        </div>
+    `;
+    
+    // Add simple styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .simple-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .simple-message-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        
+        .success-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #0B5E1C;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin: 0 auto 16px auto;
+            font-family: Arial, sans-serif;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    
+    // Auto close after 2 seconds
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 2000);
+}
+
+// Show error message
+function showErrorMessage(message) {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="error-icon">✗</div>
+            <div class="message-text">${message}</div>
+        </div>
+    `;
+    
+    // Add simple styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .simple-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .simple-message-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        
+        .error-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #EF4444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin: 0 auto 16px auto;
+            font-family: Arial, sans-serif;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    
+    // Auto close after 3 seconds
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 3000);
+}
+
+// ===========================================
+// FINANCE OFFICER NOTIFICATION SYSTEM
+// ===========================================
+
+// Update finance officer notifications
+async function updateFinanceOfficerNotifications() {
+    try {
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const response = await apiRequest(`/change-requests/count?branch_id=${userBranchId}&status=pending&assigned_to=me`);
+        
+        if (response.success) {
+            const count = response.count || 0;
+            showFinanceOfficerNotification(count);
+        }
+    } catch (error) {
+        console.error('Failed to update finance officer notifications:', error);
+    }
+}
+
+// Show finance officer notification
+function showFinanceOfficerNotification(count) {
+    if (count > 0) {
+        // Create or update notification banner
+        let notificationBanner = document.getElementById('financeOfficerNotification');
+        
+        if (!notificationBanner) {
+            notificationBanner = document.createElement('div');
+            notificationBanner.id = 'financeOfficerNotification';
+            notificationBanner.className = 'finance-officer-notification';
+            
+            // Insert at the top of the content area
+            const contentArea = document.querySelector('.member-data-content');
+            if (contentArea) {
+                contentArea.insertBefore(notificationBanner, contentArea.firstChild);
+            }
+        }
+        
+        notificationBanner.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="notification-text">
+                    <strong>${count} pending change request${count > 1 ? 's' : ''}</strong> require your attention
+                </div>
+                <button class="notification-action" onclick="showFinanceOfficerRequests()">
+                    <i class="fas fa-eye"></i>
+                    View Requests
+                </button>
+                <button class="notification-close" onclick="closeFinanceOfficerNotification()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .finance-officer-notification {
+                background: linear-gradient(135deg, #FF6B35, #F7931E);
+                color: white;
+                padding: 16px 20px;
+                margin-bottom: 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+                animation: slideDown 0.5s ease;
+            }
+            
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .notification-icon {
+                font-size: 20px;
+                animation: pulse 2s infinite;
+            }
+            
+            .notification-text {
+                flex: 1;
+                font-size: 14px;
+            }
+            
+            .notification-action {
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                padding: 8px 16px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            
+            .notification-action:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: translateY(-1px);
+            }
+            
+            .notification-close {
+                background: none;
+                border: none;
+                color: white;
+                cursor: pointer;
+                padding: 4px;
+                border-radius: 4px;
+                transition: all 0.3s ease;
+            }
+            
+            .notification-close:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+            
+            @keyframes slideDown {
+                from {
+                    transform: translateY(-100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    } else {
+        // Remove notification if count is 0
+        const notificationBanner = document.getElementById('financeOfficerNotification');
+        if (notificationBanner) {
+            notificationBanner.remove();
+        }
+    }
+}
+
+// Show finance officer requests
+async function showFinanceOfficerRequests() {
+    try {
+        showLoadingState();
+        
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const response = await apiRequest(`/change-requests?branch_id=${userBranchId}&status=pending&assigned_to=me`);
+        
+        if (response.success) {
+            const requests = response.data || [];
+            createFinanceOfficerRequestsModal(requests);
+        } else {
+            throw new Error(response.message || 'Failed to load change requests');
+        }
+    } catch (error) {
+        showErrorMessage('Failed to load change requests. Please try again.');
+    } finally {
+        hideLoadingState();
+    }
+}
+
+// Create finance officer requests modal
+function createFinanceOfficerRequestsModal(requests) {
+    const modal = document.createElement('div');
+    modal.id = 'financeOfficerRequestsModal';
+    modal.className = 'modal';
+    
+    modal.innerHTML = `
+        <div class="modal-content finance-officer-requests-modal">
+            <div class="modal-header">
+                <h3>Change Requests - Finance Officer</h3>
+                <button type="button" class="close-btn" onclick="closeFinanceOfficerRequestsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="requests-list">
+                    ${requests.length === 0 ? 
+                        '<div class="empty-requests">No pending change requests found</div>' :
+                        requests.map(request => createFinanceOfficerRequestItem(request)).join('')
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFinanceOfficerRequestsModal()">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Add styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .finance-officer-requests-modal {
+            max-width: 900px;
+            width: 90%;
+        }
+        
+        .finance-officer-request-item {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .finance-officer-request-item:hover {
+            background: var(--white);
+            border-color: var(--orange);
+            box-shadow: 0 2px 8px rgba(255, 167, 38, 0.1);
+        }
+        
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .request-id {
+            font-weight: 600;
+            color: var(--dark-green);
+            font-size: 16px;
+        }
+        
+        .request-date {
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+        
+        .request-details {
+            font-size: 14px;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+        
+        .request-reason {
+            font-size: 13px;
+            color: var(--gray-600);
+            font-style: italic;
+            margin-bottom: 12px;
+        }
+        
+        .request-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        .btn-approve {
+            background: var(--dark-green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-approve:hover {
+            background: #0A4F18;
+            transform: translateY(-1px);
+        }
+        
+        .btn-reject {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-reject:hover {
+            background: #DC2626;
+            transform: translateY(-1px);
+        }
+        
+        .empty-requests {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-600);
+            font-style: italic;
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+}
+
+// Create finance officer request item HTML
+function createFinanceOfficerRequestItem(request) {
+    const requestDate = new Date(request.created_at).toLocaleDateString();
+    const transactionPayee = request.original_data?.payee || 'Unknown';
+    const requestedBy = `${request.requested_by_first_name || ''} ${request.requested_by_last_name || ''}`.trim() || 'Unknown';
+    
+    return `
+        <div class="finance-officer-request-item">
+            <div class="request-header">
+                <span class="request-id">Request #${request.id.substring(0, 8)}</span>
+                <span class="request-date">${requestDate}</span>
+            </div>
+            <div class="request-details">
+                <strong>Transaction:</strong> ${transactionPayee}<br>
+                <strong>Requested by:</strong> ${requestedBy}
+            </div>
+            <div class="request-reason">
+                ${request.reason || 'No reason provided'}
+            </div>
+            <div class="request-actions">
+                <button class="btn-approve" onclick="approveChangeRequest('${request.id}')">
+                    <i class="fas fa-check"></i>
+                    Approve
+                </button>
+                <button class="btn-reject" onclick="rejectChangeRequest('${request.id}')">
+                    <i class="fas fa-times"></i>
+                    Reject
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Approve change request
+async function approveChangeRequest(requestId) {
+    try {
+        showLoadingState();
+        
+        const response = await apiRequest(`/change-requests/${requestId}/process`, {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            closeFinanceOfficerRequestsModal();
+            await updateFinanceOfficerNotifications();
+            showRequestProcessedMessage('approved');
+        } else {
+            throw new Error(response.message || 'Failed to approve change request');
+        }
+    } catch (error) {
+        showErrorMessage('Failed to approve change request. Please try again.');
+    } finally {
+        hideLoadingState();
+    }
+}
+
+// Reject change request
+async function rejectChangeRequest(requestId) {
+    try {
+        showLoadingState();
+        
+        const response = await apiRequest(`/change-requests/${requestId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                status: 'rejected',
+                finance_officer_notes: 'Change request rejected by finance officer'
+            })
+        });
+        
+        if (response.success) {
+            closeFinanceOfficerRequestsModal();
+            await updateFinanceOfficerNotifications();
+            showRequestProcessedMessage('rejected');
+        } else {
+            throw new Error(response.message || 'Failed to reject change request');
+        }
+    } catch (error) {
+        showErrorMessage('Failed to reject change request. Please try again.');
+    } finally {
+        hideLoadingState();
+    }
+}
+
+// Close finance officer requests modal
+function closeFinanceOfficerRequestsModal() {
+    const modal = document.getElementById('financeOfficerRequestsModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Close finance officer notification
+function closeFinanceOfficerNotification() {
+    const notification = document.getElementById('financeOfficerNotification');
+    if (notification) {
+        notification.remove();
+    }
+}
+
+// Show request processed message
+function showRequestProcessedMessage(action) {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="success-icon">✓</div>
+            <div class="message-text">Change request has been ${action} successfully</div>
+        </div>
+    `;
+    
+    // Add simple styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .simple-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .simple-message-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        
+        .success-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #0B5E1C;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin: 0 auto 16px auto;
+            font-family: Arial, sans-serif;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    
+    // Auto close after 2 seconds
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 2000);
+}

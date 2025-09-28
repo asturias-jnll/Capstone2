@@ -667,31 +667,34 @@ class SharedUtils {
 }
 
 // Add CSS animations for warnings
-const warningStyles = document.createElement('style');
-warningStyles.textContent = `
-    @keyframes slideInRight {
-        from {
-            opacity: 0;
-            transform: translateX(100%);
+if (!document.getElementById('warning-styles')) {
+    const warningStyles = document.createElement('style');
+    warningStyles.id = 'warning-styles';
+    warningStyles.textContent = `
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
-        to {
-            opacity: 1;
-            transform: translateX(0);
+        
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
         }
-    }
-    
-    @keyframes slideOutRight {
-        from {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateX(100%);
-        }
-    }
-`;
-document.head.appendChild(warningStyles);
+    `;
+    document.head.appendChild(warningStyles);
+}
 
 // Initialize shared utilities
 const sharedUtils = new SharedUtils();

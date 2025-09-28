@@ -305,6 +305,10 @@ router.get('/roles/:roleId/permissions',
 // Transaction routes
 router.use('/transactions', transactionRoutes);
 
+// Change request routes
+const changeRequestRoutes = require('./changeRequestRoutes');
+router.use('/', changeRequestRoutes);
+
 // Analytics routes
 const analyticsRoutes = require('./analyticsRoutes');
 router.use('/analytics', analyticsRoutes);

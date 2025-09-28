@@ -626,3 +626,39 @@ CREATE TRIGGER update_mataasnakahoy_transactions_updated_at BEFORE UPDATE ON mat
 
 CREATE TRIGGER update_tanauan_transactions_updated_at BEFORE UPDATE ON tanauan_transactions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ===========================================
+-- CHANGE REQUESTS SYSTEM
+-- ===========================================
+
+-- Change requests table for transaction modifications
+CREATE TABLE IF NOT EXISTS change_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_id UUID NOT NULL,
+    transaction_table VARCHAR(50) NOT NULL, -- Which branch table the transaction belongs to
+    requested_by UUID REFERENCES users(id) NOT NULL,
+    assigned_to UUID REFERENCES users(id), -- Finance Officer who will handle the request
+    branch_id INTEGER REFERENCES branches(id) NOT NULL,
+    request_type VARCHAR(20) DEFAULT 'modification', -- 'modification', 'deletion', 'creation'
+    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'completed'
+    original_data JSONB, -- Original transaction data
+    requested_changes JSONB, -- Changes requested by marketing clerk
+    reason TEXT, -- Reason for the change request
+    finance_officer_notes TEXT, -- Notes from finance officer
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP,
+    processed_by UUID REFERENCES users(id)
+);
+
+-- Create indexes for change requests
+CREATE INDEX IF NOT EXISTS idx_change_requests_transaction_id ON change_requests(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_change_requests_requested_by ON change_requests(requested_by);
+CREATE INDEX IF NOT EXISTS idx_change_requests_assigned_to ON change_requests(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_change_requests_branch_id ON change_requests(branch_id);
+CREATE INDEX IF NOT EXISTS idx_change_requests_status ON change_requests(status);
+CREATE INDEX IF NOT EXISTS idx_change_requests_created_at ON change_requests(created_at);
+
+-- Create trigger for updated_at on change_requests
+CREATE TRIGGER update_change_requests_updated_at BEFORE UPDATE ON change_requests
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

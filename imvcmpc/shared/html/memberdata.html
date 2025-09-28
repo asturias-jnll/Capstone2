@@ -109,10 +109,17 @@
                     <input type="text" id="payeeSearch" placeholder="Search transactions..." onkeyup="searchPayee()">
                 </div>
             </div>
-            <button class="add-transaction-btn" onclick="openAddTransactionForm()">
-                <i class="fas fa-plus"></i>
-                Add Transaction
-            </button>
+            <div class="action-buttons">
+                <button class="pending-requests-btn" id="pendingRequestsBtn" onclick="showPendingRequests()">
+                    <i class="fas fa-clock"></i>
+                    Pending Requests
+                    <span class="request-count" id="requestCount" style="display: none;">0</span>
+                </button>
+                <button class="add-transaction-btn" onclick="openAddTransactionForm()">
+                    <i class="fas fa-plus"></i>
+                    Add Transaction
+                </button>
+            </div>
         </div>
 
         <div class="transaction-table-wrapper">

@@ -48,11 +48,38 @@ class BranchNotFoundError extends TransactionError {
     }
 }
 
+class ChangeRequestError extends Error {
+    constructor(message, code = 'CHANGE_REQUEST_ERROR') {
+        super(message);
+        this.name = 'ChangeRequestError';
+        this.code = code;
+    }
+}
+
+class ChangeRequestNotFoundError extends ChangeRequestError {
+    constructor(requestId) {
+        super(`Change request with ID ${requestId} not found`, 'CHANGE_REQUEST_NOT_FOUND');
+        this.name = 'ChangeRequestNotFoundError';
+        this.requestId = requestId;
+    }
+}
+
+class InvalidChangeRequestDataError extends ChangeRequestError {
+    constructor(errors) {
+        super(`Invalid change request data: ${errors.join(', ')}`, 'INVALID_CHANGE_REQUEST_DATA');
+        this.name = 'InvalidChangeRequestDataError';
+        this.errors = errors;
+    }
+}
+
 module.exports = {
     TransactionError,
     TransactionNotFoundError,
     BranchAccessDeniedError,
     InvalidTransactionDataError,
     DatabaseConnectionError,
-    BranchNotFoundError
+    BranchNotFoundError,
+    ChangeRequestError,
+    ChangeRequestNotFoundError,
+    InvalidChangeRequestDataError
 };
