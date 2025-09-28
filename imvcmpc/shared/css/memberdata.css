@@ -589,7 +589,84 @@ body {
     font-style: italic;
 }
 
-/* Modals */
+/* Edit Mode Styles for Transaction Details Modal */
+/* Readonly fields only show grey styling in edit mode */
+.edit-mode .readonly-field {
+    background: var(--gray-100) !important;
+    color: var(--gray-600) !important;
+    cursor: not-allowed !important;
+    border: 1px solid var(--gray-200) !important;
+}
+
+/* Editable field styling - only in edit mode */
+.editable-field {
+    position: relative;
+}
+
+/* Green corner effect only when in edit mode */
+.edit-mode .editable-field:hover {
+    border-color: var(--dark-green) !important;
+    box-shadow: 0 0 0 2px rgba(11, 94, 28, 0.1) !important;
+}
+
+.edit-mode .editable-field:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 8px 8px 0;
+    border-color: transparent var(--dark-green) transparent transparent;
+    z-index: 1;
+}
+
+.edit-mode .editable-field:focus-within {
+    border-color: var(--dark-green) !important;
+    box-shadow: 0 0 0 2px rgba(11, 94, 28, 0.15) !important;
+}
+
+.edit-mode .editable-field:focus-within::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 8px 8px 0;
+    border-color: transparent var(--dark-green) transparent transparent;
+    z-index: 1;
+}
+
+.edit-input {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: inherit !important;
+    background: transparent !important;
+    color: inherit !important;
+    transition: none !important;
+    box-sizing: border-box !important;
+    outline: none !important;
+    height: auto !important;
+    line-height: inherit !important;
+}
+
+.edit-input:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.edit-input[type="number"] {
+    text-align: right;
+}
+
+/* Modals - Standardized for both forms */
 .modal {
     position: fixed;
     top: 0;
@@ -604,6 +681,13 @@ body {
     backdrop-filter: blur(4px);
 }
 
+
+/* Success message modal - dim background */
+.simple-message-modal {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
 .modal-content {
     background: var(--white);
     border-radius: 16px;
@@ -615,6 +699,88 @@ body {
     max-height: 90vh;
     overflow: hidden;
     border: 1px solid var(--gray-100);
+    transition: all 0.3s ease;
+}
+
+/* Transaction Details Modal - Match Add Transaction Form */
+.transaction-details-modal {
+    max-width: 700px;
+    width: 90%;
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--gray-100);
+    overflow: hidden;
+}
+
+/* Transaction Preview Modal - Match Add Transaction Form */
+.transaction-preview-modal {
+    max-width: 700px;
+    width: 90%;
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--gray-100);
+    overflow: hidden;
+}
+
+.transaction-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.preview-section {
+    background: var(--gray-50);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--gray-100);
+}
+
+.preview-section .section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark-green);
+    margin: 0 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.preview-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.preview-item label {
+    font-weight: 500;
+    color: var(--gray-700);
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.preview-item span {
+    color: var(--gray-800);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    background: var(--white);
+    border-radius: 6px;
+    border: 1px solid var(--gray-200);
+    min-height: 20px;
+}
+
+.preview-item .amount {
+    font-weight: 600;
+    color: var(--dark-green);
+    text-align: right;
 }
 
 .modal-header {
@@ -649,12 +815,20 @@ body {
     color: var(--dark-green);
 }
 
-/* Form Styles */
-#transactionForm {
-    padding: 0 24px 24px 24px;
-    max-height: calc(90vh - 100px);
+/* Modal Body Styles */
+.modal-body {
+    padding: 0 24px;
+    max-height: 60vh;
     overflow-y: auto;
 }
+
+/* Form Styles */
+#transactionForm {
+    padding: 0;
+    max-height: none;
+    overflow-y: visible;
+}
+
 
 .form-section {
     margin-bottom: 32px;
@@ -712,56 +886,78 @@ body {
     font-style: italic;
 }
 
-.form-actions {
+/* Modal Footer Styles */
+.modal-footer {
     display: flex;
     gap: 12px;
     justify-content: flex-end;
-    margin-top: 32px;
-    padding-top: 24px;
+    margin-top: 24px;
+    padding: 24px;
     border-top: 1px solid var(--gray-100);
+    background: var(--gray-50);
 }
 
-.cancel-btn {
-    padding: 12px 24px;
-    background: var(--white);
-    color: var(--gray-600);
-    border: 1px solid var(--gray-300);
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
 
-.save-btn {
-    padding: 12px 24px;
-    background: var(--dark-green);
-    color: var(--white);
+/* Button Base Styles */
+.btn {
+    padding: 12px 20px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    font-weight: 500;
     font-size: 14px;
+    font-weight: 500;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.cancel-btn:hover {
+.btn-secondary {
+    background: var(--white);
+    color: var(--gray-600);
+    border: 1px solid var(--gray-300);
+}
+
+.btn-primary {
+    background: var(--dark-green);
+    color: var(--white);
+}
+
+
+/* Button Hover Effects */
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary:hover {
     background: var(--gray-50);
     border-color: var(--gray-400);
     color: var(--gray-700);
 }
 
-.save-btn:hover {
+.btn-primary:hover {
     background: #0A4F18;
-    transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
 }
+
+/* Disabled button styling */
+.btn-disabled {
+    background: var(--gray-300) !important;
+    color: var(--gray-500) !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn-disabled:hover {
+    background: var(--gray-300) !important;
+    color: var(--gray-500) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
 
 /* Delete Dialog */
 .delete-icon {
@@ -822,8 +1018,11 @@ body {
     }
 }
 
-/* Enhanced Tablet Responsive */
+/* Enhanced Tablet Responsive - Table and Layout Only */
 @media (max-width: 1200px) {
+    body {
+        font-size: 14px;
+    }
     .member-data-content {
         padding: 120px 24px 80px;
     }
@@ -939,6 +1138,7 @@ body {
         font-size: 11px;
         min-width: 30px;
     }
+    
 }
 
 /* Enhanced Mobile Responsive */
@@ -1047,59 +1247,7 @@ body {
         min-width: 35px;
     }
     
-    .modal-content {
-        max-width: 95%;
-        margin: 20px;
-        border-radius: 12px;
-    }
     
-    .modal-header {
-        padding: 16px 16px 0 16px;
-    }
-    
-    .modal-header h3 {
-        font-size: 1.1rem;
-    }
-    
-    #transactionForm {
-        padding: 0 16px 16px 16px;
-    }
-    
-    .form-section {
-        margin-bottom: 24px;
-    }
-    
-    .section-title {
-        font-size: 0.9rem;
-        margin-bottom: 12px;
-    }
-    
-    .form-row {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .form-group label {
-        font-size: 13px;
-    }
-    
-    .form-group input {
-        padding: 10px 12px;
-        font-size: 13px;
-    }
-    
-    .form-actions {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .cancel-btn,
-    .save-btn {
-        width: 100%;
-        justify-content: center;
-        padding: 10px 20px;
-        font-size: 13px;
-    }
 }
 
 @media (max-width: 480px) {
@@ -1164,43 +1312,7 @@ body {
         min-width: 28px;
     }
     
-    .modal-content {
-        max-width: 98%;
-        margin: 10px;
-        border-radius: 8px;
-    }
     
-    .modal-header {
-        padding: 12px 12px 0 12px;
-    }
-    
-    .modal-header h3 {
-        font-size: 1rem;
-    }
-    
-    #transactionForm {
-        padding: 0 12px 12px 12px;
-    }
-    
-    .form-section {
-        margin-bottom: 20px;
-    }
-    
-    .section-title {
-        font-size: 0.85rem;
-        margin-bottom: 10px;
-    }
-    
-    .form-group input {
-        padding: 8px 10px;
-        font-size: 12px;
-    }
-    
-    .cancel-btn,
-    .save-btn {
-        padding: 8px 16px;
-        font-size: 12px;
-    }
 }
 
 @media (max-width: 360px) {
@@ -1249,5 +1361,413 @@ body {
     .zoom-percentage {
         font-size: 9px;
         min-width: 24px;
+    }
+    
+    
+}
+
+/* Comprehensive Modal Responsive System - Both Forms */
+@media (max-width: 1200px) {
+    .modal-content,
+    .transaction-details-modal,
+    .transaction-preview-modal {
+        max-width: 90% !important;
+        width: 90% !important;
+        margin: 20px auto !important;
+        border-radius: 14px !important;
+    }
+    
+    .modal-header {
+        padding: 20px 20px 0 20px !important;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.1rem !important;
+    }
+    
+    .modal-body {
+        padding: 0 20px !important;
+    }
+    
+    .section-title {
+        font-size: 0.95rem !important;
+    }
+    
+    #transactionForm label {
+        font-size: 13px !important;
+    }
+    
+    #transactionForm input {
+        font-size: 13px !important;
+        padding: 10px 14px !important;
+    }
+    
+    /* Transaction Details Modal - Match Add Transaction Form */
+    .transaction-details-modal .modal-header h3 {
+        font-size: 1.1rem !important;
+    }
+    .details-section .section-title {
+        font-size: 0.95rem !important;
+    }
+    .detail-item label {
+        font-size: 13px !important;
+    }
+    .detail-item span {
+        font-size: 13px !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .modal-content,
+    .transaction-details-modal,
+    .transaction-preview-modal {
+        max-width: 85% !important;
+        width: 85% !important;
+        margin: 15px auto !important;
+        border-radius: 12px !important;
+    }
+    
+    .modal-header {
+        padding: 18px 18px 0 18px !important;
+    }
+    
+    .modal-header h3 {
+        font-size: 1rem !important;
+    }
+    
+    .modal-body {
+        padding: 0 18px !important;
+    }
+    
+    .section-title {
+        font-size: 0.9rem !important;
+    }
+    
+    #transactionForm label {
+        font-size: 12px !important;
+    }
+    
+    #transactionForm input {
+        font-size: 12px !important;
+        padding: 9px 12px !important;
+    }
+    
+    /* Transaction Details Modal - Match Add Transaction Form */
+    .transaction-details-modal .modal-header h3 {
+        font-size: 1rem !important;
+    }
+    .details-section .section-title {
+        font-size: 0.9rem !important;
+    }
+    .detail-item label {
+        font-size: 12px !important;
+    }
+    .detail-item span {
+        font-size: 12px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-content,
+    .transaction-details-modal,
+    .transaction-preview-modal {
+        max-width: 85% !important;
+        width: 85% !important;
+        margin: 15px auto !important;
+        border-radius: 10px !important;
+    }
+    
+    .modal-header {
+        padding: 16px 16px 0 16px !important;
+    }
+    
+    .modal-header h3 {
+        font-size: 0.95rem !important;
+    }
+    
+    .modal-body {
+        padding: 0 16px !important;
+    }
+    
+    .section-title {
+        font-size: 0.85rem !important;
+    }
+    
+    #transactionForm label {
+        font-size: 12px !important;
+    }
+    
+    #transactionForm input {
+        font-size: 12px !important;
+        padding: 8px 12px !important;
+    }
+    
+    .form-row {
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+    
+    /* Transaction Details Modal - Match Add Transaction Form */
+    .transaction-details-modal .modal-header h3 {
+        font-size: 0.95rem !important;
+    }
+    .details-section .section-title {
+        font-size: 0.85rem !important;
+    }
+    .detail-item label {
+        font-size: 12px !important;
+    }
+    .detail-item span {
+        font-size: 12px !important;
+    }
+    .details-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content,
+    .transaction-details-modal,
+    .transaction-preview-modal {
+        max-width: 75% !important;
+        width: 75% !important;
+        margin: 20px auto !important;
+        border-radius: 8px !important;
+    }
+    
+    .modal-header {
+        padding: 12px 12px 0 12px !important;
+    }
+    
+    .modal-header h3 {
+        font-size: 0.9rem !important;
+    }
+    
+    .modal-body {
+        padding: 0 12px !important;
+    }
+    
+    .section-title {
+        font-size: 0.8rem !important;
+    }
+    
+    #transactionForm label {
+        font-size: 11px !important;
+    }
+    
+    #transactionForm input {
+        font-size: 11px !important;
+        padding: 6px 10px !important;
+    }
+    
+    .form-section {
+        margin-bottom: 20px !important;
+    }
+    
+    /* Transaction Details Modal - Match Add Transaction Form */
+    .transaction-details-modal .modal-header h3 {
+        font-size: 0.9rem !important;
+    }
+    .details-section .section-title {
+        font-size: 0.8rem !important;
+    }
+    .detail-item label {
+        font-size: 11px !important;
+    }
+    .detail-item span {
+        font-size: 11px !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .modal-content,
+    .transaction-details-modal,
+    .transaction-preview-modal {
+        max-width: 70% !important;
+        width: 70% !important;
+        margin: 25px auto !important;
+        border-radius: 6px !important;
+    }
+    
+    .modal-header {
+        padding: 10px 10px 0 10px !important;
+    }
+    
+    .modal-header h3 {
+        font-size: 0.85rem !important;
+    }
+    
+    .modal-body {
+        padding: 0 10px !important;
+    }
+    
+    .section-title {
+        font-size: 0.75rem !important;
+    }
+    
+    #transactionForm label {
+        font-size: 10px !important;
+    }
+    
+    #transactionForm input {
+        font-size: 10px !important;
+        padding: 5px 8px !important;
+    }
+    
+    .form-section {
+        margin-bottom: 18px !important;
+    }
+    
+    /* Transaction Details Modal - Match Add Transaction Form */
+    .transaction-details-modal .modal-header h3 {
+        font-size: 0.85rem !important;
+    }
+    .details-section .section-title {
+        font-size: 0.75rem !important;
+    }
+    .detail-item label {
+        font-size: 10px !important;
+    }
+    .detail-item span {
+        font-size: 10px !important;
+    }
+}
+
+/* Extra Small Screens - Very Compact */
+@media (max-width: 320px) {
+    .modal-content,
+    .transaction-details-modal,
+    .transaction-preview-modal {
+        max-width: 65% !important;
+        width: 65% !important;
+        margin: 30px auto !important;
+        border-radius: 4px !important;
+    }
+    
+    .modal-header {
+        padding: 8px 8px 0 8px !important;
+    }
+    
+    .modal-header h3 {
+        font-size: 0.8rem !important;
+    }
+    
+    .modal-body {
+        padding: 0 8px !important;
+    }
+    
+    .section-title {
+        font-size: 0.7rem !important;
+    }
+    
+    #transactionForm label {
+        font-size: 9px !important;
+    }
+    
+    #transactionForm input {
+        font-size: 9px !important;
+        padding: 4px 6px !important;
+    }
+    
+    .form-section {
+        margin-bottom: 16px !important;
+    }
+    
+    /* Transaction Details Modal - Match Add Transaction Form */
+    .transaction-details-modal .modal-header h3 {
+        font-size: 0.8rem !important;
+    }
+    .details-section .section-title {
+        font-size: 0.7rem !important;
+    }
+    .detail-item label {
+        font-size: 9px !important;
+    }
+    .detail-item span {
+        font-size: 9px !important;
+    }
+}
+
+/* Unified Button System - Both Forms */
+@media (max-width: 1200px) {
+    .delete-btn, .btn, .btn-secondary, .btn-primary {
+        font-size: 13px !important;
+        padding: 10px 20px !important;
+        min-height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .delete-btn, .btn, .btn-secondary, .btn-primary {
+        font-size: 12px !important;
+        padding: 9px 18px !important;
+        min-height: 38px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-actions, .modal-footer {
+        flex-direction: row !important;
+        gap: 8px !important;
+        width: 100% !important;
+        padding: 12px !important;
+        justify-content: flex-end !important;
+    }
+    
+    .delete-btn, .btn, .btn-secondary, .btn-primary {
+        font-size: 11px !important;
+        padding: 8px 12px !important;
+        min-height: 36px !important;
+        width: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 2px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-actions, .modal-footer {
+        flex-direction: row !important;
+        padding: 8px !important;
+        gap: 4px !important;
+        justify-content: flex-end !important;
+    }
+    
+    .delete-btn, .btn, .btn-secondary, .btn-primary {
+        font-size: 10px !important;
+        padding: 6px 8px !important;
+        min-height: 32px !important;
+        width: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 1px !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .form-actions, .modal-footer {
+        flex-direction: row !important;
+        padding: 6px !important;
+        gap: 2px !important;
+        justify-content: flex-end !important;
+    }
+    
+    .delete-btn, .btn, .btn-secondary, .btn-primary {
+        font-size: 9px !important;
+        padding: 4px 6px !important;
+        min-height: 28px !important;
+        width: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 1px !important;
     }
 }

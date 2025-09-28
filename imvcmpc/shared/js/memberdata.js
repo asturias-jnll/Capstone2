@@ -4,12 +4,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeDynamicUserHeader();
     setupEventListeners();
     
-    // Test scroll functions
-    setTimeout(() => {
-        console.log('Testing scroll functions...');
-        console.log('scrollLeft function:', typeof window.scrollLeft);
-        console.log('scrollRight function:', typeof window.scrollRight);
-    }, 500);
 });
 
 // Initialize dynamic user header
@@ -74,7 +68,6 @@ function initializeTransactionLedger() {
         // Make sure scroll functions are available
         window.scrollLeft = scrollLeft;
         window.scrollRight = scrollRight;
-        console.log('Scroll functions initialized');
     }, 100);
 }
 
@@ -89,7 +82,6 @@ function getAuthToken() {
 // Automatic login function for member data page
 async function autoLogin() {
     try {
-        console.log('🔐 Attempting automatic login for member data...');
         
         // Try to login with the test analytics user
         const response = await fetch(`${API_BASE_URL}/login`, {
@@ -112,13 +104,11 @@ async function autoLogin() {
         if (result.success && result.tokens && result.tokens.access_token) {
             // Store the token in localStorage
             localStorage.setItem('access_token', result.tokens.access_token);
-            console.log('✅ Automatic login successful!');
             return result.tokens.access_token;
         } else {
             throw new Error('Invalid login response');
         }
     } catch (error) {
-        console.error('❌ Automatic login failed:', error.message);
         return null;
     }
 }
@@ -128,7 +118,6 @@ async function ensureAuthToken() {
     let token = getAuthToken();
     
     if (!token) {
-        console.log('🔑 No auth token found, attempting automatic login...');
         token = await autoLogin();
     }
     
@@ -145,9 +134,6 @@ async function apiRequest(endpoint, options = {}) {
         const token = await ensureAuthToken();
         const url = `${API_BASE_URL}${endpoint}`;
         
-        console.log(`🌐 Making API request to: ${url}`);
-        console.log(`🔑 Using token: ${token ? 'Present' : 'Missing'}`);
-        console.log(`📋 Request options:`, options);
         
         const defaultOptions = {
             headers: {
@@ -157,22 +143,17 @@ async function apiRequest(endpoint, options = {}) {
         };
         
         const config = { ...defaultOptions, ...options };
-        console.log(`🔧 Final config:`, config);
         
         const response = await fetch(url, config);
-        console.log(`📡 Response status: ${response.status}`);
-        console.log(`📡 Response headers:`, Object.fromEntries(response.headers.entries()));
         
         // Check if response is JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
-            console.log(`📄 Non-JSON response:`, text);
             throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log(`📊 Response data:`, data);
         
         if (!response.ok) {
             throw new Error(data.message || data.error || `API request failed with status ${response.status}`);
@@ -180,12 +161,6 @@ async function apiRequest(endpoint, options = {}) {
         
         return data;
     } catch (error) {
-        console.error('API Error Details:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-        });
-        showNotification(`Error: ${error.message}`, 'error');
         throw error;
     }
 }
@@ -198,12 +173,6 @@ async function loadTransactionsFromDatabase() {
         const userBranchId = localStorage.getItem('user_branch_id');
         const userBranchName = localStorage.getItem('user_branch_name');
         
-        console.log('🔍 Branch information:', {
-            userBranchId,
-            userBranchName,
-            isMainBranchUser,
-            userRole
-        });
         
         // Validate that we have branch information
         if (!userBranchId) {
@@ -213,35 +182,25 @@ async function loadTransactionsFromDatabase() {
         showLoadingState();
         
         // Test server connection first
-        console.log('🔍 Testing server connection...');
         try {
             const healthResponse = await fetch('http://localhost:3001/health');
             const healthData = await healthResponse.json();
-            console.log('✅ Server health check:', healthData);
         } catch (healthError) {
-            console.error('❌ Server health check failed:', healthError);
             throw new Error('Server is not running. Please start the server on port 3001.');
         }
         
         // Always include branch_id in the request for proper data isolation
-        console.log(`📡 Fetching transactions for branch_id: ${userBranchId}`);
         const response = await apiRequest(`/transactions?branch_id=${userBranchId}`);
-        
-        console.log('📊 API Response:', response);
         
         if (response.success) {
             transactions = response.data || [];
             currentTransactions = [...transactions];
             renderTransactionTable();
             
-            // Show branch-specific success message
-            const branchInfo = isMainBranchUser ? 'Main Branch' : userBranchName;
-            showNotification(`Transactions loaded successfully for ${branchInfo}`, 'success');
         } else {
             throw new Error(response.message || 'Failed to load transactions');
         }
     } catch (error) {
-        console.error('Error loading transactions:', error);
         transactions = [];
         currentTransactions = [];
         renderTransactionTable();
@@ -258,7 +217,6 @@ async function loadTransactionsFromDatabase() {
             errorMessage = 'API endpoint not found. Please check server configuration.';
         }
         
-        showNotification(`Failed to load transactions: ${errorMessage}`, 'error');
     } finally {
         hideLoadingState();
     }
@@ -275,12 +233,22 @@ function setDefaultDate() {
 
 // Setup event listeners
 function setupEventListeners() {
-    // Transaction form submission
+    // Add validation clearing on input for transaction form
     const transactionForm = document.getElementById('transactionForm');
     if (transactionForm) {
-        transactionForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            saveTransaction();
+        const formFields = transactionForm.querySelectorAll('input, select');
+        formFields.forEach(field => {
+            field.addEventListener('input', function() {
+                // Clear error styling for this field
+                this.style.borderColor = '';
+                this.style.boxShadow = '';
+                
+                // Remove error message for this field
+                const errorMessage = this.parentNode.querySelector('.field-error');
+                if (errorMessage) {
+                    errorMessage.remove();
+                }
+            });
         });
     }
     
@@ -397,7 +365,7 @@ function createTransactionModal() {
     
     // Create edit button HTML conditionally
     const editButtonHtml = isFinanceOfficer ? '' : `
-                <button class="btn btn-warning" onclick="editTransaction()">
+                <button class="btn btn-warning" onclick="startEditMode()">
                     <i class="fas fa-edit"></i>
                     Edit
                 </button>`;
@@ -424,19 +392,19 @@ function createTransactionModal() {
                         <div class="details-grid">
                             <div class="detail-item">
                                 <label>Date</label>
-                                <span id="modalDate"></span>
+                                <span id="modalDate" class="readonly-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Payee</label>
-                                <span id="modalPayee"></span>
+                                <span id="modalPayee" class="readonly-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Reference</label>
-                                <span id="modalReference"></span>
+                                <span id="modalReference" class="editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Cross Reference</label>
-                                <span id="modalCrossReference"></span>
+                                <span id="modalCrossReference" class="editable-field"></span>
                             </div>
                         </div>
                     </div>
@@ -446,19 +414,19 @@ function createTransactionModal() {
                         <div class="details-grid">
                             <div class="detail-item">
                                 <label>Check Number</label>
-                                <span id="modalCheckNumber"></span>
+                                <span id="modalCheckNumber" class="editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Particulars</label>
-                                <span id="modalParticulars"></span>
+                                <span id="modalParticulars" class="editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Debit Amount</label>
-                                <span id="modalDebit" class="amount"></span>
+                                <span id="modalDebit" class="amount editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Credit Amount</label>
-                                <span id="modalCredit" class="amount"></span>
+                                <span id="modalCredit" class="amount editable-field"></span>
                             </div>
                         </div>
                     </div>
@@ -468,33 +436,33 @@ function createTransactionModal() {
                         <div class="details-grid">
                             <div class="detail-item">
                                 <label>Cash in Bank</label>
-                                <span id="modalCashInBank" class="amount"></span>
+                                <span id="modalCashInBank" class="amount editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Loan Receivables</label>
-                                <span id="modalLoanReceivables" class="amount"></span>
+                                <span id="modalLoanReceivables" class="amount editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Savings Deposits</label>
-                                <span id="modalSavingsDeposits" class="amount"></span>
+                                <span id="modalSavingsDeposits" class="amount editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Interest Income</label>
-                                <span id="modalInterestIncome" class="amount"></span>
+                                <span id="modalInterestIncome" class="amount editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Service Charge</label>
-                                <span id="modalServiceCharge" class="amount"></span>
+                                <span id="modalServiceCharge" class="amount editable-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Sundries</label>
-                                <span id="modalSundries" class="amount"></span>
+                                <span id="modalSundries" class="amount editable-field"></span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" id="modalFooter">
                 <button class="btn btn-secondary" onclick="closeTransactionModal()">
                     <i class="fas fa-times"></i>
                     Close
@@ -505,18 +473,9 @@ function createTransactionModal() {
         </div>
     `;
     
-    // Add modal styles
+    // Add modal styles - Simplified to match base modal styles
     const style = document.createElement('style');
     style.textContent = `
-        .transaction-details-modal {
-            max-width: 800px;
-            width: 90%;
-            background: var(--white);
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-            border: 1px solid var(--gray-100);
-            overflow: hidden;
-        }
         
         .transaction-details-modal .modal-header {
             display: flex;
@@ -576,10 +535,10 @@ function createTransactionModal() {
         
         .detail-item label {
             font-weight: 500;
-            color: var(--gray-600);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: var(--gray-700);
+            font-size: 14px;
+            text-transform: none;
+            letter-spacing: 0;
         }
         
         .detail-item span {
@@ -656,25 +615,7 @@ function createTransactionModal() {
             background: #DC2626;
         }
         
-        @media (max-width: 768px) {
-            .transaction-details-modal {
-                max-width: 95%;
-                margin: 20px;
-            }
-            
-            .details-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .modal-footer {
-                flex-direction: column;
-            }
-            
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
+        /* Responsive styles now handled by main CSS file */
     `;
     document.head.appendChild(style);
     
@@ -709,89 +650,445 @@ function closeTransactionModal() {
     const modal = document.getElementById('transactionModal');
     if (modal) {
         modal.style.display = 'none';
+        modal.classList.remove('edit-mode');
         window.currentTransaction = null;
     }
 }
 
-// Edit transaction
-function editTransaction() {
+// Start edit mode in transaction modal
+function startEditMode() {
     if (!window.currentTransaction) return;
     
     // Check user role and prevent Finance Officers from editing
     const userRole = localStorage.getItem('user_role');
     if (userRole === 'Finance Officer') {
-        showNotification('Finance Officers cannot edit transactions', 'error');
         return;
     }
     
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    closeTransactionModal();
-    
-    // Populate the form with current transaction data
-    const transaction = window.currentTransaction;
-    
-    document.getElementById('transactionDate').value = transaction.transaction_date || transaction.date;
-    document.getElementById('payee').value = transaction.payee;
-    document.getElementById('reference').value = transaction.reference || '';
-    document.getElementById('crossReference').value = transaction.cross_reference || transaction.crossReference || '';
-    document.getElementById('checkNumber').value = transaction.check_number || transaction.checkNumber || '';
-    document.getElementById('particulars').value = transaction.particulars;
-    document.getElementById('debitAmount').value = transaction.debit_amount || transaction.debit || '';
-    document.getElementById('creditAmount').value = transaction.credit_amount || transaction.credit || '';
-    
-    // Populate account balance fields
-    document.getElementById('cashInBank').value = transaction.cash_in_bank || transaction.cashInBank || '';
-    document.getElementById('loanReceivables').value = transaction.loan_receivables || transaction.loanReceivables || '';
-    document.getElementById('savingsDeposits').value = transaction.savings_deposits || transaction.savingsDeposits || '';
-    document.getElementById('interestIncome').value = transaction.interest_income || transaction.interestIncome || '';
-    document.getElementById('serviceCharge').value = transaction.service_charge || transaction.serviceCharge || '';
-    document.getElementById('sundries').value = transaction.sundries || '';
-    
-    // Set editing mode
-    editingTransactionId = transaction.id;
-    
-    // Show form if hidden
-    const form = document.getElementById('transactionForm');
-    if (form) {
-        form.style.display = 'block';
+    // Add edit mode class to modal
+    const modal = document.getElementById('transactionModal');
+    if (modal) {
+        modal.classList.add('edit-mode');
     }
     
-    showNotification('Transaction loaded for editing', 'info');
+    // Convert editable fields to input elements
+    convertFieldsToInputs();
+    
+    // Update modal footer with edit buttons
+    updateModalFooterForEdit();
+}
+
+// Convert editable fields to input elements
+function convertFieldsToInputs() {
+    const editableFields = [
+        'modalReference', 'modalCrossReference', 'modalCheckNumber', 
+        'modalParticulars', 'modalDebit', 'modalCredit',
+        'modalCashInBank', 'modalLoanReceivables', 'modalSavingsDeposits',
+        'modalInterestIncome', 'modalServiceCharge', 'modalSundries'
+    ];
+    
+    editableFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            const currentValue = field.textContent;
+            const inputType = fieldId.includes('Amount') || fieldId.includes('Bank') || 
+                            fieldId.includes('Receivables') || fieldId.includes('Deposits') || 
+                            fieldId.includes('Income') || fieldId.includes('Charge') || 
+                            fieldId.includes('Sundries') ? 'number' : 'text';
+            
+            field.innerHTML = `<input type="${inputType}" value="${currentValue}" class="edit-input" step="0.01" min="0">`;
+        }
+    });
+}
+
+// Setup change detection for form inputs
+function setupChangeDetection() {
+    const editableFields = [
+        'modalReference', 'modalCrossReference', 'modalCheckNumber', 
+        'modalParticulars', 'modalDebit', 'modalCredit',
+        'modalCashInBank', 'modalLoanReceivables', 'modalSavingsDeposits',
+        'modalInterestIncome', 'modalServiceCharge', 'modalSundries'
+    ];
+    
+    // Store original values for comparison
+    const originalValues = {};
+    editableFields.forEach(fieldId => {
+        const input = document.querySelector(`#${fieldId} input`);
+        if (input) {
+            originalValues[fieldId] = input.value;
+        }
+    });
+    
+    // Add event listeners to all input fields
+    editableFields.forEach(fieldId => {
+        const input = document.querySelector(`#${fieldId} input`);
+        if (input) {
+            input.addEventListener('input', () => {
+                checkForChanges(originalValues);
+            });
+        }
+    });
+}
+
+// Check if any changes have been made
+function checkForChanges(originalValues) {
+    const editableFields = [
+        'modalReference', 'modalCrossReference', 'modalCheckNumber', 
+        'modalParticulars', 'modalDebit', 'modalCredit',
+        'modalCashInBank', 'modalLoanReceivables', 'modalSavingsDeposits',
+        'modalInterestIncome', 'modalServiceCharge', 'modalSundries'
+    ];
+    
+    let hasChanges = false;
+    
+    editableFields.forEach(fieldId => {
+        const input = document.querySelector(`#${fieldId} input`);
+        if (input && input.value !== originalValues[fieldId]) {
+            hasChanges = true;
+        }
+    });
+    
+    // Update button state
+    const requestBtn = document.getElementById('requestChangesBtn');
+    if (requestBtn) {
+        if (hasChanges) {
+            requestBtn.disabled = false;
+            requestBtn.classList.remove('btn-disabled');
+            requestBtn.classList.add('btn-primary');
+        } else {
+            requestBtn.disabled = true;
+            requestBtn.classList.remove('btn-primary');
+            requestBtn.classList.add('btn-disabled');
+        }
+    }
+}
+
+// Update modal footer for edit mode
+function updateModalFooterForEdit() {
+    const modalFooter = document.getElementById('modalFooter');
+    if (modalFooter) {
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" onclick="cancelEdit()">
+                <i class="fas fa-times"></i>
+                Cancel
+            </button>
+            <button class="btn btn-disabled" id="requestChangesBtn" onclick="requestChanges()" disabled>
+                <i class="fas fa-paper-plane"></i>
+                Request Changes
+            </button>
+        `;
+        
+        // Add event listeners to input fields for change detection
+        setupChangeDetection();
+    }
+}
+
+// Cancel edit mode
+function cancelEdit() {
+    // Remove edit mode class from modal
+    const modal = document.getElementById('transactionModal');
+    if (modal) {
+        modal.classList.remove('edit-mode');
+    }
+    
+    // Reload the modal with original data
+    populateTransactionModal(window.currentTransaction);
+    
+    // Restore original footer
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
+    const editButtonHtml = isFinanceOfficer ? '' : `
+        <button class="btn btn-warning" onclick="startEditMode()">
+            <i class="fas fa-edit"></i>
+            Edit
+        </button>`;
+    
+    const deleteButtonHtml = isFinanceOfficer ? '' : `
+        <button class="btn btn-danger" onclick="deleteTransaction()">
+            <i class="fas fa-trash"></i>
+            Delete
+        </button>`;
+    
+    const modalFooter = document.getElementById('modalFooter');
+    if (modalFooter) {
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" onclick="closeTransactionModal()">
+                <i class="fas fa-times"></i>
+                Close
+            </button>
+            ${editButtonHtml}
+            ${deleteButtonHtml}
+        `;
+    }
+}
+
+// Request changes
+async function requestChanges() {
+    if (!window.currentTransaction) return;
+    
+    // Check if button is disabled (no changes made)
+    const requestBtn = document.getElementById('requestChangesBtn');
+    if (requestBtn && requestBtn.disabled) {
+        return; // Do nothing if button is disabled
+    }
+    
+    try {
+        showLoadingState();
+        
+        // Collect edited values
+        const editedData = collectEditedValues();
+        
+        // Update transaction via API
+        const response = await apiRequest(`/transactions/${window.currentTransaction.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(editedData)
+        });
+        
+        if (response.success) {
+            closeTransactionModal();
+            await loadTransactionsFromDatabase();
+        } else {
+            throw new Error(response.message || 'Failed to request changes');
+        }
+    } catch (error) {
+    } finally {
+        hideLoadingState();
+    }
+}
+
+// Collect edited values from input fields
+function collectEditedValues() {
+    const userBranchId = localStorage.getItem('user_branch_id');
+    
+    return {
+        reference: document.querySelector('#modalReference input')?.value || '',
+        cross_reference: document.querySelector('#modalCrossReference input')?.value || '',
+        check_number: document.querySelector('#modalCheckNumber input')?.value || '',
+        particulars: document.querySelector('#modalParticulars input')?.value || '',
+        debit_amount: parseFloat(document.querySelector('#modalDebit input')?.value) || 0,
+        credit_amount: parseFloat(document.querySelector('#modalCredit input')?.value) || 0,
+        cash_in_bank: parseFloat(document.querySelector('#modalCashInBank input')?.value) || 0,
+        loan_receivables: parseFloat(document.querySelector('#modalLoanReceivables input')?.value) || 0,
+        savings_deposits: parseFloat(document.querySelector('#modalSavingsDeposits input')?.value) || 0,
+        interest_income: parseFloat(document.querySelector('#modalInterestIncome input')?.value) || 0,
+        service_charge: parseFloat(document.querySelector('#modalServiceCharge input')?.value) || 0,
+        sundries: parseFloat(document.querySelector('#modalSundries input')?.value) || 0,
+        branch_id: parseInt(userBranchId)
+    };
 }
 
 // Delete transaction
 async function deleteTransaction() {
     if (!window.currentTransaction) return;
     
-    // Allow all users to delete transactions (main branch, non-main branch, admin, finance officer)
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    const userRole = localStorage.getItem('user_role');
+    // Show minimalist centered confirmation
+    showDeleteConfirmation();
+}
+
+// Show minimalist centered delete confirmation
+function showDeleteConfirmation() {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="delete-icon"><i class="fas fa-trash"></i></div>
+            <div class="message-text">Are you sure you want to delete this transaction?</div>
+            <div class="confirmation-actions">
+                <button class="btn btn-secondary" onclick="closeDeleteConfirmation()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    `;
     
-    // Removed access restriction - all users can now delete transactions
-    
-    const confirmed = confirm('Are you sure you want to delete this transaction? This action cannot be undone.');
-    if (!confirmed) return;
+    // Add simple styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .simple-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .simple-message-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        
+        .delete-icon {
+            color: #EF4444 !important;
+            font-size: 20px !important;
+            margin: 0 auto 16px auto !important;
+            font-family: Arial, sans-serif !important;
+        }
+        
+        .delete-icon i {
+            font-size: 20px !important;
+            color: #EF4444 !important;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+        
+        .confirmation-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary {
+            background: #F3F4F6;
+            color: #374151;
+        }
+        
+        .btn-danger {
+            background: #EF4444;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+}
+
+// Close delete confirmation
+function closeDeleteConfirmation() {
+    const modal = document.querySelector('.simple-message-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Confirm delete action
+async function confirmDelete() {
+    if (!window.currentTransaction) return;
     
     try {
         showLoadingState();
+        closeDeleteConfirmation();
+        
         const response = await apiRequest(`/transactions/${window.currentTransaction.id}`, {
             method: 'DELETE'
         });
         
         if (response.success) {
-            showNotification('Transaction deleted successfully', 'success');
+            // Get payee name before closing modal
+            const payeeName = window.currentTransaction ? window.currentTransaction.payee : 'Unknown';
+            
             closeTransactionModal();
-            await loadTransactionsFromDatabase(); // Reload data
+            await loadTransactionsFromDatabase();
+            
+            // Show minimalist success message
+            showDeleteSuccessMessage(payeeName);
         } else {
             throw new Error(response.message || 'Failed to delete transaction');
         }
     } catch (error) {
-        console.error('Error deleting transaction:', error);
-        showNotification('Failed to delete transaction', 'error');
+        showDeleteSuccessMessage('Error: Failed to delete transaction. Please try again.');
     } finally {
         hideLoadingState();
     }
+}
+
+// Show minimalist delete success message
+function showDeleteSuccessMessage(payeeName) {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="success-icon">✓</div>
+            <div class="message-text">Transaction for <span class="payee-name">${payeeName}</span> has been deleted successfully</div>
+        </div>
+    `;
+    
+    // Add simple styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .simple-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .simple-message-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        
+        .success-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #EF4444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin: 0 auto 16px auto;
+            font-family: Arial, sans-serif;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        
+        .payee-name {
+            font-weight: bold;
+            color: #EF4444;
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    
+    // Auto close after 2 seconds
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 2000);
 }
 
 // Open add transaction form
@@ -800,7 +1097,6 @@ function openAddTransactionForm() {
     
     // Prevent Finance Officers from accessing the add transaction form
     if (userRole === 'Finance Officer') {
-        showNotification('Finance Officers cannot add transactions', 'error');
         return;
     }
 
@@ -808,22 +1104,33 @@ function openAddTransactionForm() {
     document.getElementById('transactionFormTitle').textContent = 'Add Transaction';
     document.getElementById('transactionForm').reset();
     setDefaultDate();
+    
+    // Clear any validation errors
+    clearValidationErrors();
+    
     document.getElementById('transactionFormDialog').style.display = 'flex';
 }
 
-// Save transaction
-async function saveTransaction() {
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+// Open add transaction form without resetting (for preview cancel)
+function openAddTransactionFormWithoutReset() {
     const userRole = localStorage.getItem('user_role');
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const userBranchName = localStorage.getItem('user_branch_name');
     
-    // Validate branch information
-    if (!userBranchId) {
-        showNotification('Branch information not found. Please log in again.', 'error');
+    // Prevent Finance Officers from accessing the add transaction form
+    if (userRole === 'Finance Officer') {
         return;
     }
 
+    editingTransactionId = null;
+    document.getElementById('transactionFormTitle').textContent = 'Add Transaction';
+    
+    // Clear any validation errors
+    clearValidationErrors();
+    
+    document.getElementById('transactionFormDialog').style.display = 'flex';
+}
+
+// Preview transaction
+function previewTransaction() {
     const date = document.getElementById('transactionDate').value;
     const payee = document.getElementById('payee').value.trim();
     const reference = document.getElementById('reference').value.trim();
@@ -841,17 +1148,70 @@ async function saveTransaction() {
     const serviceCharge = parseFloat(document.getElementById('serviceCharge').value) || 0;
     const sundries = parseFloat(document.getElementById('sundries').value) || 0;
     
-    if (!date || !payee || !particulars) {
-        alert('Please fill in all required fields (Date, Payee, Particulars).');
-        return;
+    // Clear previous validation errors
+    clearValidationErrors();
+    
+    // Validate required fields
+    let hasErrors = false;
+    
+    if (!date) {
+        showFieldError('transactionDate', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (!payee) {
+        showFieldError('payee', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (!particulars) {
+        showFieldError('particulars', 'Please fill out this field');
+        hasErrors = true;
     }
     
     if (debit === 0 && credit === 0) {
-        alert('Please enter either a debit or credit amount.');
+        showFieldError('debitAmount', 'Please enter either a debit or credit amount');
+        showFieldError('creditAmount', 'Please enter either a debit or credit amount');
+        hasErrors = true;
+    }
+    
+    // Validate all account balance fields
+    if (cashInBank === 0) {
+        showFieldError('cashInBank', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (loanReceivables === 0) {
+        showFieldError('loanReceivables', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (savingsDeposits === 0) {
+        showFieldError('savingsDeposits', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (interestIncome === 0) {
+        showFieldError('interestIncome', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (serviceCharge === 0) {
+        showFieldError('serviceCharge', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (sundries === 0) {
+        showFieldError('sundries', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (hasErrors) {
         return;
     }
     
-    const transactionData = {
+    // Show preview modal
+    showTransactionPreview({
         transaction_date: date,
         payee,
         reference,
@@ -860,112 +1220,22 @@ async function saveTransaction() {
         particulars,
         debit_amount: debit,
         credit_amount: credit,
-        // Use form values for account balances
         cash_in_bank: cashInBank,
         loan_receivables: loanReceivables,
         savings_deposits: savingsDeposits,
         interest_income: interestIncome,
         service_charge: serviceCharge,
-        sundries: sundries,
-        // Include branch_id for proper data isolation
-        branch_id: parseInt(userBranchId)
-    };
-    
-    try {
-        showLoadingState();
-        
-        if (editingTransactionId) {
-            // Update existing transaction
-            const response = await apiRequest(`/transactions/${editingTransactionId}`, {
-                method: 'PUT',
-                body: JSON.stringify(transactionData)
-            });
-            
-            if (response.success) {
-                const branchInfo = isMainBranchUser ? 'Main Branch' : userBranchName;
-                showNotification(`Transaction updated successfully for ${branchInfo}!`, 'success');
-            } else {
-                throw new Error(response.message || 'Failed to update transaction');
-            }
-        } else {
-            // Add new transaction
-            const response = await apiRequest('/transactions', {
-                method: 'POST',
-                body: JSON.stringify(transactionData)
-            });
-            
-            if (response.success) {
-                const branchInfo = isMainBranchUser ? 'Main Branch' : userBranchName;
-                showNotification(`Transaction added successfully for ${branchInfo}!`, 'success');
-            } else {
-                throw new Error(response.message || 'Failed to create transaction');
-            }
-        }
-        
-        // Reload transactions from database
-        await loadTransactionsFromDatabase();
-        closeTransactionForm();
-        
-    } catch (error) {
-        console.error('Error saving transaction:', error);
-        showNotification('Failed to save transaction', 'error');
-    } finally {
-        hideLoadingState();
-    }
+        sundries: sundries
+    });
 }
 
-// Calculate account balances based on transaction type
-function calculateCashInBank(debit, credit, particulars) {
-    const particularsLower = particulars.toLowerCase();
-    if (particularsLower.includes('deposit') || particularsLower.includes('savings')) {
-        return credit;
-    } else if (particularsLower.includes('loan') || particularsLower.includes('disbursement')) {
-        return -debit;
-    }
-    return 0;
+// Save transaction (now only used for updates via edit mode)
+async function saveTransaction() {
+    // This function is now only used for updating existing transactions
+    // New transactions use the preview flow with saveTransactionFromPreview()
+    console.log('saveTransaction called - this should only be used for updates');
 }
 
-function calculateLoanReceivables(debit, credit, particulars) {
-    const particularsLower = particulars.toLowerCase();
-    if (particularsLower.includes('loan') || particularsLower.includes('disbursement')) {
-        return debit;
-    } else if (particularsLower.includes('repayment') || particularsLower.includes('payment')) {
-        return -credit;
-    }
-    return 0;
-}
-
-function calculateSavingsDeposits(debit, credit, particulars) {
-    const particularsLower = particulars.toLowerCase();
-    if (particularsLower.includes('savings') || particularsLower.includes('deposit')) {
-        return credit;
-    }
-    return 0;
-}
-
-function calculateInterestIncome(debit, credit, particulars) {
-    const particularsLower = particulars.toLowerCase();
-    if (particularsLower.includes('interest')) {
-        return credit;
-    }
-    return 0;
-}
-
-function calculateServiceCharge(debit, credit, particulars) {
-    const particularsLower = particulars.toLowerCase();
-    if (particularsLower.includes('service') || particularsLower.includes('fee')) {
-        return credit;
-    }
-    return 0;
-}
-
-function calculateSundries(debit, credit, particulars) {
-    const particularsLower = particulars.toLowerCase();
-    if (particularsLower.includes('misc') || particularsLower.includes('other')) {
-        return credit;
-    }
-    return 0;
-}
 
 // Close transaction form
 function closeTransactionForm() {
@@ -1079,24 +1349,16 @@ function setupScrollButtons() {
     
     if (leftBtn && tableContainer) {
         leftBtn.addEventListener('click', function() {
-            console.log('LEFT ARROW CLICKED!');
-            console.log('Before scroll:', tableContainer.scrollLeft);
             tableContainer.scrollLeft -= 200;
-            console.log('After scroll:', tableContainer.scrollLeft);
             updateScrollThumb();
         });
-        console.log('Left button event listener added');
     }
     
     if (rightBtn && tableContainer) {
         rightBtn.addEventListener('click', function() {
-            console.log('RIGHT ARROW CLICKED!');
-            console.log('Before scroll:', tableContainer.scrollLeft);
             tableContainer.scrollLeft += 200;
-            console.log('After scroll:', tableContainer.scrollLeft);
             updateScrollThumb();
         });
-        console.log('Right button event listener added');
     }
 }
 
@@ -1136,7 +1398,6 @@ function updateScrollThumb() {
             // At 50% zoom or below, make thumb full width
             thumbWidth = trackWidth;
             scrollThumb.style.left = '0px';
-            console.log(`Zoom ${currentZoom}% - full green bar (50% or below)`);
         } else {
             // Above 50% zoom, calculate proportional thumb size
             const zoomRatio = currentZoom / 100;
@@ -1149,8 +1410,6 @@ function updateScrollThumb() {
             const scrollRatio = tableContainer.scrollLeft / maxScroll;
             const maxLeft = trackWidth - thumbWidth;
             scrollThumb.style.left = (scrollRatio * maxLeft) + 'px';
-            
-            console.log(`Zoom: ${currentZoom}%, Thumb: ${thumbWidthPercentage.toFixed(1)}%, Width: ${thumbWidth.toFixed(1)}px`);
         }
         
         // Update thumb width
@@ -1228,23 +1487,8 @@ function searchPayee() {
         }
     });
     
-    console.log(`Searching for: "${searchTerm}"`);
 }
 
-// Show success message
-function showSuccessMessage(message) {
-    const notification = document.createElement('div');
-    notification.className = 'success-notification';
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 3000);
-}
 
 // Export transaction data
 function exportTransactionData() {
@@ -1333,71 +1577,323 @@ function hideLoadingState() {
     }
 }
 
-// Show notification
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <i class="fas ${getNotificationIcon(type)}"></i>
-        <span>${message}</span>
-    `;
-    
-    notification.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: ${getNotificationColor(type)};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-height: 48px;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        max-width: 400px;
-        word-wrap: break-word;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-    
-    // Remove notification after 4 seconds
-    setTimeout(() => {
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (document.body.contains(notification)) {
-                document.body.removeChild(notification);
-            }
-        }, 300);
-    }, 4000);
-}
-
-// Get notification icon
-function getNotificationIcon(type) {
-    switch (type) {
-        case 'success': return 'fa-check-circle';
-        case 'error': return 'fa-exclamation-circle';
-        case 'warning': return 'fa-exclamation-triangle';
-        case 'info': return 'fa-info-circle';
-        default: return 'fa-info-circle';
+// Field validation functions
+function showFieldError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        // Add error styling
+        field.style.borderColor = '#EF4444';
+        field.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+        
+        // Remove existing error message
+        const existingError = field.parentNode.querySelector('.field-error');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // Add error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'field-error';
+        errorDiv.textContent = message;
+        errorDiv.style.cssText = `
+            color: #EF4444;
+            font-size: 12px;
+            margin-top: 4px;
+            font-weight: 500;
+        `;
+        
+        field.parentNode.appendChild(errorDiv);
     }
 }
 
-// Get notification color
-function getNotificationColor(type) {
-    switch (type) {
-        case 'success': return '#22C55E'; // Green for success
-        case 'error': return '#EF4444';   // Red for error
-        case 'warning': return '#F59E0B'; // Orange for warning
-        case 'info': return '#3B82F6';    // Blue for info
-        default: return '#3B82F6';
+function clearValidationErrors() {
+    // Remove all error styling and messages
+    const fields = document.querySelectorAll('#transactionForm input, #transactionForm select');
+    fields.forEach(field => {
+        field.style.borderColor = '';
+        field.style.boxShadow = '';
+    });
+    
+    // Remove all error messages
+    const errorMessages = document.querySelectorAll('.field-error');
+    errorMessages.forEach(error => error.remove());
+}
+
+
+// Show transaction preview modal
+function showTransactionPreview(transactionData) {
+    // Close the add transaction form first to prevent overlay stacking
+    closeTransactionForm();
+    
+    // Create preview modal if it doesn't exist
+    let modal = document.getElementById('transactionPreviewModal');
+    if (!modal) {
+        modal = createTransactionPreviewModal();
+        document.body.appendChild(modal);
+    }
+    
+    // Populate preview modal with transaction data
+    populateTransactionPreview(transactionData);
+    
+    // Show modal
+    modal.style.display = 'flex';
+}
+
+// Create transaction preview modal
+function createTransactionPreviewModal() {
+    const modal = document.createElement('div');
+    modal.id = 'transactionPreviewModal';
+    modal.className = 'modal';
+    
+    modal.innerHTML = `
+        <div class="modal-content transaction-preview-modal">
+            <div class="modal-header">
+                <h3>Transaction Preview</h3>
+                <button type="button" class="close-btn" onclick="closeTransactionPreview()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="transaction-preview">
+                    <div class="preview-section">
+                        <h4 class="section-title">Basic Information</h4>
+                        <div class="preview-grid">
+                            <div class="preview-item">
+                                <label>Date</label>
+                                <span id="previewDate"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Payee</label>
+                                <span id="previewPayee"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Reference</label>
+                                <span id="previewReference"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Cross Reference</label>
+                                <span id="previewCrossReference"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-section">
+                        <h4 class="section-title">Transaction Details</h4>
+                        <div class="preview-grid">
+                            <div class="preview-item">
+                                <label>Check Number</label>
+                                <span id="previewCheckNumber"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Particulars</label>
+                                <span id="previewParticulars"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Debit Amount</label>
+                                <span id="previewDebit" class="amount"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Credit Amount</label>
+                                <span id="previewCredit" class="amount"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-section">
+                        <h4 class="section-title">Account Balances</h4>
+                        <div class="preview-grid">
+                            <div class="preview-item">
+                                <label>Cash in Bank</label>
+                                <span id="previewCashInBank" class="amount"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Loan Receivables</label>
+                                <span id="previewLoanReceivables" class="amount"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Savings Deposits</label>
+                                <span id="previewSavingsDeposits" class="amount"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Interest Income</label>
+                                <span id="previewInterestIncome" class="amount"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Service Charge</label>
+                                <span id="previewServiceCharge" class="amount"></span>
+                            </div>
+                            <div class="preview-item">
+                                <label>Sundries</label>
+                                <span id="previewSundries" class="amount"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTransactionPreview()">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+                <button class="btn btn-primary" onclick="saveTransactionFromPreview()">
+                    <i class="fas fa-save"></i>
+                    Save Transaction
+                </button>
+            </div>
+        </div>
+    `;
+    
+    
+    return modal;
+}
+
+// Populate transaction preview with data
+function populateTransactionPreview(transaction) {
+    document.getElementById('previewDate').textContent = formatDate(transaction.transaction_date);
+    document.getElementById('previewPayee').textContent = transaction.payee;
+    document.getElementById('previewReference').textContent = transaction.reference || '';
+    document.getElementById('previewCrossReference').textContent = transaction.cross_reference || '';
+    document.getElementById('previewCheckNumber').textContent = transaction.check_number || '';
+    document.getElementById('previewParticulars').textContent = transaction.particulars;
+    document.getElementById('previewDebit').textContent = formatAmount(transaction.debit_amount);
+    document.getElementById('previewCredit').textContent = formatAmount(transaction.credit_amount);
+    
+    // Populate account balance fields
+    document.getElementById('previewCashInBank').textContent = formatAmount(transaction.cash_in_bank);
+    document.getElementById('previewLoanReceivables').textContent = formatAmount(transaction.loan_receivables);
+    document.getElementById('previewSavingsDeposits').textContent = formatAmount(transaction.savings_deposits);
+    document.getElementById('previewInterestIncome').textContent = formatAmount(transaction.interest_income);
+    document.getElementById('previewServiceCharge').textContent = formatAmount(transaction.service_charge);
+    document.getElementById('previewSundries').textContent = formatAmount(transaction.sundries);
+    
+    // Store current transaction data for saving
+    window.previewTransactionData = transaction;
+}
+
+
+// Close transaction preview
+function closeTransactionPreview() {
+    const modal = document.getElementById('transactionPreviewModal');
+    if (modal) {
+        modal.style.display = 'none';
+        window.previewTransactionData = null;
+    }
+    
+    // Reopen the add transaction form without resetting
+    openAddTransactionFormWithoutReset();
+}
+
+// Show simple centered success message
+function showCenteredSuccessMessage(payeeName) {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="success-icon">✓</div>
+            <div class="message-text">Transaction for <span class="payee-name">${payeeName}</span> has been saved successfully</div>
+        </div>
+    `;
+    
+    // Add simple styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .simple-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .simple-message-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        
+        .success-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #0B5E1C;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin: 0 auto 16px auto;
+            font-family: Arial, sans-serif;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        
+        .payee-name {
+            font-weight: bold;
+            color: #0B5E1C;
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    
+    // Auto close after 2 seconds
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 2000);
+}
+
+// Save transaction from preview
+async function saveTransactionFromPreview() {
+    if (!window.previewTransactionData) return;
+    
+    const userBranchId = localStorage.getItem('user_branch_id');
+    
+    // Add branch_id to transaction data
+    const transactionData = {
+        ...window.previewTransactionData,
+        branch_id: parseInt(userBranchId)
+    };
+    
+    try {
+        showLoadingState();
+        
+        const response = await apiRequest('/transactions', {
+            method: 'POST',
+            body: JSON.stringify(transactionData)
+        });
+        
+        if (response.success) {
+            // Get payee name before closing modals
+            const payeeName = window.previewTransactionData ? window.previewTransactionData.payee : 'Unknown';
+            
+            // Close preview modal
+            closeTransactionPreview();
+            // Close transaction form
+            closeTransactionForm();
+            // Reload transactions from database
+            await loadTransactionsFromDatabase();
+            // Show simple success message with payee name
+            showCenteredSuccessMessage(payeeName);
+        } else {
+            throw new Error(response.message || 'Failed to create transaction');
+        }
+        
+    } catch (error) {
+        showCenteredSuccessMessage('Error: Failed to save transaction. Please try again.');
+    } finally {
+        hideLoadingState();
     }
 } 
