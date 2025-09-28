@@ -136,7 +136,14 @@ class ChangeRequestService {
                 values.push(filters.offset);
             }
 
+            console.log('Executing query:', query);
+            console.log('Query values:', values);
+            console.log('Filters passed to service:', filters);
+            
             const result = await client.query(query, values);
+            console.log('Query result rows:', result.rows.length);
+            console.log('Query result data:', result.rows);
+            
             return result.rows;
         } finally {
             client.release();

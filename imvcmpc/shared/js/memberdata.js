@@ -2700,19 +2700,55 @@ async function showFinanceOfficerRequests() {
         
         const userBranchId = localStorage.getItem('user_branch_id');
         const userRole = localStorage.getItem('user_role');
+        const userId = localStorage.getItem('user_id');
+        const accessToken = localStorage.getItem('access_token');
+        
         console.log('User branch ID:', userBranchId);
         console.log('User role:', userRole);
+        console.log('User ID:', userId);
+        console.log('Access token exists:', !!accessToken);
         
-        const endpoint = `/change-requests?branch_id=${userBranchId}&status=pending&assigned_to=me`;
+        const endpoint = `/change-requests?branch_id=${userBranchId}&status=pending`;
         console.log('API endpoint:', endpoint);
         
         const response = await apiRequest(endpoint);
         console.log('API response:', response);
+        console.log('Response success:', response.success);
+        console.log('Response data:', response.data);
+        console.log('Response data length:', response.data ? response.data.length : 'undefined');
+        
+        // Debug: Let's also try to get all change requests without filters to see if any exist
+        try {
+            const allRequestsResponse = await apiRequest(`/change-requests?branch_id=${userBranchId}`);
+            console.log('All requests (no status filter):', allRequestsResponse);
+            
+            // Also try without branch filter to see if there are any requests at all
+            const allRequestsNoBranchResponse = await apiRequest(`/change-requests`);
+            console.log('All requests (no filters):', allRequestsNoBranchResponse);
+        } catch (error) {
+            console.log('Error fetching all requests:', error);
+        }
         
         if (response.success) {
             const requests = response.data || [];
             console.log('Number of requests:', requests.length);
             console.log('Requests data:', requests);
+            
+            if (requests.length === 0) {
+                console.log('No pending requests found');
+            } else {
+                console.log('Found requests, creating modal...');
+                requests.forEach((request, index) => {
+                    console.log(`Request ${index + 1}:`, {
+                        id: request.id,
+                        request_type: request.request_type,
+                        reason: request.reason,
+                        original_data: request.original_data,
+                        requested_changes: request.requested_changes
+                    });
+                });
+            }
+            
             createFinanceOfficerRequestsModal(requests);
         } else {
             console.error('API response failed:', response);
@@ -2728,24 +2764,44 @@ async function showFinanceOfficerRequests() {
 
 // Create finance officer requests modal
 function createFinanceOfficerRequestsModal(requests) {
+    console.log('Creating finance officer requests modal with', requests.length, 'requests');
+    
     const modal = document.createElement('div');
     modal.id = 'financeOfficerRequestsModal';
     modal.className = 'modal';
     
+    let requestsHTML = '';
+    if (requests.length === 0) {
+        requestsHTML = `
+            <div class="empty-requests">
+                <i class="fas fa-check-circle" style="color: var(--dark-green); margin-right: 8px;"></i>
+                <div>No pending change requests requiring your approval</div>
+                <div style="margin-top: 10px; font-size: 12px; color: var(--gray-500);">
+                    Change requests will appear here when Marketing Clerks request modifications to transactions.
+                </div>
+            </div>
+        `;
+        console.log('No requests found, showing empty state');
+    } else {
+        console.log('Generating HTML for', requests.length, 'requests');
+        requestsHTML = requests.map(request => {
+            console.log('Processing request:', request.id);
+            return createFinanceOfficerRequestItem(request);
+        }).join('');
+        console.log('Generated HTML length:', requestsHTML.length);
+    }
+    
     modal.innerHTML = `
         <div class="modal-content finance-officer-requests-modal">
             <div class="modal-header">
-                <h3>Change Requests - Finance Officer</h3>
+                <h3>Pending Change Requests - Finance Officer</h3>
                 <button type="button" class="close-btn" onclick="closeFinanceOfficerRequestsModal()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
                 <div class="requests-list">
-                    ${requests.length === 0 ? 
-                        '<div class="empty-requests">No pending change requests found</div>' :
-                        requests.map(request => createFinanceOfficerRequestItem(request)).join('')
-                    }
+                    ${requestsHTML}
                 </div>
             </div>
             <div class="modal-footer">
@@ -2796,6 +2852,17 @@ function createFinanceOfficerRequestsModal(requests) {
         .request-date {
             font-size: 12px;
             color: var(--gray-600);
+        }
+        
+        .request-subject {
+            font-size: 16px;
+            color: var(--dark-green);
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            background: var(--white);
+            border-radius: 6px;
+            border-left: 4px solid var(--orange);
         }
         
         .request-details {
@@ -2856,17 +2923,60 @@ function createFinanceOfficerRequestsModal(requests) {
             padding: 40px;
             color: var(--gray-600);
             font-style: italic;
+            background: var(--gray-50);
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            margin: 20px 0;
         }
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
+    
+    console.log('Finance officer modal added to DOM, modal element:', modal);
+    console.log('Modal innerHTML length:', modal.innerHTML.length);
 }
 
 // Create finance officer request item HTML
 function createFinanceOfficerRequestItem(request) {
+    console.log('Creating request item for:', request);
+    
     const requestDate = new Date(request.created_at).toLocaleDateString();
     const transactionPayee = request.original_data?.payee || 'Unknown';
     const requestedBy = `${request.requested_by_first_name || ''} ${request.requested_by_last_name || ''}`.trim() || 'Unknown';
+    
+    console.log('Request details:', {
+        date: requestDate,
+        payee: transactionPayee,
+        requestedBy: requestedBy,
+        requestType: request.request_type,
+        reason: request.reason
+    });
+    
+    // Create a meaningful subject/title for the request
+    let requestSubject = '';
+    const requestType = request.request_type || 'modification';
+    
+    if (requestType === 'modification') {
+        requestSubject = `Modify Transaction: ${transactionPayee}`;
+    } else if (requestType === 'deletion') {
+        requestSubject = `Delete Transaction: ${transactionPayee}`;
+    } else if (requestType === 'creation') {
+        requestSubject = `Create New Transaction: ${transactionPayee}`;
+    } else {
+        requestSubject = `Change Request: ${transactionPayee}`;
+    }
+    
+    // Get the main change details from requested_changes
+    let changeDetails = '';
+    if (request.requested_changes) {
+        const changes = Object.keys(request.requested_changes);
+        if (changes.length > 0) {
+            changeDetails = `Changes: ${changes.join(', ')}`;
+        }
+    }
+    
+    console.log('Generated subject:', requestSubject);
+    console.log('Change details:', changeDetails);
     
     return `
         <div class="finance-officer-request-item">
@@ -2874,12 +2984,16 @@ function createFinanceOfficerRequestItem(request) {
                 <span class="request-id">Request #${request.id.substring(0, 8)}</span>
                 <span class="request-date">${requestDate}</span>
             </div>
+            <div class="request-subject">
+                <strong>${requestSubject}</strong>
+            </div>
             <div class="request-details">
-                <strong>Transaction:</strong> ${transactionPayee}<br>
-                <strong>Requested by:</strong> ${requestedBy}
+                <strong>Requested by:</strong> ${requestedBy}<br>
+                ${changeDetails ? `<strong>${changeDetails}</strong><br>` : ''}
+                <strong>Transaction:</strong> ${transactionPayee}
             </div>
             <div class="request-reason">
-                ${request.reason || 'No reason provided'}
+                <strong>Reason:</strong> ${request.reason || 'No reason provided'}
             </div>
             <div class="request-actions">
                 <button class="btn-approve" onclick="approveChangeRequest('${request.id}')">
@@ -2960,6 +3074,7 @@ function closeFinanceOfficerNotification() {
         notification.remove();
     }
 }
+
 
 // Show request processed message
 function showRequestProcessedMessage(action) {

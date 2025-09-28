@@ -72,10 +72,8 @@ router.get('/change-requests',
                 filters.requested_by = userId;
             }
 
-            // Finance officers can see requests assigned to them
-            if (userRole === 'finance_officer') {
-                filters.assigned_to = userId;
-            }
+            // Finance officers can see all pending requests in their branch
+            // (no additional filtering needed - they see all requests in their branch)
 
             // Branch filtering
             if (branch_id) {
@@ -88,7 +86,15 @@ router.get('/change-requests',
                 filters.status = status;
             }
 
+            console.log('Final filters being used:', filters);
+            console.log('User ID:', userId);
+            console.log('User Role:', userRole);
+            console.log('User Branch ID:', userBranchId);
+            console.log('Query parameters:', req.query);
+            
             const requests = await changeRequestService.getChangeRequests(filters);
+            console.log('Number of requests found:', requests.length);
+            console.log('Requests data:', requests);
 
             res.json({
                 success: true,
@@ -124,10 +130,8 @@ router.get('/change-requests/count',
                 filters.requested_by = userId;
             }
 
-            // Finance officers can see requests assigned to them
-            if (userRole === 'finance_officer') {
-                filters.assigned_to = userId;
-            }
+            // Finance officers can see all pending requests in their branch
+            // (no additional filtering needed - they see all requests in their branch)
 
             // Branch filtering
             if (branch_id) {
