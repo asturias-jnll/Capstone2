@@ -105,6 +105,58 @@ router.get('/change-requests',
     }
 );
 
+// Get change request count
+router.get('/change-requests/count',
+    authenticateToken,
+    checkRole(['marketing_clerk', 'finance_officer']),
+    async (req, res) => {
+        try {
+            const { branch_id, status, assigned_to } = req.query;
+            const userId = req.user.id;
+            const userRole = req.user.role_name;
+            const userBranchId = req.user.branch_id;
+
+            // Build filters based on user role and permissions
+            const filters = {};
+
+            // Marketing clerks can only see their own requests
+            if (userRole === 'marketing_clerk') {
+                filters.requested_by = userId;
+            }
+
+            // Finance officers can see requests assigned to them
+            if (userRole === 'finance_officer') {
+                filters.assigned_to = userId;
+            }
+
+            // Branch filtering
+            if (branch_id) {
+                filters.branch_id = parseInt(branch_id);
+            } else {
+                filters.branch_id = userBranchId;
+            }
+
+            if (status) {
+                filters.status = status;
+            }
+
+            const count = await changeRequestService.getChangeRequestCount(filters);
+
+            res.json({
+                success: true,
+                count: count
+            });
+
+        } catch (error) {
+            console.error('Error fetching change request count:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
 // Get change request by ID
 router.get('/change-requests/:requestId',
     authenticateToken,
@@ -224,58 +276,6 @@ router.post('/change-requests/:requestId/process',
         } catch (error) {
             console.error('Error processing change request:', error);
             res.status(400).json({
-                success: false,
-                error: error.message
-            });
-        }
-    }
-);
-
-// Get change request count
-router.get('/change-requests/count',
-    authenticateToken,
-    checkRole(['marketing_clerk', 'finance_officer']),
-    async (req, res) => {
-        try {
-            const { branch_id, status, assigned_to } = req.query;
-            const userId = req.user.id;
-            const userRole = req.user.role_name;
-            const userBranchId = req.user.branch_id;
-
-            // Build filters based on user role and permissions
-            const filters = {};
-
-            // Marketing clerks can only see their own requests
-            if (userRole === 'marketing_clerk') {
-                filters.requested_by = userId;
-            }
-
-            // Finance officers can see requests assigned to them
-            if (userRole === 'finance_officer') {
-                filters.assigned_to = userId;
-            }
-
-            // Branch filtering
-            if (branch_id) {
-                filters.branch_id = parseInt(branch_id);
-            } else {
-                filters.branch_id = userBranchId;
-            }
-
-            if (status) {
-                filters.status = status;
-            }
-
-            const count = await changeRequestService.getChangeRequestCount(filters);
-
-            res.json({
-                success: true,
-                count: count
-            });
-
-        } catch (error) {
-            console.error('Error fetching change request count:', error);
-            res.status(500).json({
                 success: false,
                 error: error.message
             });

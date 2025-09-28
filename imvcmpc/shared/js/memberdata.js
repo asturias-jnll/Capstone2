@@ -80,12 +80,26 @@ function initializeTransactionLedger() {
         
         // Load pending requests count for marketing clerks and finance officers
         const currentUserRole = localStorage.getItem('user_role');
+        console.log('=== INITIALIZATION DEBUG ===');
+        console.log('Current user role:', currentUserRole);
+        console.log('DOM ready, checking elements...');
+        
+        // Check if required elements exist
+        const requestCountElement = document.getElementById('requestCount');
+        const pendingRequestsBtn = document.getElementById('pendingRequestsBtn');
+        console.log('Request count element found:', !!requestCountElement);
+        console.log('Pending requests button found:', !!pendingRequestsBtn);
+        
         if (currentUserRole === 'Marketing Clerk') {
+            console.log('Calling updatePendingRequestsCount for Marketing Clerk');
             updatePendingRequestsCount();
         } else if (currentUserRole === 'Finance Officer') {
+            console.log('Calling updateFinanceOfficerNotifications for Finance Officer');
             updateFinanceOfficerNotifications();
+        } else {
+            console.log('Unknown role, not calling any notification functions');
         }
-    }, 100);
+    }, 500);
 }
 
 // API Configuration
@@ -101,14 +115,21 @@ async function autoLogin() {
     try {
         console.log('Attempting auto-login...');
         
-        // Try to login with the test analytics user
+        // Clear any existing token to force fresh login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('user_branch_id');
+        localStorage.removeItem('user_branch_name');
+        localStorage.removeItem('is_main_branch_user');
+        
+        // Try to login with the test finance officer user
         const response = await fetch(`${API_BASE_URL}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                username: 'test.analytics',
+                username: 'test.ibaan',
                 password: 'Test12345!'
             })
         });
@@ -120,12 +141,31 @@ async function autoLogin() {
         }
 
         const result = await response.json();
-        console.log('Login result:', result);
         
         if (result.success && result.tokens && result.tokens.access_token) {
             // Store the token in localStorage
             localStorage.setItem('access_token', result.tokens.access_token);
-            console.log('Auto-login successful, token stored');
+            
+            // Store user data
+            if (result.user) {
+                // Map API role to frontend role format
+                const roleMapping = {
+                    'finance_officer': 'Finance Officer',
+                    'marketing_clerk': 'Marketing Clerk'
+                };
+                const frontendRole = roleMapping[result.user.role] || 'Finance Officer';
+                
+                localStorage.setItem('user_role', frontendRole);
+                localStorage.setItem('user_branch_id', result.user.branch_id || '1');
+                localStorage.setItem('user_branch_name', result.user.branch_name || 'Main Branch');
+                localStorage.setItem('is_main_branch_user', result.user.is_main_branch_user ? 'true' : 'false');
+            } else {
+                localStorage.setItem('user_role', 'Finance Officer');
+                localStorage.setItem('user_branch_id', '1');
+                localStorage.setItem('user_branch_name', 'Main Branch');
+                localStorage.setItem('is_main_branch_user', 'true');
+            }
+            
             return result.tokens.access_token;
         } else {
             throw new Error('Invalid login response');
@@ -860,7 +900,7 @@ function cancelEdit() {
     }
 }
 
-// Request changes
+// Request changes - Send to Finance Officer for approval
 async function requestChanges() {
     if (!window.currentTransaction) return;
     
@@ -875,32 +915,60 @@ async function requestChanges() {
         
         // Collect edited values
         const editedData = collectEditedValues();
+        const originalData = {
+            payee: window.currentTransaction.payee,
+            amount: window.currentTransaction.amount,
+            transaction_date: window.currentTransaction.transaction_date,
+            transaction_type: window.currentTransaction.transaction_type,
+            description: window.currentTransaction.description
+        };
         
-        // Create change request instead of directly updating
+        // Get user branch and role information
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const userRole = localStorage.getItem('user_role');
+        
+        if (userRole !== 'Marketing Clerk') {
+            throw new Error('Only Marketing Clerks can request changes');
+        }
+        
+        // Determine the correct transaction table based on branch
+        const branchName = localStorage.getItem('user_branch_name');
+        let transactionTable = 'ibaan_transactions'; // Default
+        
+        if (branchName && branchName.toLowerCase().includes('tanauan')) {
+            transactionTable = 'tanauan_transactions';
+        }
+        
+        // Create change request
         const changeRequestData = {
             transaction_id: window.currentTransaction.id,
-            transaction_table: getTransactionTableName(window.currentTransaction.branch_id),
-            original_data: window.currentTransaction,
+            transaction_table: transactionTable,
+            original_data: originalData,
             requested_changes: editedData,
             reason: 'Transaction modification requested by marketing clerk',
             request_type: 'modification'
         };
         
+        // Send change request to finance officer
         const response = await apiRequest('/change-requests', {
             method: 'POST',
             body: JSON.stringify(changeRequestData)
         });
         
         if (response.success) {
+            showSuccess('Change request sent to Finance Officer for approval');
             closeTransactionModal();
             await loadTransactionsFromDatabase();
-            await updatePendingRequestsCount();
-            showRequestSubmittedMessage();
+            
+            // Update pending requests count
+            updatePendingRequestsCount();
         } else {
-            throw new Error(response.message || 'Failed to submit change request');
+            throw new Error(response.message || 'Failed to send change request');
         }
+        
     } catch (error) {
-        showErrorMessage('Failed to submit change request. Please try again.');
+        console.error('Error requesting changes:', error);
+        showError('Failed to send change request: ' + error.message);
     } finally {
         hideLoadingState();
     }
@@ -1998,11 +2066,24 @@ async function updatePendingRequestsCount() {
 
 // Show pending requests modal
 async function showPendingRequests() {
+    const userRole = localStorage.getItem('user_role');
+    
+    // Finance officers should use the dedicated function with approve/reject functionality
+    if (userRole === 'Finance Officer') {
+        showFinanceOfficerRequests();
+        return;
+    }
+    
+    // Marketing clerks use the generic modal
     try {
         showLoadingState();
         
         const userBranchId = localStorage.getItem('user_branch_id');
-        const response = await apiRequest(`/change-requests?branch_id=${userBranchId}&status=pending`);
+        
+        // Marketing clerks see their own requests
+        const endpoint = `/change-requests?branch_id=${userBranchId}&requested_by=me`;
+        
+        const response = await apiRequest(endpoint);
         
         if (response.success) {
             const requests = response.data || [];
@@ -2111,6 +2192,49 @@ function createPendingRequestsModal(requests) {
             color: var(--gray-600);
             font-style: italic;
         }
+        
+        .request-status {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--gray-200);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-badge.pending {
+            background: #FEF3C7;
+            color: #D97706;
+        }
+        
+        .status-badge.approved {
+            background: #D1FAE5;
+            color: #059669;
+        }
+        
+        .status-badge.rejected {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+        
+        .status-badge.completed {
+            background: #DBEAFE;
+            color: #2563EB;
+        }
+        
+        .finance-notes {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--gray-600);
+            font-style: italic;
+        }
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
@@ -2120,6 +2244,21 @@ function createPendingRequestsModal(requests) {
 function createRequestItem(request) {
     const requestDate = new Date(request.created_at).toLocaleDateString();
     const transactionPayee = request.original_data?.payee || 'Unknown';
+    const userRole = localStorage.getItem('user_role');
+    
+    // Get status badge
+    const statusBadge = getStatusBadge(request.status);
+    
+    // For marketing clerks, show status and any notes
+    let statusInfo = '';
+    if (userRole === 'Marketing Clerk') {
+        statusInfo = `
+            <div class="request-status">
+                <span class="status-badge ${request.status.toLowerCase()}">${statusBadge}</span>
+                ${request.finance_officer_notes ? `<div class="finance-notes">Notes: ${request.finance_officer_notes}</div>` : ''}
+            </div>
+        `;
+    }
     
     return `
         <div class="request-item">
@@ -2133,8 +2272,20 @@ function createRequestItem(request) {
             <div class="request-reason">
                 ${request.reason || 'No reason provided'}
             </div>
+            ${statusInfo}
         </div>
     `;
+}
+
+// Get status badge HTML
+function getStatusBadge(status) {
+    const statusMap = {
+        'pending': '<i class="fas fa-clock"></i> Pending',
+        'approved': '<i class="fas fa-check"></i> Approved',
+        'rejected': '<i class="fas fa-times"></i> Rejected',
+        'completed': '<i class="fas fa-check-circle"></i> Completed'
+    };
+    return statusMap[status] || status;
 }
 
 // Close pending requests modal
@@ -2279,6 +2430,78 @@ function showErrorMessage(message) {
     }, 3000);
 }
 
+// Show success message
+function showSuccess(message) {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="success-icon">✓</div>
+            <div class="message-text">${message}</div>
+        </div>
+    `;
+    
+    // Add simple styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .simple-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .simple-message-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        
+        .success-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #0B5E1C;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin: 0 auto 16px auto;
+            font-family: Arial, sans-serif;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    
+    // Auto close after 2 seconds
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 2000);
+}
+
+// Show error message (alias for showErrorMessage)
+function showError(message) {
+    showErrorMessage(message);
+}
+
 // ===========================================
 // FINANCE OFFICER NOTIFICATION SYSTEM
 // ===========================================
@@ -2286,12 +2509,63 @@ function showErrorMessage(message) {
 // Update finance officer notifications
 async function updateFinanceOfficerNotifications() {
     try {
+        console.log('=== UPDATE FINANCE OFFICER NOTIFICATIONS ===');
         const userBranchId = localStorage.getItem('user_branch_id');
-        const response = await apiRequest(`/change-requests/count?branch_id=${userBranchId}&status=pending&assigned_to=me`);
+        const userRole = localStorage.getItem('user_role');
+        console.log('User branch ID:', userBranchId);
+        console.log('User role:', userRole);
+        
+        const response = await apiRequest(`/change-requests/count?branch_id=${userBranchId}&status=pending`);
+        console.log('API response:', response);
         
         if (response.success) {
             const count = response.count || 0;
+            console.log('Request count:', count);
+            
+            // Update the Pending Requests button count
+            const requestCountElement = document.getElementById('requestCount');
+            const pendingRequestsBtn = document.getElementById('pendingRequestsBtn');
+            console.log('Request count element found:', !!requestCountElement);
+            console.log('Pending requests button found:', !!pendingRequestsBtn);
+            
+            if (requestCountElement && pendingRequestsBtn) {
+                if (count > 0) {
+                    requestCountElement.textContent = count;
+                    requestCountElement.style.display = 'inline-flex';
+                    pendingRequestsBtn.style.background = '#FF9800';
+                    console.log('Updated button with count:', count);
+                } else {
+                    requestCountElement.style.display = 'none';
+                    pendingRequestsBtn.style.background = 'var(--orange)';
+                    console.log('No requests, hiding count');
+                }
+            } else {
+                console.error('Button elements not found! Retrying in 1 second...');
+                // Retry after 1 second if elements are not found
+                setTimeout(() => {
+                    const retryRequestCountElement = document.getElementById('requestCount');
+                    const retryPendingRequestsBtn = document.getElementById('pendingRequestsBtn');
+                    if (retryRequestCountElement && retryPendingRequestsBtn) {
+                        if (count > 0) {
+                            retryRequestCountElement.textContent = count;
+                            retryRequestCountElement.style.display = 'inline-flex';
+                            retryPendingRequestsBtn.style.background = '#FF9800';
+                            console.log('Retry successful - Updated button with count:', count);
+                        } else {
+                            retryRequestCountElement.style.display = 'none';
+                            retryPendingRequestsBtn.style.background = 'var(--orange)';
+                            console.log('Retry successful - No requests, hiding count');
+                        }
+                    } else {
+                        console.error('Retry failed - Button elements still not found!');
+                    }
+                }, 1000);
+            }
+            
+            // Also show notification banner
             showFinanceOfficerNotification(count);
+        } else {
+            console.error('API response failed:', response);
         }
     } catch (error) {
         console.error('Failed to update finance officer notifications:', error);
@@ -2421,18 +2695,31 @@ function showFinanceOfficerNotification(count) {
 // Show finance officer requests
 async function showFinanceOfficerRequests() {
     try {
+        console.log('=== SHOW FINANCE OFFICER REQUESTS ===');
         showLoadingState();
         
         const userBranchId = localStorage.getItem('user_branch_id');
-        const response = await apiRequest(`/change-requests?branch_id=${userBranchId}&status=pending&assigned_to=me`);
+        const userRole = localStorage.getItem('user_role');
+        console.log('User branch ID:', userBranchId);
+        console.log('User role:', userRole);
+        
+        const endpoint = `/change-requests?branch_id=${userBranchId}&status=pending&assigned_to=me`;
+        console.log('API endpoint:', endpoint);
+        
+        const response = await apiRequest(endpoint);
+        console.log('API response:', response);
         
         if (response.success) {
             const requests = response.data || [];
+            console.log('Number of requests:', requests.length);
+            console.log('Requests data:', requests);
             createFinanceOfficerRequestsModal(requests);
         } else {
+            console.error('API response failed:', response);
             throw new Error(response.message || 'Failed to load change requests');
         }
     } catch (error) {
+        console.error('Error in showFinanceOfficerRequests:', error);
         showErrorMessage('Failed to load change requests. Please try again.');
     } finally {
         hideLoadingState();
