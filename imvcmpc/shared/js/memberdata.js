@@ -931,12 +931,54 @@ async function requestChanges() {
             throw new Error('Only Marketing Clerks can request changes');
         }
         
-        // Determine the correct transaction table based on branch
-        const branchName = localStorage.getItem('user_branch_name');
-        let transactionTable = 'ibaan_transactions'; // Default
+        // Determine the correct transaction table based on branch ID
+        let transactionTable = 'ibaan_transactions'; // Default for main branch (ID: 1)
         
-        if (branchName && branchName.toLowerCase().includes('tanauan')) {
-            transactionTable = 'tanauan_transactions';
+        // Map branch IDs to their corresponding transaction tables
+        const branchId = parseInt(userBranchId);
+        switch (branchId) {
+            case 1: // Main Branch
+                transactionTable = 'ibaan_transactions';
+                break;
+            case 2: // Bauan
+                transactionTable = 'bauan_transactions';
+                break;
+            case 3: // San Jose
+                transactionTable = 'sanjose_transactions';
+                break;
+            case 4: // Rosario
+                transactionTable = 'rosario_transactions';
+                break;
+            case 5: // San Juan
+                transactionTable = 'sanjuan_transactions';
+                break;
+            case 6: // Padre Garcia
+                transactionTable = 'padregarcia_transactions';
+                break;
+            case 7: // Lipa City
+                transactionTable = 'lipacity_transactions';
+                break;
+            case 8: // Batangas City
+                transactionTable = 'batangascity_transactions';
+                break;
+            case 9: // Mabini Lipa
+                transactionTable = 'mabinilipa_transactions';
+                break;
+            case 10: // Calamias
+                transactionTable = 'calamias_transactions';
+                break;
+            case 11: // Lemery
+                transactionTable = 'lemery_transactions';
+                break;
+            case 12: // Mataas Na Kahoy
+                transactionTable = 'mataasnakahoy_transactions';
+                break;
+            case 13: // Tanauan
+                transactionTable = 'tanauan_transactions';
+                break;
+            default:
+                transactionTable = 'ibaan_transactions'; // Fallback to main branch
+                break;
         }
         
         // Create change request
@@ -948,6 +990,13 @@ async function requestChanges() {
             reason: 'Transaction modification requested by marketing clerk',
             request_type: 'modification'
         };
+        
+        console.log('Creating change request with data:', {
+            transaction_id: changeRequestData.transaction_id,
+            transaction_table: changeRequestData.transaction_table,
+            branch_id: userBranchId,
+            branch_name: localStorage.getItem('user_branch_name')
+        });
         
         // Send change request to finance officer
         const response = await apiRequest('/change-requests', {
@@ -3012,11 +3061,14 @@ function createFinanceOfficerRequestItem(request) {
 // Approve change request
 async function approveChangeRequest(requestId) {
     try {
+        console.log('Approving change request:', requestId);
         showLoadingState();
         
         const response = await apiRequest(`/change-requests/${requestId}/process`, {
             method: 'POST'
         });
+        
+        console.log('Approval response:', response);
         
         if (response.success) {
             closeFinanceOfficerRequestsModal();
@@ -3026,6 +3078,7 @@ async function approveChangeRequest(requestId) {
             throw new Error(response.message || 'Failed to approve change request');
         }
     } catch (error) {
+        console.error('Error approving change request:', error);
         showErrorMessage('Failed to approve change request. Please try again.');
     } finally {
         hideLoadingState();

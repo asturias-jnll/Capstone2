@@ -289,10 +289,18 @@ class ChangeRequestService {
         try {
             const { transaction_id, transaction_table, requested_changes } = request;
             
+            console.log('Applying transaction changes:', {
+                transaction_id,
+                transaction_table,
+                requested_changes
+            });
+            
             // Parse the requested changes
             const changes = typeof requested_changes === 'string' 
                 ? JSON.parse(requested_changes) 
                 : requested_changes;
+
+            console.log('Parsed changes:', changes);
 
             // Build the update query dynamically
             const updateFields = [];
@@ -321,13 +329,24 @@ class ChangeRequestService {
                 WHERE id = $${paramCount}
             `;
 
+            console.log('Executing update query:', query);
+            console.log('Query values:', values);
+
             const result = await client.query(query, values);
             
+            console.log('Update result:', {
+                rowCount: result.rowCount,
+                rows: result.rows
+            });
+            
             if (result.rowCount === 0) {
-                throw new Error('Transaction not found or could not be updated');
+                throw new Error(`Transaction not found in table ${transaction_table} or could not be updated`);
             }
 
             return result.rows[0];
+        } catch (error) {
+            console.error('Error applying transaction changes:', error);
+            throw error;
         } finally {
             client.release();
         }
