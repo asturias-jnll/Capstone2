@@ -391,7 +391,7 @@ function createTransactionModal() {
     modal.id = 'transactionModal';
     modal.className = 'modal';
     
-    // Check user role to determine if edit button should be shown
+    // Check user role to determine if edit and delete buttons should be shown
     const userRole = localStorage.getItem('user_role');
     const isFinanceOfficer = userRole === 'Finance Officer';
     
@@ -400,6 +400,13 @@ function createTransactionModal() {
                 <button class="btn btn-warning" onclick="editTransaction()">
                     <i class="fas fa-edit"></i>
                     Edit
+                </button>`;
+    
+    // Create delete button HTML conditionally
+    const deleteButtonHtml = isFinanceOfficer ? '' : `
+                <button class="btn btn-danger" onclick="deleteTransaction()">
+                    <i class="fas fa-trash"></i>
+                    Delete
                 </button>`;
     
     modal.innerHTML = `
@@ -493,10 +500,7 @@ function createTransactionModal() {
                     Close
                 </button>
                 ${editButtonHtml}
-                <button class="btn btn-danger" onclick="deleteTransaction()">
-                    <i class="fas fa-trash"></i>
-                    Delete
-                </button>
+                ${deleteButtonHtml}
             </div>
         </div>
     `;
