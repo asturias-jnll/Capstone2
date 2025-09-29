@@ -701,6 +701,12 @@ function createTransactionModal() {
 
 // Populate transaction modal with data
 function populateTransactionModal(transaction) {
+    // Reset modal to normal view first
+    const modal = document.getElementById('transactionModal');
+    if (modal) {
+        modal.classList.remove('edit-mode');
+    }
+    
     document.getElementById('modalDate').textContent = formatDate(transaction.transaction_date || transaction.date);
     document.getElementById('modalPayee').textContent = transaction.payee;
     document.getElementById('modalReference').textContent = transaction.reference || '';
@@ -718,6 +724,9 @@ function populateTransactionModal(transaction) {
     document.getElementById('modalServiceCharge').textContent = formatAmount(transaction.service_charge || transaction.serviceCharge);
     document.getElementById('modalSundries').textContent = formatAmount(transaction.sundries);
     
+    // Reset modal footer to normal view
+    resetModalFooterToNormal();
+    
     // Store current transaction for edit/delete operations
     window.currentTransaction = transaction;
 }
@@ -728,6 +737,11 @@ function closeTransactionModal() {
     if (modal) {
         modal.style.display = 'none';
         modal.classList.remove('edit-mode');
+        
+        // Reset modal footer to normal view
+        resetModalFooterToNormal();
+        
+        // Clear current transaction
         window.currentTransaction = null;
     }
 }
@@ -860,6 +874,40 @@ function updateModalFooterForEdit() {
     }
 }
 
+// Reset modal footer to normal view
+function resetModalFooterToNormal() {
+    const modalFooter = document.getElementById('modalFooter');
+    if (modalFooter) {
+        const userRole = localStorage.getItem('user_role');
+        let editButtonHtml = '';
+        let deleteButtonHtml = '';
+        
+        // Only show edit and delete buttons for Marketing Clerks
+        if (userRole === 'Marketing Clerk') {
+            editButtonHtml = `
+                <button class="btn btn-primary" onclick="startEditMode()">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                </button>`;
+            
+            deleteButtonHtml = `
+                <button class="btn btn-danger" onclick="deleteTransaction()">
+                    <i class="fas fa-trash"></i>
+                    Delete
+                </button>`;
+        }
+        
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" onclick="closeTransactionModal()">
+                <i class="fas fa-times"></i>
+                Close
+            </button>
+            ${editButtonHtml}
+            ${deleteButtonHtml}
+        `;
+    }
+}
+
 // Cancel edit mode
 function cancelEdit() {
     // Remove edit mode class from modal
@@ -908,6 +956,20 @@ async function requestChanges() {
     const requestBtn = document.getElementById('requestChangesBtn');
     if (requestBtn && requestBtn.disabled) {
         return; // Do nothing if button is disabled
+    }
+    
+    // Check if there's already a pending change request for this transaction
+    try {
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const response = await apiRequest(`/change-requests?branch_id=${userBranchId}&transaction_id=${window.currentTransaction.id}&status=pending`);
+        
+        if (response.success && response.data && response.data.length > 0) {
+            showError('A pending change request already exists for this transaction. Please wait for it to be processed.');
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking for existing change requests:', error);
+        // Continue with the request even if check fails
     }
     
     try {
