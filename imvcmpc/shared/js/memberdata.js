@@ -2284,6 +2284,75 @@ function createPendingRequestsModal(requests) {
             color: var(--gray-600);
             font-style: italic;
         }
+        
+        .change-details {
+            margin: 12px 0;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border-left: 3px solid var(--orange);
+        }
+        
+        .changes-section {
+            margin-bottom: 8px;
+        }
+        
+        .changes-title {
+            font-weight: 600;
+            color: var(--dark-green);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .change-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .change-field {
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+        
+        .change-values {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        
+        .change-from {
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        
+        .change-arrow {
+            color: var(--orange);
+            font-weight: bold;
+        }
+        
+        .change-to {
+            color: #059669;
+            background: #f0fdf4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        
+        .no-changes {
+            text-align: center;
+            color: var(--gray-500);
+            font-style: italic;
+            padding: 8px;
+        }
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
@@ -2297,6 +2366,17 @@ function createRequestItem(request) {
     
     // Get status badge
     const statusBadge = getStatusBadge(request.status);
+    
+    // Parse the original data and requested changes
+    const originalData = typeof request.original_data === 'string' 
+        ? JSON.parse(request.original_data) 
+        : request.original_data;
+    const requestedChanges = typeof request.requested_changes === 'string' 
+        ? JSON.parse(request.requested_changes) 
+        : request.requested_changes;
+    
+    // Create change details showing only the fields that are being changed
+    const changeDetails = createChangeDetails(originalData, requestedChanges);
     
     // For marketing clerks, show status and any notes
     let statusInfo = '';
@@ -2318,10 +2398,88 @@ function createRequestItem(request) {
             <div class="request-details">
                 <strong>Transaction:</strong> ${transactionPayee}
             </div>
+            <div class="change-details">
+                ${changeDetails}
+            </div>
             <div class="request-reason">
-                ${request.reason || 'No reason provided'}
+                <strong>Reason:</strong> ${request.reason || 'No reason provided'}
             </div>
             ${statusInfo}
+        </div>
+    `;
+}
+
+// Create change details HTML showing only changed fields
+function createChangeDetails(originalData, requestedChanges) {
+    const fieldLabels = {
+        'payee': 'Payee',
+        'reference': 'Reference',
+        'cross_reference': 'Cross Reference',
+        'check_number': 'Check Number',
+        'cash_in_bank': 'Cash in Bank',
+        'loan_receivables': 'Loan Receivables',
+        'savings_deposits': 'Savings Deposits',
+        'interest_income': 'Interest Income',
+        'service_charge': 'Service Charge',
+        'sundries': 'Sundries',
+        'particulars': 'Particulars',
+        'debit': 'Debit',
+        'credit': 'Credit',
+        'transaction_date': 'Transaction Date'
+    };
+    
+    const changes = [];
+    
+    // Only show fields that have actual changes
+    Object.keys(requestedChanges).forEach(field => {
+        if (requestedChanges[field] !== undefined && requestedChanges[field] !== null) {
+            const originalValue = originalData[field];
+            const newValue = requestedChanges[field];
+            
+            // Convert both values to numbers for comparison if they are numeric
+            const originalNum = parseFloat(originalValue);
+            const newNum = parseFloat(newValue);
+            const isNumeric = !isNaN(originalNum) && !isNaN(newNum);
+            
+            // Only show if the value is actually different
+            // For numeric values, compare the parsed numbers
+            // For non-numeric values, do string comparison
+            const hasChanged = isNumeric ? 
+                (originalNum !== newNum) : 
+                (originalValue !== newValue);
+            
+            if (hasChanged) {
+                const fieldLabel = fieldLabels[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const formatValue = (value) => {
+                    if (value === null || value === undefined) return 'N/A';
+                    if (typeof value === 'number') {
+                        return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    }
+                    return value.toString();
+                };
+                
+                changes.push(`
+                    <div class="change-item">
+                        <div class="change-field">${fieldLabel}</div>
+                        <div class="change-values">
+                            <span class="change-from">From: ${formatValue(originalValue)}</span>
+                            <span class="change-arrow">→</span>
+                            <span class="change-to">To: ${formatValue(newValue)}</span>
+                        </div>
+                    </div>
+                `);
+            }
+        }
+    });
+    
+    if (changes.length === 0) {
+        return '<div class="no-changes">No specific changes detected</div>';
+    }
+    
+    return `
+        <div class="changes-section">
+            <div class="changes-title">Requested Changes:</div>
+            ${changes.join('')}
         </div>
     `;
 }
@@ -2927,6 +3085,85 @@ function createFinanceOfficerRequestsModal(requests) {
             margin-bottom: 12px;
         }
         
+        .change-details {
+            margin: 12px 0;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border-left: 3px solid var(--orange);
+        }
+        
+        .changes-section {
+            margin-bottom: 8px;
+        }
+        
+        .changes-title {
+            font-weight: 600;
+            color: var(--dark-green);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .change-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .change-field {
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+        
+        .change-values {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        
+        .change-from {
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        
+        .change-arrow {
+            color: var(--orange);
+            font-weight: bold;
+        }
+        
+        .change-to {
+            color: #059669;
+            background: #f0fdf4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        
+        .no-changes {
+            text-align: center;
+            color: var(--gray-500);
+            font-style: italic;
+            padding: 8px;
+        }
+        
+        .requested-by-info {
+            font-size: 13px;
+            color: var(--gray-600);
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: var(--gray-50);
+            border-radius: 4px;
+            border-left: 3px solid var(--gray-400);
+        }
+        
         .request-actions {
             display: flex;
             gap: 8px;
@@ -3015,14 +3252,16 @@ function createFinanceOfficerRequestItem(request) {
         requestSubject = `Change Request: ${transactionPayee}`;
     }
     
-    // Get the main change details from requested_changes
-    let changeDetails = '';
-    if (request.requested_changes) {
-        const changes = Object.keys(request.requested_changes);
-        if (changes.length > 0) {
-            changeDetails = `Changes: ${changes.join(', ')}`;
-        }
-    }
+    // Parse the original data and requested changes for detailed display
+    const originalData = typeof request.original_data === 'string' 
+        ? JSON.parse(request.original_data) 
+        : request.original_data;
+    const requestedChanges = typeof request.requested_changes === 'string' 
+        ? JSON.parse(request.requested_changes) 
+        : request.requested_changes;
+    
+    // Create detailed change display showing only fields with actual changes
+    const changeDetails = createChangeDetails(originalData, requestedChanges);
     
     console.log('Generated subject:', requestSubject);
     console.log('Change details:', changeDetails);
@@ -3037,9 +3276,13 @@ function createFinanceOfficerRequestItem(request) {
                 <strong>${requestSubject}</strong>
             </div>
             <div class="request-details">
-                <strong>Requested by:</strong> ${requestedBy}<br>
-                ${changeDetails ? `<strong>${changeDetails}</strong><br>` : ''}
                 <strong>Transaction:</strong> ${transactionPayee}
+            </div>
+            <div class="change-details">
+                ${changeDetails}
+            </div>
+            <div class="requested-by-info">
+                <strong>Requested by:</strong> ${requestedBy}
             </div>
             <div class="request-reason">
                 <strong>Reason:</strong> ${request.reason || 'No reason provided'}
