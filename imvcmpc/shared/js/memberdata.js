@@ -917,7 +917,18 @@ async function requestChanges() {
         const editedData = collectEditedValues();
         const originalData = {
             payee: window.currentTransaction.payee,
-            amount: window.currentTransaction.amount,
+            reference: window.currentTransaction.reference || '',
+            cross_reference: window.currentTransaction.cross_reference || '',
+            check_number: window.currentTransaction.check_number || '',
+            particulars: window.currentTransaction.particulars || '',
+            debit_amount: window.currentTransaction.debit_amount || 0,
+            credit_amount: window.currentTransaction.credit_amount || 0,
+            cash_in_bank: window.currentTransaction.cash_in_bank || 0,
+            loan_receivables: window.currentTransaction.loan_receivables || 0,
+            savings_deposits: window.currentTransaction.savings_deposits || 0,
+            interest_income: window.currentTransaction.interest_income || 0,
+            service_charge: window.currentTransaction.service_charge || 0,
+            sundries: window.currentTransaction.sundries || 0,
             transaction_date: window.currentTransaction.transaction_date,
             transaction_type: window.currentTransaction.transaction_type,
             description: window.currentTransaction.description
@@ -2370,10 +2381,10 @@ function createRequestItem(request) {
     // Parse the original data and requested changes
     const originalData = typeof request.original_data === 'string' 
         ? JSON.parse(request.original_data) 
-        : request.original_data;
+        : request.original_data || {};
     const requestedChanges = typeof request.requested_changes === 'string' 
         ? JSON.parse(request.requested_changes) 
-        : request.requested_changes;
+        : request.requested_changes || {};
     
     // Create change details showing only the fields that are being changed
     const changeDetails = createChangeDetails(originalData, requestedChanges);
@@ -2423,8 +2434,10 @@ function createChangeDetails(originalData, requestedChanges) {
         'service_charge': 'Service Charge',
         'sundries': 'Sundries',
         'particulars': 'Particulars',
-        'debit': 'Debit',
-        'credit': 'Credit',
+        'debit': 'Debit Amount',
+        'credit': 'Credit Amount',
+        'debit_amount': 'Debit Amount',
+        'credit_amount': 'Credit Amount',
         'transaction_date': 'Transaction Date'
     };
     
@@ -2451,7 +2464,39 @@ function createChangeDetails(originalData, requestedChanges) {
             if (hasChanged) {
                 const fieldLabel = fieldLabels[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                 const formatValue = (value) => {
-                    if (value === null || value === undefined) return 'N/A';
+                    if (value === null || value === undefined || value === '') return 'N/A';
+                    if (typeof value === 'number') {
+                        return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    }
+                    return value.toString();
+                };
+                
+                // Handle the case where original data might not exist (new transactions)
+                const displayOriginalValue = (originalValue === null || originalValue === undefined || originalValue === '') 
+                    ? 'N/A' 
+                    : formatValue(originalValue);
+                
+                changes.push(`
+                    <div class="change-item">
+                        <div class="change-field">${fieldLabel}</div>
+                        <div class="change-values">
+                            <span class="change-from">From: ${displayOriginalValue}</span>
+                            <span class="change-arrow">→</span>
+                            <span class="change-to">To: ${formatValue(newValue)}</span>
+                        </div>
+                    </div>
+                `);
+            }
+        }
+    });
+    
+    // If no changes detected but we have requested changes, show them as new values
+    if (changes.length === 0 && Object.keys(requestedChanges).length > 0) {
+        Object.keys(requestedChanges).forEach(field => {
+            if (requestedChanges[field] !== undefined && requestedChanges[field] !== null) {
+                const fieldLabel = fieldLabels[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const formatValue = (value) => {
+                    if (value === null || value === undefined || value === '') return 'N/A';
                     if (typeof value === 'number') {
                         return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
@@ -2462,15 +2507,15 @@ function createChangeDetails(originalData, requestedChanges) {
                     <div class="change-item">
                         <div class="change-field">${fieldLabel}</div>
                         <div class="change-values">
-                            <span class="change-from">From: ${formatValue(originalValue)}</span>
+                            <span class="change-from">From: N/A</span>
                             <span class="change-arrow">→</span>
-                            <span class="change-to">To: ${formatValue(newValue)}</span>
+                            <span class="change-to">To: ${formatValue(requestedChanges[field])}</span>
                         </div>
                     </div>
                 `);
             }
-        }
-    });
+        });
+    }
     
     if (changes.length === 0) {
         return '<div class="no-changes">No specific changes detected</div>';
