@@ -929,6 +929,7 @@ async function requestChanges() {
             interest_income: window.currentTransaction.interest_income || 0,
             service_charge: window.currentTransaction.service_charge || 0,
             sundries: window.currentTransaction.sundries || 0,
+            branch_id: window.currentTransaction.branch_id || parseInt(userBranchId),
             transaction_date: window.currentTransaction.transaction_date,
             transaction_type: window.currentTransaction.transaction_type,
             description: window.currentTransaction.description
@@ -2438,6 +2439,7 @@ function createChangeDetails(originalData, requestedChanges) {
         'credit': 'Credit Amount',
         'debit_amount': 'Debit Amount',
         'credit_amount': 'Credit Amount',
+        'branch_id': 'Branch Id',
         'transaction_date': 'Transaction Date'
     };
     
