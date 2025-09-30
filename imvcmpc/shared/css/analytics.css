@@ -1201,8 +1201,47 @@
 }
 
 @media (max-width: 768px) {
+    /* Ensure navigation stays fixed */
+    .navigation {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 1001 !important;
+        width: 60px !important;
+    }
+    
+    /* Top bar uses main.css styles - no override needed */
+    
+    /* Ensure main content doesn't interfere */
+    .main-content {
+        margin-left: 60px !important;
+        width: calc(100vw - 60px) !important;
+        max-width: calc(100vw - 60px) !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Analytics content positioning */
     .analytics-content {
-        padding: 100px 16px 20px;
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 100px 8px 20px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Ensure all content fits properly */
+    .summary-cards,
+    .summary-card,
+    .charts-grid,
+    .chart-container,
+    .tables-grid,
+    .table-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
     }
     
     .title-section {
@@ -1241,16 +1280,21 @@
     }
     
     .custom-type-selector {
-        flex-direction: column;
-        gap: 0.4rem;
+        flex-direction: row;
+        gap: 0.3rem;
+        flex-wrap: nowrap;
+        justify-content: center;
     }
     
     .custom-type-btn {
-        width: 100%;
-        max-width: 150px;
-        margin: 0 auto;
-        padding: 0.4rem 0.8rem;
-        font-size: 0.75rem;
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+        text-align: center;
+        white-space: nowrap;
     }
     
     .date-inputs {
@@ -1263,6 +1307,90 @@
         min-width: auto;
         width: 100%;
         max-width: 200px;
+        text-align: left;
+    }
+    
+    /* Week picker container - center everything */
+    .week-picker {
+        text-align: center !important;
+        display: none !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+    
+    /* Show week picker only when week filter is selected */
+    .week-picker[style*="display: flex"] {
+        display: flex !important;
+    }
+    
+    .week-picker .input-group {
+        text-align: center !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+    
+    .week-picker input#weekDate {
+        text-align: center !important;
+        margin: 0 auto !important;
+        display: block !important;
+        width: 200px !important;
+        max-width: 200px !important;
+        position: relative !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+    }
+    
+    .week-picker #weekDateHint {
+        text-align: center !important;
+        margin: 0 auto !important;
+        display: block !important;
+    }
+    
+    .input-group label {
+        font-size: 0.7rem;
+        text-align: left;
+    }
+    
+    .date-input {
+        font-size: 0.7rem;
+        text-align: left;
+    }
+    
+    .date-hint {
+        font-size: 0.6rem;
+        text-align: left;
+    }
+    
+    .week-preview {
+        text-align: center !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .week-preview-header {
+        font-size: 0.7rem;
+        text-align: center !important;
+        margin: 0 auto !important;
+    }
+    
+    .week-dates {
+        display: grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        gap: 0.2rem !important;
+        text-align: center !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .week-date-item {
+        font-size: 0.6rem;
+        padding: 0.3rem 0.2rem;
+        text-align: center !important;
     }
     
     .month-year-selector,
@@ -1286,34 +1414,44 @@
     }
     
     .summary-cards {
-        grid-template-columns: 1fr;
-        gap: 0.8rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
     }
     
     .summary-card {
-        padding: 1rem;
-        flex-direction: row;
+        padding: 0.6rem;
+        flex-direction: column;
         align-items: center;
+        text-align: center;
+        gap: 0.4rem;
+        justify-content: center;
     }
     
     .card-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
     }
     
     .card-content h3 {
-        font-size: 0.75rem;
+        font-size: 0.6rem;
     }
     
     .card-value {
-        font-size: 1rem;
+        font-size: 0.85rem;
     }
     
     .card-change {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
         gap: 0.2rem;
+    }
+    
+    .change-indicator,
+    .change-text {
+        display: inline;
+        white-space: nowrap;
     }
     
     .change-indicator,
@@ -1339,9 +1477,21 @@
     }
     
     .chart-btn {
-        width: 24px;
-        height: 24px;
-        font-size: 0.7rem;
+        width: 22px;
+        height: 22px;
+        font-size: 0.65rem;
+    }
+    
+    .branches-performance-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 0.65rem;
+    }
+    
+    .table-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 0.65rem;
     }
     
     .tables-grid {
@@ -1358,16 +1508,87 @@
     }
     
     .data-table {
-        font-size: 0.8rem;
+        font-size: 0.7rem !important;
     }
     
     .data-table th,
     .data-table td {
-        padding: 0.6rem 0.4rem;
+        padding: 0.5rem 0.3rem !important;
+        white-space: nowrap;
+    }
+    
+    /* Chart responsive styles */
+    .chart-header h3 {
+        font-size: 0.8rem !important;
+    }
+    
+    .chart-content {
+        height: 200px !important;
+    }
+    
+    /* Table headers responsive */
+    .table-header h3 {
+        font-size: 0.8rem !important;
+    }
+    
+    /* Branches performance responsive */
+    .branches-performance-header h3 {
+        font-size: 0.8rem !important;
     }
     
     .branches-performance-container {
         padding: 1rem;
+    }
+    
+    /* Branch cards responsive styles */
+    .branch-card {
+        padding: 0.6rem !important;
+    }
+    
+    .branch-name {
+        font-size: 0.7rem !important;
+    }
+    
+    .branch-location {
+        font-size: 0.6rem !important;
+    }
+    
+    .branch-metric-label {
+        font-size: 0.4rem !important;
+    }
+    
+    .branch-metric-value {
+        font-size: 0.55rem !important;
+    }
+    
+    .branch-net-label {
+        font-size: 0.45rem !important;
+    }
+    
+    .branch-net-value {
+        font-size: 0.7rem !important;
+    }
+    
+    .branch-stat-label {
+        font-size: 0.5rem !important;
+    }
+    
+    .branch-stat-value {
+        font-size: 0.65rem !important;
+    }
+    
+    /* Fix text cutoff issues */
+    .branch-metric-label {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        min-height: 2.4rem !important;
+    }
+    
+    .branch-metric {
+        min-width: 0 !important;
+        flex: 1 !important;
     }
     
     .branches-grid {
@@ -1401,21 +1622,58 @@
     }
     
     .no-data-message i {
-        font-size: 2rem;
+        font-size: 1.5rem !important;
     }
     
     .no-data-message p {
-        font-size: 0.9rem;
+        font-size: 0.7rem !important;
     }
     
     .no-data-message small {
-        font-size: 0.7rem;
+        font-size: 0.6rem !important;
     }
 }
 
 @media (max-width: 480px) {
+    /* Navigation stays fixed on mobile */
+    .navigation {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 1001 !important;
+        width: 60px !important;
+    }
+    
+    /* Main content positioning */
+    .main-content {
+        margin-left: 60px !important;
+        width: calc(100vw - 60px) !important;
+        max-width: calc(100vw - 60px) !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Analytics content */
     .analytics-content {
-        padding: 90px 12px 20px;
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 90px 4px 20px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Ensure all content fits properly */
+    .summary-cards,
+    .summary-card,
+    .charts-grid,
+    .chart-container,
+    .tables-grid,
+    .table-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
     }
     
     .page-title {
@@ -1437,40 +1695,92 @@
         font-size: 0.65rem;
     }
     
+    .custom-type-selector {
+        flex-direction: row;
+        gap: 0.2rem;
+        flex-wrap: nowrap;
+        justify-content: center;
+    }
+    
     .custom-type-btn {
-        max-width: 120px;
-        padding: 0.3rem 0.6rem;
-        font-size: 0.7rem;
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+        padding: 0.3rem 0.4rem;
+        font-size: 0.65rem;
+        text-align: center;
+        white-space: nowrap;
     }
     
     .input-group {
         max-width: 150px;
+        text-align: left;
+    }
+    
+    .input-group label {
+        font-size: 0.65rem;
+        text-align: left;
     }
     
     .date-input {
         padding: 0.5rem;
-        font-size: 0.8rem;
+        font-size: 0.65rem;
+        text-align: left;
+    }
+    
+    .date-hint {
+        font-size: 0.55rem;
+        text-align: left;
+    }
+    
+    /* Week picker mobile responsive */
+    .week-picker input#weekDate {
+        width: 180px !important;
+        max-width: 180px !important;
+    }
+    
+    .week-preview {
+        text-align: center;
+    }
+    
+    .week-preview-header {
+        font-size: 0.65rem;
+        text-align: center;
+    }
+    
+    .week-dates {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.15rem;
+        text-align: center;
+    }
+    
+    .week-date-item {
+        font-size: 0.55rem;
+        padding: 0.25rem 0.15rem;
+        text-align: center;
     }
     
     .summary-card {
         flex-direction: column;
         text-align: center;
-        gap: 0.6rem;
-        padding: 0.8rem;
+        gap: 0.4rem;
+        padding: 0.5rem;
     }
     
     .card-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 14px;
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
     }
     
     .card-content h3 {
-        font-size: 0.7rem;
+        font-size: 0.55rem;
     }
     
     .card-value {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
     }
     
     .chart-content {
@@ -1482,23 +1792,106 @@
     }
     
     .chart-btn {
-        width: 20px;
-        height: 20px;
-        font-size: 0.6rem;
+        width: 22px;
+        height: 22px;
+        font-size: 0.65rem;
+    }
+    
+    .branches-performance-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 0.65rem;
+    }
+    
+    .table-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 0.65rem;
     }
     
     .data-table {
-        font-size: 0.7rem;
+        font-size: 0.6rem !important;
     }
     
     .data-table th,
     .data-table td {
-        padding: 0.5rem 0.3rem;
+        padding: 0.4rem 0.2rem !important;
+        white-space: nowrap;
+    }
+    
+    /* Chart responsive styles */
+    .chart-header h3 {
+        font-size: 0.7rem !important;
+    }
+    
+    .chart-content {
+        height: 180px !important;
+    }
+    
+    /* Table headers responsive */
+    .table-header h3 {
+        font-size: 0.7rem !important;
+    }
+    
+    /* Branches performance responsive */
+    .branches-performance-header h3 {
+        font-size: 0.7rem !important;
     }
     
     .branches-grid {
         grid-template-columns: 1fr;
         gap: 0.5rem;
+    }
+    
+    /* Branch cards responsive styles */
+    .branch-card {
+        padding: 0.5rem !important;
+    }
+    
+    .branch-name {
+        font-size: 0.65rem !important;
+    }
+    
+    .branch-location {
+        font-size: 0.55rem !important;
+    }
+    
+    .branch-metric-label {
+        font-size: 0.35rem !important;
+    }
+    
+    .branch-metric-value {
+        font-size: 0.5rem !important;
+    }
+    
+    .branch-net-label {
+        font-size: 0.4rem !important;
+    }
+    
+    .branch-net-value {
+        font-size: 0.65rem !important;
+    }
+    
+    .branch-stat-label {
+        font-size: 0.45rem !important;
+    }
+    
+    .branch-stat-value {
+        font-size: 0.6rem !important;
+    }
+    
+    /* Fix text cutoff issues */
+    .branch-metric-label {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        min-height: 2.2rem !important;
+    }
+    
+    .branch-metric {
+        min-width: 0 !important;
+        flex: 1 !important;
     }
     
     .branch-card {
@@ -1527,43 +1920,239 @@
     }
     
     .no-data-message i {
-        font-size: 1.8rem;
+        font-size: 1.3rem !important;
     }
     
     .no-data-message p {
-        font-size: 0.8rem;
+        font-size: 0.65rem !important;
     }
     
     .no-data-message small {
-        font-size: 0.65rem;
+        font-size: 0.55rem !important;
     }
 }
 
 @media (max-width: 360px) {
+    /* Navigation stays fixed on small mobile */
+    .navigation {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 1001 !important;
+        width: 60px !important;
+    }
+    
+    /* Main content positioning */
+    .main-content {
+        margin-left: 60px !important;
+        width: calc(100vw - 60px) !important;
+        max-width: calc(100vw - 60px) !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Analytics content */
     .analytics-content {
-        padding: 80px 8px 20px;
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 80px 4px 20px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Ensure all content fits properly */
+    .summary-cards,
+    .summary-card,
+    .charts-grid,
+    .chart-container,
+    .tables-grid,
+    .table-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
     }
     
     .summary-card {
-        padding: 0.6rem;
+        padding: 0.5rem;
     }
     
     .card-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 12px;
+        width: 20px;
+        height: 20px;
+        font-size: 8px;
     }
     
     .card-content h3 {
-        font-size: 0.65rem;
+        font-size: 0.5rem;
     }
     
     .card-value {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Table responsive styles */
+    .data-table {
+        font-size: 0.55rem !important;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 0.3rem 0.1rem !important;
+        white-space: nowrap;
+    }
+    
+    /* Chart responsive styles */
+    .chart-header h3 {
+        font-size: 0.6rem !important;
+    }
+    
+    .chart-content {
+        height: 160px !important;
+    }
+    
+    /* Table headers responsive */
+    .table-header h3 {
+        font-size: 0.6rem !important;
+    }
+    
+    /* Branches performance responsive */
+    .branches-performance-header h3 {
+        font-size: 0.6rem !important;
     }
     
     .chart-content {
         height: 160px;
+    }
+    
+    .no-data-message i {
+        font-size: 1.1rem !important;
+    }
+    
+    .no-data-message p {
+        font-size: 0.6rem !important;
+    }
+    
+    .no-data-message small {
+        font-size: 0.5rem !important;
+    }
+    
+    /* Branch cards responsive styles */
+    .branch-card {
+        padding: 0.4rem !important;
+    }
+    
+    .branch-name {
+        font-size: 0.6rem !important;
+    }
+    
+    .branch-location {
+        font-size: 0.5rem !important;
+    }
+    
+    .branch-metric-label {
+        font-size: 0.35rem !important;
+    }
+    
+    .branch-metric-value {
+        font-size: 0.5rem !important;
+    }
+    
+    .branch-net-label {
+        font-size: 0.35rem !important;
+    }
+    
+    .branch-net-value {
+        font-size: 0.6rem !important;
+    }
+    
+    .branch-stat-label {
+        font-size: 0.4rem !important;
+    }
+    
+    .branch-stat-value {
+        font-size: 0.55rem !important;
+    }
+    
+    /* Fix text cutoff issues */
+    .branch-metric-label {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        min-height: 2rem !important;
+    }
+    
+    .branch-metric {
+        min-width: 0 !important;
+        flex: 1 !important;
+    }
+    
+    /* Custom filter buttons mobile responsive */
+    .custom-type-selector {
+        flex-direction: row;
+        gap: 0.15rem;
+        flex-wrap: nowrap;
+        justify-content: center;
+    }
+    
+    .custom-type-btn {
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+        padding: 0.25rem 0.3rem;
+        font-size: 0.6rem;
+        text-align: center;
+        white-space: nowrap;
+    }
+    
+    .input-group {
+        text-align: left;
+    }
+    
+    .input-group label {
+        font-size: 0.6rem;
+        text-align: left;
+    }
+    
+    .date-input {
+        font-size: 0.6rem;
+        text-align: left;
+    }
+    
+    .date-hint {
+        font-size: 0.5rem;
+        text-align: left;
+    }
+    
+    /* Week picker mobile responsive */
+    .week-picker input#weekDate {
+        width: 160px !important;
+        max-width: 160px !important;
+    }
+    
+    .week-preview {
+        text-align: center;
+    }
+    
+    .week-preview-header {
+        font-size: 0.6rem;
+        text-align: center;
+    }
+    
+    .week-dates {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.1rem;
+        text-align: center;
+    }
+    
+    .week-date-item {
+        font-size: 0.5rem;
+        padding: 0.2rem 0.1rem;
+        text-align: center;
     }
     
     .chart-container,

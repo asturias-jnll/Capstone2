@@ -590,6 +590,14 @@ body {
         margin-bottom: 0.4rem;
     }
     
+    .insights-section .section-header h2 {
+        font-size: 1rem;
+    }
+    
+    .insights-section .section-header p {
+        font-size: 0.7rem;
+    }
+    
     .insight-content {
         min-height: 100px;
         width: 100%;
@@ -951,6 +959,14 @@ body {
         font-size: 0.6rem;
     }
     
+    .insights-section .section-header h2 {
+        font-size: 0.9rem;
+    }
+    
+    .insights-section .section-header p {
+        font-size: 0.65rem;
+    }
+    
     .insight-content {
         min-height: 80px;
         width: 100%;
@@ -1188,6 +1204,15 @@ body {
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
+    }
+    
+    /* Quick Insights section header responsiveness */
+    .insights-section .section-header h2 {
+        font-size: 0.85rem;
+    }
+    
+    .insights-section .section-header p {
+        font-size: 0.6rem;
     }
 }
 

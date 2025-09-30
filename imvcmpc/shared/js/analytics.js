@@ -26,7 +26,6 @@ function initializeAnalyticsContent() {
     // Check if Chart.js is available
     if (typeof Chart === 'undefined') {
         console.error('❌ Chart.js is not loaded! Please ensure Chart.js is included before this script.');
-        showNotification('Chart.js library not loaded. Please refresh the page.', 'error');
         return;
     }
     
@@ -741,7 +740,6 @@ async function loadAnalyticsData() {
                     hideBranchesPerformanceSection();
                 }
                 
-                showNotification('Real data loaded successfully', 'success');
             } else {
                 console.log('📊 No real data available, showing empty state');
                 // Show empty state when no real data
@@ -761,7 +759,6 @@ async function loadAnalyticsData() {
         console.error('❌ Error loading analytics data:', error);
         hideLoadingState();
         showEmptyState();
-        showNotification(`Error loading data: ${error.message}`, 'error');
     }
 }
 
@@ -2460,10 +2457,8 @@ function refreshChart(chartType) {
     // Refresh the specific chart data
     loadAnalyticsData().then(() => {
         hideChartLoading(mappedType);
-        showNotification(`${chartType} chart refreshed`, 'success');
     }).catch(error => {
         hideChartLoading(mappedType);
-        showNotification(`Failed to refresh ${chartType} chart`, 'error');
     });
 }
 
@@ -2485,10 +2480,8 @@ function refreshTable(tableType) {
     // Refresh the specific table data
     loadAnalyticsData().then(() => {
         hideTableLoading(mappedType);
-        showNotification(`${tableType} table refreshed`, 'success');
     }).catch(error => {
         hideTableLoading(mappedType);
-        showNotification(`Failed to refresh ${tableType} table`, 'error');
     });
 }
 
@@ -2502,10 +2495,8 @@ function refreshBranchesPerformance() {
     // Refresh the branches performance data
     loadAnalyticsData().then(() => {
         hideBranchesPerformanceLoading();
-        showNotification('Branches performance refreshed', 'success');
     }).catch(error => {
         hideBranchesPerformanceLoading();
-        showNotification('Failed to refresh branches performance', 'error');
     });
 }
 
@@ -2608,88 +2599,6 @@ function hideBranchesPerformanceLoading() {
     if (branchesContainer) {
         branchesContainer.classList.remove('loading');
     }
-}
-
-// Show notification
-function showNotification(message, type = 'info') {
-    // Remove any existing notifications to prevent stacking
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notification => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    });
-    
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <i class="fas fa-${getNotificationIcon(type)}"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    
-    // Add styles
-    notification.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: ${getNotificationColor(type)};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-height: 48px;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        max-width: 400px;
-        word-wrap: break-word;
-    `;
-    
-    // Add to page
-    document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-    
-    // Remove after delay
-    setTimeout(() => {
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 4000);
-}
-
-// Get notification icon
-function getNotificationIcon(type) {
-    const icons = {
-        success: 'check-circle',
-        error: 'exclamation-circle',
-        warning: 'exclamation-triangle',
-        info: 'info-circle'
-    };
-    return icons[type] || 'info-circle';
-}
-
-// Get notification color
-function getNotificationColor(type) {
-    const colors = {
-        success: '#22C55E', // Green for success
-        error: '#EF4444',   // Red for error
-        warning: '#F59E0B', // Orange for warning
-        info: '#3B82F6'     // Blue for info
-    };
-    return colors[type] || '#3B82F6';
 }
 
 // Utility function to format currency
