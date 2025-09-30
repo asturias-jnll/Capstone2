@@ -612,72 +612,20 @@ function showLogoutLoading() {
     // Create loading overlay
     const loadingOverlay = document.createElement('div');
     loadingOverlay.className = 'logout-loading-overlay';
-    loadingOverlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10001;
-    `;
 
     // Create loading content
     const loadingContent = document.createElement('div');
-    loadingContent.style.cssText = `
-        background: #E9EEF3;
-        border-radius: 24px;
-        padding: 24px;
-        text-align: center;
-        max-width: 400px;
-        width: 90%;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    `;
+    loadingContent.className = 'logout-loading-content';
 
     loadingContent.innerHTML = `
-        <div class="loading-spinner">
-            <img src="../../assets/logo.png" alt="IMVCMPC Logo" class="spinning-logo">
+        <div class="logout-loading-spinner">
+            <img src="../../assets/logo.png" alt="IMVCMPC Logo" class="logout-spinning-logo">
         </div>
-        <p id="logoutLoadingText">Logging out as IT Head...</p>
+        <p class="logout-loading-text">Logging out as IT Head...</p>
     `;
-
-    // Add CSS classes to match login spinner exactly
-    const spinStyle = document.createElement('style');
-    spinStyle.textContent = `
-        .loading-spinner {
-            margin-bottom: 18px;
-        }
-        
-        .spinning-logo {
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            object-fit: cover;
-            animation: spin 1s linear infinite;
-        }
-        
-        #logoutLoadingText {
-            color: #4B5563;
-            margin: 0;
-            margin-bottom: 18px;
-            font-weight: 500;
-            font-size: 18px;
-            text-align: center;
-            display: block;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    `;
-    document.head.appendChild(spinStyle);
     
     // Immediately update text with actual user role
-    const loadingText = document.getElementById('logoutLoadingText');
+    const loadingText = document.querySelector('.logout-loading-text');
     if (loadingText) {
         // Try multiple sources for user role
         let userRole = localStorage.getItem('user_role');

@@ -408,116 +408,21 @@ class SharedUtils {
         // Create modal overlay
         const modalOverlay = document.createElement('div');
         modalOverlay.className = 'logout-modal-overlay';
-        modalOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-        `;
 
         // Create modal content
         const modalContent = document.createElement('div');
-        modalContent.className = 'logout-modal';
-        modalContent.style.cssText = `
-            background: #E9EEF3;
-            border-radius: 24px;
-            padding: 24px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            animation: modalSlideIn 0.3s ease-out;
-        `;
+        modalContent.className = 'logout-modal-content';
 
         modalContent.innerHTML = `
-            <h2 style="
-                font-size: 18px;
-                font-weight: 600;
-                color: #0B5E1C;
-                margin-bottom: 8px;
-            ">Confirm Logout</h2>
-            <p style="
-                font-size: 14px;
-                color: #6B7280;
-                margin-bottom: 18px;
-                line-height: 1.4;
-            ">Are you sure you want to logout?</p>
-            <div style="
-                display: flex;
-                gap: 12px;
-                justify-content: center;
-            ">
-                <button id="cancelLogout" style="
-                    padding: 12px 24px;
-                    border: 1px solid #D1D5DB;
-                    border-radius: 10px;
-                    background: white;
-                    color: #4B5563;
-                    font-size: 14px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    min-width: 100px;
-                ">Cancel</button>
-                <button id="confirmLogout" style="
-                    padding: 12px 24px;
-                    border: none;
-                    border-radius: 10px;
-                    background: #187C19;
-                    color: white;
-                    font-size: 14px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    min-width: 100px;
-                ">Logout</button>
+            <h2 class="logout-modal-title">Confirm Logout</h2>
+            <p class="logout-modal-text">Are you sure you want to logout?</p>
+            <div class="logout-modal-buttons">
+                <button id="cancelLogout" class="logout-modal-cancel">Cancel</button>
+                <button id="confirmLogout" class="logout-modal-confirm">Logout</button>
             </div>
         `;
 
-        // Add CSS animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes modalSlideIn {
-                from {
-                    opacity: 0;
-                    transform: scale(0.9) translateY(-20px);
-                }
-                to {
-                    opacity: 1;
-                    transform: scale(1) translateY(0);
-                }
-            }
-            
-            @keyframes modalSlideOut {
-                from {
-                    opacity: 1;
-                    transform: scale(1) translateY(0);
-                }
-                to {
-                    opacity: 0;
-                    transform: scale(0.9) translateY(-20px);
-                }
-            }
-            
-            #cancelLogout:hover {
-                border-color: #9CA3AF;
-                background: #F9FAFB;
-                transform: translateY(-1px);
-            }
-            
-            #confirmLogout:hover {
-                background: #0B5E1C;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
-            }
-        `;
-        document.head.appendChild(style);
+        // CSS animations are now handled by the main CSS file
 
         // Add modal to page
         modalOverlay.appendChild(modalContent);
@@ -594,72 +499,20 @@ class SharedUtils {
         // Create loading overlay
         const loadingOverlay = document.createElement('div');
         loadingOverlay.className = 'logout-loading-overlay';
-        loadingOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10001;
-        `;
 
         // Create loading content
         const loadingContent = document.createElement('div');
-        loadingContent.style.cssText = `
-            background: #E9EEF3;
-            border-radius: 24px;
-            padding: 24px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        `;
+        loadingContent.className = 'logout-loading-content';
 
         const currentRole = this.getCurrentRole();
         const roleName = this.roleConfigs[currentRole].name;
 
         loadingContent.innerHTML = `
-            <div class="loading-spinner">
-                <img src="../../assets/logo.png" alt="IMVCMPC Logo" class="spinning-logo">
+            <div class="logout-loading-spinner">
+                <img src="../../assets/logo.png" alt="IMVCMPC Logo" class="logout-spinning-logo">
             </div>
-            <p id="logoutLoadingText">Logging out as ${roleName}...</p>
+            <p class="logout-loading-text">Logging out as ${roleName}...</p>
         `;
-
-        // Add CSS classes to match login spinner exactly
-        const spinStyle = document.createElement('style');
-        spinStyle.textContent = `
-            .loading-spinner {
-                margin-bottom: 18px;
-            }
-            
-            .spinning-logo {
-                width: 90px;
-                height: 90px;
-                border-radius: 50%;
-                object-fit: cover;
-                animation: spin 1s linear infinite;
-            }
-            
-            #logoutLoadingText {
-                color: #4B5563;
-                margin: 0;
-                margin-bottom: 18px;
-                font-weight: 500;
-                font-size: 18px;
-                text-align: center;
-                display: block;
-            }
-            
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-        `;
-        document.head.appendChild(spinStyle);
 
         loadingOverlay.appendChild(loadingContent);
         document.body.appendChild(loadingOverlay);
