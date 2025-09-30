@@ -119,6 +119,10 @@ function updateTopBar() {
         ? `IMVCMPC - Main Branch ${userBranchLocation}`
         : `IMVCMPC - Branch ${userBranchId} ${userBranchLocation}`;
     updateElement('userRole', headerText);
+    
+    // Update dropdown content for mobile
+    updateElement('dropdownUserName', userRole);
+    updateElement('dropdownUserRole', headerText);
 
     console.log('Top bar updated successfully!');
 }
@@ -159,11 +163,66 @@ function updateDateTime() {
     }
 }
 
+// Mobile dropdown toggle functionality
+function initializeMobileDropdown() {
+    const userAvatar = document.getElementById('userAvatar');
+    const userDropdown = document.getElementById('userDropdown');
+    
+    // Only initialize dropdown on mobile screens
+    function isMobileScreen() {
+        return window.innerWidth <= 768;
+    }
+    
+    console.log('Initializing mobile dropdown...');
+    console.log('User avatar found:', !!userAvatar);
+    console.log('User dropdown found:', !!userDropdown);
+    console.log('Is mobile screen:', isMobileScreen());
+    
+    if (userAvatar && userDropdown) {
+        userAvatar.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            // Only show dropdown on mobile screens
+            if (isMobileScreen()) {
+                console.log('Avatar clicked! Toggling dropdown...');
+                userDropdown.classList.toggle('show');
+                console.log('Dropdown classes:', userDropdown.className);
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userAvatar.contains(e.target) && !userDropdown.contains(e.target)) {
+                userDropdown.classList.remove('show');
+            }
+        });
+        
+        // Close dropdown on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                userDropdown.classList.remove('show');
+            }
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (!isMobileScreen()) {
+                userDropdown.classList.remove('show');
+            }
+        });
+    } else {
+        console.error('Could not find user avatar or dropdown elements');
+    }
+}
+
 // Initialize top bar when page loads
 function initializeTopBar() {
     console.log('Initializing top bar...');
     updateDateTime();
     setInterval(updateDateTime, 1000);
+    
+    // Initialize mobile dropdown
+    initializeMobileDropdown();
     
     // Update top bar immediately and after delays to ensure it works
     updateTopBar();

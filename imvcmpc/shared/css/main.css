@@ -339,6 +339,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    position: relative; /* Needed for dropdown positioning */
 }
 
 .user-info {
@@ -374,6 +375,77 @@ body {
     align-items: center;
     justify-content: center;
     color: var(--white);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.user-avatar:hover {
+    background: var(--green);
+    transform: scale(1.05);
+}
+
+/* Mobile dropdown styles - Hidden by default on desktop */
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    min-width: 200px;
+    margin-top: 16px;
+    display: none; /* Hidden by default on desktop */
+}
+
+/* Arrow pointing to avatar */
+.user-dropdown::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid var(--white);
+    z-index: 10001;
+    display: block;
+}
+
+.user-dropdown.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
+    display: block !important;
+}
+
+.dropdown-content {
+    padding: 16px;
+}
+
+.dropdown-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dropdown-user-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-green);
+    line-height: 1.2;
+}
+
+.dropdown-user-role {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-600);
+    line-height: 1.2;
 }
 
 /* Content Container */
@@ -590,6 +662,13 @@ body {
     }
 }
 
+/* Override any font-size changes that might affect avatar size */
+.user-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 16px !important;
+}
+
 /* Mobile View - Auto collapse navigation */
 @media (max-width: 768px) {
     .navigation {
@@ -615,6 +694,49 @@ body {
     .top-bar {
         left: 60px;
         padding: 12px 16px;
+    }
+    
+    /* Hide user info on mobile, show only avatar */
+    .user-info {
+        display: none;
+    }
+    
+    /* Show dropdown on mobile */
+    .user-dropdown {
+        display: block;
+    }
+    
+    /* Mobile dropdown with smaller fonts - two lines only */
+    .dropdown-user-info {
+        gap: 1px;
+        line-height: 1.0;
+    }
+    
+    .dropdown-user-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--dark-green);
+        line-height: 1.0;
+    }
+    
+    .dropdown-user-role {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--gray-600);
+        line-height: 1.0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .dropdown-content {
+        padding: 10px 12px;
+    }
+    
+    .user-dropdown {
+        width: fit-content;
+        min-width: 160px;
+        max-width: 300px;
     }
     
     /* Hide expand/collapse toggle on mobile */
@@ -741,5 +863,34 @@ body {
     
     .user-info {
         gap: 1px;
+    }
+    
+    /* Even smaller dropdown fonts for very small screens - two lines only */
+    .dropdown-user-info {
+        gap: 0px;
+        line-height: 0.9;
+    }
+    
+    .dropdown-user-name {
+        font-size: 12px;
+        line-height: 0.9;
+    }
+    
+    .dropdown-user-role {
+        font-size: 10px;
+        line-height: 0.9;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .dropdown-content {
+        padding: 8px 10px;
+    }
+    
+    .user-dropdown {
+        width: fit-content;
+        min-width: 140px;
+        max-width: 280px;
     }
 }
