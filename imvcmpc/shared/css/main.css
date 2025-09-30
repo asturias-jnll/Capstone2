@@ -894,3 +894,10 @@ body {
         max-width: 280px;
     }
 }
+
+/* Mobile phones only - reduce top bar height */
+@media (max-width: 480px) and (pointer: coarse) and (hover: none) {
+    .top-bar {
+        padding: 8px 12px !important;
+    }
+}

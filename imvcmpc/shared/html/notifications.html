@@ -94,10 +94,6 @@
                             <i class="fas fa-list"></i>
                             <span>All</span>
                         </button>
-                        <button class="filter-btn" data-filter="branch" id="branchFilterBtn">
-                            <i class="fas fa-building"></i>
-                            <span>Branch</span>
-                        </button>
                         <button class="filter-btn" data-filter="unread">
                             <i class="fas fa-envelope"></i>
                             <span>Unread</span>
@@ -121,24 +117,6 @@
                         </button>
                     </div>
 
-                    <div class="branch-selector" id="branchSelector" style="display: none;">
-                        <select id="branchFilter" onchange="filterByBranch()">
-                            <option value="">All Branches</option>
-                            <option value="ibaamain">Branch 1 - IBAAN</option>
-                            <option value="bauan">Branch 2 - BAUAN</option>
-                            <option value="sanjose">Branch 3 - SAN JOSE</option>
-                            <option value="rosario">Branch 4 - ROSARIO</option>
-                            <option value="sanjuan">Branch 5 - SAN JUAN</option>
-                            <option value="padregarcia">Branch 6 - PADRE GARCIA</option>
-                            <option value="lipacity">Branch 7 - LIPA CITY</option>
-                            <option value="batangascity">Branch 8 - BATANGAS CITY</option>
-                            <option value="mabini">Branch 9 - MABINI LIPA</option>
-                            <option value="calamias">Branch 10 - CALAMIAS</option>
-                            <option value="lemery">Branch 11 - LEMERY</option>
-                            <option value="mataasnakahoy">Branch 12 - MATAAS NA KAHOY</option>
-                            <option value="tanauan">Branch 13 - TANAUAN</option>
-                        </select>
-                    </div>
                 </div>
 
                 <!-- Notifications List -->
@@ -187,78 +165,10 @@
             }
         }
         
-        // Function to hide branch-related content for non-main branch users
-        function toggleBranchContent() {
-            console.log('=== TOGGLING BRANCH CONTENT IN NOTIFICATIONS ===');
-            
-            // Get user data using the same logic as topbar
-            let userRole = localStorage.getItem('user_role');
-            let userBranchId = localStorage.getItem('user_branch_id');
-            let userBranchName = localStorage.getItem('user_branch_name');
-            let userBranchLocation = localStorage.getItem('user_branch_location');
-            let isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-
-            // Correct the branch data based on location (same logic as topbar)
-            if (userBranchLocation) {
-                const branchData = {
-                    '1': { name: 'Main Branch', location: 'IBAAN', isMain: true },
-                    '2': { name: 'Branch 2', location: 'BAUAN', isMain: false },
-                    '3': { name: 'Branch 3', location: 'SAN JOSE', isMain: false },
-                    '4': { name: 'Branch 4', location: 'ROSARIO', isMain: false },
-                    '5': { name: 'Branch 5', location: 'SAN JUAN', isMain: false },
-                    '6': { name: 'Branch 6', location: 'PADRE GARCIA', isMain: false },
-                    '7': { name: 'Branch 7', location: 'LIPA CITY', isMain: false },
-                    '8': { name: 'Branch 8', location: 'BATANGAS CITY', isMain: false },
-                    '9': { name: 'Branch 9', location: 'MABINI LIPA', isMain: false },
-                    '10': { name: 'Branch 10', location: 'CALAMIAS', isMain: false },
-                    '11': { name: 'Branch 11', location: 'LEMERY', isMain: false },
-                    '12': { name: 'Branch 12', location: 'MATAAS NA KAHOY', isMain: false },
-                    '13': { name: 'Branch 13', location: 'TANAUAN', isMain: false }
-                };
-
-                const correctBranch = Object.entries(branchData).find(([id, data]) => 
-                    data.location === userBranchLocation
-                );
-                
-                if (correctBranch) {
-                    const [correctId, correctData] = correctBranch;
-                    userBranchId = correctId;
-                    userBranchName = correctData.name;
-                    isMainBranchUser = correctData.isMain;
-                }
-            }
-
-            console.log('User is main branch:', isMainBranchUser);
-            console.log('User branch location:', userBranchLocation);
-
-            // Show/hide branch-related elements
-            const branchFilterBtn = document.getElementById('branchFilterBtn');
-            const branchSelector = document.getElementById('branchSelector');
-
-            if (isMainBranchUser) {
-                // Show branch filter button for main branch users
-                if (branchFilterBtn) {
-                    branchFilterBtn.style.display = 'block';
-                    console.log('Showing branch filter button for main branch user');
-                }
-                // Branch selector will be shown/hidden by the notifications.js when button is clicked
-            } else {
-                // Hide branch content for non-main branch users
-                if (branchFilterBtn) {
-                    branchFilterBtn.style.display = 'none';
-                    console.log('Hiding branch filter for non-main branch user');
-                }
-                if (branchSelector) {
-                    branchSelector.style.display = 'none';
-                    console.log('Hiding branch selector for non-main branch user');
-                }
-            }
-        }
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initializeTopBar();
-            toggleBranchContent();
         });
     </script>
     <script src="../js/topbar.js"></script>

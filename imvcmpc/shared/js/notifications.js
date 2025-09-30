@@ -10,80 +10,12 @@ function initializeNotifications() {
     loadNotifications();
     updateUnreadCount();
     
-    // Initialize branch-specific notifications
-    initializeBranchSpecificNotifications();
 }
 
-// Initialize branch-specific notifications
-function initializeBranchSpecificNotifications() {
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const userBranchName = localStorage.getItem('user_branch_name');
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    // Update notifications header based on branch
-    updateNotificationsHeader(userBranchName, isMainBranchUser);
-    
-    // Filter notifications based on user's branch
-    if (!isMainBranchUser && userBranchName) {
-        filterNotificationsForBranch(userBranchId, userBranchName);
-        
-        // Hide branch selector for branch-specific users
-        hideBranchSelector();
-    }
-}
 
-// Update notifications header based on branch
-function updateNotificationsHeader(branchName, isMainBranch) {
-    const headerTitle = document.querySelector('.filters-section h1, .filters-section h2');
-    if (headerTitle && branchName) {
-        if (isMainBranch) {
-            headerTitle.textContent = 'Notifications';
-        } else {
-            headerTitle.textContent = `${branchName} Branch Notifications`;
-        }
-    }
-}
 
-// Filter notifications for specific branch
-function filterNotificationsForBranch(branchId, branchName) {
-    // Filter notifications to show only those relevant to user's branch
-    const allNotifications = window.notifications || [];
-    const branchNotifications = allNotifications.filter(notification => 
-        notification.branch === branchName.toLowerCase().replace(/\s+/g, '') || 
-        notification.branch === 'ibaamain' // System notifications
-    );
-    
-    // Update the notifications display
-    if (branchNotifications.length > 0) {
-        displayNotifications(branchNotifications);
-    } else {
-        displayEmptyState(branchName);
-    }
-}
 
-// Hide branch selector for branch-specific users
-function hideBranchSelector() {
-    const branchSelector = document.getElementById('branchSelector');
-    if (branchSelector) {
-        branchSelector.style.display = 'none';
-    }
-}
 
-// Display empty state for branch-specific users
-function displayEmptyState(branchName) {
-    const notificationsList = document.querySelector('.notifications-list');
-    if (notificationsList) {
-        notificationsList.innerHTML = `
-            <div class="notifications-empty">
-                <div class="empty-state">
-                    <i class="fas fa-bell-slash"></i>
-                    <h3>No Notifications</h3>
-                    <p>There are currently no notifications for ${branchName} branch.</p>
-                </div>
-            </div>
-        `;
-    }
-}
 
 // Setup filter button event listeners
 function setupFilterEventListeners() {
@@ -96,14 +28,6 @@ function setupFilterEventListeners() {
             
             const filterType = this.getAttribute('data-filter');
             filterNotifications(filterType);
-            
-            // Show/hide branch selector
-            const branchSelector = document.getElementById('branchSelector');
-            if (filterType === 'branch') {
-                branchSelector.style.display = 'block';
-            } else {
-                branchSelector.style.display = 'none';
-            }
         });
     });
 }
@@ -132,130 +56,13 @@ function setupNotificationEventListeners() {
 
 // Load notifications data
 function loadNotifications() {
-    // Check if user is branch-specific
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    let notifications = [];
-    
-    if (!isMainBranchUser && userBranchId) {
-        // Generate branch-specific notifications
-        notifications = generateBranchSpecificNotifications(userBranchId);
-    } else {
-        // Generate main branch notifications (all branches)
-        notifications = generateMainBranchNotifications();
-    }
+    // Generate main branch notifications (all branches)
+    const notifications = generateMainBranchNotifications();
     
     localStorage.setItem('notifications', JSON.stringify(notifications));
     displayNotifications(notifications);
 }
 
-// Generate branch-specific notifications
-function generateBranchSpecificNotifications(branchId) {
-    const branchLocation = getBranchLocation(branchId);
-    const branchName = `Branch ${branchId} - ${branchLocation}`;
-    
-    const notifications = [
-        {
-            id: 1,
-            title: `New Member Registration - ${branchName}`,
-            content: `A new member has been registered in ${branchName}. Please review the application.`,
-            type: 'info',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'transaction',
-            branch: branchLocation.toLowerCase().replace(/\s+/g, ''),
-            status: 'pending'
-        },
-        {
-            id: 2,
-            title: 'System Maintenance Alert',
-            content: 'Scheduled system maintenance will occur tonight from 11:00 PM to 2:00 AM. Some services may be temporarily unavailable.',
-            type: 'warning',
-            priority: 'important',
-            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'system',
-            branch: branchLocation.toLowerCase().replace(/\s+/g, ''),
-            status: 'active'
-        },
-        {
-            id: 3,
-            title: `Monthly Report Generated - ${branchName}`,
-            content: `The monthly financial report for ${branchName} has been successfully generated and is ready for review.`,
-            type: 'success',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'system',
-            branch: branchLocation.toLowerCase().replace(/\s+/g, ''),
-            status: 'completed'
-        },
-        {
-            id: 4,
-            title: `Branch Performance Alert - ${branchName}`,
-            content: `${branchName} has exceeded its monthly savings target by ${Math.floor(Math.random() * 20) + 10}%. Great performance!`,
-            type: 'success',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-            isRead: true,
-            category: 'transaction',
-            branch: branchLocation.toLowerCase().replace(/\s+/g, ''),
-            status: 'completed'
-        },
-        {
-            id: 5,
-            title: `Member Data Update Required - ${branchName}`,
-            content: `Finance Officer has requested review of member data updates for ${branchName}. Please review and update member information as needed.`,
-            type: 'warning',
-            priority: 'important',
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-            isRead: true,
-            category: 'transaction',
-            branch: branchLocation.toLowerCase().replace(/\s+/g, ''),
-            status: 'pending'
-        },
-        {
-            id: 6,
-            title: `New Transaction - ${branchName}`,
-            content: `Large deposit transaction completed in ${branchName}. Amount: ₱${(Math.floor(Math.random() * 500000) + 100000).toLocaleString()}.00`,
-            type: 'success',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'transaction',
-            branch: branchLocation.toLowerCase().replace(/\s+/g, ''),
-            status: 'completed'
-        },
-        {
-            id: 7,
-            title: `Loan Application - ${branchName}`,
-            content: `New loan application submitted in ${branchName}. Amount: ₱${(Math.floor(Math.random() * 300000) + 50000).toLocaleString()}.00`,
-            type: 'info',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'transaction',
-            branch: branchLocation.toLowerCase().replace(/\s+/g, ''),
-            status: 'pending'
-        },
-        {
-            id: 8,
-            title: `Branch Meeting Reminder - ${branchName}`,
-            content: `Monthly branch meeting for ${branchName} is scheduled for tomorrow at 9:00 AM. Please prepare your reports.`,
-            type: 'info',
-            priority: 'important',
-            timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
-            isRead: true,
-            category: 'system',
-            branch: branchLocation.toLowerCase().replace(/\s+/g, ''),
-            status: 'pending'
-        }
-    ];
-    
-    return notifications;
-}
 
 // Generate main branch notifications (all branches)
 function generateMainBranchNotifications() {
@@ -359,24 +166,6 @@ function generateMainBranchNotifications() {
     ];
 }
 
-// Helper function to get branch location
-function getBranchLocation(branchId) {
-    const locations = {
-        2: 'BAUAN',
-        3: 'SAN JOSE',
-        4: 'ROSARIO',
-        5: 'SAN JUAN',
-        6: 'PADRE GARCIA',
-        7: 'LIPA CITY',
-        8: 'BATANGAS CITY',
-        9: 'MABINI LIPA',
-        10: 'CALAMIAS',
-        11: 'LEMERY',
-        12: 'MATAAS NA KAHOY',
-        13: 'TANAUAN'
-    };
-    return locations[branchId] || 'UNKNOWN';
-}
 
 // Display notifications in the UI
 function displayNotifications(notifications) {
@@ -508,9 +297,6 @@ function filterNotifications(filterType) {
         case 'done':
             filteredNotifications = notifications.filter(n => n.status === 'completed');
             break;
-        case 'branch':
-            filteredNotifications = notifications;
-            break;
         default: // 'all'
             filteredNotifications = notifications;
             break;
@@ -519,20 +305,6 @@ function filterNotifications(filterType) {
     displayNotifications(filteredNotifications);
 }
 
-// Filter by specific branch
-function filterByBranch() {
-    const branchFilter = document.getElementById('branchFilter');
-    const selectedBranch = branchFilter.value;
-    
-    if (!selectedBranch) {
-        filterNotifications('branch');
-        return;
-    }
-    
-    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-    const filteredNotifications = notifications.filter(n => n.branch === selectedBranch);
-    displayNotifications(filteredNotifications);
-}
 
 // Mark a notification as read
 function markAsRead(notificationId) {
