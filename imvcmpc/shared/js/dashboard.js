@@ -76,30 +76,8 @@ async function ensureAuthToken() {
 
 // Initialize empty charts
 function initializeCharts() {
-    // Initialize preview charts with empty data
-    const chartConfigs = {
-        savingsPreviewChart: {
-            type: 'line',
-            title: 'Savings Trend Preview',
-            data: { labels: [], datasets: [] }
-        },
-        branchPreviewChart: {
-            type: 'bar',
-            title: 'Branch Performance Preview',
-            data: { labels: [], datasets: [] }
-        }
-    };
-    
-    Object.keys(chartConfigs).forEach(chartId => {
-        const canvas = document.getElementById(chartId);
-        if (canvas) {
-            chartInstances[chartId] = new Chart(canvas, {
-                type: chartConfigs[chartId].type,
-                data: chartConfigs[chartId].data,
-                options: getChartOptions(chartConfigs[chartId].type)
-            });
-        }
-    });
+    // Charts initialization removed - no preview charts needed
+    console.log('Charts initialization skipped - preview charts removed');
 }
 
 // Get chart options based on type
@@ -154,8 +132,6 @@ async function loadDashboardData() {
         // Fetch all dashboard data in parallel
         const dashboardPromises = [
             fetchDashboardSummary(userBranchId, isMainBranchUser),
-            fetchSavingsTrend(userBranchId, isMainBranchUser),
-            fetchBranchPerformance(userBranchId, isMainBranchUser),
             fetchTopMembers(userBranchId, isMainBranchUser)
         ];
         
@@ -165,12 +141,10 @@ async function loadDashboardData() {
         }
         
         const results = await Promise.all(dashboardPromises);
-        const [summary, savingsTrend, branchPerformance, topMembers, branchRankings] = results;
+        const [summary, topMembers, branchRankings] = results;
         
         // Update dashboard with real data
         updateSummaryCards(summary);
-        updateSavingsPreviewChart(savingsTrend);
-        updateBranchPreviewChart(branchPerformance);
         updateTopMembersInsight(topMembers);
         
         // Update branch rankings for main branch users
@@ -210,49 +184,6 @@ async function fetchDashboardSummary(userBranchId = '1', isMainBranchUser = true
     return result.data;
 }
 
-// Fetch savings trend data for preview (cumulative from oldest transaction to today)
-async function fetchSavingsTrend(userBranchId = '1', isMainBranchUser = true) {
-    const token = await ensureAuthToken();
-    
-    // Use custom date range from oldest transaction (2024-01-15) to today
-    const startDate = '2024-01-15';
-    const endDate = new Date().toISOString().split('T')[0];
-    
-    const response = await fetch(`${API_BASE_URL}/analytics/savings-trend?filter=custom&startDate=${startDate}&endDate=${endDate}&branchId=${userBranchId}&isMainBranch=${isMainBranchUser}`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-    
-    if (!response.ok) {
-        throw new Error(`Failed to fetch savings trend: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    return result.data;
-}
-
-// Fetch branch performance data for preview (cumulative from oldest transaction to today)
-async function fetchBranchPerformance(userBranchId = '1', isMainBranchUser = true) {
-    const token = await ensureAuthToken();
-    
-    // Use custom date range from oldest transaction (2024-01-15) to today
-    const startDate = '2024-01-15';
-    const endDate = new Date().toISOString().split('T')[0];
-    
-    const response = await fetch(`${API_BASE_URL}/analytics/branch-performance?filter=custom&startDate=${startDate}&endDate=${endDate}&branchId=${userBranchId}&isMainBranch=${isMainBranchUser}`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-    
-    if (!response.ok) {
-        throw new Error(`Failed to fetch branch performance: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    return result.data;
-}
 
 // Fetch top members data for insights (cumulative from oldest transaction to today)
 async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
@@ -350,97 +281,7 @@ function updateSummaryCards(data) {
     }
 }
 
-// Update savings preview chart
-function updateSavingsPreviewChart(data) {
-    const canvas = document.getElementById('savingsPreviewChart');
-    const noDataMessage = canvas.closest('.chart-content').querySelector('.no-data-message');
-    
-    if (!data || data.length === 0) {
-        canvas.style.display = 'none';
-        noDataMessage.style.display = 'block';
-        return;
-    }
-    
-    canvas.style.display = 'block';
-    noDataMessage.style.display = 'none';
-    
-    const labels = data.map(item => new Date(item.date).toLocaleDateString());
-    const values = data.map(item => parseFloat(item.total_savings) || 0);
-    
-    if (chartInstances.savingsPreviewChart) {
-        chartInstances.savingsPreviewChart.destroy();
-    }
-    
-    chartInstances.savingsPreviewChart = new Chart(canvas, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Daily Savings Trend',
-                data: values,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: getChartOptions('line')
-    });
-}
 
-// Update branch preview chart
-function updateBranchPreviewChart(data) {
-    const canvas = document.getElementById('branchPreviewChart');
-    const noDataMessage = canvas.closest('.chart-content').querySelector('.no-data-message');
-    
-    if (!data || data.length === 0) {
-        canvas.style.display = 'none';
-        noDataMessage.style.display = 'block';
-        return;
-    }
-    
-    canvas.style.display = 'block';
-    noDataMessage.style.display = 'none';
-    
-    // Handle different data structures for main branch vs non-main branch users
-    const userBranchId = localStorage.getItem('user_branch_id') || '1';
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    let labels, savingsData;
-    
-    if (isMainBranchUser) {
-        // Main branch users see branch names
-        labels = data.map(item => item.branch_name);
-        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
-    } else {
-        // Non-main branch users see monthly data
-        labels = data.map(item => {
-            const date = new Date(item.month);
-            return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        });
-        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
-    }
-    
-    if (chartInstances.branchPreviewChart) {
-        chartInstances.branchPreviewChart.destroy();
-    }
-    
-    chartInstances.branchPreviewChart = new Chart(canvas, {
-        type: 'bar',
-        data: {
-            labels: labels,
-        datasets: [{
-            label: isMainBranchUser ? 'Total Savings by Branch' : 'Monthly Savings Trend',
-            data: savingsData,
-            backgroundColor: '#3b82f6',
-            borderColor: '#2563eb',
-            borderWidth: 1
-        }]
-        },
-        options: getChartOptions('bar')
-    });
-}
 
 // Update top members insight
 function updateTopMembersInsight(data) {
@@ -472,7 +313,7 @@ function updateTopMembersInsight(data) {
                         <span class="member-disbursements">Loans: ${formatCurrency(member.total_disbursements || 0)}</span>
                     </div>
                 </div>
-                <div class="member-net-position ${netPositionClass}" style="color: ${netPositionColor}; font-weight: 600;">
+                <div class="member-net-position ${netPositionClass}">
                     <div class="net-position-label">Net Position</div>
                     <div class="net-position-value">${formatCurrency(netPosition)}</div>
                 </div>
@@ -518,7 +359,7 @@ function updateBranchRankingsInsight(data) {
                         <span class="branch-disbursements">Loans: ${formatCurrency(branch.total_disbursements || 0)}</span>
                     </div>
                 </div>
-                <div class="branch-net-position ${netPositionClass}" style="color: ${netPositionColor}; font-weight: 600;">
+                <div class="branch-net-position ${netPositionClass}">
                     <div class="net-position-label">Net Position</div>
                     <div class="net-position-value">${formatCurrency(netPosition)}</div>
                 </div>
@@ -533,22 +374,6 @@ function updateBranchRankingsInsight(data) {
     `;
 }
 
-// Refresh individual chart
-function refreshChart(chartType) {
-    console.log('Refreshing chart:', chartType);
-    
-    // Show loading state for specific chart
-    showChartLoading(chartType);
-    
-    // Reload dashboard data
-    loadDashboardData().then(() => {
-        hideChartLoading(chartType);
-        showNotification(`${chartType} chart refreshed`, 'info');
-    }).catch(() => {
-        hideChartLoading(chartType);
-        showNotification(`Failed to refresh ${chartType} chart`, 'error');
-    });
-}
 
 
 // Show loading state
@@ -575,21 +400,6 @@ function hideLoadingState() {
     });
 }
 
-// Show chart loading
-function showChartLoading(chartType) {
-    const chartContainer = document.querySelector(`#${chartType}PreviewChart`).closest('.preview-chart');
-    if (chartContainer) {
-        chartContainer.classList.add('loading');
-    }
-}
-
-// Hide chart loading
-function hideChartLoading(chartType) {
-    const chartContainer = document.querySelector(`#${chartType}PreviewChart`).closest('.preview-chart');
-    if (chartContainer) {
-        chartContainer.classList.remove('loading');
-    }
-}
 
 // Show notification
 function showNotification(message, type = 'info') {
@@ -691,4 +501,4 @@ function formatPercentage(value) {
 }
 
 // Export functions for global access
-window.refreshChart = refreshChart;
+// refreshChart removed - no preview charts
