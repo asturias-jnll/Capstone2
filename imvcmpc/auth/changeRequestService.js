@@ -120,6 +120,12 @@ class ChangeRequestService {
                 values.push(filters.requested_by);
             }
 
+            if (filters.transaction_id) {
+                paramCount++;
+                query += ` AND cr.transaction_id = $${paramCount}`;
+                values.push(filters.transaction_id);
+            }
+
             // Add ordering
             query += ` ORDER BY cr.created_at DESC`;
 
@@ -242,6 +248,12 @@ class ChangeRequestService {
                 values.push(filters.assigned_to);
             }
 
+            if (filters.transaction_id) {
+                paramCount++;
+                query += ` AND cr.transaction_id = $${paramCount}`;
+                values.push(filters.transaction_id);
+            }
+
             const result = await client.query(query, values);
             return parseInt(result.rows[0].count);
         } finally {
@@ -271,7 +283,7 @@ class ChangeRequestService {
             }
 
             // Update the change request status
-            await this.updateChangeRequestStatus(requestId, 'completed', 'Changes applied successfully', processedBy);
+            await this.updateChangeRequestStatus(requestId, 'approved', 'Changes applied successfully', processedBy);
 
             await client.query('COMMIT');
             return { success: true, message: 'Change request processed successfully' };

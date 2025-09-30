@@ -1265,7 +1265,7 @@ function showDeleteSuccessMessage(payeeName) {
     modal.className = 'simple-message-modal';
     modal.innerHTML = `
         <div class="simple-message-content">
-            <div class="success-icon">✓</div>
+            <div class="success-icon"><i class="fas fa-check-circle" style="font-size: 24px;"></i></div>
             <div class="message-text">Transaction for <span class="payee-name">${payeeName}</span> has been deleted successfully</div>
         </div>
     `;
@@ -1295,17 +1295,11 @@ function showDeleteSuccessMessage(payeeName) {
         }
         
         .success-icon {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: #EF4444;
-            color: white;
+            color: #EF4444;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
             margin: 0 auto 16px auto;
-            font-family: Arial, sans-serif;
         }
         
         .message-text {
@@ -2029,7 +2023,7 @@ function showCenteredSuccessMessage(payeeName) {
     modal.className = 'simple-message-modal';
     modal.innerHTML = `
         <div class="simple-message-content">
-            <div class="success-icon">✓</div>
+            <div class="success-icon"><i class="fas fa-check-circle" style="font-size: 24px;"></i></div>
             <div class="message-text">Transaction for <span class="payee-name">${payeeName}</span> has been saved successfully</div>
         </div>
     `;
@@ -2059,17 +2053,11 @@ function showCenteredSuccessMessage(payeeName) {
         }
         
         .success-icon {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: #0B5E1C;
-            color: white;
+            color: #0B5E1C;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
             margin: 0 auto 16px auto;
-            font-family: Arial, sans-serif;
         }
         
         .message-text {
@@ -2230,7 +2218,7 @@ function createPendingRequestsModal(requests) {
     modal.innerHTML = `
         <div class="modal-content pending-requests-modal">
             <div class="modal-header">
-                <h3>Pending Requests</h3>
+                <h3 style="font-size: 18px;">Pending Requests</h3>
                 <button type="button" class="close-btn" onclick="closePendingRequestsModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -2244,6 +2232,11 @@ function createPendingRequestsModal(requests) {
                 </div>
             </div>
             <div class="modal-footer">
+                <div class="filter-buttons">
+                    <button class="filter-btn" data-status="pending" onclick="filterRequestsByStatus('pending')">Pending</button>
+                    <button class="filter-btn" data-status="approved" onclick="filterRequestsByStatus('approved')">Approved</button>
+                    <button class="filter-btn" data-status="rejected" onclick="filterRequestsByStatus('rejected')">Rejected</button>
+                </div>
                 <button class="btn btn-secondary" onclick="closePendingRequestsModal()">
                     <i class="fas fa-times"></i>
                     Close
@@ -2256,7 +2249,7 @@ function createPendingRequestsModal(requests) {
     const style = document.createElement('style');
     style.textContent = `
         .pending-requests-modal {
-            max-width: 800px;
+            max-width: 600px;
             width: 90%;
         }
         
@@ -2288,8 +2281,9 @@ function createPendingRequestsModal(requests) {
         }
         
         .request-id {
-            font-weight: 600;
-            color: var(--dark-green);
+            font-weight: 400;
+            color: var(--gray-500);
+            font-size: 12px;
         }
         
         .request-date {
@@ -2320,6 +2314,9 @@ function createPendingRequestsModal(requests) {
             margin-top: 8px;
             padding-top: 8px;
             border-top: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .status-badge {
@@ -2347,13 +2344,8 @@ function createPendingRequestsModal(requests) {
             color: #DC2626;
         }
         
-        .status-badge.completed {
-            background: #DBEAFE;
-            color: #2563EB;
-        }
         
         .finance-notes {
-            margin-top: 4px;
             font-size: 12px;
             color: var(--gray-600);
             font-style: italic;
@@ -2361,10 +2353,6 @@ function createPendingRequestsModal(requests) {
         
         .change-details {
             margin: 12px 0;
-            padding: 12px;
-            background: #f8fafc;
-            border-radius: 6px;
-            border-left: 3px solid var(--orange);
         }
         
         .changes-section {
@@ -2430,6 +2418,41 @@ function createPendingRequestsModal(requests) {
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
+    
+    // Store the original requests for filtering
+    window.allRequests = requests;
+}
+
+// Filter requests by status
+function filterRequestsByStatus(status) {
+    const requestsList = document.querySelector('.requests-list');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const clickedButton = document.querySelector(`[data-status="${status}"]`);
+    
+    if (!window.allRequests) return;
+    
+    // Check if the clicked button is already active
+    const isAlreadyActive = clickedButton && clickedButton.classList.contains('active');
+    
+    // Remove active class from all buttons
+    filterButtons.forEach(btn => btn.classList.remove('active'));
+    
+    let filteredRequests = window.allRequests;
+    
+    // If the button was already active, show all requests (no filter)
+    // If not active, apply the filter and make it active
+    if (!isAlreadyActive && status) {
+        clickedButton.classList.add('active');
+        filteredRequests = window.allRequests.filter(request => 
+            request.status.toLowerCase() === status
+        );
+    }
+    
+    if (filteredRequests.length === 0) {
+        requestsList.innerHTML = '<div class="empty-requests">No requests found for the selected status</div>';
+    } else {
+        requestsList.innerHTML = filteredRequests.map(request => createRequestItem(request)).join('');
+    }
 }
 
 // Create request item HTML
@@ -2458,7 +2481,7 @@ function createRequestItem(request) {
         statusInfo = `
             <div class="request-status">
                 <span class="status-badge ${request.status.toLowerCase()}">${statusBadge}</span>
-                ${request.finance_officer_notes ? `<div class="finance-notes">Notes: ${request.finance_officer_notes}</div>` : ''}
+                ${request.finance_officer_notes ? `<div class="finance-notes">${request.finance_officer_notes}</div>` : ''}
             </div>
         `;
     }
@@ -2474,9 +2497,6 @@ function createRequestItem(request) {
             </div>
             <div class="change-details">
                 ${changeDetails}
-            </div>
-            <div class="request-reason">
-                <strong>Reason:</strong> ${request.reason || 'No reason provided'}
             </div>
             ${statusInfo}
         </div>
@@ -2598,8 +2618,7 @@ function getStatusBadge(status) {
     const statusMap = {
         'pending': '<i class="fas fa-clock"></i> Pending',
         'approved': '<i class="fas fa-check"></i> Approved',
-        'rejected': '<i class="fas fa-times"></i> Rejected',
-        'completed': '<i class="fas fa-check-circle"></i> Completed'
+        'rejected': '<i class="fas fa-times"></i> Rejected'
     };
     return statusMap[status] || status;
 }
@@ -2618,7 +2637,7 @@ function showRequestSubmittedMessage() {
     modal.className = 'simple-message-modal';
     modal.innerHTML = `
         <div class="simple-message-content">
-            <div class="success-icon">✓</div>
+            <div class="success-icon"><i class="fas fa-check-circle" style="font-size: 24px;"></i></div>
             <div class="message-text">Change request has been submitted successfully</div>
         </div>
     `;
@@ -2648,17 +2667,11 @@ function showRequestSubmittedMessage() {
         }
         
         .success-icon {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: #0B5E1C;
-            color: white;
+            color: #0B5E1C;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
             margin: 0 auto 16px auto;
-            font-family: Arial, sans-serif;
         }
         
         .message-text {
@@ -2752,7 +2765,7 @@ function showSuccess(message) {
     modal.className = 'simple-message-modal';
     modal.innerHTML = `
         <div class="simple-message-content">
-            <div class="success-icon">✓</div>
+            <div class="success-icon"><i class="fas fa-check-circle" style="font-size: 24px;"></i></div>
             <div class="message-text">${message}</div>
         </div>
     `;
@@ -2782,17 +2795,11 @@ function showSuccess(message) {
         }
         
         .success-icon {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: #0B5E1C;
-            color: white;
+            color: #0B5E1C;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
             margin: 0 auto 16px auto;
-            font-family: Arial, sans-serif;
         }
         
         .message-text {
@@ -2931,7 +2938,8 @@ function showFinanceOfficerNotification(count) {
                 background: linear-gradient(135deg, #FF6B35, #F7931E);
                 color: white;
                 padding: 16px 20px;
-                margin-bottom: 20px;
+                margin-top: -30px;
+                margin-bottom: 30px;
                 border-radius: 8px;
                 box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
                 animation: slideDown 0.5s ease;
@@ -2995,6 +3003,54 @@ function showFinanceOfficerNotification(count) {
                 to {
                     transform: translateY(0);
                     opacity: 1;
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .finance-officer-notification {
+                    margin-top: -20px;
+                    margin-bottom: 25px;
+                    padding: 12px 16px;
+                }
+                
+                .notification-content {
+                    gap: 8px;
+                }
+                
+                .notification-text {
+                    font-size: 12px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                
+                .notification-action {
+                    padding: 6px 12px;
+                    font-size: 11px;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .finance-officer-notification {
+                    margin-top: -15px;
+                    margin-bottom: 20px;
+                    padding: 10px 12px;
+                }
+                
+                .notification-icon {
+                    font-size: 16px;
+                }
+                
+                .notification-text {
+                    font-size: 11px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                
+                .notification-action {
+                    padding: 4px 8px;
+                    font-size: 10px;
                 }
             }
         `;
@@ -3090,7 +3146,7 @@ function createFinanceOfficerRequestsModal(requests) {
     if (requests.length === 0) {
         requestsHTML = `
             <div class="empty-requests">
-                <i class="fas fa-check-circle" style="color: var(--dark-green); margin-right: 8px;"></i>
+                <i class="fas fa-check-circle" style="color: var(--dark-green); margin-right: 8px; font-size: 24px;"></i>
                 <div>No pending change requests requiring your approval</div>
                 <div style="margin-top: 10px; font-size: 12px; color: var(--gray-500);">
                     Change requests will appear here when Marketing Clerks request modifications to transactions.
@@ -3110,7 +3166,7 @@ function createFinanceOfficerRequestsModal(requests) {
     modal.innerHTML = `
         <div class="modal-content finance-officer-requests-modal">
             <div class="modal-header">
-                <h3>Pending Change Requests - Finance Officer</h3>
+                <h3 style="font-size: 18px;">Pending Change Requests</h3>
                 <button type="button" class="close-btn" onclick="closeFinanceOfficerRequestsModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -3133,7 +3189,7 @@ function createFinanceOfficerRequestsModal(requests) {
     const style = document.createElement('style');
     style.textContent = `
         .finance-officer-requests-modal {
-            max-width: 900px;
+            max-width: 600px;
             width: 90%;
         }
         
@@ -3160,9 +3216,9 @@ function createFinanceOfficerRequestsModal(requests) {
         }
         
         .request-id {
-            font-weight: 600;
-            color: var(--dark-green);
-            font-size: 16px;
+            font-weight: 400;
+            color: var(--gray-500);
+            font-size: 12px;
         }
         
         .request-date {
@@ -3171,14 +3227,10 @@ function createFinanceOfficerRequestsModal(requests) {
         }
         
         .request-subject {
-            font-size: 16px;
+            font-size: 14px;
             color: var(--dark-green);
-            font-weight: 600;
+            font-weight: 500;
             margin-bottom: 12px;
-            padding: 8px 12px;
-            background: var(--white);
-            border-radius: 6px;
-            border-left: 4px solid var(--orange);
         }
         
         .request-details {
@@ -3196,10 +3248,6 @@ function createFinanceOfficerRequestsModal(requests) {
         
         .change-details {
             margin: 12px 0;
-            padding: 12px;
-            background: #f8fafc;
-            border-radius: 6px;
-            border-left: 3px solid var(--orange);
         }
         
         .changes-section {
@@ -3267,10 +3315,6 @@ function createFinanceOfficerRequestsModal(requests) {
             font-size: 13px;
             color: var(--gray-600);
             margin: 8px 0;
-            padding: 8px 12px;
-            background: var(--gray-50);
-            border-radius: 4px;
-            border-left: 3px solid var(--gray-400);
         }
         
         .request-actions {
@@ -3318,10 +3362,6 @@ function createFinanceOfficerRequestsModal(requests) {
             padding: 40px;
             color: var(--gray-600);
             font-style: italic;
-            background: var(--gray-50);
-            border-radius: 8px;
-            border: 1px solid var(--gray-200);
-            margin: 20px 0;
         }
     `;
     document.head.appendChild(style);
@@ -3347,19 +3387,6 @@ function createFinanceOfficerRequestItem(request) {
         reason: request.reason
     });
     
-    // Create a meaningful subject/title for the request
-    let requestSubject = '';
-    const requestType = request.request_type || 'modification';
-    
-    if (requestType === 'modification') {
-        requestSubject = `Modify Transaction: ${transactionPayee}`;
-    } else if (requestType === 'deletion') {
-        requestSubject = `Delete Transaction: ${transactionPayee}`;
-    } else if (requestType === 'creation') {
-        requestSubject = `Create New Transaction: ${transactionPayee}`;
-    } else {
-        requestSubject = `Change Request: ${transactionPayee}`;
-    }
     
     // Parse the original data and requested changes for detailed display
     const originalData = typeof request.original_data === 'string' 
@@ -3372,7 +3399,6 @@ function createFinanceOfficerRequestItem(request) {
     // Create detailed change display showing only fields with actual changes
     const changeDetails = createChangeDetails(originalData, requestedChanges);
     
-    console.log('Generated subject:', requestSubject);
     console.log('Change details:', changeDetails);
     
     return `
@@ -3380,9 +3406,6 @@ function createFinanceOfficerRequestItem(request) {
             <div class="request-header">
                 <span class="request-id">Request #${request.id.substring(0, 8)}</span>
                 <span class="request-date">${requestDate}</span>
-            </div>
-            <div class="request-subject">
-                <strong>${requestSubject}</strong>
             </div>
             <div class="request-details">
                 <strong>Transaction:</strong> ${transactionPayee}
@@ -3394,7 +3417,7 @@ function createFinanceOfficerRequestItem(request) {
                 <strong>Requested by:</strong> ${requestedBy}
             </div>
             <div class="request-reason">
-                <strong>Reason:</strong> ${request.reason || 'No reason provided'}
+                ${request.reason || 'No reason provided'}
             </div>
             <div class="request-actions">
                 <button class="btn-approve" onclick="approveChangeRequest('${request.id}')">
@@ -3487,7 +3510,7 @@ function showRequestProcessedMessage(action) {
     modal.className = 'simple-message-modal';
     modal.innerHTML = `
         <div class="simple-message-content">
-            <div class="success-icon">✓</div>
+            <div class="success-icon"><i class="fas fa-check-circle" style="font-size: 24px;"></i></div>
             <div class="message-text">Change request has been ${action} successfully</div>
         </div>
     `;
@@ -3517,17 +3540,11 @@ function showRequestProcessedMessage(action) {
         }
         
         .success-icon {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: #0B5E1C;
-            color: white;
+            color: #0B5E1C;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
             margin: 0 auto 16px auto;
-            font-family: Arial, sans-serif;
         }
         
         .message-text {

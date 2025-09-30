@@ -1769,6 +1769,519 @@ body {
     }
 }
 
+/* Filter Buttons for Marketing Clerk Modal */
+.pending-requests-modal .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.filter-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    background: white;
+    color: var(--gray-700);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.filter-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.filter-btn.active {
+    color: white;
+    border-color: transparent;
+}
+
+.filter-btn[data-status="pending"].active {
+    background: var(--orange);
+    border-color: var(--orange);
+}
+
+.filter-btn[data-status="approved"].active {
+    background: var(--dark-green);
+    border-color: var(--dark-green);
+}
+
+.filter-btn[data-status="rejected"].active {
+    background: var(--red);
+    border-color: var(--red);
+}
+
+/* Branch Status Responsive */
+@media (max-width: 1200px) {
+    .branch-status {
+        font-size: 13px !important;
+        padding: 7px 10px !important;
+    }
+    
+    .branch-status i {
+        font-size: 12px !important;
+        margin-right: 5px !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .branch-status {
+        font-size: 12px !important;
+        padding: 6px 8px !important;
+    }
+    
+    .branch-status i {
+        font-size: 11px !important;
+        margin-right: 4px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .branch-status {
+        font-size: 11px !important;
+        padding: 5px 6px !important;
+        margin-top: 8px !important;
+    }
+    
+    .branch-status i {
+        font-size: 10px !important;
+        margin-right: 3px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .branch-status {
+        font-size: 10px !important;
+        padding: 4px 5px !important;
+        margin-top: 6px !important;
+    }
+    
+    .branch-status i {
+        font-size: 9px !important;
+        margin-right: 2px !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .branch-status {
+        font-size: 9px !important;
+        padding: 3px 4px !important;
+        margin-top: 4px !important;
+    }
+    
+    .branch-status i {
+        font-size: 8px !important;
+        margin-right: 2px !important;
+    }
+}
+
+/* Responsive filter buttons and ALL request modal content */
+@media (max-width: 1200px) {
+    .pending-requests-modal .modal-footer {
+        padding: 16px;
+        gap: 10px;
+    }
+    
+    .filter-btn {
+        padding: 5px 10px;
+        font-size: 13px;
+    }
+    
+    /* Marketing Clerk Request Content */
+    .request-item {
+        padding: 14px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .request-details {
+        font-size: 13px !important;
+    }
+    
+    .request-reason {
+        font-size: 12px !important;
+    }
+    
+    .request-id, .request-date {
+        font-size: 11px !important;
+    }
+    
+    .change-field {
+        font-size: 12px !important;
+    }
+    
+    .change-values {
+        font-size: 11px !important;
+    }
+    
+    .changes-title {
+        font-size: 13px !important;
+    }
+    
+    .status-badge {
+        font-size: 11px !important;
+        padding: 3px 6px !important;
+    }
+    
+    .finance-notes {
+        font-size: 11px !important;
+    }
+    
+    /* Finance Officer Request Content */
+    .finance-officer-request-item {
+        padding: 16px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .request-subject {
+        font-size: 13px !important;
+    }
+    
+    .requested-by-info {
+        font-size: 12px !important;
+    }
+    
+    .btn-approve, .btn-reject {
+        font-size: 11px !important;
+        padding: 6px 12px !important;
+        border-radius: 4px !important;
+    }
+    
+    .btn-approve i, .btn-reject i {
+        font-size: 10px !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .pending-requests-modal .modal-footer {
+        padding: 14px;
+        gap: 8px;
+    }
+    
+    .filter-btn {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+    
+    /* Marketing Clerk Request Content */
+    .request-item {
+        padding: 12px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .request-details {
+        font-size: 12px !important;
+    }
+    
+    .request-reason {
+        font-size: 11px !important;
+    }
+    
+    .request-id, .request-date {
+        font-size: 10px !important;
+    }
+    
+    .change-field {
+        font-size: 11px !important;
+    }
+    
+    .change-values {
+        font-size: 10px !important;
+    }
+    
+    .changes-title {
+        font-size: 12px !important;
+    }
+    
+    .status-badge {
+        font-size: 10px !important;
+        padding: 2px 5px !important;
+    }
+    
+    .finance-notes {
+        font-size: 10px !important;
+    }
+    
+    /* Finance Officer Request Content */
+    .finance-officer-request-item {
+        padding: 14px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .request-subject {
+        font-size: 12px !important;
+    }
+    
+    .requested-by-info {
+        font-size: 11px !important;
+    }
+    
+    .btn-approve, .btn-reject {
+        font-size: 10px !important;
+        padding: 5px 10px !important;
+        border-radius: 3px !important;
+    }
+    
+    .btn-approve i, .btn-reject i {
+        font-size: 9px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .pending-requests-modal .modal-footer {
+        padding: 12px;
+        gap: 8px;
+    }
+    
+    .filter-buttons {
+        gap: 4px;
+    }
+    
+    .filter-btn {
+        padding: 5px 8px;
+        font-size: 11px;
+        flex-shrink: 0;
+    }
+    
+    /* Marketing Clerk Request Content */
+    .request-item {
+        padding: 10px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .request-details {
+        font-size: 11px !important;
+    }
+    
+    .request-reason {
+        font-size: 10px !important;
+    }
+    
+    .request-id, .request-date {
+        font-size: 9px !important;
+    }
+    
+    .change-field {
+        font-size: 10px !important;
+    }
+    
+    .change-values {
+        font-size: 9px !important;
+    }
+    
+    .changes-title {
+        font-size: 11px !important;
+    }
+    
+    .status-badge {
+        font-size: 9px !important;
+        padding: 2px 4px !important;
+    }
+    
+    .finance-notes {
+        font-size: 9px !important;
+    }
+    
+    /* Finance Officer Request Content */
+    .finance-officer-request-item {
+        padding: 12px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .request-subject {
+        font-size: 11px !important;
+    }
+    
+    .requested-by-info {
+        font-size: 10px !important;
+    }
+    
+    .btn-approve, .btn-reject {
+        font-size: 9px !important;
+        padding: 4px 8px !important;
+        border-radius: 2px !important;
+    }
+    
+    .btn-approve i, .btn-reject i {
+        font-size: 8px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .pending-requests-modal .modal-footer {
+        padding: 10px;
+        gap: 8px;
+    }
+    
+    .filter-buttons {
+        gap: 3px;
+    }
+    
+    .filter-btn {
+        padding: 4px 6px;
+        font-size: 10px;
+        flex-shrink: 0;
+    }
+    
+    /* Marketing Clerk Request Content */
+    .request-item {
+        padding: 8px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    .request-details {
+        font-size: 10px !important;
+    }
+    
+    .request-reason {
+        font-size: 9px !important;
+    }
+    
+    .request-id, .request-date {
+        font-size: 8px !important;
+    }
+    
+    .change-field {
+        font-size: 9px !important;
+    }
+    
+    .change-values {
+        font-size: 8px !important;
+    }
+    
+    .changes-title {
+        font-size: 10px !important;
+    }
+    
+    .status-badge {
+        font-size: 8px !important;
+        padding: 1px 3px !important;
+    }
+    
+    .finance-notes {
+        font-size: 8px !important;
+    }
+    
+    /* Finance Officer Request Content */
+    .finance-officer-request-item {
+        padding: 10px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .request-subject {
+        font-size: 10px !important;
+    }
+    
+    .requested-by-info {
+        font-size: 9px !important;
+    }
+    
+    .btn-approve, .btn-reject {
+        font-size: 8px !important;
+        padding: 3px 6px !important;
+        border-radius: 2px !important;
+    }
+    
+    .btn-approve i, .btn-reject i {
+        font-size: 7px !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .pending-requests-modal .modal-footer {
+        padding: 8px;
+        gap: 6px;
+    }
+    
+    .filter-buttons {
+        gap: 2px;
+    }
+    
+    .filter-btn {
+        padding: 3px 5px;
+        font-size: 9px;
+        flex-shrink: 0;
+    }
+    
+    /* Marketing Clerk Request Content */
+    .request-item {
+        padding: 6px !important;
+        margin-bottom: 3px !important;
+    }
+    
+    .request-details {
+        font-size: 9px !important;
+    }
+    
+    .request-reason {
+        font-size: 8px !important;
+    }
+    
+    .request-id, .request-date {
+        font-size: 7px !important;
+    }
+    
+    .change-field {
+        font-size: 8px !important;
+    }
+    
+    .change-values {
+        font-size: 7px !important;
+    }
+    
+    .changes-title {
+        font-size: 9px !important;
+    }
+    
+    .status-badge {
+        font-size: 7px !important;
+        padding: 1px 2px !important;
+    }
+    
+    .finance-notes {
+        font-size: 7px !important;
+    }
+    
+    /* Finance Officer Request Content */
+    .finance-officer-request-item {
+        padding: 8px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    .request-subject {
+        font-size: 9px !important;
+    }
+    
+    .requested-by-info {
+        font-size: 8px !important;
+    }
+    
+    .btn-approve, .btn-reject {
+        font-size: 7px !important;
+        padding: 2px 4px !important;
+        border-radius: 1px !important;
+    }
+    
+    .btn-approve i, .btn-reject i {
+        font-size: 6px !important;
+    }
+}
+
 /* Unified Button System - Both Forms */
 @media (max-width: 1200px) {
     .delete-btn, .btn, .btn-secondary, .btn-primary {
@@ -1793,7 +2306,7 @@ body {
 }
 
 @media (max-width: 768px) {
-    .form-actions, .modal-footer {
+    .form-actions, .modal-footer:not(.pending-requests-modal .modal-footer) {
         flex-direction: row !important;
         gap: 8px !important;
         width: 100% !important;
@@ -1814,7 +2327,7 @@ body {
 }
 
 @media (max-width: 480px) {
-    .form-actions, .modal-footer {
+    .form-actions, .modal-footer:not(.pending-requests-modal .modal-footer) {
         flex-direction: row !important;
         padding: 8px !important;
         gap: 4px !important;
@@ -1834,7 +2347,7 @@ body {
 }
 
 @media (max-width: 360px) {
-    .form-actions, .modal-footer {
+    .form-actions, .modal-footer:not(.pending-requests-modal .modal-footer) {
         flex-direction: row !important;
         padding: 6px !important;
         gap: 2px !important;

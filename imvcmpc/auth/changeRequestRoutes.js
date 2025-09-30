@@ -59,7 +59,7 @@ router.get('/change-requests',
     checkRole(['marketing_clerk', 'finance_officer']),
     async (req, res) => {
         try {
-            const { branch_id, status, assigned_to, requested_by } = req.query;
+            const { branch_id, status, assigned_to, requested_by, transaction_id } = req.query;
             const userId = req.user.id;
             const userRole = req.user.role_name;
             const userBranchId = req.user.branch_id;
@@ -84,6 +84,10 @@ router.get('/change-requests',
 
             if (status) {
                 filters.status = status;
+            }
+
+            if (transaction_id) {
+                filters.transaction_id = transaction_id;
             }
 
             console.log('Final filters being used:', filters);
@@ -117,7 +121,7 @@ router.get('/change-requests/count',
     checkRole(['marketing_clerk', 'finance_officer']),
     async (req, res) => {
         try {
-            const { branch_id, status, assigned_to } = req.query;
+            const { branch_id, status, assigned_to, transaction_id } = req.query;
             const userId = req.user.id;
             const userRole = req.user.role_name;
             const userBranchId = req.user.branch_id;
@@ -142,6 +146,10 @@ router.get('/change-requests/count',
 
             if (status) {
                 filters.status = status;
+            }
+
+            if (transaction_id) {
+                filters.transaction_id = transaction_id;
             }
 
             const count = await changeRequestService.getChangeRequestCount(filters);
@@ -228,7 +236,7 @@ router.put('/change-requests/:requestId/status',
                 });
             }
 
-            const validStatuses = ['pending', 'approved', 'rejected', 'completed'];
+            const validStatuses = ['pending', 'approved', 'rejected'];
             if (!validStatuses.includes(status)) {
                 return res.status(400).json({
                     success: false,
