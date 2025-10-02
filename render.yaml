@@ -2,7 +2,6 @@ services:
   # PostgreSQL Database
   - type: pserv
     name: imvcmpc-database
-    env: docker
     plan: starter
 
   # Node.js API Service
@@ -53,6 +52,4 @@ services:
         value: 100
       - key: LOG_LEVEL
         value: info
-    buildCommand: echo "Build completed"
-    startCommand: node server.js
     healthCheckPath: /health
