@@ -3,6 +3,8 @@ services:
   - type: pserv
     name: imvcmpc-database
     plan: starter
+    databaseName: imvcmpc_fms
+    databaseUser: imvcmpc_user
 
   # Node.js API Service
   - type: web
@@ -23,7 +25,9 @@ services:
           name: imvcmpc-database
           property: port
       - key: DB_NAME
-        value: imvcmpc_fms
+        fromDatabase:
+          name: imvcmpc-database
+          property: database
       - key: DB_USER
         fromDatabase:
           name: imvcmpc-database
