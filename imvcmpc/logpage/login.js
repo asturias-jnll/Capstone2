@@ -44,7 +44,7 @@ async function login() {
 
     try {
         // Make API call to authentication service
-        const response = await fetch('http://localhost:3001/api/auth/login', {
+        const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -151,7 +151,7 @@ async function refreshAccessToken() {
             throw new Error('No refresh token available');
         }
 
-        const response = await fetch('http://localhost:3001/api/auth/refresh', {
+        const response = await fetch('/api/auth/refresh', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

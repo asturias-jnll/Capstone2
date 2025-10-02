@@ -3,7 +3,7 @@ let chartInstances = {};
 let authToken = null;
 
 // API base URL
-const API_BASE_URL = 'http://localhost:3001/api/auth';
+const API_BASE_URL = '/api/auth';
 
 // Initialize Dashboard
 function initializeDashboard() {

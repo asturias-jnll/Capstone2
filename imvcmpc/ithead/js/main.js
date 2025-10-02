@@ -342,7 +342,7 @@ function loadBackupContent() {
 // Load users data
 async function loadUsersData() {
     try {
-        const response = await fetch('http://localhost:3001/api/auth/users', {
+        const response = await fetch('/api/auth/users', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }

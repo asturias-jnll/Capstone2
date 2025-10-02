@@ -103,7 +103,7 @@ function initializeTransactionLedger() {
 }
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:3001/api/auth';
+const API_BASE_URL = '/api/auth';
 
 // Get authentication token
 function getAuthToken() {
@@ -254,7 +254,7 @@ async function loadTransactionsFromDatabase() {
         // Test server connection first
         try {
             console.log('Testing server connection...');
-            const healthResponse = await fetch('http://localhost:3001/health');
+            const healthResponse = await fetch('/health');
             const healthData = await healthResponse.json();
             console.log('Server health check:', healthData);
         } catch (healthError) {
