@@ -13,12 +13,25 @@ const PORT = process.env.PORT || 3001;
 // Trust proxy for Render deployment
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet());
+// Security middleware with relaxed CSP for inline scripts
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'"]
+        }
+    }
+}));
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5000'],
+    origin: process.env.ALLOWED_ORIGINS ? 
+        process.env.ALLOWED_ORIGINS.split(',') : 
+        ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:8080', 'https://capstone2-dzwi.onrender.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
