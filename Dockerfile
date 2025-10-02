@@ -1,4 +1,4 @@
-# Production Dockerfile for Render deployment
+# Production Dockerfile for Render deployment (Repository Root)
 FROM node:18-alpine
 
 # Set working directory
