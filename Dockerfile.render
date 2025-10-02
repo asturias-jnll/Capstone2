@@ -1,0 +1,38 @@
+# Production Dockerfile for Render deployment
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies first (for better caching)
+COPY imvcmpc/auth/package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy application code
+COPY imvcmpc/auth/ ./
+
+# Copy static files
+COPY imvcmpc/shared/ ./static/shared/
+COPY imvcmpc/financeofficer/ ./static/financeofficer/
+COPY imvcmpc/marketingclerk/ ./static/marketingclerk/
+COPY imvcmpc/ithead/ ./static/ithead/
+COPY imvcmpc/logpage/ ./static/logpage/
+COPY imvcmpc/assets/ ./static/assets/
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S appuser -u 1001 -G nodejs
+
+# Set ownership
+RUN chown -R appuser:nodejs /app
+USER appuser
+
+# Expose port (Render will set PORT environment variable)
+EXPOSE $PORT
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3001) + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start the application
+CMD ["node", "server.js"]
