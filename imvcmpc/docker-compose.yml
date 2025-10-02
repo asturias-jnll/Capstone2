@@ -1,0 +1,66 @@
+services:
+  # Node.js Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: imvcmpc-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: host.docker.internal
+      DB_PORT: 5432
+      DB_NAME: imvcmpc_fms
+      DB_USER: postgres
+      DB_PASSWORD: imvcmpc12
+      JWT_SECRET: your-production-jwt-secret-change-this
+      JWT_EXPIRES_IN: 24h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      BCRYPT_ROUNDS: 12
+      MAX_LOGIN_ATTEMPTS: 5
+      LOCKOUT_DURATION: 15
+      SESSION_TIMEOUT: 30
+      ALLOWED_ORIGINS: http://localhost:8080,http://localhost:3000
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      LOG_LEVEL: info
+    ports:
+      - "3001:3001"
+    networks:
+      - imvcmpc-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Web Server for Static Files
+  web:
+    image: nginx:alpine
+    container_name: imvcmpc-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./shared:/usr/share/nginx/html/shared:ro
+      - ./financeofficer:/usr/share/nginx/html/financeofficer:ro
+      - ./marketingclerk:/usr/share/nginx/html/marketingclerk:ro
+      - ./ithead:/usr/share/nginx/html/ithead:ro
+      - ./logpage:/usr/share/nginx/html/logpage:ro
+      - ./assets:/usr/share/nginx/html/assets:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+    networks:
+      - imvcmpc-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  imvcmpc-network:
+    driver: bridge

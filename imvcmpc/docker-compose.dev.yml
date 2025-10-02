@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  api:
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    volumes:
+      - ./auth:/app/auth
+      - /app/auth/node_modules
+    command: ["npm", "run", "dev"]
+    ports:
+      - "3001:3001"
+      - "9229:9229"  # Debug port
+
+  web:
+    volumes:
+      - ./shared:/usr/share/nginx/html/shared
+      - ./financeofficer:/usr/share/nginx/html/financeofficer
+      - ./marketingclerk:/usr/share/nginx/html/marketingclerk
+      - ./ithead:/usr/share/nginx/html/ithead
+      - ./logpage:/usr/share/nginx/html/logpage
+      - ./assets:/usr/share/nginx/html/assets
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf

@@ -1,0 +1,63 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: imvcmpc-database
+    env: docker
+    plan: starter
+    databases:
+      - name: imvcmpc_fms
+        user: imvcmpc_user
+
+  # Node.js API Service
+  - type: web
+    name: imvcmpc-api
+    env: docker
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        fromDatabase:
+          name: imvcmpc-database
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: imvcmpc-database
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: imvcmpc-database
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: imvcmpc-database
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: imvcmpc-database
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: MAX_LOGIN_ATTEMPTS
+        value: 5
+      - key: LOCKOUT_DURATION
+        value: 15
+      - key: SESSION_TIMEOUT
+        value: 30
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: LOG_LEVEL
+        value: info
+    buildCommand: echo "Build completed"
+    startCommand: node server.js
+    healthCheckPath: /health

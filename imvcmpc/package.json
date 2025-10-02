@@ -1,0 +1,37 @@
+{
+  "name": "imvcmpc-financial-management-system",
+  "version": "1.0.0",
+  "description": "IMVCMPC Financial Management System - Dockerized Application",
+  "main": "auth/server.js",
+  "scripts": {
+    "start": "node auth/server.js",
+    "dev": "cd auth && npm run dev",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:restart": "docker-compose restart",
+    "docker:clean": "docker-compose down -v --rmi all",
+    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
+    "setup": "cd auth && npm install",
+    "test": "cd auth && npm test"
+  },
+  "keywords": [
+    "financial-management",
+    "cooperative",
+    "docker",
+    "nodejs",
+    "postgresql",
+    "nginx"
+  ],
+  "author": "IMVCMPC Development Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/imvcmpc/financial-management-system.git"
+  }
+}

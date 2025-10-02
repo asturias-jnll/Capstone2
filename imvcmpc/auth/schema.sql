@@ -233,77 +233,77 @@ CREATE INDEX IF NOT EXISTS idx_ibaan_transactions_payee ON ibaan_transactions(pa
 CREATE INDEX IF NOT EXISTS idx_ibaan_transactions_branch_id ON ibaan_transactions(branch_id);
 CREATE INDEX IF NOT EXISTS idx_ibaan_transactions_created_by ON ibaan_transactions(created_by);
 
--- Indexes for Bauan transactions
-CREATE INDEX IF NOT EXISTS idx_bauan_transactions_date ON bauan_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_bauan_transactions_payee ON bauan_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_bauan_transactions_branch_id ON bauan_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_bauan_transactions_created_by ON bauan_transactions(created_by);
+-- Indexes for Bauan transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_bauan_transactions_date ON bauan_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_bauan_transactions_payee ON bauan_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_bauan_transactions_branch_id ON bauan_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_bauan_transactions_created_by ON bauan_transactions(created_by);
 
--- Indexes for San Jose transactions
-CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_date ON sanjose_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_payee ON sanjose_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_branch_id ON sanjose_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_created_by ON sanjose_transactions(created_by);
+-- Indexes for San Jose transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_date ON sanjose_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_payee ON sanjose_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_branch_id ON sanjose_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_created_by ON sanjose_transactions(created_by);
 
--- Indexes for Rosario transactions
-CREATE INDEX IF NOT EXISTS idx_rosario_transactions_date ON rosario_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_rosario_transactions_payee ON rosario_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_rosario_transactions_branch_id ON rosario_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_rosario_transactions_created_by ON rosario_transactions(created_by);
+-- Indexes for Rosario transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_rosario_transactions_date ON rosario_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_rosario_transactions_payee ON rosario_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_rosario_transactions_branch_id ON rosario_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_rosario_transactions_created_by ON rosario_transactions(created_by);
 
--- Indexes for San Juan transactions
-CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_date ON sanjuan_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_payee ON sanjuan_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_branch_id ON sanjuan_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_created_by ON sanjuan_transactions(created_by);
+-- Indexes for San Juan transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_date ON sanjuan_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_payee ON sanjuan_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_branch_id ON sanjuan_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_created_by ON sanjuan_transactions(created_by);
 
--- Indexes for Padre Garcia transactions
-CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_date ON padregarcia_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_payee ON padregarcia_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_branch_id ON padregarcia_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_created_by ON padregarcia_transactions(created_by);
+-- Indexes for Padre Garcia transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_date ON padregarcia_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_payee ON padregarcia_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_branch_id ON padregarcia_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_created_by ON padregarcia_transactions(created_by);
 
--- Indexes for Lipa City transactions
-CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_date ON lipacity_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_payee ON lipacity_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_branch_id ON lipacity_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_created_by ON lipacity_transactions(created_by);
+-- Indexes for Lipa City transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_date ON lipacity_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_payee ON lipacity_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_branch_id ON lipacity_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_created_by ON lipacity_transactions(created_by);
 
--- Indexes for Batangas City transactions
-CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_date ON batangascity_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_payee ON batangascity_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_branch_id ON batangascity_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_created_by ON batangascity_transactions(created_by);
+-- Indexes for Batangas City transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_date ON batangascity_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_payee ON batangascity_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_branch_id ON batangascity_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_created_by ON batangascity_transactions(created_by);
 
--- Indexes for Mabini Lipa transactions
-CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_date ON mabinilipa_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_payee ON mabinilipa_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_branch_id ON mabinilipa_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_created_by ON mabinilipa_transactions(created_by);
+-- Indexes for Mabini Lipa transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_date ON mabinilipa_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_payee ON mabinilipa_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_branch_id ON mabinilipa_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_created_by ON mabinilipa_transactions(created_by);
 
--- Indexes for Calamias transactions
-CREATE INDEX IF NOT EXISTS idx_calamias_transactions_date ON calamias_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_calamias_transactions_payee ON calamias_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_calamias_transactions_branch_id ON calamias_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_calamias_transactions_created_by ON calamias_transactions(created_by);
+-- Indexes for Calamias transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_calamias_transactions_date ON calamias_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_calamias_transactions_payee ON calamias_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_calamias_transactions_branch_id ON calamias_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_calamias_transactions_created_by ON calamias_transactions(created_by);
 
--- Indexes for Lemery transactions
-CREATE INDEX IF NOT EXISTS idx_lemery_transactions_date ON lemery_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_lemery_transactions_payee ON lemery_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_lemery_transactions_branch_id ON lemery_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_lemery_transactions_created_by ON lemery_transactions(created_by);
+-- Indexes for Lemery transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_lemery_transactions_date ON lemery_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_lemery_transactions_payee ON lemery_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_lemery_transactions_branch_id ON lemery_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_lemery_transactions_created_by ON lemery_transactions(created_by);
 
--- Indexes for Mataas Na Kahoy transactions
-CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_date ON mataasnakahoy_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_payee ON mataasnakahoy_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_branch_id ON mataasnakahoy_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_created_by ON mataasnakahoy_transactions(created_by);
+-- Indexes for Mataas Na Kahoy transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_date ON mataasnakahoy_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_payee ON mataasnakahoy_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_branch_id ON mataasnakahoy_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_created_by ON mataasnakahoy_transactions(created_by);
 
--- Indexes for Tanauan transactions
-CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_date ON tanauan_transactions(transaction_date);
-CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_payee ON tanauan_transactions(payee);
-CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_branch_id ON tanauan_transactions(branch_id);
-CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_created_by ON tanauan_transactions(created_by);
+-- Indexes for Tanauan transactions (moved to after table creation)
+-- CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_date ON tanauan_transactions(transaction_date);
+-- CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_payee ON tanauan_transactions(payee);
+-- CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_branch_id ON tanauan_transactions(branch_id);
+-- CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_created_by ON tanauan_transactions(created_by);
 
 
 -- ===========================================
@@ -662,3 +662,80 @@ CREATE INDEX IF NOT EXISTS idx_change_requests_created_at ON change_requests(cre
 -- Create trigger for updated_at on change_requests
 CREATE TRIGGER update_change_requests_updated_at BEFORE UPDATE ON change_requests
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ===========================================
+-- INDEXES FOR BRANCH-SPECIFIC TRANSACTION TABLES
+-- ===========================================
+-- These indexes are created after all table definitions to avoid dependency issues
+
+-- Indexes for Bauan transactions
+CREATE INDEX IF NOT EXISTS idx_bauan_transactions_date ON bauan_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_bauan_transactions_payee ON bauan_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_bauan_transactions_branch_id ON bauan_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_bauan_transactions_created_by ON bauan_transactions(created_by);
+
+-- Indexes for San Jose transactions
+CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_date ON sanjose_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_payee ON sanjose_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_branch_id ON sanjose_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_sanjose_transactions_created_by ON sanjose_transactions(created_by);
+
+-- Indexes for Rosario transactions
+CREATE INDEX IF NOT EXISTS idx_rosario_transactions_date ON rosario_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_rosario_transactions_payee ON rosario_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_rosario_transactions_branch_id ON rosario_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_rosario_transactions_created_by ON rosario_transactions(created_by);
+
+-- Indexes for San Juan transactions
+CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_date ON sanjuan_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_payee ON sanjuan_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_branch_id ON sanjuan_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_sanjuan_transactions_created_by ON sanjuan_transactions(created_by);
+
+-- Indexes for Padre Garcia transactions
+CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_date ON padregarcia_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_payee ON padregarcia_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_branch_id ON padregarcia_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_padregarcia_transactions_created_by ON padregarcia_transactions(created_by);
+
+-- Indexes for Lipa City transactions
+CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_date ON lipacity_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_payee ON lipacity_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_branch_id ON lipacity_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_lipacity_transactions_created_by ON lipacity_transactions(created_by);
+
+-- Indexes for Batangas City transactions
+CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_date ON batangascity_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_payee ON batangascity_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_branch_id ON batangascity_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_batangascity_transactions_created_by ON batangascity_transactions(created_by);
+
+-- Indexes for Mabini Lipa transactions
+CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_date ON mabinilipa_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_payee ON mabinilipa_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_branch_id ON mabinilipa_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_mabinilipa_transactions_created_by ON mabinilipa_transactions(created_by);
+
+-- Indexes for Calamias transactions
+CREATE INDEX IF NOT EXISTS idx_calamias_transactions_date ON calamias_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_calamias_transactions_payee ON calamias_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_calamias_transactions_branch_id ON calamias_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_calamias_transactions_created_by ON calamias_transactions(created_by);
+
+-- Indexes for Lemery transactions
+CREATE INDEX IF NOT EXISTS idx_lemery_transactions_date ON lemery_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_lemery_transactions_payee ON lemery_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_lemery_transactions_branch_id ON lemery_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_lemery_transactions_created_by ON lemery_transactions(created_by);
+
+-- Indexes for Mataas Na Kahoy transactions
+CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_date ON mataasnakahoy_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_payee ON mataasnakahoy_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_branch_id ON mataasnakahoy_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_mataasnakahoy_transactions_created_by ON mataasnakahoy_transactions(created_by);
+
+-- Indexes for Tanauan transactions
+CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_date ON tanauan_transactions(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_payee ON tanauan_transactions(payee);
+CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_branch_id ON tanauan_transactions(branch_id);
+CREATE INDEX IF NOT EXISTS idx_tanauan_transactions_created_by ON tanauan_transactions(created_by);
