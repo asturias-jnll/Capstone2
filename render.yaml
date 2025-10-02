@@ -3,8 +3,6 @@ services:
   - type: pserv
     name: imvcmpc-database
     plan: starter
-    databaseName: imvcmpc_fms
-    databaseUser: imvcmpc_user
 
   # Node.js API Service
   - type: web
