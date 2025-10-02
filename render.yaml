@@ -4,9 +4,6 @@ services:
     name: imvcmpc-database
     env: docker
     plan: starter
-    databases:
-      - name: imvcmpc_fms
-        user: imvcmpc_user
 
   # Node.js API Service
   - type: web
@@ -27,9 +24,7 @@ services:
           name: imvcmpc-database
           property: port
       - key: DB_NAME
-        fromDatabase:
-          name: imvcmpc-database
-          property: database
+        value: imvcmpc_fms
       - key: DB_USER
         fromDatabase:
           name: imvcmpc-database
