@@ -1,6 +1,9 @@
 # Production Dockerfile for Render deployment (Repository Root)
 FROM node:18-alpine
 
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
 # Set working directory
 WORKDIR /app
 
@@ -8,8 +11,10 @@ WORKDIR /app
 COPY imvcmpc/auth/package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy application code
-COPY imvcmpc/auth/ ./
+# Copy application code (excluding node_modules to avoid architecture conflicts)
+COPY imvcmpc/auth/*.js ./
+COPY imvcmpc/auth/*.json ./
+COPY imvcmpc/auth/*.sql ./
 
 # Copy static files
 COPY imvcmpc/shared/ ./static/shared/
