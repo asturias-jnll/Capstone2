@@ -69,10 +69,23 @@ app.get('/health', async (req, res) => {
     }
 });
 
+// Serve static files
+app.use('/shared', express.static('static/shared'));
+app.use('/financeofficer', express.static('static/financeofficer'));
+app.use('/marketingclerk', express.static('static/marketingclerk'));
+app.use('/ithead', express.static('static/ithead'));
+app.use('/logpage', express.static('static/logpage'));
+app.use('/assets', express.static('static/assets'));
+
+// Root redirect to login page
+app.get('/', (req, res) => {
+    res.redirect('/logpage/login.html');
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 
-// 404 handler
+// 404 handler for non-existent routes
 app.use('*', (req, res) => {
     res.status(404).json({
         success: false,
