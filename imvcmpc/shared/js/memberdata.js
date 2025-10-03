@@ -113,7 +113,7 @@ function getAuthToken() {
 // Automatic login function for member data page
 async function autoLogin() {
     try {
-        console.log('Attempting auto-login...');
+        console.log('🔄 Attempting auto-login...');
         
         // Clear any existing token to force fresh login
         localStorage.removeItem('access_token');
@@ -121,6 +121,8 @@ async function autoLogin() {
         localStorage.removeItem('user_branch_id');
         localStorage.removeItem('user_branch_name');
         localStorage.removeItem('is_main_branch_user');
+        
+        console.log('📡 Making login request to:', `${API_BASE_URL}/login`);
         
         // Try to login with the test finance officer user
         const response = await fetch(`${API_BASE_URL}/login`, {
@@ -134,13 +136,16 @@ async function autoLogin() {
             })
         });
 
-        console.log('Login response status:', response.status);
+        console.log('📊 Login response status:', response.status);
 
         if (!response.ok) {
-            throw new Error(`Login failed: ${response.status}`);
+            const errorText = await response.text();
+            console.error('❌ Login failed:', response.status, errorText);
+            throw new Error(`Login failed: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
+        console.log('✅ Login response data:', result);
         
         if (result.success && result.tokens && result.tokens.access_token) {
             // Store the token in localStorage
@@ -165,6 +170,13 @@ async function autoLogin() {
                 localStorage.setItem('user_branch_name', 'Main Branch');
                 localStorage.setItem('is_main_branch_user', 'true');
             }
+            
+            console.log('🎉 Auto-login successful, token stored');
+            console.log('👤 User info stored:', {
+                role: localStorage.getItem('user_role'),
+                branch: localStorage.getItem('user_branch_name'),
+                isMainBranch: localStorage.getItem('is_main_branch_user')
+            });
             
             return result.tokens.access_token;
         } else {
@@ -235,14 +247,14 @@ async function apiRequest(endpoint, options = {}) {
 // Load transactions from database
 async function loadTransactionsFromDatabase() {
     try {
-        console.log('Loading transactions from database...');
+        console.log('🔄 Loading transactions from database...');
         
         const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
         const userRole = localStorage.getItem('user_role');
         const userBranchId = localStorage.getItem('user_branch_id');
         const userBranchName = localStorage.getItem('user_branch_name');
         
-        console.log('User info:', { isMainBranchUser, userRole, userBranchId, userBranchName });
+        console.log('👤 User info:', { isMainBranchUser, userRole, userBranchId, userBranchName });
         
         // Validate that we have branch information
         if (!userBranchId) {
@@ -255,17 +267,21 @@ async function loadTransactionsFromDatabase() {
         try {
             console.log('Testing server connection...');
             const healthResponse = await fetch('/health');
-            const healthData = await healthResponse.json();
-            console.log('Server health check:', healthData);
+            if (healthResponse.ok) {
+                const healthText = await healthResponse.text();
+                console.log('✅ Server health check:', healthText);
+            } else {
+                throw new Error(`Health check failed: ${healthResponse.status}`);
+            }
         } catch (healthError) {
-            console.error('Server health check failed:', healthError);
+            console.error('❌ Server health check failed:', healthError);
             throw new Error('Server is not running. Please start the server on port 3001.');
         }
         
         // Always include branch_id in the request for proper data isolation
-        console.log('Making API request to:', `/transactions?branch_id=${userBranchId}`);
+        console.log('📡 Making API request to:', `/transactions?branch_id=${userBranchId}`);
         const response = await apiRequest(`/transactions?branch_id=${userBranchId}`);
-        console.log('API response:', response);
+        console.log('📊 API response:', response);
         
         if (response.success) {
             transactions = response.data || [];
