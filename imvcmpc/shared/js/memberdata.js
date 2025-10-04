@@ -2590,33 +2590,6 @@ function createChangeDetails(originalData, requestedChanges) {
         }
     });
     
-    // If no changes detected but we have requested changes, show them as new values
-    if (changes.length === 0 && Object.keys(requestedChanges).length > 0) {
-        Object.keys(requestedChanges).forEach(field => {
-            if (requestedChanges[field] !== undefined && requestedChanges[field] !== null) {
-                const fieldLabel = fieldLabels[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                const formatValue = (value) => {
-                    if (value === null || value === undefined || value === '') return 'N/A';
-                    if (typeof value === 'number') {
-                        return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    }
-                    return value.toString();
-                };
-                
-                changes.push(`
-                    <div class="change-item">
-                        <div class="change-field">${fieldLabel}</div>
-                        <div class="change-values">
-                            <span class="change-from">From: N/A</span>
-                            <span class="change-arrow">→</span>
-                            <span class="change-to">To: ${formatValue(requestedChanges[field])}</span>
-                        </div>
-                    </div>
-                `);
-            }
-        });
-    }
-    
     if (changes.length === 0) {
         return '<div class="no-changes">No specific changes detected</div>';
     }
