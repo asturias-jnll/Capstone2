@@ -149,15 +149,112 @@ function initializeRoleBasedNavigation() {
         const navItem = document.createElement('a');
         navItem.href = item.href;
         navItem.className = 'nav-item';
-        navItem.innerHTML = `
-            <i class="${item.icon}"></i>
-            <span>${item.text}</span>
-        `;
+        
+        // Add notification badge for Marketing Clerk notifications
+        if (item.href === 'notifications.html' && userRole === 'Marketing Clerk') {
+            navItem.innerHTML = `
+                <i class="${item.icon}"></i>
+                <span>${item.text}</span>
+                <span class="notification-badge" id="navNotificationBadge" style="display: none;">0</span>
+            `;
+        } else {
+            navItem.innerHTML = `
+                <i class="${item.icon}"></i>
+                <span>${item.text}</span>
+            `;
+        }
+        
         navMenu.appendChild(navItem);
     });
     
     // Set active navigation after generating items
     setActiveNavigation();
+    
+    // Initialize notification count for Marketing Clerk
+    if (userRole === 'Marketing Clerk') {
+        updateMarketingClerkNotificationCount();
+    }
+}
+
+// Update notification count for Marketing Clerk
+async function updateMarketingClerkNotificationCount() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.error('No access token found');
+            return;
+        }
+
+        const response = await fetch('/api/auth/notifications', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch notifications');
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const notifications = data.data || [];
+            
+            // Count unread notifications for Marketing Clerk
+            const unreadCount = notifications.filter(n => 
+                n.reference_type === 'new_request' && 
+                !n.is_read && 
+                n.status !== 'completed'
+            ).length;
+            
+            updateNotificationBadge(unreadCount);
+        }
+    } catch (error) {
+        console.error('Error updating notification count:', error);
+    }
+}
+
+// Update the notification badge display
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('navNotificationBadge');
+    
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// Mark notification as read (called when Marketing Clerk views a notification)
+async function markMarketingClerkNotificationAsRead(notificationId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.error('No access token found');
+            return;
+        }
+
+        const response = await fetch(`/api/auth/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to mark notification as read');
+        }
+
+        // Update the notification count after marking as read
+        await updateMarketingClerkNotificationCount();
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
 }
 
 // Logout function - shows confirmation and spinning logo before redirecting

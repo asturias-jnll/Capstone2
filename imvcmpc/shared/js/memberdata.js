@@ -2291,17 +2291,6 @@ function createPendingRequestsModal(requests) {
             box-shadow: 0 2px 8px rgba(255, 167, 38, 0.1);
         }
         
-        .request-item.request-highlighted {
-            background: #FEF3C7;
-            border: 2px solid #F59E0B;
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
-            animation: pulse-highlight 2s ease-in-out 3;
-        }
-        
-        @keyframes pulse-highlight {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-        }
         
         .request-header {
             display: flex;

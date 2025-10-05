@@ -5,6 +5,19 @@
     box-sizing: border-box;
 }
 
+/* Request Highlighting Styles */
+.request-item.request-highlighted {
+    background: #FEF3C7 !important;
+    border: 2px solid #F59E0B !important;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3) !important;
+    animation: pulse-highlight 2s ease-in-out 3 !important;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
 body {
     font-family: 'Inter', sans-serif;
     background: linear-gradient(135deg, #E9EEF3 0%, #B8D53D 100%);

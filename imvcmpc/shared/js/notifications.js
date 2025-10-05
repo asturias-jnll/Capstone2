@@ -91,7 +91,13 @@ async function loadNotificationsFromAPI() {
             allNotifications = data.data || [];
             console.log(`✅ Loaded ${allNotifications.length} notifications`);
             displayNotifications(allNotifications);
-            await updateNotificationCounts();
+            updateNotificationCounts();
+            
+            // Update Marketing Clerk notification count if applicable
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Marketing Clerk' && typeof updateMarketingClerkNotificationCount === 'function') {
+                await updateMarketingClerkNotificationCount();
+            }
         } else {
             console.error('❌ API returned success=false:', data);
             showEmptyState();
@@ -206,23 +212,13 @@ function filterNotifications(filterType) {
 }
 
 // Update notification counts
-async function updateNotificationCounts() {
-    // Only count notifications that haven't been processed yet
-    let pendingCount = 0;
-    
-    for (const notification of allNotifications) {
-        if (notification.category === 'important' && notification.is_highlighted) {
-            // Check if the request is still pending
-            if (notification.reference_type === 'new_request' && notification.reference_id) {
-                const isProcessed = await checkIfRequestProcessed(notification.reference_id);
-                if (!isProcessed) {
-                    pendingCount++;
-                }
-            } else {
-                pendingCount++;
-            }
-        }
-    }
+function updateNotificationCounts() {
+    // Only count notifications that are still pending (not completed)
+    const pendingCount = allNotifications.filter(n => 
+        n.category === 'important' && 
+        n.is_highlighted && 
+        n.status === 'pending'
+    ).length;
     
     const importantBadge = document.getElementById('importantCount');
     if (importantBadge) {
@@ -232,7 +228,7 @@ async function updateNotificationCounts() {
 }
 
 // Show notification modal
-async function showNotificationModal(notification) {
+function showNotificationModal(notification) {
     currentNotification = notification;
     
     const modal = document.getElementById('notificationModal');
@@ -248,22 +244,16 @@ async function showNotificationModal(notification) {
         modalTime.textContent = getTimeAgo(notification.timestamp);
         modalContent.textContent = notification.content;
         
-        // Show appropriate buttons based on notification and request status
+        // Show appropriate buttons based on notification status
         const initialButtons = document.getElementById('initialButtons');
         const actionTakenButtons = document.getElementById('actionTakenButtons');
         
-        // Check if the change request has been processed
-        let isRequestProcessed = false;
-        if (notification.reference_type === 'new_request' && notification.reference_id) {
-            isRequestProcessed = await checkIfRequestProcessed(notification.reference_id);
-        }
-        
-        if (notification.status === 'completed' || isRequestProcessed) {
-            // Show Close/Delete buttons for completed or processed requests
+        if (notification.status === 'completed') {
+            // Show Close/Delete buttons for completed notifications
             if (initialButtons) initialButtons.style.display = 'none';
             if (actionTakenButtons) actionTakenButtons.style.display = 'flex';
         } else {
-            // Show Later/Take Action buttons for new notifications
+            // Show Later/Take Action buttons for pending notifications
             if (initialButtons) initialButtons.style.display = 'flex';
             if (actionTakenButtons) actionTakenButtons.style.display = 'none';
         }
@@ -275,31 +265,6 @@ async function showNotificationModal(notification) {
     }
 }
 
-// Check if a change request has been processed (approved or rejected)
-async function checkIfRequestProcessed(requestId) {
-    try {
-        const token = localStorage.getItem('access_token');
-        if (!token) return false;
-
-        const response = await fetch(`${API_BASE_URL}/change-requests/${requestId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) return false;
-
-        const data = await response.json();
-        
-        // If status is not pending, it has been processed
-        return data.changeRequest && data.changeRequest.status !== 'pending';
-    } catch (error) {
-        console.error('Error checking request status:', error);
-        return false;
-    }
-}
 
 // Close notification modal
 function closeNotificationModal() {
@@ -378,7 +343,7 @@ async function handleDelete() {
                 
                 // Refresh display
                 filterNotifications(currentFilter);
-                await updateNotificationCounts();
+                updateNotificationCounts();
             }
         } catch (error) {
             console.error('Error deleting notification:', error);
@@ -419,6 +384,12 @@ async function markAsRead(notificationId, refreshList = true) {
             
             // Refresh display
             filterNotifications(currentFilter);
+            
+            // Update Marketing Clerk notification count if applicable
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Marketing Clerk' && typeof updateMarketingClerkNotificationCount === 'function') {
+                await updateMarketingClerkNotificationCount();
+            }
         }
     } catch (error) {
         console.error('Error marking notification as read:', error);
