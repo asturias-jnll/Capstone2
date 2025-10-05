@@ -7,14 +7,14 @@ RUN apk add --no-cache python3 make g++
 # Set working directory
 WORKDIR /app
 
-# Install dependencies first (for better caching)
+# Copy package files first for better caching
 COPY imvcmpc/auth/package*.json ./
+
+# Install dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy application code (excluding node_modules to avoid architecture conflicts)
-COPY imvcmpc/auth/*.js ./
-COPY imvcmpc/auth/*.json ./
-COPY imvcmpc/auth/*.sql ./
+# Copy all application files from auth directory
+COPY imvcmpc/auth/ ./
 
 # Copy static files
 COPY imvcmpc/shared/ ./static/shared/

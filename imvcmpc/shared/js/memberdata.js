@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeDynamicUserHeader();
     setupEventListeners();
     
+    // Check if we need to highlight a specific request (from notification)
+    checkForHighlightRequest();
 });
 
 // Initialize dynamic user header
@@ -2289,6 +2291,18 @@ function createPendingRequestsModal(requests) {
             box-shadow: 0 2px 8px rgba(255, 167, 38, 0.1);
         }
         
+        .request-item.request-highlighted {
+            background: #FEF3C7;
+            border: 2px solid #F59E0B;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+            animation: pulse-highlight 2s ease-in-out 3;
+        }
+        
+        @keyframes pulse-highlight {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
         .request-header {
             display: flex;
             justify-content: space-between;
@@ -2502,10 +2516,13 @@ function createRequestItem(request) {
         `;
     }
     
+    // Generate request number
+    const requestNumber = 'CR-' + request.id.substring(0, 8).toUpperCase();
+    
     return `
-        <div class="request-item">
+        <div class="request-item" data-request-id="${request.id}">
             <div class="request-header">
-                <span class="request-id">Request #${request.id.substring(0, 8)}</span>
+                <span class="request-id">Request #${requestNumber}</span>
                 <span class="request-date">${requestDate}</span>
             </div>
             <div class="request-details">

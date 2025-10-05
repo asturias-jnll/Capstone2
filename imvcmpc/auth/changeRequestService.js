@@ -28,11 +28,15 @@ class ChangeRequestService {
             } = changeRequestData;
 
             // Find a finance officer in the same branch to assign the request to
+            // Prefer production FOs (username starts with 'fo.') over test users
             const financeOfficerQuery = `
                 SELECT u.id, u.first_name, u.last_name
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
                 WHERE u.branch_id = $1 AND r.name = 'finance_officer' AND u.is_active = true
+                ORDER BY 
+                    CASE WHEN u.username LIKE 'fo.%' THEN 0 ELSE 1 END,
+                    u.created_at
                 LIMIT 1
             `;
             

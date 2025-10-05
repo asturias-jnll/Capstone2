@@ -664,6 +664,112 @@ CREATE TRIGGER update_change_requests_updated_at BEFORE UPDATE ON change_request
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ===========================================
+-- NOTIFICATIONS SYSTEM
+-- ===========================================
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    branch_id INTEGER REFERENCES branches(id),
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    category VARCHAR(50) DEFAULT 'system', -- 'system', 'important', 'transaction'
+    type VARCHAR(20) DEFAULT 'info', -- 'info', 'warning', 'error', 'success'
+    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'active', 'completed'
+    reference_type VARCHAR(50), -- 'change_request', 'transaction', 'user', etc.
+    reference_id UUID, -- ID of the related entity (change_request id, transaction id, etc.)
+    related_entity_type VARCHAR(50), -- Type of related entity (for future use)
+    related_entity_id UUID, -- ID of related entity (for future use)
+    metadata JSONB, -- Additional metadata as JSON
+    is_read BOOLEAN DEFAULT FALSE,
+    is_highlighted BOOLEAN DEFAULT FALSE,
+    priority VARCHAR(20) DEFAULT 'normal', -- 'normal', 'important', 'urgent'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    read_at TIMESTAMP
+);
+
+-- Create indexes for notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_branch_id ON notifications(branch_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_highlighted ON notifications(is_highlighted);
+CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_reference_type ON notifications(reference_type);
+CREATE INDEX IF NOT EXISTS idx_notifications_reference_id ON notifications(reference_id);
+
+-- Function to create notification for change request
+CREATE OR REPLACE FUNCTION create_change_request_notification()
+RETURNS TRIGGER AS $$
+DECLARE
+    request_number TEXT;
+BEGIN
+    -- Create notification for the assigned finance officer
+    IF NEW.assigned_to IS NOT NULL THEN
+        -- Generate a readable request number from the first 8 characters of UUID
+        request_number := 'CR-' || UPPER(SUBSTRING(NEW.id::TEXT, 1, 8));
+        
+        INSERT INTO notifications (
+            user_id,
+            branch_id,
+            title,
+            content,
+            category,
+            type,
+            status,
+            reference_type,
+            reference_id,
+            is_highlighted,
+            priority
+        ) VALUES (
+            NEW.assigned_to,
+            NEW.branch_id,
+            'New Request ' || request_number || ' Received',
+            'A marketing clerk has submitted change request #' || request_number || '. Please review and take action.',
+            'important',
+            'warning',
+            'pending',
+            'new_request',
+            NEW.id,
+            TRUE,
+            'important'
+        );
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically create notification when change request is created
+CREATE TRIGGER trigger_create_change_request_notification
+    AFTER INSERT ON change_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION create_change_request_notification();
+
+-- Function to unhighlight notification when change request is processed
+CREATE OR REPLACE FUNCTION unhighlight_change_request_notification()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Unhighlight notification when change request status changes to approved or rejected
+    IF NEW.status IN ('approved', 'rejected') AND OLD.status = 'pending' THEN
+        UPDATE notifications
+        SET is_highlighted = FALSE
+        WHERE reference_type = 'change_request'
+          AND reference_id = NEW.id;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically unhighlight notification when change request is processed
+CREATE TRIGGER trigger_unhighlight_change_request_notification
+    AFTER UPDATE ON change_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION unhighlight_change_request_notification();
+
+-- ===========================================
 -- INDEXES FOR BRANCH-SPECIFIC TRANSACTION TABLES
 -- ===========================================
 -- These indexes are created after all table definitions to avoid dependency issues

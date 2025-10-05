@@ -4,11 +4,13 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Install dependencies first (for better caching)
+# Copy package files first for better caching
 COPY imvcmpc/auth/package*.json ./
+
+# Install dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy application code
+# Copy all application files from auth directory
 COPY imvcmpc/auth/ ./
 
 # Copy static files

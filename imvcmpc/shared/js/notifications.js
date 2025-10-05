@@ -1,32 +1,34 @@
-// Notifications functionality
-document.addEventListener('DOMContentLoaded', function() {
-    initializeNotifications();
-});
+// Notifications Management System - Connected to Backend API
+// API Configuration
+const API_BASE_URL = '/api/auth';
 
-// Initialize all notifications functionality
-function initializeNotifications() {
+// Current state
+let currentFilter = 'all';
+let currentNotification = null;
+let allNotifications = [];
+
+// Initialize notifications when page loads
+document.addEventListener('DOMContentLoaded', function() {
     setupFilterEventListeners();
     setupNotificationEventListeners();
-    loadNotifications();
-    updateUnreadCount();
+    loadNotificationsFromAPI();
     
-}
-
-
-
-
-
+    // Refresh notifications every 30 seconds
+    setInterval(loadNotificationsFromAPI, 30000);
+});
 
 // Setup filter button event listeners
 function setupFilterEventListeners() {
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    
-    filterBtns.forEach(btn => {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
         btn.addEventListener('click', function() {
-            filterBtns.forEach(b => b.classList.remove('active'));
+            // Remove active class from all buttons
+            filterButtons.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
             this.classList.add('active');
             
             const filterType = this.getAttribute('data-filter');
+            currentFilter = filterType;
             filterNotifications(filterType);
         });
     });
@@ -35,137 +37,70 @@ function setupFilterEventListeners() {
 // Setup notification item event listeners
 function setupNotificationEventListeners() {
     document.addEventListener('click', function(e) {
+        // Handle notification click
         if (e.target.closest('.notification-item')) {
             const notificationItem = e.target.closest('.notification-item');
             const notificationId = notificationItem.getAttribute('data-id');
             
-            if (notificationItem.classList.contains('unread')) {
+            // Find the notification
+            const notification = allNotifications.find(n => n.id === notificationId);
+            if (notification) {
+                // Only show modal for important notifications (new requests)
+                if (notification.category === 'important' && notification.reference_type === 'new_request') {
+                    showNotificationModal(notification);
+                } else {
+                    // For other notifications, just mark as read
                 markAsRead(notificationId);
             }
         }
-        
-        if (e.target.closest('.notification-action-btn')) {
-            const actionBtn = e.target.closest('.notification-action-btn');
-            const action = actionBtn.getAttribute('data-action');
-            const notificationId = actionBtn.closest('.notification-item').getAttribute('data-id');
-            
-            handleNotificationAction(action, notificationId);
         }
     });
 }
 
-// Load notifications data
-function loadNotifications() {
-    // Generate main branch notifications (all branches)
-    const notifications = generateMainBranchNotifications();
-    
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-    displayNotifications(notifications);
-}
-
-
-// Generate main branch notifications (all branches)
-function generateMainBranchNotifications() {
-    return [
-        {
-            id: 1,
-            title: 'New Member Registration - IBAAN Main Branch',
-            content: 'A new member has been registered in IBAAN Main Branch. Please review the application.',
-            type: 'info',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'transaction',
-            branch: 'ibaamain',
-            status: 'pending'
-        },
-        {
-            id: 2,
-            title: 'System Maintenance Alert',
-            content: 'Scheduled system maintenance will occur tonight from 11:00 PM to 2:00 AM. Some services may be temporarily unavailable.',
-            type: 'warning',
-            priority: 'important',
-            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'system',
-            branch: 'ibaamain',
-            status: 'active'
-        },
-        {
-            id: 3,
-            title: 'Monthly Report Generated',
-            content: 'The monthly financial report for December 2024 has been successfully generated and is ready for review.',
-            type: 'success',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'system',
-            branch: 'ibaamain',
-            status: 'completed'
-        },
-        {
-            id: 4,
-            title: 'Branch Performance Alert - SAN JOSE Branch',
-            content: 'SAN JOSE Branch - Own Branch has exceeded its monthly savings target by 15%. Great performance!',
-            type: 'success',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-            isRead: true,
-            category: 'transaction',
-            branch: 'sanjose',
-            status: 'completed'
-        },
-        {
-            id: 5,
-            title: 'Database Backup Completed',
-            content: 'Daily database backup has been completed successfully. All data is secure and up to date.',
-            type: 'info',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
-            isRead: true,
-            category: 'system',
-            branch: 'ibaamain',
-            status: 'completed'
-        },
-        {
-            id: 6,
-            title: 'Member Data Update Required - IBAAN Main Branch',
-            content: 'Finance Officer has requested review of member data updates. Please review and update member information as needed.',
-            type: 'warning',
-            priority: 'important',
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-            isRead: true,
-            category: 'transaction',
-            branch: 'ibaamain',
-            status: 'pending'
-        },
-        {
-            id: 7,
-            title: 'New Transaction - LIPA CITY Branch',
-            content: 'Large deposit transaction completed in LIPA CITY Branch - Own Branch. Amount: ₱500,000.00',
-            type: 'success',
-            priority: 'normal',
-            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-            isRead: false,
-            category: 'transaction',
-            branch: 'lipacity',
-            status: 'completed'
-        },
-        {
-            id: 8,
-            title: 'System Update Available',
-            content: 'New system update v2.1.5 is available for installation. Includes performance improvements and bug fixes.',
-            type: 'info',
-            priority: 'important',
-            timestamp: new Date(Date.now() - 30 * 60 * 1000),
-            isRead: false,
-            category: 'system',
-            branch: 'ibaamain',
-            status: 'pending'
+// Load notifications from API
+async function loadNotificationsFromAPI() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.error('❌ No access token found');
+            showEmptyState();
+            return;
         }
-    ];
-}
 
+        console.log('📡 Fetching notifications from:', `${API_BASE_URL}/notifications`);
+
+        const response = await fetch(`${API_BASE_URL}/notifications`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log('📥 Response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error:', errorText);
+            throw new Error('Failed to fetch notifications');
+        }
+
+        const data = await response.json();
+        console.log('📋 Notifications data:', data);
+        
+        if (data.success) {
+            allNotifications = data.data || [];
+            console.log(`✅ Loaded ${allNotifications.length} notifications`);
+            displayNotifications(allNotifications);
+            await updateNotificationCounts();
+        } else {
+            console.error('❌ API returned success=false:', data);
+            showEmptyState();
+        }
+    } catch (error) {
+        console.error('❌ Error loading notifications:', error);
+        showEmptyState();
+    }
+}
 
 // Display notifications in the UI
 function displayNotifications(notifications) {
@@ -176,7 +111,7 @@ function displayNotifications(notifications) {
     
     if (notifications.length === 0) {
         notificationsList.style.display = 'none';
-        notificationsEmpty.style.display = 'block';
+        notificationsEmpty.style.display = 'flex';
         return;
     }
     
@@ -193,14 +128,18 @@ function displayNotifications(notifications) {
 // Create a single notification item
 function createNotificationItem(notification) {
     const notificationItem = document.createElement('div');
-    notificationItem.className = `notification-item ${notification.isRead ? '' : 'unread'} ${notification.priority === 'important' ? 'important' : ''} ${notification.category}`;
+    
+    const isUnread = !notification.isRead;
+    const isHighlighted = notification.is_highlighted;
+    const isImportant = notification.category === 'important';
+    
+    notificationItem.className = `notification-item ${isUnread ? 'unread' : ''} ${isHighlighted ? 'highlighted' : ''} ${isImportant ? 'important' : ''} ${notification.category}`;
     notificationItem.setAttribute('data-id', notification.id);
-    notificationItem.setAttribute('data-branch', notification.branch);
-    notificationItem.setAttribute('data-status', notification.status);
+    notificationItem.setAttribute('data-category', notification.category);
+    notificationItem.setAttribute('data-type', notification.type);
     
     const timeAgo = getTimeAgo(notification.timestamp);
     const typeClass = notification.type;
-    const branchName = getBranchName(notification.branch);
     
     notificationItem.innerHTML = `
         <div class="notification-header">
@@ -211,40 +150,14 @@ function createNotificationItem(notification) {
                         <i class="fas fa-${getTypeIcon(notification.type)}"></i>
                         ${notification.type}
                     </span>
-                    <span class="notification-branch">${branchName}</span>
                     <span class="notification-time">${timeAgo}</span>
                 </div>
             </div>
         </div>
         <div class="notification-content">${notification.content}</div>
-        <div class="notification-actions">
-            ${notification.isRead ? '' : '<button class="notification-action-btn primary" data-action="mark-read"><i class="fas fa-check"></i> Mark as Read</button>'}
-            ${notification.status === 'pending' ? '<button class="notification-action-btn warning" data-action="mark-done"><i class="fas fa-check-circle"></i> Mark as Done</button>' : ''}
-            <button class="notification-action-btn" data-action="dismiss"><i class="fas fa-times"></i> Dismiss</button>
-        </div>
     `;
     
     return notificationItem;
-}
-
-// Get branch name from branch code
-function getBranchName(branchCode) {
-    const branches = {
-        'ibaamain': 'Branch 1 - IBAAN',
-        'bauan': 'Branch 2 - BAUAN',
-        'sanjose': 'Branch 3 - SAN JOSE',
-        'rosario': 'Branch 4 - ROSARIO',
-        'sanjuan': 'Branch 5 - SAN JUAN',
-        'padregarcia': 'Branch 6 - PADRE GARCIA',
-        'lipacity': 'Branch 7 - LIPA CITY',
-        'batangascity': 'Branch 8 - BATANGAS CITY',
-        'mabini': 'Branch 9 - MABINI LIPA',
-        'calamias': 'Branch 10 - CALAMIAS',
-        'lemery': 'Branch 11 - LEMERY',
-        'mataasnakahoy': 'Branch 12 - MATAAS NA KAHOY',
-        'tanauan': 'Branch 13 - TANAUAN'
-    };
-    return branches[branchCode] || branchCode;
 }
 
 // Get appropriate icon for notification type
@@ -261,183 +174,306 @@ function getTypeIcon(type) {
 // Get time ago string
 function getTimeAgo(timestamp) {
     const now = new Date();
-    const diffInSeconds = Math.floor((now - timestamp) / 1000);
+    const notificationTime = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - notificationTime) / 1000);
     
     if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) {
-        const minutes = Math.floor(diffInSeconds / 60);
-        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-    }
-    if (diffInSeconds < 86400) {
-        const hours = Math.floor(diffInSeconds / 3600);
-        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    }
-    const days = Math.floor(diffInSeconds / 86400);
-    return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
 }
 
 // Filter notifications based on selected filter
 function filterNotifications(filterType) {
-    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
     let filteredNotifications = [];
     
+    // Always filter out old "change_request" notifications, only show "new_request"
+    const validNotifications = allNotifications.filter(n => n.reference_type !== 'change_request');
+    
     switch (filterType) {
-        case 'unread':
-            filteredNotifications = notifications.filter(n => !n.isRead);
-            break;
-        case 'read':
-            filteredNotifications = notifications.filter(n => n.isRead);
-            break;
         case 'important':
-            filteredNotifications = notifications.filter(n => n.priority === 'important');
+            filteredNotifications = validNotifications.filter(n => n.category === 'important');
             break;
         case 'system':
-            filteredNotifications = notifications.filter(n => n.category === 'system');
-            break;
-        case 'done':
-            filteredNotifications = notifications.filter(n => n.status === 'completed');
+            filteredNotifications = validNotifications.filter(n => n.category === 'system');
             break;
         default: // 'all'
-            filteredNotifications = notifications;
+            filteredNotifications = validNotifications;
             break;
     }
     
     displayNotifications(filteredNotifications);
 }
 
+// Update notification counts
+async function updateNotificationCounts() {
+    // Only count notifications that haven't been processed yet
+    let pendingCount = 0;
+    
+    for (const notification of allNotifications) {
+        if (notification.category === 'important' && notification.is_highlighted) {
+            // Check if the request is still pending
+            if (notification.reference_type === 'new_request' && notification.reference_id) {
+                const isProcessed = await checkIfRequestProcessed(notification.reference_id);
+                if (!isProcessed) {
+                    pendingCount++;
+                }
+            } else {
+                pendingCount++;
+            }
+        }
+    }
+    
+    const importantBadge = document.getElementById('importantCount');
+    if (importantBadge) {
+        importantBadge.textContent = pendingCount;
+        importantBadge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+    }
+}
+
+// Show notification modal
+async function showNotificationModal(notification) {
+    currentNotification = notification;
+    
+    const modal = document.getElementById('notificationModal');
+    const modalTitle = document.getElementById('modalNotificationTitle');
+    const modalType = document.getElementById('modalNotificationType');
+    const modalTime = document.getElementById('modalNotificationTime');
+    const modalContent = document.getElementById('modalNotificationContent');
+    
+    if (modal && modalTitle && modalType && modalTime && modalContent) {
+        modalTitle.textContent = notification.title;
+        modalType.textContent = notification.type;
+        modalType.className = `notification-detail-type ${notification.type}`;
+        modalTime.textContent = getTimeAgo(notification.timestamp);
+        modalContent.textContent = notification.content;
+        
+        // Show appropriate buttons based on notification and request status
+        const initialButtons = document.getElementById('initialButtons');
+        const actionTakenButtons = document.getElementById('actionTakenButtons');
+        
+        // Check if the change request has been processed
+        let isRequestProcessed = false;
+        if (notification.reference_type === 'new_request' && notification.reference_id) {
+            isRequestProcessed = await checkIfRequestProcessed(notification.reference_id);
+        }
+        
+        if (notification.status === 'completed' || isRequestProcessed) {
+            // Show Close/Delete buttons for completed or processed requests
+            if (initialButtons) initialButtons.style.display = 'none';
+            if (actionTakenButtons) actionTakenButtons.style.display = 'flex';
+        } else {
+            // Show Later/Take Action buttons for new notifications
+            if (initialButtons) initialButtons.style.display = 'flex';
+            if (actionTakenButtons) actionTakenButtons.style.display = 'none';
+        }
+        
+        modal.style.display = 'flex';
+        
+        // Mark as read when opening modal
+        markAsRead(notification.id, false); // false = don't refresh list yet
+    }
+}
+
+// Check if a change request has been processed (approved or rejected)
+async function checkIfRequestProcessed(requestId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return false;
+
+        const response = await fetch(`${API_BASE_URL}/change-requests/${requestId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) return false;
+
+        const data = await response.json();
+        
+        // If status is not pending, it has been processed
+        return data.changeRequest && data.changeRequest.status !== 'pending';
+    } catch (error) {
+        console.error('Error checking request status:', error);
+        return false;
+    }
+}
+
+// Close notification modal
+function closeNotificationModal() {
+    const modal = document.getElementById('notificationModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    currentNotification = null;
+}
+
+// Handle "Later" button
+function handleLater() {
+    // Just close the modal, keep notification highlighted
+    closeNotificationModal();
+    // Refresh to show current state
+    filterNotifications(currentFilter);
+}
+
+// Handle "Take Action" button
+async function handleTakeAction() {
+    if (currentNotification && currentNotification.reference_type === 'new_request') {
+        // Store the data before closing modal (which sets currentNotification to null)
+        const notificationId = currentNotification.id;
+        const requestId = currentNotification.reference_id;
+        
+        // Close modal
+        closeNotificationModal();
+        
+        // Mark as read first
+        await markAsRead(notificationId, false);
+        
+        // Redirect to member data page with the request ID
+        window.location.href = `memberdata.html?highlightRequest=${requestId}`;
+    }
+}
+
+// Handle "Close" button (after action taken)
+function handleClose() {
+    closeNotificationModal();
+    // Refresh to show current state
+    filterNotifications(currentFilter);
+}
+
+// Handle "Delete" button (after action taken)
+async function handleDelete() {
+    if (currentNotification) {
+        const notificationId = currentNotification.id;
+        
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                console.error('No access token found');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete notification');
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Remove from local array
+                allNotifications = allNotifications.filter(n => n.id !== notificationId);
+                
+                // Close modal
+                closeNotificationModal();
+                
+                // Refresh display
+                filterNotifications(currentFilter);
+                await updateNotificationCounts();
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            alert('Failed to delete notification. Please try again.');
+        }
+    }
+}
 
 // Mark a notification as read
-function markAsRead(notificationId) {
-    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-    const notification = notifications.find(n => n.id == notificationId);
-    
-    if (notification && !notification.isRead) {
-        notification.isRead = true;
-        localStorage.setItem('notifications', JSON.stringify(notifications));
+async function markAsRead(notificationId, refreshList = true) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.error('No access token found');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to mark notification as read');
+        }
+
+        const data = await response.json();
         
-        const notificationItem = document.querySelector(`[data-id="${notificationId}"]`);
-        if (notificationItem) {
-            notificationItem.classList.remove('unread');
-            notificationItem.classList.remove('important');
+        if (data.success && refreshList) {
+            // Update local state
+            const notification = allNotifications.find(n => n.id === notificationId);
+            if (notification) {
+                notification.isRead = true;
+            }
             
-            const actions = notificationItem.querySelector('.notification-actions');
-            if (actions) {
-                actions.innerHTML = `
-                    ${notification.status === 'pending' ? '<button class="notification-action-btn warning" data-action="mark-done"><i class="fas fa-check-circle"></i> Mark as Done</button>' : ''}
-                    <button class="notification-action-btn" data-action="dismiss"><i class="fas fa-times"></i> Dismiss</button>
-                `;
+            // Refresh display
+            filterNotifications(currentFilter);
+        }
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
+}
+
+// Unhighlight notification (called from member data when request is processed)
+async function unhighlightNotification(changeRequestId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            return;
+        }
+
+        // Find notification by reference_id
+        const notification = allNotifications.find(n => 
+            n.reference_type === 'new_request' && n.reference_id === changeRequestId
+        );
+        
+        if (notification) {
+            const response = await fetch(`${API_BASE_URL}/notifications/${notification.id}/highlight`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_highlighted: false })
+            });
+
+            if (response.ok) {
+                // Update local state
+                notification.is_highlighted = false;
+                
+                // Refresh display
+                await loadNotificationsFromAPI();
             }
         }
-        
-        updateUnreadCount();
+    } catch (error) {
+        console.error('Error unhighlighting notification:', error);
     }
 }
 
-// Handle notification action
-function handleNotificationAction(action, notificationId) {
-    switch (action) {
-        case 'mark-read':
-            markAsRead(notificationId);
-            break;
-        case 'mark-done':
-            markAsDone(notificationId);
-            break;
-        case 'dismiss':
-            dismissNotification(notificationId);
-            break;
+// Show empty state
+function showEmptyState() {
+    const notificationsList = document.getElementById('notificationsList');
+    const notificationsEmpty = document.getElementById('notificationsEmpty');
+    
+    if (notificationsList && notificationsEmpty) {
+        notificationsList.style.display = 'none';
+        notificationsEmpty.style.display = 'flex';
     }
 }
 
-// Mark notification as done
-function markAsDone(notificationId) {
-    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-    const notification = notifications.find(n => n.id == notificationId);
-    
-    if (notification) {
-        notification.status = 'completed';
-        localStorage.setItem('notifications', JSON.stringify(notifications));
-        
-        const notificationItem = document.querySelector(`[data-id="${notificationId}"]`);
-        if (notificationItem) {
-            notificationItem.setAttribute('data-status', 'completed');
-            const actions = notificationItem.querySelector('.notification-actions');
-            if (actions) {
-                actions.innerHTML = `
-                    <button class="notification-action-btn" data-action="dismiss"><i class="fas fa-times"></i> Dismiss</button>
-                `;
-            }
-        }
-        
-        showNotificationMessage('Notification marked as done', 'success');
-    }
-}
-
-// Dismiss a notification
-function dismissNotification(notificationId) {
-    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-    const updatedNotifications = notifications.filter(n => n.id != notificationId);
-    
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-    
-    const notificationItem = document.querySelector(`[data-id="${notificationId}"]`);
-    if (notificationItem) {
-        notificationItem.remove();
-    }
-    
-    const remainingNotifications = document.querySelectorAll('.notification-item');
-    if (remainingNotifications.length === 0) {
-        document.getElementById('notificationsList').style.display = 'none';
-        document.getElementById('notificationsEmpty').style.display = 'block';
-    }
-    
-    updateUnreadCount();
-}
-
-// Update unread count badge
-function updateUnreadCount() {
-    const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-    const unreadCount = notifications.filter(n => !n.isRead).length;
-    
-    const unreadBadge = document.getElementById('unreadCount');
-    if (unreadBadge) {
-        unreadBadge.textContent = unreadCount;
-        unreadBadge.style.display = unreadCount === 0 ? 'none' : 'inline';
-    }
-}
-
-// Show notification message
-function showNotificationMessage(message, type = 'info') {
-    const messageElement = document.createElement('div');
-    messageElement.className = `notification-message ${type}`;
-    messageElement.style.cssText = `
-        position: fixed;
-        top: 120px;
-        right: 20px;
-        background: ${type === 'success' ? 'var(--green-500)' : 'var(--blue-500)'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
-        font-size: 14px;
-        font-weight: 500;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-    `;
-    messageElement.textContent = message;
-    
-    document.body.appendChild(messageElement);
-    
-    setTimeout(() => {
-        messageElement.style.transform = 'translateX(0)';
-    }, 100);
-    
-    setTimeout(() => {
-        messageElement.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (messageElement.parentNode) {
-                messageElement.parentNode.removeChild(messageElement);
-            }
-        }, 300);
-    }, 3000);
-}
+// Make functions available globally
+window.closeNotificationModal = closeNotificationModal;
+window.handleLater = handleLater;
+window.handleTakeAction = handleTakeAction;
+window.unhighlightNotification = unhighlightNotification;

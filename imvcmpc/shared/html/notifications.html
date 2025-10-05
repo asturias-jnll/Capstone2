@@ -94,26 +94,14 @@
                             <i class="fas fa-list"></i>
                             <span>All</span>
                         </button>
-                        <button class="filter-btn" data-filter="unread">
-                            <i class="fas fa-envelope"></i>
-                            <span>Unread</span>
-                            <span class="badge" id="unreadCount">3</span>
-                        </button>
-                        <button class="filter-btn" data-filter="read">
-                            <i class="fas fa-envelope-open"></i>
-                            <span>Read</span>
-                        </button>
                         <button class="filter-btn" data-filter="important">
                             <i class="fas fa-exclamation-triangle"></i>
                             <span>Important</span>
+                            <span class="badge" id="importantCount">0</span>
                         </button>
                         <button class="filter-btn" data-filter="system">
                             <i class="fas fa-cog"></i>
                             <span>System</span>
-                        </button>
-                        <button class="filter-btn" data-filter="done">
-                            <i class="fas fa-check-circle"></i>
-                            <span>Done</span>
                         </button>
                     </div>
 
@@ -134,6 +122,49 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Notification Detail Modal -->
+    <div id="notificationModal" class="modal" style="display: none;">
+        <div class="modal-content notification-modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Notification</h2>
+                <button class="modal-close" onclick="closeNotificationModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="notification-detail">
+                    <div class="notification-detail-title" id="modalNotificationTitle"></div>
+                    <div class="notification-detail-meta">
+                        <span class="notification-detail-type" id="modalNotificationType"></span>
+                        <span class="notification-detail-time" id="modalNotificationTime"></span>
+                    </div>
+                    <div class="notification-detail-content" id="modalNotificationContent"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <!-- Initial buttons (before action) -->
+                <div id="initialButtons" class="button-group">
+                    <button class="btn btn-secondary" onclick="handleLater()">
+                        <i class="fas fa-clock"></i> Later
+                    </button>
+                    <button class="btn btn-primary" onclick="handleTakeAction()">
+                        <i class="fas fa-check"></i> Take Action
+                    </button>
+                </div>
+                
+                <!-- Action taken buttons (after action) -->
+                <div id="actionTakenButtons" class="button-group" style="display: none;">
+                    <button class="btn btn-secondary" onclick="handleClose()">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                    <button class="btn btn-danger" onclick="handleDelete()">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="../js/main.js"></script>
