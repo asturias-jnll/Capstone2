@@ -1,22 +1,5 @@
 # Production Dockerfile for Render deployment (Repository Root)
-FROM node:18-alpine AS builder
-
-# Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++
-
-# Set working directory
-WORKDIR /app
-
-# Copy package files first for better caching
-COPY imvcmpc/auth/package*.json ./
-
-# Install dependencies and rebuild native modules for target architecture
-RUN npm ci --only=production && \
-    npm rebuild bcrypt --build-from-source && \
-    npm cache clean --force
-
-# Production stage
-FROM node:18-alpine AS production
+FROM node:18-alpine
 
 # Install runtime dependencies only
 RUN apk add --no-cache dumb-init
@@ -24,8 +7,11 @@ RUN apk add --no-cache dumb-init
 # Set working directory
 WORKDIR /app
 
-# Copy built application from builder stage
-COPY --from=builder /app/node_modules ./node_modules
+# Copy package files first for better caching
+COPY imvcmpc/auth/package*.json ./
+
+# Install dependencies (bcryptjs is pure JS, no native compilation needed)
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy all application files from auth directory
 COPY imvcmpc/auth/ ./
