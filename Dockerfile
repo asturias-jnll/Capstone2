@@ -1,5 +1,5 @@
 # Production Dockerfile for Render deployment (Repository Root)
-FROM node:18-alpine
+FROM node:18-alpine AS builder
 
 # Install build dependencies for native modules
 RUN apk add --no-cache python3 make g++
@@ -10,8 +10,22 @@ WORKDIR /app
 # Copy package files first for better caching
 COPY imvcmpc/auth/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install dependencies and rebuild native modules for target architecture
+RUN npm ci --only=production && \
+    npm rebuild bcrypt --build-from-source && \
+    npm cache clean --force
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install runtime dependencies only
+RUN apk add --no-cache dumb-init
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application from builder stage
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy all application files from auth directory
 COPY imvcmpc/auth/ ./
@@ -39,5 +53,5 @@ EXPOSE $PORT
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3001) + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the application
-CMD ["node", "server.js"]
+# Start the application with dumb-init for proper signal handling
+CMD ["dumb-init", "node", "server.js"]
