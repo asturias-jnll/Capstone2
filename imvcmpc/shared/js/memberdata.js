@@ -1250,6 +1250,57 @@ function closeDeleteConfirmation() {
 async function confirmDelete() {
     if (!window.currentTransaction) return;
     
+    const userRole = localStorage.getItem('user_role');
+    
+    // Finance Officers can delete immediately
+    if (userRole === 'Finance Officer') {
+        await performImmediateDelete();
+        return;
+    }
+    
+    // Marketing Clerks must request deletion
+    try {
+        showLoadingState();
+        closeDeleteConfirmation();
+        
+        const userId = localStorage.getItem('user_id');
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const transaction = window.currentTransaction;
+        
+        // Create delete request
+        const requestData = {
+            transaction_id: transaction.id,
+            transaction_table: transaction.transaction_type || 'transactions',
+            original_data: transaction,
+            requested_changes: { action: 'delete' }, // Mark as delete action
+            reason: `MC requests to delete transaction for ${transaction.payee}`,
+            request_type: 'deletion' // New type
+        };
+        
+        const response = await apiRequest('/change-requests', {
+            method: 'POST',
+            body: JSON.stringify(requestData)
+        });
+        
+        if (response.success) {
+            closeTransactionModal();
+            await loadTransactionsFromDatabase();
+            showDeleteRequestSuccessMessage(transaction.payee);
+        } else {
+            throw new Error(response.message || 'Failed to create delete request');
+        }
+    } catch (error) {
+        console.error('Error creating delete request:', error);
+        showErrorMessage('Failed to create delete request. Please try again.');
+    } finally {
+        hideLoadingState();
+    }
+}
+
+// Keep immediate delete for Finance Officers
+async function performImmediateDelete() {
+    if (!window.currentTransaction) return;
+    
     try {
         showLoadingState();
         closeDeleteConfirmation();
@@ -1259,22 +1310,84 @@ async function confirmDelete() {
         });
         
         if (response.success) {
-            // Get payee name before closing modal
             const payeeName = window.currentTransaction ? window.currentTransaction.payee : 'Unknown';
-            
             closeTransactionModal();
             await loadTransactionsFromDatabase();
-            
-            // Show minimalist success message
             showDeleteSuccessMessage(payeeName);
         } else {
             throw new Error(response.message || 'Failed to delete transaction');
         }
     } catch (error) {
-        showDeleteSuccessMessage('Error: Failed to delete transaction. Please try again.');
+        showErrorMessage('Error: Failed to delete transaction. Please try again.');
     } finally {
         hideLoadingState();
     }
+}
+
+// Add new success message for delete request
+function showDeleteRequestSuccessMessage(payeeName) {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="message-text">Delete request for "${payeeName}" has been submitted for approval</div>
+        </div>
+    `;
+    
+    // Add simple styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .simple-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .simple-message-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        
+        .success-icon {
+            color: #10B981 !important;
+            font-size: 20px !important;
+            margin: 0 auto 16px auto !important;
+            font-family: Arial, sans-serif !important;
+        }
+        
+        .success-icon i {
+            font-size: 20px !important;
+            color: #10B981 !important;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+    `;
+    
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    
+    // Auto close after 2 seconds
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 2000);
 }
 
 // Show minimalist delete success message
@@ -3402,6 +3515,49 @@ function createFinanceOfficerRequestsModal(requests, highlightRequestId = null) 
             opacity: 0.5;
             pointer-events: none; /* Prevent interaction */
         }
+        
+        /* Deletion request specific styles */
+        .deletion-request {
+            border-left: 4px solid #EF4444 !important;
+        }
+        
+        .deletion-badge {
+            background: #FEE2E2;
+            color: #DC2626;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .deletion-warning {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 12px 0;
+            color: #DC2626;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .deletion-warning i {
+            font-size: 16px;
+        }
+        
+        .transaction-details {
+            font-size: 13px;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+            padding: 8px;
+            background: #F9FAFB;
+            border-radius: 4px;
+        }
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
@@ -3460,6 +3616,25 @@ function highlightAndLockRequest(requestId) {
     });
 }
 
+// Helper function to format currency
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP'
+    }).format(amount || 0);
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-PH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
 // Create finance officer request item HTML
 function createFinanceOfficerRequestItem(request) {
     console.log('Creating request item for:', request);
@@ -3476,6 +3651,8 @@ function createFinanceOfficerRequestItem(request) {
         reason: request.reason
     });
     
+    const requestType = request.request_type || 'modification';
+    const isDeletion = requestType === 'deletion';
     
     // Parse the original data and requested changes for detailed display
     const originalData = typeof request.original_data === 'string' 
@@ -3485,9 +3662,54 @@ function createFinanceOfficerRequestItem(request) {
         ? JSON.parse(request.requested_changes) 
         : request.requested_changes;
     
-    // Create detailed change display showing only fields with actual changes
-    const changeDetails = createChangeDetails(originalData, requestedChanges);
+    // For deletion requests, show different UI
+    if (isDeletion) {
+        return `
+            <div class="finance-officer-request-item deletion-request" data-request-id="${request.id}">
+                <div class="request-header">
+                    <span class="request-id">Request #${request.id.substring(0, 8)}</span>
+                    <span class="deletion-badge">
+                        <i class="fas fa-trash"></i> DELETE REQUEST
+                    </span>
+                    <span class="request-date">${requestDate}</span>
+                </div>
+                <div class="request-details">
+                    <strong>Action:</strong> Delete Transaction
+                </div>
+                <div class="request-details">
+                    <strong>Transaction:</strong> ${transactionPayee}
+                </div>
+                <div class="transaction-details">
+                    <strong>Amount:</strong> ${formatCurrency(originalData.amount || 0)}
+                    <br>
+                    <strong>Date:</strong> ${formatDate(originalData.transaction_date)}
+                </div>
+                <div class="requested-by-info">
+                    <strong>Requested by:</strong> ${requestedBy}
+                </div>
+                <div class="request-reason">
+                    ${request.reason || 'No reason provided'}
+                </div>
+                <div class="deletion-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Warning: Approving this request will permanently delete the transaction
+                </div>
+                <div class="request-actions">
+                    <button class="btn-approve" onclick="approveDeleteRequest('${request.id}')">
+                        <i class="fas fa-check"></i>
+                        Approve Delete
+                    </button>
+                    <button class="btn-reject" onclick="rejectDeleteRequest('${request.id}')">
+                        <i class="fas fa-times"></i>
+                        Reject Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    }
     
+    // For modification requests, show existing UI
+    const changeDetails = createChangeDetails(originalData, requestedChanges);
     console.log('Change details:', changeDetails);
     
     return `
@@ -3595,6 +3817,76 @@ function closeFinanceOfficerNotification() {
     const notification = document.getElementById('financeOfficerNotification');
     if (notification) {
         notification.remove();
+    }
+}
+
+// Approve delete request
+async function approveDeleteRequest(requestId) {
+    try {
+        showLoadingState();
+        
+        // First, get the delete request to find transaction ID
+        const requestResponse = await apiRequest(`/change-requests/${requestId}`);
+        
+        if (requestResponse.success && requestResponse.data) {
+            const request = requestResponse.data;
+            const transactionId = request.transaction_id;
+            
+            // Delete the actual transaction
+            const deleteResponse = await apiRequest(`/transactions/${transactionId}`, {
+                method: 'DELETE'
+            });
+            
+            if (deleteResponse.success) {
+                // Update the change request status to approved
+                const updateResponse = await apiRequest(`/change-requests/${requestId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: 'approved',
+                        finance_officer_notes: 'Delete request approved - transaction deleted'
+                    })
+                });
+                
+                if (updateResponse.success) {
+                    window.history.replaceState({}, document.title, 'memberdata.html');
+                    closeFinanceOfficerRequestsModal();
+                    await updateFinanceOfficerNotifications();
+                    showRequestProcessedMessage('approved and transaction deleted');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error approving delete request:', error);
+        showErrorMessage('Failed to approve delete request. Please try again.');
+    } finally {
+        hideLoadingState();
+    }
+}
+
+// Reject delete request
+async function rejectDeleteRequest(requestId) {
+    try {
+        showLoadingState();
+        
+        const response = await apiRequest(`/change-requests/${requestId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                status: 'rejected',
+                finance_officer_notes: 'Delete request rejected - transaction preserved'
+            })
+        });
+        
+        if (response.success) {
+            window.history.replaceState({}, document.title, 'memberdata.html');
+            closeFinanceOfficerRequestsModal();
+            await updateFinanceOfficerNotifications();
+            showRequestProcessedMessage('rejected - transaction preserved');
+        }
+    } catch (error) {
+        console.error('Error rejecting delete request:', error);
+        showErrorMessage('Failed to reject delete request. Please try again.');
+    } finally {
+        hideLoadingState();
     }
 }
 

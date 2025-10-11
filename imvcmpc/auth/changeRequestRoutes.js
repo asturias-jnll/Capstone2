@@ -295,4 +295,34 @@ router.post('/change-requests/:requestId/process',
     }
 );
 
+// Get single change request by ID
+router.get('/change-requests/:id',
+    authenticateToken,
+    checkRole(['marketing_clerk', 'finance_officer']),
+    async (req, res) => {
+        try {
+            const requestId = req.params.id;
+            const request = await changeRequestService.getChangeRequestById(requestId);
+            
+            if (!request) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Change request not found'
+                });
+            }
+            
+            res.json({
+                success: true,
+                data: request
+            });
+        } catch (error) {
+            console.error('Error fetching change request:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
 module.exports = router;

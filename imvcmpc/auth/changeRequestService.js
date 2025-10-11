@@ -402,6 +402,25 @@ class ChangeRequestService {
     async close() {
         await this.pool.end();
     }
+
+    // Get change request by ID
+    async getChangeRequestById(requestId) {
+        const query = `
+            SELECT 
+                cr.*,
+                u1.first_name as requested_by_first_name,
+                u1.last_name as requested_by_last_name,
+                u2.first_name as assigned_to_first_name,
+                u2.last_name as assigned_to_last_name
+            FROM change_requests cr
+            LEFT JOIN users u1 ON cr.requested_by = u1.id
+            LEFT JOIN users u2 ON cr.assigned_to = u2.id
+            WHERE cr.id = $1
+        `;
+        
+        const result = await this.pool.query(query, [requestId]);
+        return result.rows[0] || null;
+    }
 }
 
 module.exports = ChangeRequestService;
