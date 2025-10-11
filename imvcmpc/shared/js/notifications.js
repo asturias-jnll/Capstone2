@@ -36,7 +36,7 @@ function setupFilterEventListeners() {
 
 // Setup notification item event listeners
 function setupNotificationEventListeners() {
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', async function(e) {
         // Handle notification click
         if (e.target.closest('.notification-item')) {
             const notificationItem = e.target.closest('.notification-item');
@@ -45,13 +45,13 @@ function setupNotificationEventListeners() {
             // Find the notification
             const notification = allNotifications.find(n => n.id === notificationId);
             if (notification) {
-                // Only show modal for important notifications (new requests)
-                if (notification.category === 'important' && notification.reference_type === 'new_request') {
+                // Only show modal for important notifications (change requests)
+                if (notification.category === 'important' && notification.reference_type === 'change_request') {
                     showNotificationModal(notification);
                 } else {
                     // For other notifications, just mark as read
-                markAsRead(notificationId);
-            }
+                    await markAsRead(notificationId);
+                }
         }
         }
     });
@@ -93,10 +93,10 @@ async function loadNotificationsFromAPI() {
             displayNotifications(allNotifications);
             updateNotificationCounts();
             
-            // Update Marketing Clerk notification count if applicable
+            // Update notification count for both roles
             const userRole = localStorage.getItem('user_role');
-            if (userRole === 'Marketing Clerk' && typeof updateMarketingClerkNotificationCount === 'function') {
-                await updateMarketingClerkNotificationCount();
+            if ((userRole === 'Marketing Clerk' || userRole === 'Finance Officer') && typeof updateNotificationCount === 'function') {
+                await updateNotificationCount();
             }
         } else {
             console.error('❌ API returned success=false:', data);
@@ -193,8 +193,8 @@ function getTimeAgo(timestamp) {
 function filterNotifications(filterType) {
     let filteredNotifications = [];
     
-    // Always filter out old "change_request" notifications, only show "new_request"
-    const validNotifications = allNotifications.filter(n => n.reference_type !== 'change_request');
+    // Show all notifications (no filtering by reference_type)
+    const validNotifications = allNotifications;
     
     switch (filterType) {
         case 'important':
@@ -285,7 +285,7 @@ function handleLater() {
 
 // Handle "Take Action" button
 async function handleTakeAction() {
-    if (currentNotification && currentNotification.reference_type === 'new_request') {
+    if (currentNotification && currentNotification.reference_type === 'change_request') {
         // Store the data before closing modal (which sets currentNotification to null)
         const notificationId = currentNotification.id;
         const requestId = currentNotification.reference_id;
@@ -385,10 +385,10 @@ async function markAsRead(notificationId, refreshList = true) {
             // Refresh display
             filterNotifications(currentFilter);
             
-            // Update Marketing Clerk notification count if applicable
+            // Update notification count for both roles
             const userRole = localStorage.getItem('user_role');
-            if (userRole === 'Marketing Clerk' && typeof updateMarketingClerkNotificationCount === 'function') {
-                await updateMarketingClerkNotificationCount();
+            if ((userRole === 'Marketing Clerk' || userRole === 'Finance Officer') && typeof updateNotificationCount === 'function') {
+                await updateNotificationCount();
             }
         }
     } catch (error) {
@@ -406,7 +406,7 @@ async function unhighlightNotification(changeRequestId) {
 
         // Find notification by reference_id
         const notification = allNotifications.find(n => 
-            n.reference_type === 'new_request' && n.reference_id === changeRequestId
+            n.reference_type === 'change_request' && n.reference_id === changeRequestId
         );
         
         if (notification) {

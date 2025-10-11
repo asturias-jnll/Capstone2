@@ -47,7 +47,7 @@ BEGIN
                 WHEN NEW.status = 'rejected' THEN 'error'
             END,
             'completed',
-            'new_request',
+            'change_request',
             NEW.id,
             TRUE,  -- Highlight this notification
             'important'

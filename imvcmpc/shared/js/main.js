@@ -150,8 +150,8 @@ function initializeRoleBasedNavigation() {
         navItem.href = item.href;
         navItem.className = 'nav-item';
         
-        // Add notification badge for Marketing Clerk notifications
-        if (item.href === 'notifications.html' && userRole === 'Marketing Clerk') {
+        // Add notification badge for both Marketing Clerk and Finance Officer
+        if (item.href === 'notifications.html' && (userRole === 'Marketing Clerk' || userRole === 'Finance Officer')) {
             navItem.innerHTML = `
                 <i class="${item.icon}"></i>
                 <span>${item.text}</span>
@@ -170,14 +170,14 @@ function initializeRoleBasedNavigation() {
     // Set active navigation after generating items
     setActiveNavigation();
     
-    // Initialize notification count for Marketing Clerk
-    if (userRole === 'Marketing Clerk') {
-        updateMarketingClerkNotificationCount();
+    // Initialize notification count for both Marketing Clerk and Finance Officer
+    if (userRole === 'Marketing Clerk' || userRole === 'Finance Officer') {
+        updateNotificationCount();
     }
 }
 
-// Update notification count for Marketing Clerk
-async function updateMarketingClerkNotificationCount() {
+// Update notification count for both Marketing Clerk and Finance Officer
+async function updateNotificationCount() {
     try {
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -201,10 +201,10 @@ async function updateMarketingClerkNotificationCount() {
         if (data.success) {
             const notifications = data.data || [];
             
-            // Count unread notifications for Marketing Clerk
+            // Count unread notifications for both roles
             const unreadCount = notifications.filter(n => 
-                n.reference_type === 'new_request' && 
-                !n.is_read && 
+                n.reference_type === 'change_request' && 
+                !n.isRead && 
                 n.status !== 'completed'
             ).length;
             
@@ -213,6 +213,11 @@ async function updateMarketingClerkNotificationCount() {
     } catch (error) {
         console.error('Error updating notification count:', error);
     }
+}
+
+// Legacy function name for backward compatibility
+async function updateMarketingClerkNotificationCount() {
+    return updateNotificationCount();
 }
 
 // Update the notification badge display
