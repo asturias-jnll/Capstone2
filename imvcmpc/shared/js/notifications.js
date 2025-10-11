@@ -417,20 +417,45 @@ async function markAsRead(notificationId, refreshList = true) {
 
         const data = await response.json();
         
-        if (data.success && refreshList) {
+        if (data.success) {
             // Update local state
             const notification = allNotifications.find(n => n.id === notificationId);
             if (notification) {
                 notification.isRead = true;
+                
+                // If it's a completed notification, also unhighlight it
+                if (notification.status === 'completed') {
+                    notification.is_highlighted = false;
+                    
+                    // Update is_highlighted in database
+                    try {
+                        const highlightResponse = await fetch(`${API_BASE_URL}/notifications/${notificationId}/highlight`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ is_highlighted: false })
+                        });
+                        
+                        if (highlightResponse.ok) {
+                            console.log('✅ Unhighlighted completed notification:', notificationId);
+                        }
+                    } catch (highlightError) {
+                        console.error('Error unhighlighting notification:', highlightError);
+                    }
+                }
             }
             
-            // Refresh display
-            filterNotifications(currentFilter);
-            
-            // Update notification count for both roles
-            const userRole = localStorage.getItem('user_role');
-            if ((userRole === 'Marketing Clerk' || userRole === 'Finance Officer') && typeof updateNotificationCount === 'function') {
-                await updateNotificationCount();
+            if (refreshList) {
+                // Refresh display
+                filterNotifications(currentFilter);
+                
+                // Update notification count for both roles
+                const userRole = localStorage.getItem('user_role');
+                if ((userRole === 'Marketing Clerk' || userRole === 'Finance Officer') && typeof updateNotificationCount === 'function') {
+                    await updateNotificationCount();
+                }
             }
         }
     } catch (error) {
