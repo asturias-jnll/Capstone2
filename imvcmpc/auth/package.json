@@ -5,7 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:local": "set NODE_ENV=local&& node server.js",
+    "start:production": "set NODE_ENV=production&& node server.js",
     "dev": "nodemon server.js",
+    "dev:local": "set NODE_ENV=local&& nodemon server.js",
+    "dev:production": "set NODE_ENV=production&& nodemon server.js",
     "test": "jest",
     "setup-db": "node setup-database.js"
   },
