@@ -197,6 +197,9 @@ function filterNotifications(filterType) {
     const validNotifications = allNotifications;
     
     switch (filterType) {
+        case 'unread':
+            filteredNotifications = validNotifications.filter(n => !n.isRead);
+            break;
         case 'important':
             filteredNotifications = validNotifications.filter(n => n.category === 'important');
             break;
@@ -213,32 +216,56 @@ function filterNotifications(filterType) {
 
 // Update notification counts
 function updateNotificationCounts() {
-    // Only count notifications that are still pending (not completed)
-    const pendingCount = allNotifications.filter(n => 
+    const userRole = localStorage.getItem('user_role');
+    
+    // Count unread notifications (all roles)
+    const unreadCount = allNotifications.filter(n => !n.isRead).length;
+    
+    // Update Unread filter badge
+    const unreadBadge = document.getElementById('unreadFilterBadge');
+    if (unreadBadge) {
+        unreadBadge.textContent = unreadCount;
+        unreadBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+        console.log('🔔 Updated Unread filter badge:', unreadCount);
+    }
+    
+    // Important filter badge logic differs by role
+    if (userRole === 'Finance Officer') {
+        // FO: Show unread + highlighted important notifications
+        // Badge only disappears when action is taken (status changes from pending)
+        const importantCount = allNotifications.filter(n => 
+            n.category === 'important' && 
+            n.reference_type === 'change_request' &&
+            n.status === 'pending' && // Only pending requests
+            n.is_highlighted
+        ).length;
+        
+        const importantBadge = document.getElementById('importantFilterBadge');
+        if (importantBadge) {
+            importantBadge.textContent = importantCount;
+            importantBadge.style.display = importantCount > 0 ? 'inline-block' : 'none';
+            console.log('🔔 Updated FO Important filter badge:', importantCount);
+        }
+    } else if (userRole === 'Marketing Clerk') {
+        // MC: Don't show badge on Important filter
+        const importantBadge = document.getElementById('importantFilterBadge');
+        if (importantBadge) {
+            importantBadge.style.display = 'none';
+            console.log('🔔 MC Important filter badge hidden');
+        }
+    }
+    
+    // Update existing important badge (if it exists) - legacy support
+    const importantCountLegacy = allNotifications.filter(n => 
         n.category === 'important' && 
         n.is_highlighted && 
         n.status === 'pending'
     ).length;
     
-    // Count unread important notifications for filter badge
-    const unreadImportantCount = allNotifications.filter(n => 
-        n.category === 'important' && 
-        !n.isRead
-    ).length;
-    
-    // Update existing important badge (if it exists)
-    const importantBadge = document.getElementById('importantCount');
-    if (importantBadge) {
-        importantBadge.textContent = pendingCount;
-        importantBadge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
-    }
-    
-    // Update new filter badge
-    const filterBadge = document.getElementById('importantFilterBadge');
-    if (filterBadge) {
-        filterBadge.textContent = unreadImportantCount;
-        filterBadge.style.display = unreadImportantCount > 0 ? 'inline-block' : 'none';
-        console.log('🔔 Updated Important filter badge:', unreadImportantCount);
+    const importantBadgeLegacy = document.getElementById('importantCount');
+    if (importantBadgeLegacy) {
+        importantBadgeLegacy.textContent = importantCountLegacy;
+        importantBadgeLegacy.style.display = importantCountLegacy > 0 ? 'inline-block' : 'none';
     }
 }
 
