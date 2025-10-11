@@ -3060,7 +3060,7 @@ function showFinanceOfficerNotification(count) {
 }
 
 // Show finance officer requests
-async function showFinanceOfficerRequests() {
+async function showFinanceOfficerRequests(highlightRequestId = null) {
     try {
         console.log('=== SHOW FINANCE OFFICER REQUESTS ===');
         showLoadingState();
@@ -3116,7 +3116,7 @@ async function showFinanceOfficerRequests() {
                 });
             }
             
-            createFinanceOfficerRequestsModal(requests);
+            createFinanceOfficerRequestsModal(requests, highlightRequestId);
         } else {
             console.error('API response failed:', response);
             throw new Error(response.message || 'Failed to load change requests');
@@ -3130,7 +3130,7 @@ async function showFinanceOfficerRequests() {
 }
 
 // Create finance officer requests modal
-function createFinanceOfficerRequestsModal(requests) {
+function createFinanceOfficerRequestsModal(requests, highlightRequestId = null) {
     console.log('Creating finance officer requests modal with', requests.length, 'requests');
     
     const modal = document.createElement('div');
@@ -3358,12 +3358,106 @@ function createFinanceOfficerRequestsModal(requests) {
             color: var(--gray-600);
             font-style: italic;
         }
+        
+        /* Highlighted request animation */
+        .highlighted-request {
+            animation: glowPulse 2s ease-in-out infinite;
+            border: 2px solid var(--orange) !important;
+            box-shadow: 0 0 20px rgba(255, 167, 38, 0.6) !important;
+            position: relative;
+            z-index: 10;
+        }
+        
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 167, 38, 0.6),
+                            0 0 30px rgba(255, 167, 38, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(255, 167, 38, 0.8),
+                            0 0 40px rgba(255, 167, 38, 0.6);
+            }
+        }
+        
+        /* Add a "focus on this" badge */
+        .highlighted-request::before {
+            content: '👉 Take Action on This Request';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--orange);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(255, 167, 38, 0.4);
+            z-index: 20;
+        }
+        
+        /* Dimmed non-target requests */
+        .dimmed-request {
+            opacity: 0.5;
+            pointer-events: none; /* Prevent interaction */
+        }
     `;
     document.head.appendChild(style);
     document.body.appendChild(modal);
     
     console.log('Finance officer modal added to DOM, modal element:', modal);
     console.log('Modal innerHTML length:', modal.innerHTML.length);
+    
+    // After modal is added to DOM, apply highlighting if needed
+    if (highlightRequestId) {
+        setTimeout(() => {
+            highlightAndLockRequest(highlightRequestId);
+        }, 100); // Small delay to ensure DOM is ready
+    }
+}
+
+// Highlight and lock specific request
+function highlightAndLockRequest(requestId) {
+    console.log('🎯 Highlighting and locking request:', requestId);
+    
+    // Find all request items
+    const allRequestItems = document.querySelectorAll('.finance-officer-request-item');
+    
+    allRequestItems.forEach(item => {
+        const itemRequestId = item.getAttribute('data-request-id');
+        
+        if (itemRequestId === requestId) {
+            // This is the target request - highlight it
+            item.classList.add('highlighted-request');
+            
+            // Scroll into view
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            console.log('✅ Highlighted request:', requestId);
+        } else {
+            // This is not the target - disable its buttons
+            const approveBtn = item.querySelector('.btn-approve');
+            const rejectBtn = item.querySelector('.btn-reject');
+            
+            if (approveBtn) {
+                approveBtn.disabled = true;
+                approveBtn.style.opacity = '0.5';
+                approveBtn.style.cursor = 'not-allowed';
+                approveBtn.title = 'Please complete the highlighted request first';
+            }
+            
+            if (rejectBtn) {
+                rejectBtn.disabled = true;
+                rejectBtn.style.opacity = '0.5';
+                rejectBtn.style.cursor = 'not-allowed';
+                rejectBtn.title = 'Please complete the highlighted request first';
+            }
+            
+            // Add a dimmed class to the entire item
+            item.classList.add('dimmed-request');
+        }
+    });
 }
 
 // Create finance officer request item HTML
@@ -3397,7 +3491,7 @@ function createFinanceOfficerRequestItem(request) {
     console.log('Change details:', changeDetails);
     
     return `
-        <div class="finance-officer-request-item">
+        <div class="finance-officer-request-item" data-request-id="${request.id}">
             <div class="request-header">
                 <span class="request-id">Request #${request.id.substring(0, 8)}</span>
                 <span class="request-date">${requestDate}</span>
@@ -3441,6 +3535,9 @@ async function approveChangeRequest(requestId) {
         console.log('Approval response:', response);
         
         if (response.success) {
+            // Clear URL parameter if present
+            window.history.replaceState({}, document.title, 'memberdata.html');
+            
             closeFinanceOfficerRequestsModal();
             await updateFinanceOfficerNotifications();
             showRequestProcessedMessage('approved');
@@ -3469,6 +3566,9 @@ async function rejectChangeRequest(requestId) {
         });
         
         if (response.success) {
+            // Clear URL parameter if present
+            window.history.replaceState({}, document.title, 'memberdata.html');
+            
             closeFinanceOfficerRequestsModal();
             await updateFinanceOfficerNotifications();
             showRequestProcessedMessage('rejected');
