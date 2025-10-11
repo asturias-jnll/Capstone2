@@ -390,6 +390,7 @@ body {
     border-left: 4px solid transparent;
     font-size: 16px;
     cursor: pointer;
+    position: relative; /* Make nav-item the positioning context for badge */
 }
 
 .nav-item:hover {
@@ -407,27 +408,58 @@ body {
     text-align: center;
 }
 
-/* Notification Badge for Marketing Clerk */
+/* Notification Badge for Marketing Clerk and Finance Officer */
 .notification-badge {
-    background: #EF4444;
-    color: white;
+    background: #EF4444 !important;
+    color: white !important;
     border-radius: 50%;
     padding: 2px 6px;
     font-size: 10px;
     font-weight: bold;
     min-width: 16px;
     height: 16px;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    margin-left: auto;
-    margin-right: 8px;
+    position: absolute;
+    top: 8px;
+    right: 8px;
     animation: pulse-badge 2s ease-in-out infinite;
+    z-index: 100; /* Higher than nav items */
 }
 
 @keyframes pulse-badge {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.1); }
+}
+
+/* Responsive badge positioning for collapsed sidebar */
+.navigation:not(.expanded) .notification-badge {
+    top: 4px;
+    right: 4px;
+}
+
+/* Mobile layout adjustments */
+@media (max-width: 768px) {
+    .notification-badge {
+        top: 6px;
+        right: 6px;
+        min-width: 14px;
+        height: 14px;
+        font-size: 9px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .notification-badge {
+        top: 4px;
+        right: 4px;
+        min-width: 12px;
+        height: 12px;
+        font-size: 8px;
+        padding: 1px 4px;
+    }
 }
 
 .nav-footer {

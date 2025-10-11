@@ -172,19 +172,31 @@ function initializeRoleBasedNavigation() {
     
     // Initialize notification count for both Marketing Clerk and Finance Officer
     if (userRole === 'Marketing Clerk' || userRole === 'Finance Officer') {
+        console.log('🔄 Initializing notification count for', userRole);
         updateNotificationCount();
+        
+        // Refresh notification count every 10 seconds
+        setInterval(() => {
+            console.log('🔄 Periodic notification count refresh...');
+            updateNotificationCount();
+        }, 10000);
     }
 }
 
 // Update notification count for both Marketing Clerk and Finance Officer
 async function updateNotificationCount() {
     try {
+        console.log('🔔 === UPDATE NOTIFICATION COUNT ===');
+        const userRole = localStorage.getItem('user_role');
+        console.log('👤 User role:', userRole);
+        
         const token = localStorage.getItem('access_token');
         if (!token) {
-            console.error('No access token found');
+            console.error('❌ No access token found');
             return;
         }
 
+        console.log('📡 Fetching notifications from API...');
         const response = await fetch('/api/auth/notifications', {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -192,26 +204,40 @@ async function updateNotificationCount() {
             }
         });
 
+        console.log('📥 Response status:', response.status);
+        
         if (!response.ok) {
             throw new Error('Failed to fetch notifications');
         }
 
         const data = await response.json();
+        console.log('📋 Full API response:', data);
         
         if (data.success) {
             const notifications = data.data || [];
+            console.log('📬 Total notifications received:', notifications.length);
+            
+            // Log all notifications for debugging
+            notifications.forEach((n, index) => {
+                console.log(`  [${index}] Title: "${n.title}" | Type: ${n.reference_type} | Read: ${n.isRead} | Status: ${n.status}`);
+            });
             
             // Count unread notifications for both roles
-            const unreadCount = notifications.filter(n => 
-                n.reference_type === 'change_request' && 
-                !n.isRead && 
-                n.status !== 'completed'
-            ).length;
+            const unreadCount = notifications.filter(n => {
+                const matches = n.reference_type === 'change_request' && !n.isRead;
+                if (matches) {
+                    console.log(`  ✅ Matched notification: "${n.title}"`);
+                }
+                return matches;
+            }).length;
+            
+            console.log('🔢 Unread change_request notifications:', unreadCount);
+            console.log('🎯 Updating badge with count:', unreadCount);
             
             updateNotificationBadge(unreadCount);
         }
     } catch (error) {
-        console.error('Error updating notification count:', error);
+        console.error('❌ Error updating notification count:', error);
     }
 }
 
@@ -224,13 +250,28 @@ async function updateMarketingClerkNotificationCount() {
 function updateNotificationBadge(count) {
     const badge = document.getElementById('navNotificationBadge');
     
+    console.log('🏷️ Updating badge element...');
+    console.log('  Badge element found:', !!badge);
+    console.log('  Count to display:', count);
+    
     if (badge) {
         if (count > 0) {
             badge.textContent = count;
-            badge.style.display = 'flex';
+            badge.style.setProperty('display', 'flex', 'important');
+            badge.style.visibility = 'visible';
+            badge.style.opacity = '1';
+            console.log('  ✅ Badge displayed with count:', count);
+            console.log('  📍 Badge styles:', {
+                display: badge.style.display,
+                visibility: badge.style.visibility,
+                opacity: badge.style.opacity
+            });
         } else {
-            badge.style.display = 'none';
+            badge.style.setProperty('display', 'none', 'important');
+            console.log('  ℹ️ Badge hidden (count is 0)');
         }
+    } else {
+        console.error('  ❌ Badge element not found in DOM!');
     }
 }
 

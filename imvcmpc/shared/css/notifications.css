@@ -738,7 +738,8 @@
 }
 
 /* Badge styling for filter buttons */
-.filter-btn .badge {
+.filter-btn .badge,
+.filter-btn .filter-badge {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
     padding: 0.125rem 0.5rem;
@@ -751,7 +752,8 @@
     display: none;
 }
 
-.filter-btn .badge:not(:empty) {
+.filter-btn .badge:not(:empty),
+.filter-btn .filter-badge:not(:empty) {
     display: inline-block;
 }
 

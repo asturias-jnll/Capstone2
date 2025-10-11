@@ -220,10 +220,25 @@ function updateNotificationCounts() {
         n.status === 'pending'
     ).length;
     
+    // Count unread important notifications for filter badge
+    const unreadImportantCount = allNotifications.filter(n => 
+        n.category === 'important' && 
+        !n.isRead
+    ).length;
+    
+    // Update existing important badge (if it exists)
     const importantBadge = document.getElementById('importantCount');
     if (importantBadge) {
         importantBadge.textContent = pendingCount;
         importantBadge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    // Update new filter badge
+    const filterBadge = document.getElementById('importantFilterBadge');
+    if (filterBadge) {
+        filterBadge.textContent = unreadImportantCount;
+        filterBadge.style.display = unreadImportantCount > 0 ? 'inline-block' : 'none';
+        console.log('🔔 Updated Important filter badge:', unreadImportantCount);
     }
 }
 
