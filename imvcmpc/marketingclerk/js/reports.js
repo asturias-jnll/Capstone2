@@ -1,4 +1,4 @@
-// Reports System - Shared
+// Reports System - Marketing Clerk (Shared Implementation)
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize shared utilities (includes user header)
     if (typeof SharedUtils !== 'undefined') {
@@ -467,14 +467,6 @@ function generateBranchReportData() {
         data: {}
     };
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -1187,15 +1179,6 @@ function formatReportDate(dateString) {
         hour: '2-digit',
         minute: '2-digit'
     });
-}
-
-// Get month name from number
-function getMonthName(monthNumber) {
-    const months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[monthNumber - 1] || 'Unknown';
 }
 
 // Show report history for a specific type

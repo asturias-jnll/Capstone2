@@ -1,4 +1,4 @@
-/* Reports Content */
+/* Finance Officer Reports Content */
 .reports-content {
     max-width: none; /* Remove max-width constraint */
     margin: 0; /* Remove auto margins */
@@ -48,19 +48,22 @@
     text-overflow: ellipsis;
 }
 
-/* Report Type Selector */
+/* Report Type Dropdown Selector */
 .report-type-selector {
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
 }
 
-.report-type-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
+.report-type-dropdown {
+    position: relative;
+    min-width: 280px;
+}
+
+.report-type-dropdown select {
+    width: 100%;
+    padding: 12px 16px;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     background: #ffffff;
@@ -70,28 +73,28 @@
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    min-height: 44px;
-    justify-content: center;
-    white-space: nowrap;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 40px;
 }
 
-.report-type-btn:hover {
+.report-type-dropdown select:focus {
+    outline: none;
     border-color: #69B41E;
-    color: #187C19;
+    box-shadow: 0 0 0 2px rgba(105, 180, 30, 0.1);
     transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(105, 180, 30, 0.12);
 }
 
-.report-type-btn.active {
-    border-color: #0D5B11;
-    background: linear-gradient(135deg, #0D5B11, #187C19);
-    color: #ffffff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(13, 91, 17, 0.2);
+.report-type-dropdown select:hover {
+    border-color: #cbd5e1;
 }
 
-.report-type-btn i {
-    font-size: 14px;
+.report-type-dropdown select option {
+    padding: 8px 12px;
+    font-weight: 500;
 }
 
 /* Report Configuration */
@@ -255,9 +258,6 @@
     background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
     padding: 16px 24px;
     border-bottom: 1px solid #e2e8f0;
-}
-
-.config-header {
     position: relative;
     display: flex;
     justify-content: space-between;
@@ -670,16 +670,6 @@
     line-height: 1.5;
 }
 
-/* Export Section */
-.export-section {
-    text-align: center;
-    padding: 20px;
-    background: linear-gradient(135deg, #f8faf8, #ffffff);
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
 /* Send to Finance Officer Button */
 #sendFinanceSection {
     display: block;
@@ -715,178 +705,6 @@
 
 .send-finance-btn i {
     font-size: 16px;
-}
-
-/* Sent Reports Section */
-.sent-reports-section {
-    margin-top: 24px;
-    background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    overflow: hidden;
-}
-
-.sent-reports-header {
-    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
-    padding: 16px 24px;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.sent-reports-header h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #0D5B11;
-    margin: 0 0 4px 0;
-}
-
-.sent-reports-header p {
-    font-size: 13px;
-    color: #6b7280;
-    margin: 0;
-}
-
-.sent-reports-list {
-    padding: 20px;
-}
-
-.sent-report-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px;
-    background: linear-gradient(135deg, #f8faf8, #ffffff);
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    margin-bottom: 12px;
-    transition: all 0.3s ease;
-}
-
-.sent-report-item:last-child {
-    margin-bottom: 0;
-}
-
-.sent-report-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(13, 91, 17, 0.1);
-}
-
-.sent-report-info {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex: 1;
-}
-
-.sent-report-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: #ffffff;
-}
-
-.sent-report-icon.savings {
-    background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.sent-report-icon.disbursement {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.sent-report-icon.member {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-
-.sent-report-icon.branch {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-}
-
-.sent-report-details {
-    flex: 1;
-}
-
-.sent-report-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #0D5B11;
-    margin: 0 0 4px 0;
-}
-
-.sent-report-branch {
-    font-size: 12px;
-    color: #6b7280;
-    margin: 0 0 2px 0;
-}
-
-.sent-report-filename {
-    font-size: 11px;
-    color: #9ca3af;
-    margin: 0;
-}
-
-.sent-report-time {
-    text-align: right;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.sent-report-date {
-    font-size: 11px;
-    color: #9ca3af;
-    margin-top: 2px;
-}
-
-/* Compact One-Line Display */
-.sent-report-item-compact {
-    background: linear-gradient(135deg, #f8faf8, #ffffff);
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 8px;
-    transition: all 0.3s ease;
-}
-
-.sent-report-item-compact:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(13, 91, 17, 0.1);
-}
-
-.sent-report-content {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 13px;
-}
-
-.sent-report-type {
-    font-weight: 600;
-    color: #0D5B11;
-    min-width: 140px;
-}
-
-.sent-report-branch-info {
-    color: #6b7280;
-    min-width: 120px;
-    font-weight: 500;
-}
-
-.sent-report-filename {
-    color: #9ca3af;
-    flex: 1;
-    font-family: monospace;
-    font-size: 12px;
-}
-
-.sent-report-timestamp {
-    color: #6b7280;
-    font-size: 12px;
-    min-width: 120px;
-    text-align: right;
 }
 
 /* Report Content Styles */
@@ -987,229 +805,6 @@
     background: #f1f5f9;
 }
 
-/* Badge Styling */
-.badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    text-align: center;
-    min-width: 60px;
-}
-
-.badge.savings {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: #ffffff;
-}
-
-.badge.disbursement {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color: #ffffff;
-}
-
-/* Success Message */
-.success-message {
-    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
-    border: 1px solid #bbf7d0;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    text-align: center;
-    color: #166534;
-}
-
-.success-message i {
-    font-size: 24px;
-    margin-bottom: 16px;
-    color: #16a34a;
-}
-
-.success-message h3 {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.success-message p {
-    font-size: 16px;
-    margin: 0;
-    opacity: 0.9;
-}
-
-/* Message Animations */
-@keyframes slideIn {
-    from { 
-        transform: translateX(100%); 
-        opacity: 0; 
-    }
-    to { 
-        transform: translateX(0); 
-        opacity: 1; 
-    }
-}
-
-@keyframes slideOut {
-    from { 
-        transform: translateX(0); 
-        opacity: 1; 
-    }
-    to { 
-        transform: translateX(100%); 
-        opacity: 0; 
-    }
-}
-
-/* Mobile Responsive */
-@media (max-width: 1024px) {
-    .report-type-selector {
-        gap: 6px;
-    }
-    
-    .branch-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
-    }
-    
-    .branch-grid.single {
-        grid-template-columns: repeat(4, 1fr);
-    }
-    
-    .filter-row {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .reports-content {
-        padding: 80px 16px 16px;
-    }
-    
-    .reports-header {
-        padding: 16px;
-        flex-direction: column;
-        gap: 16px;
-        text-align: center;
-    }
-    
-    .header-left {
-        text-align: center;
-    }
-    
-    .header-right {
-        width: 100%;
-    }
-    
-    .reports-header h1 {
-        font-size: 18px;
-    }
-    
-    .report-type-selector {
-        justify-content: center;
-        gap: 6px;
-    }
-    
-    .report-type-btn {
-        min-width: auto;
-        padding: 6px 12px;
-        font-size: 11px;
-    }
-    
-    .branch-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-    
-    .branch-grid.single {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    
-    .branch-checkbox,
-    .branch-radio {
-        padding: 10px 6px;
-        min-height: 50px;
-    }
-    
-    .branch-name {
-        font-size: 10px;
-    }
-    
-    .branch-location {
-        font-size: 9px;
-    }
-    
-    .member-config-row {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-    
-    .branch-config-row {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-    
-    .type-buttons {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .config-content {
-        padding: 16px;
-    }
-    
-    .generate-btn,
-    .export-pdf-btn {
-        min-width: 100%;
-    }
-    
-    .clear-config-btn {
-        right: 16px;
-        padding: 6px;
-        font-size: 14px;
-    }
-}
-
-@media (max-width: 480px) {
-    .branch-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
-    }
-    
-    .branch-grid.single {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .branch-checkbox,
-    .branch-radio {
-        padding: 8px 4px;
-        min-height: 45px;
-    }
-    
-    .branch-name {
-        font-size: 9px;
-    }
-    
-    .branch-location {
-        font-size: 8px;
-    }
-    
-    .member-config-row {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .branch-config-row {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .type-btn {
-        min-width: 100%;
-    }
-}
-
 /* Branch Indicator for Non-Main Branch Users */
 .branch-indicator {
     background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
@@ -1273,7 +868,142 @@
     opacity: 0.8;
 }
 
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+    .report-type-dropdown {
+        min-width: 240px;
+    }
+    
+    .branch-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+    
+    .branch-grid.single {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+}
 
+@media (max-width: 768px) {
+    .reports-content {
+        padding: 80px 16px 16px;
+    }
+    
+    .reports-header {
+        padding: 16px;
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .header-left {
+        text-align: center;
+    }
+    
+    .header-right {
+        width: 100%;
+    }
+    
+    .reports-header h1 {
+        font-size: 18px;
+    }
+    
+    .report-type-dropdown {
+        min-width: 100%;
+    }
+    
+    .branch-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    
+    .branch-grid.single {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .branch-checkbox,
+    .branch-radio {
+        padding: 10px 6px;
+        min-height: 50px;
+    }
+    
+    .branch-name {
+        font-size: 10px;
+    }
+    
+    .branch-location {
+        font-size: 9px;
+    }
+    
+    .member-config-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .branch-config-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .type-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .config-content {
+        padding: 16px;
+    }
+    
+    .generate-btn {
+        min-width: 100%;
+    }
+    
+    .clear-config-btn {
+        right: 16px;
+        padding: 6px;
+        font-size: 14px;
+    }
+}
 
-
-
+@media (max-width: 480px) {
+    .branch-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+    
+    .branch-grid.single {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .branch-checkbox,
+    .branch-radio {
+        padding: 8px 4px;
+        min-height: 45px;
+    }
+    
+    .branch-name {
+        font-size: 9px;
+    }
+    
+    .branch-location {
+        font-size: 8px;
+    }
+    
+    .member-config-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .branch-config-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .type-btn {
+        min-width: 100%;
+    }
+}

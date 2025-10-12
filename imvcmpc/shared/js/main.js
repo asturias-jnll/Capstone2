@@ -130,7 +130,7 @@ function initializeRoleBasedNavigation() {
         navItems = [
             { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
             { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
-            { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
+            { href: '/financeofficer/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
             { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
         ];
     } else {
@@ -139,7 +139,7 @@ function initializeRoleBasedNavigation() {
             { href: 'dashboard.html', icon: 'fas fa-home', text: 'Dashboard' },
             { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
             { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
-            { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
+            { href: '/marketingclerk/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
             { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
         ];
     }
