@@ -316,8 +316,6 @@ function validateConfiguration(reportType) {
 
 // Validate savings/disbursement configuration
 function validateSavingsDisbursementConfig(reportType) {
-    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
     // Check if form elements exist
     const yearElement = document.getElementById(reportType + 'Year');
     const monthElement = document.getElementById(reportType + 'Month');
@@ -325,18 +323,6 @@ function validateSavingsDisbursementConfig(reportType) {
     if (!yearElement || !monthElement) {
         showMessage('Report configuration form not found.', 'error');
         return false;
-    }
-    
-    // For main branch users, require branch selection
-    if (isMainBranchUser) {
-        const configSection = document.getElementById(reportType + 'Config');
-        if (configSection) {
-            const selectedBranches = configSection.querySelectorAll('.branch-checkbox input[type="checkbox"]:checked');
-            if (selectedBranches.length === 0) {
-                showMessage('Please select at least one branch.', 'error');
-                return false;
-            }
-        }
     }
     
     return true;
@@ -350,12 +336,16 @@ function validateMemberConfig() {
         return false;
     }
     
-    const activeTypeBtn = document.querySelector('#memberConfig .type-btn.active');
-    if (!activeTypeBtn) {
-        showMessage('Please select a transaction type.', 'error');
+    // Validate year and month
+    const yearElement = document.getElementById('memberYear');
+    const monthElement = document.getElementById('memberMonth');
+    
+    if (!yearElement || !monthElement) {
+        showMessage('Report configuration form not found.', 'error');
         return false;
     }
     
+    // Transaction type is always both (no validation needed)
     return true;
 }
 
@@ -368,8 +358,8 @@ function validateBranchConfig() {
     }
     
     const activeTypeBtns = document.querySelectorAll('#branchConfig .type-btn.active');
-    if (activeTypeBtns.length !== 2) {
-        showMessage('Please select both Savings and Disbursement transaction types.', 'error');
+    if (activeTypeBtns.length === 0) {
+        showMessage('Please select at least one transaction type (Savings or Disbursement).', 'error');
         return false;
     }
     

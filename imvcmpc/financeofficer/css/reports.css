@@ -596,6 +596,41 @@
     font-size: 14px;
 }
 
+.type-display {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.type-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: 2px solid #0D5B11;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    color: #0D5B11;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.7;
+    flex: 1;
+    justify-content: center;
+}
+
+.type-badge i {
+    font-size: 14px;
+}
+
+.help-text {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    font-style: italic;
+    margin-top: 8px;
+}
+
 /* Generate Section */
 .generate-section {
     text-align: center;
