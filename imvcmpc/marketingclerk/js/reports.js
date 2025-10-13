@@ -280,6 +280,10 @@ function setupReportTypeSelector() {
     reportTypeBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             if (window.isPrefillLocked) return; // prevent switching types when locked
+            
+            // Clear all configurations before switching
+            clearAllConfigurations();
+            
             // Remove active class from all buttons
             reportTypeBtns.forEach(b => b.classList.remove('active'));
             
@@ -299,6 +303,38 @@ function setupReportTypeSelector() {
             hideSendFinanceSection();
         });
     });
+}
+
+// Clear all report configurations
+function clearAllConfigurations() {
+    // Savings
+    const savingsYear = document.getElementById('savingsYear');
+    const savingsMonth = document.getElementById('savingsMonth');
+    if (savingsYear) savingsYear.value = '2025';
+    if (savingsMonth) savingsMonth.value = '1';
+    
+    // Disbursement
+    const disbursementYear = document.getElementById('disbursementYear');
+    const disbursementMonth = document.getElementById('disbursementMonth');
+    if (disbursementYear) disbursementYear.value = '2025';
+    if (disbursementMonth) disbursementMonth.value = '1';
+    
+    // Member
+    const memberSearch = document.getElementById('memberSearch');
+    const memberYear = document.getElementById('memberYear');
+    const memberMonth = document.getElementById('memberMonth');
+    if (memberSearch) memberSearch.value = '';
+    if (memberYear) memberYear.value = '2025';
+    if (memberMonth) memberMonth.value = '1';
+    document.querySelectorAll('#memberConfig .type-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Branch
+    document.querySelectorAll('input[name="branchSelection"]').forEach(cb => cb.checked = false);
+    const branchYear = document.getElementById('branchYear');
+    const branchMonth = document.getElementById('branchMonth');
+    if (branchYear) branchYear.value = '2025';
+    if (branchMonth) branchMonth.value = '1';
+    document.querySelectorAll('#branchConfig .type-btn').forEach(btn => btn.classList.remove('active'));
 }
 
 // Show configuration section based on report type
@@ -418,44 +454,302 @@ function setupTransactionTypeButtons() {
     });
 }
 
-// Generate report based on current configuration
-function generateReport() {
+// Generate report based on current configuration (fetch from backend and render chart when applicable)
+async function generateReport() {
     try {
         const activeReportType = document.querySelector('.report-type-btn.active');
         if (!activeReportType) {
             showMessage('Please select a report type first.', 'error');
             return;
         }
-        
+
         const reportType = activeReportType.getAttribute('data-type');
         if (!reportType) {
             showMessage('Invalid report type selected.', 'error');
             return;
         }
-        
+
         // Validate configuration
         if (!validateConfiguration(reportType)) {
             return;
         }
-        
-        // Generate report data
-        const reportData = generateReportData(reportType);
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            showMessage('You are not authenticated.', 'error');
+            return;
+        }
+
+        // Build common params
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+        const userBranchId = localStorage.getItem('user_branch_id') || '1';
+
+        // Compute date range from year/month selectors
+        const { startDate, endDate, periodLabel } = computeDateRangeForReport(reportType);
+
+        let reportData = null;
+        if (reportType === 'savings' || reportType === 'disbursement') {
+            const endpoint = reportType === 'savings' ? '/api/auth/analytics/savings-trend' : '/api/auth/analytics/disbursement-trend';
+            // Always scope to the logged-in user's branch for Savings/Disbursement
+            const url = `${endpoint}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&branchId=${encodeURIComponent(userBranchId)}&isMainBranch=false`;
+
+            // Loading state
+            const reportCanvas = document.getElementById('reportCanvas');
+            if (reportCanvas) {
+                reportCanvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-spinner fa-spin"></i><h3>Generating report...</h3></div>';
+            }
+
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Failed to fetch analytics data');
+            }
+            const payload = await res.json();
+            const rows = (payload && payload.data) || [];
+
+            // Create analytics-like custom-by-month weekly labels and aligned values
+            const monthNum = parseInt(periodLabel.split(' ')[0], 10);
+            const yearNum = parseInt(periodLabel.split(' ')[1], 10);
+            const labels = generateCustomMonthWeeklyLabels(yearNum, monthNum);
+            const values = alignDataWithCustomMonthWeekly(rows, reportType === 'savings' ? 'total_savings' : 'total_disbursements', yearNum, monthNum);
+            const total = values.reduce((a, b) => a + (parseFloat(b) || 0), 0);
+
+            // Also fetch active members via analytics summary for the same scope
+            let activeMembers = 0;
+            try {
+                const summaryUrl = `/api/auth/analytics/summary?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&branchId=${encodeURIComponent(userBranchId)}&isMainBranch=false`;
+                const sres = await fetch(summaryUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (sres.ok) {
+                    const sjson = await sres.json();
+                    activeMembers = (sjson && sjson.data && (parseInt(sjson.data.active_members, 10) || 0)) || 0;
+                }
+            } catch (_) {}
+
+            reportData = {
+                type: reportType === 'savings' ? 'Savings Report' : 'Disbursement Report',
+                period: periodLabel,
+                total,
+                activeMembers,
+                chartType: 'bar',
+                chart: {
+                    labels,
+                    datasets: [
+                        {
+                            label: reportType === 'savings' ? 'Monthly Savings (Bar)' : 'Monthly Disbursements (Bar)',
+                            data: values,
+                            backgroundColor: reportType === 'savings' ? 'rgba(0, 117, 66, 0.7)' : 'rgba(88, 187, 67, 0.6)',
+                            borderColor: reportType === 'savings' ? '#007542' : '#58BB43',
+                            borderWidth: 2,
+                            type: 'bar'
+                        },
+                        {
+                            label: reportType === 'savings' ? 'Savings Trend (Line)' : 'Disbursement Trend (Line)',
+                            data: values,
+                            borderColor: reportType === 'savings' ? '#58BB43' : '#1E8C45',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4,
+                            type: 'line',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: reportType === 'savings' ? '#007542' : '#58BB43',
+                            pointBorderColor: reportType === 'savings' ? '#58BB43' : '#1E8C45'
+                        }
+                    ]
+                }
+            };
+        } else if (reportType === 'member') {
+            // Keep existing stub for now (no dedicated endpoint in scope)
+            reportData = generateMemberReportData();
+        } else if (reportType === 'branch') {
+            // Fetch all branches performance, then filter/shape rows
+            const { startDate: s, endDate: e } = computeDateRangeForReport('branch');
+            const endpoint = `/api/auth/analytics/all-branches-performance?startDate=${encodeURIComponent(s)}&endDate=${encodeURIComponent(e)}`;
+
+            const loading = document.getElementById('reportCanvas');
+            if (loading) loading.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-spinner fa-spin"></i><h3>Generating report...</h3></div>';
+
+            const res = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Failed to fetch branch performance');
+            }
+            const payload = await res.json();
+            const allRows = (payload && payload.data) || [];
+
+            // Determine branch filter
+            let allowedIds = [];
+            const isMain = isMainBranchUser;
+            if (isMain) {
+                const selected = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => String(cb.value).replace('branch', ''));
+                allowedIds = selected.length ? selected : [];
+            } else {
+                allowedIds = [String(userBranchId || '1')];
+            }
+
+            const filtered = allRows.filter(r => (allowedIds.length ? allowedIds.includes(String(r.branch_id)) : true));
+
+            // Build rows and chart series
+            const rows = filtered.map(r => {
+                const totalSavings = parseFloat(r.total_savings || 0) || 0;
+                const totalDisb = parseFloat(r.total_disbursements || 0) || 0;
+                const net = parseFloat(r.net_position || (totalSavings - totalDisb)) || 0;
+                const perfPct = (totalDisb !== 0) ? (net / Math.abs(totalDisb)) * 100 : (net >= 0 ? 100 : -100);
+                return {
+                    branch_name: r.branch_name || r.branch_location || `Branch ${r.branch_id}`,
+                    active_members: parseInt(r.active_members || 0, 10) || 0,
+                    total_savings: totalSavings,
+                    total_disbursements: totalDisb,
+                    performancePct: perfPct,
+                    net_position: net
+                };
+            });
+
+            // If user selected none and is main, show all
+            const finalRows = rows;
+
+            // Determine which transaction types are selected for branch report
+            const activeTypeBtns = Array.from(document.querySelectorAll('#branchConfig .type-btn.active'));
+            const showSavings = activeTypeBtns.length === 0 || activeTypeBtns.some(b => b.getAttribute('data-type') === 'savings');
+            const showDisb = activeTypeBtns.length === 0 || activeTypeBtns.some(b => b.getAttribute('data-type') === 'disbursement');
+
+            reportData = {
+                type: 'Branch Performance Report',
+                period: `${document.getElementById('branchMonth').value} ${document.getElementById('branchYear').value}`,
+                rows: finalRows,
+                charts: {
+                    savings: showSavings ? {
+                        labels: finalRows.map(x => x.branch_name),
+                        datasets: [{
+                            label: 'Total Savings',
+                            data: finalRows.map(x => x.total_savings),
+                            backgroundColor: 'rgba(0, 117, 66, 0.7)',
+                            borderColor: '#007542',
+                            borderWidth: 2,
+                            type: 'bar'
+                        }]
+                    } : null,
+                    disbursement: showDisb ? {
+                        labels: finalRows.map(x => x.branch_name),
+                        datasets: [{
+                            label: 'Total Disbursements',
+                            data: finalRows.map(x => x.total_disbursements),
+                            backgroundColor: 'rgba(88, 187, 67, 0.6)',
+                            borderColor: '#58BB43',
+                            borderWidth: 2,
+                            type: 'bar'
+                        }]
+                    } : null
+                }
+            };
+        }
+
         if (!reportData) {
             showMessage('Failed to generate report data.', 'error');
             return;
         }
-        
-        // Display report
+
+        // Display report (will render chart if present)
         displayReport(reportData);
-        
-    // Show send to finance section
-    showSendFinanceSection();
-    
-    showMessage('Report generated successfully!', 'success');
+
+        // Optionally mark the linked report request as completed
+        tryMarkRequestCompleted();
+
+        // Show send to finance section
+        showSendFinanceSection();
+
+        showMessage('Report generated successfully!', 'success');
     } catch (error) {
         console.error('Error generating report:', error);
         showMessage('An error occurred while generating the report.', 'error');
     }
+}
+
+function computeDateRangeForReport(reportType) {
+    let year = '2025';
+    let month = '1';
+    if (reportType === 'savings') {
+        const y = document.getElementById('savingsYear');
+        const m = document.getElementById('savingsMonth');
+        if (y) year = y.value || year;
+        if (m) month = m.value || month;
+    } else if (reportType === 'disbursement') {
+        const y = document.getElementById('disbursementYear');
+        const m = document.getElementById('disbursementMonth');
+        if (y) year = y.value || year;
+        if (m) month = m.value || month;
+    } else if (reportType === 'member') {
+        const y = document.getElementById('memberYear');
+        const m = document.getElementById('memberMonth');
+        if (y) year = y.value || year;
+        if (m) month = m.value || month;
+    } else if (reportType === 'branch') {
+        const y = document.getElementById('branchYear');
+        const m = document.getElementById('branchMonth');
+        if (y) year = y.value || year;
+        if (m) month = m.value || month;
+    }
+    const start = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+    const end = new Date(parseInt(year, 10), parseInt(month, 10), 0);
+    const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+    const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+    return { startDate, endDate, periodLabel: `${month} ${year}` };
+}
+
+function tryMarkRequestCompleted() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestId = urlParams.get('requestId');
+        const token = localStorage.getItem('access_token');
+        if (requestId && token) {
+            fetch(`/api/auth/report-requests/${requestId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'completed' })
+            }).catch(() => {});
+        }
+    } catch (_) {}
+}
+
+// --- Chart helpers to mimic Analytics custom-by-month ---
+function generateCustomMonthWeeklyLabels(year, month) {
+    // month: 1-12
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0);
+    // Build 4 weekly buckets: 1-7, 8-15, 16-23, 24-end
+    const weekStarts = [1, 8, 16, 24];
+    const weekEnds = [7, 15, 23, end.getDate()];
+    const labelFor = (s, e) => {
+        const sd = new Date(year, month - 1, s);
+        const ed = new Date(year, month - 1, e);
+        const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `${fmt(sd)} - ${fmt(ed)}, ${year}`;
+    };
+    return weekStarts.map((s, i) => labelFor(s, weekEnds[i]));
+}
+
+function alignDataWithCustomMonthWeekly(rows, valueKey, year, month) {
+    const buckets = [0, 0, 0, 0];
+    const toBucketIndex = (day) => {
+        if (day <= 7) return 0;
+        if (day <= 15) return 1;
+        if (day <= 23) return 2;
+        return 3;
+    };
+    (rows || []).forEach(r => {
+        const d = new Date(r.date);
+        if (d.getFullYear() === year && (d.getMonth() + 1) === month) {
+            const idx = toBucketIndex(d.getDate());
+            const raw = r[valueKey];
+            const val = typeof raw === 'string' ? parseFloat(raw) : (raw || 0);
+            buckets[idx] += (parseFloat(val) || 0);
+        }
+    });
+    return buckets;
 }
 
 // Validate configuration based on report type
@@ -655,6 +949,112 @@ function displayReport(reportData) {
         if (html) {
             reportCanvas.innerHTML = html;
         }
+
+        // Render charts
+        // 1) Single chart path (savings/disbursement)
+        if (reportData.chart && Array.isArray(reportData.chart.labels)) {
+            // Inject chart container if not present
+            const chartContainerId = 'reportChartContainer';
+            const chartCanvasId = 'reportChart';
+            const container = document.createElement('div');
+            container.id = chartContainerId;
+            container.style.marginTop = '16px';
+            container.innerHTML = `<canvas id="${chartCanvasId}" height="120"></canvas>`;
+            reportCanvas.appendChild(container);
+
+            if (window.Chart) {
+                // Destroy previous instance if exists
+                if (window.__currentReportChart) {
+                    try { window.__currentReportChart.destroy(); } catch (_) {}
+                }
+                const ctx = document.getElementById(chartCanvasId).getContext('2d');
+                window.__currentReportChart = new Chart(ctx, {
+                    type: reportData.chartType || 'bar',
+                    data: {
+                        labels: reportData.chart.labels,
+                        datasets: reportData.chart.datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: true } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            } else {
+                // Fallback note if Chart.js not loaded
+                const note = document.createElement('div');
+                note.style.color = '#6b7280';
+                note.style.marginTop = '8px';
+                note.textContent = 'Chart preview unavailable (Chart.js not loaded).';
+                reportCanvas.appendChild(note);
+            }
+        }
+
+        // 2) Two chart path for branch report
+        if (reportData.type === 'Branch Performance Report' && reportData.charts && window.Chart) {
+            // Savings chart
+            const activeTypeBtns = Array.from(document.querySelectorAll('#branchConfig .type-btn.active'));
+            const showSavings = reportData.charts.savings && (activeTypeBtns.length === 0 || activeTypeBtns.some(b => b.getAttribute('data-type') === 'savings'));
+            const showDisb = reportData.charts.disbursement && (activeTypeBtns.length === 0 || activeTypeBtns.some(b => b.getAttribute('data-type') === 'disbursement'));
+
+            if (showSavings) {
+                const savingsWrap = document.createElement('div');
+                savingsWrap.style.marginTop = '16px';
+                savingsWrap.style.height = '260px';
+                savingsWrap.innerHTML = `<h4 style=\"margin:0 0 8px 0;color:#374151;\">Savings by Branch</h4><canvas id=\"branchSavingsChart\" style=\"width:100%;height:200px\"></canvas>`;
+                reportCanvas.appendChild(savingsWrap);
+            }
+
+            if (showDisb) {
+                const disbWrap = document.createElement('div');
+                disbWrap.style.marginTop = '20px';
+                disbWrap.style.height = '260px';
+                disbWrap.innerHTML = `<h4 style=\"margin:0 0 8px 0;color:#374151;\">Disbursements by Branch</h4><canvas id=\"branchDisbChart\" style=\"width:100%;height:200px\"></canvas>`;
+                reportCanvas.appendChild(disbWrap);
+            }
+
+            try {
+                if (window.__branchSavingsChart) { try { window.__branchSavingsChart.destroy(); } catch(_){} }
+                if (window.__branchDisbChart) { try { window.__branchDisbChart.destroy(); } catch(_){} }
+
+                if (showSavings) {
+                    const sctx = document.getElementById('branchSavingsChart').getContext('2d');
+                    window.__branchSavingsChart = new Chart(sctx, {
+                        type: 'bar',
+                        data: {
+                            labels: reportData.charts.savings.labels,
+                            datasets: reportData.charts.savings.datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: true } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+
+                if (showDisb) {
+                    const dctx = document.getElementById('branchDisbChart').getContext('2d');
+                    window.__branchDisbChart = new Chart(dctx, {
+                        type: 'bar',
+                        data: {
+                            labels: reportData.charts.disbursement.labels,
+                            datasets: reportData.charts.disbursement.datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: true } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to render branch charts', e);
+            }
+        }
     } catch (error) {
         console.error('Error displaying report:', error);
         const reportCanvas = document.getElementById('reportCanvas');
@@ -677,7 +1077,7 @@ function generateSavingsDisbursementHTML(reportData) {
         <div class="report-content">
             <div class="report-stats">
                 <div class="stat-card">
-                    <div class="stat-value">0</div>
+                    <div class="stat-value">${(reportData.chart && reportData.chart.labels ? 1 : 0)}</div>
                     <div class="stat-label">Branches</div>
                 </div>
                 <div class="stat-card">
@@ -685,7 +1085,7 @@ function generateSavingsDisbursementHTML(reportData) {
                     <div class="stat-label">Month</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱0</div>
+                    <div class="stat-value">₱${Number(reportData.total || 0).toLocaleString('en-PH')}</div>
                     <div class="stat-label">Total ${isSavings ? 'Savings' : 'Disbursements'}</div>
                 </div>
                 <div class="stat-card">
@@ -707,13 +1107,16 @@ function generateSavingsDisbursementHTML(reportData) {
                     <tbody>
         `;
         
-    // Show empty data since no database is connected
+    // Minimal single-row summary using the logged-in user's branch only
+    const userBranchName = localStorage.getItem('user_branch_name');
+    const userBranchLocation = localStorage.getItem('user_branch_location');
+    const branchDisplay = (userBranchName && userBranchLocation) ? `${userBranchName} - ${userBranchLocation}` : (userBranchName || 'Branch');
     html += `
                 <tr>
-                    <td colspan="4" style="text-align: center; padding: 40px; color: #9ca3af;">
-                        <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
-                        No data available - Database not connected
-                    </td>
+                    <td>${branchDisplay}</td>
+                    <td>₱${Number(reportData.total || 0).toLocaleString('en-PH')}</td>
+                    <td>${Number(reportData.activeMembers || 0).toLocaleString('en-PH')}</td>
+                    <td>${reportData.period.split(' ')[1]}</td>
                 </tr>
             `;
         
@@ -806,8 +1209,8 @@ function generateBranchReportHTML(reportData) {
         <div class="report-content">
             <div class="report-stats">
                 <div class="stat-card">
-                    <div class="stat-value">${reportData.branch}</div>
-                    <div class="stat-label">Branch</div>
+                    <div class="stat-value">${(reportData.rows && reportData.rows.length) || 0}</div>
+                    <div class="stat-label">Branches</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${getMonthName(month)}</div>
@@ -835,12 +1238,22 @@ function generateBranchReportHTML(reportData) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">
-                                <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
-                                No data available - Database not connected
-                            </td>
-                        </tr>
+                        ${Array.isArray(reportData.rows) && reportData.rows.length ? reportData.rows.map(r => `
+                            <tr>
+                                <td>${r.branch_name}</td>
+                                <td>${r.active_members}</td>
+                                <td>₱${Number(r.total_savings || 0).toLocaleString('en-PH')}</td>
+                                <td>₱${Number(r.total_disbursements || 0).toLocaleString('en-PH')}</td>
+                                <td>${(r.performancePct || 0).toFixed(2)}%</td>
+                            </tr>
+                        `).join('') : `
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">
+                                    <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+                                    No data available for selected filters
+                                </td>
+                            </tr>
+                        `}
                     </tbody>
                 </table>
             </div>
