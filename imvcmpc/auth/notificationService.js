@@ -4,6 +4,7 @@ const config = require('./config');
 class NotificationService {
     constructor() {
         this.pool = new Pool(config.database);
+        this._hasMetadataColumn = null;
     }
 
     // Helper method to transform database record to frontend format
@@ -44,7 +45,8 @@ class NotificationService {
             user_id: dbRecord.user_id,
             branch_id: dbRecord.branch_id,
             branch_name: dbRecord.branch_name,
-            read_at: dbRecord.read_at
+            read_at: dbRecord.read_at,
+            metadata: dbRecord.metadata || null
         };
     }
 
@@ -63,32 +65,47 @@ class NotificationService {
                 reference_type = null,
                 reference_id = null,
                 is_highlighted = false,
-                priority = 'normal'
+                priority = 'normal',
+                metadata = null
             } = notificationData;
 
-            const query = `
-                INSERT INTO notifications (
+            // Detect metadata column once and cache
+            if (this._hasMetadataColumn === null) {
+                const colCheck = await client.query(
+                    `SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='metadata'`
+                );
+                this._hasMetadataColumn = colCheck.rows.length > 0;
+            }
+
+            let result;
+            if (this._hasMetadataColumn) {
+                const query = `
+                    INSERT INTO notifications (
+                        user_id, branch_id, title, content, category, type, status,
+                        reference_type, reference_id, is_highlighted, priority, metadata
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    RETURNING *
+                `;
+                const values = [
+                    user_id, branch_id, title, content, category, type, status,
+                    reference_type, reference_id, is_highlighted, priority, metadata
+                ];
+                result = await client.query(query, values);
+            } else {
+                const query = `
+                    INSERT INTO notifications (
+                        user_id, branch_id, title, content, category, type, status,
+                        reference_type, reference_id, is_highlighted, priority
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    RETURNING *
+                `;
+                const values = [
                     user_id, branch_id, title, content, category, type, status,
                     reference_type, reference_id, is_highlighted, priority
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                RETURNING *
-            `;
+                ];
+                result = await client.query(query, values);
+            }
 
-            const values = [
-                user_id,
-                branch_id,
-                title,
-                content,
-                category,
-                type,
-                status,
-                reference_type,
-                reference_id,
-                is_highlighted,
-                priority
-            ];
-
-            const result = await client.query(query, values);
             return this.transformToFrontendFormat(result.rows[0]);
         } finally {
             client.release();

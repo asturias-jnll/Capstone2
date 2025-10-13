@@ -45,8 +45,8 @@ function setupNotificationEventListeners() {
             // Find the notification
             const notification = allNotifications.find(n => n.id === notificationId);
             if (notification) {
-                // Only show modal for important notifications (change requests)
-                if (notification.category === 'important' && notification.reference_type === 'change_request') {
+                // Show modal for important notifications: change request or report request
+                if (notification.category === 'important' && (notification.reference_type === 'change_request' || notification.reference_type === 'report_request')) {
                     showNotificationModal(notification);
                 } else {
                     // For other notifications, just mark as read
@@ -340,6 +340,29 @@ async function handleTakeAction() {
         
         // Redirect to member data page with the request ID
         window.location.href = `memberdata.html?highlightRequest=${requestId}`;
+    } else if (currentNotification && currentNotification.reference_type === 'report_request') {
+        const notificationId = currentNotification.id;
+        const requestId = currentNotification.reference_id;
+        const metadata = currentNotification.metadata || {};
+
+        // Close modal
+        closeNotificationModal();
+
+        // Mark as read
+        await markAsRead(notificationId, false);
+
+        // Prefer server-provided redirect; otherwise build fallback URL
+        const redirectUrl = (metadata && metadata.redirect)
+            ? metadata.redirect
+            : `/marketingclerk/html/reports.html?from=report_request&requestId=${encodeURIComponent(requestId)}`;
+
+        // Persist minimal prefill so Reports can hydrate if metadata lacks details
+        try {
+            sessionStorage.setItem('report_request_prefill', JSON.stringify({ requestId, metadata }));
+        } catch (_) {}
+
+        // Redirect to MC reports page
+        window.location.href = redirectUrl;
     }
 }
 

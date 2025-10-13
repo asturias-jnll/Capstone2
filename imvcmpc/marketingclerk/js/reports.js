@@ -1,4 +1,6 @@
 // Reports System - Marketing Clerk (Shared Implementation)
+// Global lock flag to prevent editing when prefilled from FO
+window.isPrefillLocked = false;
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize shared utilities (includes user header)
     if (typeof SharedUtils !== 'undefined') {
@@ -7,7 +9,40 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     initializeReports();
+    prefillFromReportRequest();
 });
+
+// Normalize and set a <select> value, tolerating zero-padded and numeric forms
+function setSelectValueByNormalized(select, value) {
+    try {
+        if (!select || value == null) return;
+        const options = Array.from(select.options || []);
+        const valStr = String(value);
+
+        // 1) Exact match
+        if (options.some(o => o.value === valStr)) {
+            select.value = valStr;
+            return;
+        }
+
+        // 2) Zero-padded 2-digit
+        const pad2 = valStr.padStart(2, '0');
+        if (options.some(o => o.value === pad2)) {
+            select.value = pad2;
+            return;
+        }
+
+        // 3) Numeric compare (e.g., "1" == 1, matches option with value "1" or "01")
+        const num = parseInt(valStr, 10);
+        if (!Number.isNaN(num)) {
+            const byNum = options.find(o => parseInt(o.value, 10) === num);
+            if (byNum) {
+                select.value = byNum.value;
+                return;
+            }
+        }
+    } catch (_) {}
+}
 
 // Initialize reports system
 function initializeReports() {
@@ -22,6 +57,128 @@ function initializeReports() {
     
     // Initialize report histories
     initializeReportHistories();
+}
+
+// Prefill the UI when arriving from a report_request notification
+function prefillFromReportRequest() {
+    try {
+        // Accept either sessionStorage or URL param as the entry point
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRequestId = urlParams.get('requestId');
+        const raw = sessionStorage.getItem('report_request_prefill');
+        let requestId = null;
+        let metadata = null;
+        if (raw) {
+            try {
+                const parsed = JSON.parse(raw);
+                requestId = parsed.requestId || urlRequestId;
+                metadata = parsed.metadata || null;
+            } catch (_) {
+                requestId = urlRequestId;
+            }
+            sessionStorage.removeItem('report_request_prefill');
+        } else {
+            requestId = urlRequestId;
+        }
+
+        // If we don't have anything to prefill, stop
+        if (!requestId && !metadata) return;
+
+        // Always hydrate from API when we have a requestId; merge with any metadata
+        const token = localStorage.getItem('access_token');
+        const hydrate = async () => {
+            const shouldFetch = !!requestId && !!token;
+            if (shouldFetch) {
+                try {
+                    const res = await fetch(`/api/auth/report-requests/${requestId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.success && data.data) {
+                        metadata = metadata || {};
+                        // API is source of truth; metadata values provide fallbacks only
+                        metadata.report_type = data.data.report_type || metadata.report_type;
+                        metadata.config = data.data.report_config || metadata.config || {};
+                        }
+                    }
+                } catch (_) {}
+            }
+        };
+
+        // Hydrate metadata if necessary before applying
+        // Note: using async IIFE to keep function signature unchanged
+        (async () => {
+            await hydrate();
+
+            if (!metadata || !metadata.report_type) return;
+
+            const reportType = metadata.report_type;
+
+            // Activate report type UI
+            const btn = document.querySelector(`.report-type-btn[data-type="${reportType}"]`);
+            if (btn) btn.click();
+
+            const cfg = metadata.config || {};
+            switch (reportType) {
+                case 'savings':
+                case 'disbursement': {
+                    const yearEl = document.getElementById(reportType + 'Year');
+                    const monthEl = document.getElementById(reportType + 'Month');
+                    if (yearEl && cfg.year != null) setSelectValueByNormalized(yearEl, cfg.year);
+                    if (monthEl && cfg.month != null) setSelectValueByNormalized(monthEl, cfg.month);
+                    break;
+                }
+                case 'member': {
+                    if (document.getElementById('memberSearch')) document.getElementById('memberSearch').value = cfg.member || '';
+                    if (cfg.transactionType) {
+                        const tbtn = document.querySelector(`#memberConfig .type-btn[data-type="${cfg.transactionType}"]`);
+                        if (tbtn) {
+                            document.querySelectorAll('#memberConfig .type-btn').forEach(b => b.classList.remove('active'));
+                            tbtn.classList.add('active');
+                        }
+                    }
+                    break;
+                }
+                case 'branch': {
+                    if (Array.isArray(cfg.branches)) {
+                        cfg.branches.forEach(val => {
+                            const cb = document.querySelector(`input[name="branchSelection"][value="${val}"]`);
+                            if (cb) cb.checked = true;
+                        });
+                    }
+                    const byEl = document.getElementById('branchYear');
+                    const bmEl = document.getElementById('branchMonth');
+                    if (byEl && cfg.year != null) setSelectValueByNormalized(byEl, cfg.year);
+                    if (bmEl && cfg.month != null) setSelectValueByNormalized(bmEl, cfg.month);
+                    if (Array.isArray(cfg.transactionTypes)) {
+                        cfg.transactionTypes.forEach(t => {
+                            const tbtn = document.querySelector(`#branchConfig .type-btn[data-type="${t}"]`);
+                            if (tbtn) tbtn.classList.add('active');
+                        });
+                    }
+                    break;
+                }
+            }
+
+            // Lock the prefilled configuration so MC cannot change it
+            lockPrefilledConfiguration(reportType);
+
+            // Optionally mark the request as in_progress
+            if (token && requestId) {
+                fetch(`/api/auth/report-requests/${requestId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'in_progress' })
+                }).catch(() => {});
+            }
+        })();
+    } catch (e) {
+        console.error('Prefill from report request failed:', e);
+    }
 }
 
 // Initialize branch-specific reports
@@ -122,6 +279,7 @@ function setupReportTypeSelector() {
     
     reportTypeBtns.forEach(btn => {
         btn.addEventListener('click', function() {
+            if (window.isPrefillLocked) return; // prevent switching types when locked
             // Remove active class from all buttons
             reportTypeBtns.forEach(b => b.classList.remove('active'));
             
@@ -243,6 +401,7 @@ function setupTransactionTypeButtons() {
     
     typeButtons.forEach(btn => {
         btn.addEventListener('click', function() {
+            if (window.isPrefillLocked) return; // prevent changing transaction types when locked
             const configSection = this.closest('.config-section');
             const configId = configSection.id;
             
@@ -728,6 +887,10 @@ function clearConfiguration(reportType) {
             showMessage('Invalid report type for clearing.', 'error');
             return;
         }
+        if (window.isPrefillLocked) {
+            showMessage('Configuration is locked by Finance Officer.', 'warning');
+            return;
+        }
         
         switch (reportType) {
             case 'savings':
@@ -754,6 +917,97 @@ function clearConfiguration(reportType) {
     } catch (error) {
         console.error('Error clearing configuration:', error);
         showMessage('An error occurred while clearing the configuration.', 'error');
+    }
+}
+
+// Disable editing for prefilled configuration
+function lockPrefilledConfiguration(reportType) {
+    try {
+        window.isPrefillLocked = true;
+
+        // Disable report type buttons
+        document.querySelectorAll('.report-type-btn').forEach(b => {
+            b.disabled = true;
+            b.style.opacity = '0.6';
+            b.style.cursor = 'not-allowed';
+        });
+
+        // Helper to disable all buttons inside a config section
+        const disableButtons = (section) => {
+            if (!section) return;
+            section.querySelectorAll('button').forEach(btn => {
+                if (btn.classList.contains('generate-btn')) return; // keep generate active elsewhere
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'not-allowed';
+            });
+        };
+
+        // Disable clear button only for the active locked section
+        const activeSection = document.getElementById(reportType + 'Config');
+        if (activeSection) {
+            const clearBtn = activeSection.querySelector('.clear-config-btn');
+            if (clearBtn) {
+                clearBtn.disabled = true;
+                clearBtn.style.opacity = '0.6';
+                clearBtn.style.cursor = 'not-allowed';
+            }
+        }
+
+        // Disable inputs per report type
+        switch (reportType) {
+            case 'savings':
+            case 'disbursement': {
+                const yearEl = document.getElementById(reportType + 'Year');
+                const monthEl = document.getElementById(reportType + 'Month');
+                if (yearEl) yearEl.disabled = true;
+                if (monthEl) monthEl.disabled = true;
+                break;
+            }
+            case 'member': {
+                const memberSearch = document.getElementById('memberSearch');
+                const yearEl = document.getElementById('memberYear');
+                const monthEl = document.getElementById('memberMonth');
+                if (memberSearch) memberSearch.disabled = true;
+                if (yearEl) yearEl.disabled = true;
+                if (monthEl) monthEl.disabled = true;
+                // Disable any type buttons within member config
+                document.querySelectorAll('#memberConfig .type-btn').forEach(b => {
+                    b.disabled = true;
+                    b.style.opacity = '0.6';
+                    b.style.cursor = 'not-allowed';
+                });
+                break;
+            }
+            case 'branch': {
+                document.querySelectorAll('input[name="branchSelection"]').forEach(cb => cb.disabled = true);
+                const byEl = document.getElementById('branchYear');
+                const bmEl = document.getElementById('branchMonth');
+                if (byEl) byEl.disabled = true;
+                if (bmEl) bmEl.disabled = true;
+                document.querySelectorAll('#branchConfig .type-btn').forEach(b => {
+                    b.disabled = true;
+                    b.style.opacity = '0.6';
+                    b.style.cursor = 'not-allowed';
+                });
+                break;
+            }
+        }
+
+        // Add a subtle note to the header
+        const header = document.querySelector('.config-header h3');
+        if (header && !document.getElementById('locked-note')) {
+            const note = document.createElement('small');
+            note.id = 'locked-note';
+            note.textContent = ' (Locked by Finance Officer request)';
+            note.style.color = '#6b7280';
+            header.appendChild(note);
+        }
+
+        // Also dim and disable type buttons within the active section
+        disableButtons(activeSection);
+    } catch (_) {
+        // no-op
     }
 }
 

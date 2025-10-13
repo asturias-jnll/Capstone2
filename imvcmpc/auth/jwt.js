@@ -16,7 +16,7 @@ class JWTManager {
         const payload = {
             sub: user.id,
             username: user.username,
-            role: user.role,
+            role: user.role_name,
             branch_id: user.branch_id,
             is_main_branch: user.is_main_branch,
             permissions: user.permissions || [],

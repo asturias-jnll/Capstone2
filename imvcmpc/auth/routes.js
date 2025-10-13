@@ -317,6 +317,10 @@ router.use('/analytics', analyticsRoutes);
 const notificationRoutes = require('./notificationRoutes');
 router.use('/', notificationRoutes);
 
+// Report request routes
+const reportRequestRoutes = require('./reportRequestRoutes');
+router.use('/', reportRequestRoutes);
+
 // Health check endpoint
 router.get('/health', async (req, res) => {
     try {

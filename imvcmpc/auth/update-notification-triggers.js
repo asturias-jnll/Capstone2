@@ -114,6 +114,29 @@ async function updateTriggers() {
             $$ LANGUAGE plpgsql;
         `);
         console.log('   ✅ Marketing Clerk notification trigger updated\n');
+
+        // Ensure ONLY one report_request trigger exists and uses RR-number title + metadata
+        console.log('3️⃣ Ensuring single report_request trigger with metadata...');
+        // Drop any extra triggers on report_requests except our canonical name
+        await pool.query(`
+            DO $$
+            DECLARE r RECORD;
+            BEGIN
+              FOR r IN (
+                SELECT tgname FROM pg_trigger t
+                JOIN pg_class c ON c.oid = t.tgrelid
+                WHERE NOT t.tgisinternal AND c.relname = 'report_requests'
+                  AND tgname <> 'trigger_create_report_request_notification'
+              ) LOOP
+                EXECUTE format('DROP TRIGGER IF EXISTS %I ON report_requests', r.tgname);
+              END LOOP;
+            END $$;
+        `);
+
+        // Recreate function and trigger from our SQL definition (safe idempotent)
+        const rrSql = fs.readFileSync(path.join(__dirname, 'create-report-request-trigger.sql'), 'utf8');
+        await pool.query(rrSql);
+        console.log('   ✅ Report request trigger ensured\n');
         
         console.log('✨ All notification triggers updated successfully!');
         console.log('\n📋 Summary:');

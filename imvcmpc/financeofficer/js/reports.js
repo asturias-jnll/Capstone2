@@ -683,8 +683,72 @@ function requestReport() {
         return;
     }
 
-    // For now, just confirm the request action
-    showMessage('Report request sent to Marketing Clerk!', 'success');
+    // Build request payload
+    const branchId = localStorage.getItem('user_branch_id');
+    const payload = {
+        report_type: reportType,
+        report_config: collectReportConfig(reportType),
+        fo_notes: null,
+        priority: 'normal',
+        due_at: null
+    };
+
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        showMessage('You are not authenticated.', 'error');
+        return;
+    }
+
+    fetch('/api/auth/report-requests', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    }).then(async (res) => {
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to send report request');
+        }
+        return res.json();
+    }).then(() => {
+        showMessage('Report request sent to Marketing Clerk!', 'success');
+    }).catch((err) => {
+        console.error('Report request error:', err);
+        showMessage('Failed to send report request.', 'error');
+    });
+}
+
+// Collect the current configuration for selected report type
+function collectReportConfig(reportType) {
+    try {
+        switch (reportType) {
+            case 'savings':
+            case 'disbursement': {
+                const year = document.getElementById(reportType + 'Year')?.value;
+                const month = document.getElementById(reportType + 'Month')?.value;
+                return { year, month };
+            }
+            case 'member': {
+                const member = document.getElementById('memberSearch')?.value?.trim();
+                const activeBtn = document.querySelector('#memberConfig .type-btn.active');
+                const transactionType = activeBtn ? activeBtn.getAttribute('data-type') : 'savings';
+                return { member, transactionType };
+            }
+            case 'branch': {
+                const selected = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => cb.value);
+                const year = document.getElementById('branchYear')?.value;
+                const month = document.getElementById('branchMonth')?.value;
+                const types = Array.from(document.querySelectorAll('#branchConfig .type-btn.active')).map(b => b.getAttribute('data-type'));
+                return { branches: selected, year, month, transactionTypes: types };
+            }
+            default:
+                return {};
+        }
+    } catch (_) {
+        return {};
+    }
 }
 
 // Clear configuration based on report type
