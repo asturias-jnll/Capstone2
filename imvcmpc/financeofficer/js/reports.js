@@ -126,7 +126,6 @@ function setupReportTypeDropdown() {
                 showInitialState();
                 hideAllConfigurations();
                 hideAllReportHistories();
-                clearReportCanvas();
                 hideSendFinanceSection();
             } else {
                 // Show corresponding configuration section
@@ -134,9 +133,6 @@ function setupReportTypeDropdown() {
                 
                 // Show corresponding history section
                 showReportHistory(selectedType);
-                
-                // Clear report canvas
-                clearReportCanvas();
                 
                 // Hide send finance section
                 hideSendFinanceSection();
@@ -176,44 +172,31 @@ function showConfigurationSection(reportType) {
     const selectedSection = document.getElementById(reportType + 'Config');
     if (selectedSection) {
         selectedSection.classList.add('active');
-        
-        // Add report canvas and generate button after the configuration
+
+        // Add request button after the configuration
         addReportCanvas();
     }
 }
 
-// Add report canvas and generate button
+// Add request button (no canvas)
 function addReportCanvas() {
     const reportConfig = document.querySelector('.report-config');
-    const sendFinanceSection = document.getElementById('sendFinanceSection');
-    
-    // Check if report canvas already exists
-    if (!document.getElementById('reportCanvas')) {
-        // Create report canvas
-        const reportCanvas = document.createElement('div');
-        reportCanvas.className = 'report-canvas';
-        reportCanvas.id = 'reportCanvas';
-        reportCanvas.innerHTML = `
-            <div class="canvas-placeholder">
-                <i class="fas fa-chart-bar"></i>
-                <h3>Report Canvas</h3>
-                <p>Configure your report settings above and click "Generate Report" to display data here.</p>
-            </div>
-        `;
-        
-        // Create generate section
-        const generateSection = document.createElement('div');
-        generateSection.className = 'generate-section';
-        generateSection.innerHTML = `
-            <button class="generate-btn" onclick="generateReport()">
-                <i class="fas fa-chart-line"></i>
-                <span>Generate Report</span>
+    const existing = document.querySelector('.generate-section');
+    if (!existing) {
+        // Create request section
+        const requestSection = document.createElement('div');
+        requestSection.className = 'generate-section';
+        requestSection.innerHTML = `
+            <button class="generate-btn" onclick="requestReport()">
+                <i class="fas fa-paper-plane"></i>
+                <span>Request Report from Marketing Clerk</span>
             </button>
         `;
-        
-        // Insert before send finance section
-        sendFinanceSection.parentNode.insertBefore(generateSection, sendFinanceSection);
-        sendFinanceSection.parentNode.insertBefore(reportCanvas, sendFinanceSection);
+
+        // Append after configuration block
+        if (reportConfig && reportConfig.parentNode) {
+            reportConfig.parentNode.insertBefore(requestSection, reportConfig.nextSibling);
+        }
     }
 }
 
@@ -342,9 +325,9 @@ function validateMemberConfig() {
 
 // Validate branch configuration
 function validateBranchConfig() {
-    const selectedBranch = document.querySelector('input[name="branchSelection"]:checked');
-    if (!selectedBranch) {
-        showMessage('Please select a branch.', 'error');
+    const selectedBranches = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked'));
+    if (selectedBranches.length === 0) {
+        showMessage('Please select at least one branch.', 'error');
         return false;
     }
     
@@ -437,13 +420,13 @@ function generateMemberReportData() {
 
 // Generate branch report data
 function generateBranchReportData() {
-    const selectedBranch = document.querySelector('input[name="branchSelection"]:checked').value;
+    const selectedBranches = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => cb.value);
     const year = document.getElementById('branchYear').value;
     const month = document.getElementById('branchMonth').value;
     
     return {
         type: 'Branch Performance Report',
-        branch: selectedBranch,
+        branches: selectedBranches,
         period: `${month} ${year}`,
         data: {}
     };
@@ -680,33 +663,28 @@ function generateBranchReportHTML(reportData) {
 }
 
 // Clear report canvas
-function clearReportCanvas() {
-    const reportCanvas = document.getElementById('reportCanvas');
-    if (reportCanvas) {
-        reportCanvas.innerHTML = `
-            <div class="canvas-placeholder">
-                <i class="fas fa-chart-bar"></i>
-                <h3>Report Canvas</h3>
-                <p>Configure your report settings above and click "Generate Report" to display data here.</p>
-            </div>
-        `;
-    }
-}
+// No report canvas for Finance Officer page
 
 // Show send finance section
-function showSendFinanceSection() {
-    const sendFinanceSection = document.getElementById('sendFinanceSection');
-    if (sendFinanceSection) {
-        sendFinanceSection.style.display = 'block';
-    }
-}
+// No-op placeholders retained for compatibility
+function showSendFinanceSection() {}
+function hideSendFinanceSection() {}
 
-// Hide send finance section
-function hideSendFinanceSection() {
-    const sendFinanceSection = document.getElementById('sendFinanceSection');
-    if (sendFinanceSection) {
-        sendFinanceSection.style.display = 'none';
+// New: Request report handler
+function requestReport() {
+    const reportTypeDropdown = document.getElementById('reportTypeDropdown');
+    if (!reportTypeDropdown || !reportTypeDropdown.value) {
+        showMessage('Please select a report type first.', 'error');
+        return;
     }
+
+    const reportType = reportTypeDropdown.value;
+    if (!validateConfiguration(reportType)) {
+        return;
+    }
+
+    // For now, just confirm the request action
+    showMessage('Report request sent to Marketing Clerk!', 'success');
 }
 
 // Clear configuration based on report type

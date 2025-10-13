@@ -351,9 +351,9 @@ function validateMemberConfig() {
 
 // Validate branch configuration
 function validateBranchConfig() {
-    const selectedBranch = document.querySelector('input[name="branchSelection"]:checked');
-    if (!selectedBranch) {
-        showMessage('Please select a branch.', 'error');
+    const selectedBranches = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked'));
+    if (selectedBranches.length === 0) {
+        showMessage('Please select at least one branch.', 'error');
         return false;
     }
     
@@ -446,13 +446,13 @@ function generateMemberReportData() {
 
 // Generate branch report data
 function generateBranchReportData() {
-    const selectedBranch = document.querySelector('input[name="branchSelection"]:checked').value;
+    const selectedBranches = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => cb.value);
     const year = document.getElementById('branchYear').value;
     const month = document.getElementById('branchMonth').value;
     
     return {
         type: 'Branch Performance Report',
-        branch: selectedBranch,
+        branches: selectedBranches,
         period: `${month} ${year}`,
         data: {}
     };
@@ -747,8 +747,7 @@ function clearConfiguration(reportType) {
                 return;
         }
         
-    // Clear report canvas and hide send finance section
-    clearReportCanvas();
+    // Hide send finance section
     hideSendFinanceSection();
         
         showMessage('Configuration cleared successfully!', 'success');
