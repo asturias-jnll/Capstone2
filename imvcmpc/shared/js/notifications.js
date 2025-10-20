@@ -7,6 +7,12 @@ let currentFilter = 'all';
 let currentNotification = null;
 let allNotifications = [];
 
+// Map backend type 'warning' (any case) to display as 'important'
+function mapTypeForDisplay(type) {
+    const t = (type || '').toString().toLowerCase();
+    return t === 'warning' ? 'important' : t;
+}
+
 // Initialize notifications when page loads
 document.addEventListener('DOMContentLoaded', function() {
     setupFilterEventListeners();
@@ -136,16 +142,19 @@ function createNotificationItem(notification) {
     const notificationItem = document.createElement('div');
     
     const isUnread = !notification.isRead;
+    const isPending = (notification.status === 'pending');
     const isHighlighted = notification.is_highlighted;
     const isImportant = notification.category === 'important';
     
-    notificationItem.className = `notification-item ${isUnread ? 'unread' : ''} ${isHighlighted ? 'highlighted' : ''} ${isImportant ? 'important' : ''} ${notification.category}`;
+    // Use only state-driven classes for container coloring
+    const shouldShowAsUnread = isUnread || isPending || isHighlighted;
+    notificationItem.className = `notification-item ${shouldShowAsUnread ? 'unread' : 'read'} ${isHighlighted ? 'highlighted' : ''}`;
     notificationItem.setAttribute('data-id', notification.id);
     notificationItem.setAttribute('data-category', notification.category);
-    notificationItem.setAttribute('data-type', notification.type);
+    notificationItem.setAttribute('data-type', mapTypeForDisplay(notification.type));
     
     const timeAgo = getTimeAgo(notification.timestamp);
-    const typeClass = notification.type;
+    const typeClass = mapTypeForDisplay(notification.type);
     
     notificationItem.innerHTML = `
         <div class="notification-header">
@@ -153,8 +162,8 @@ function createNotificationItem(notification) {
                 <div class="notification-title">${notification.title}</div>
                 <div class="notification-meta">
                     <span class="notification-type ${typeClass}">
-                        <i class="fas fa-${getTypeIcon(notification.type)}"></i>
-                        ${notification.type}
+                        <i class="fas fa-${getTypeIcon(typeClass)}"></i>
+                        ${typeClass}
                     </span>
                     <span class="notification-time">${timeAgo}</span>
                 </div>
@@ -171,6 +180,7 @@ function getTypeIcon(type) {
     const icons = {
         'info': 'info-circle',
         'warning': 'exclamation-triangle',
+        'important': 'exclamation-triangle',
         'error': 'times-circle',
         'success': 'check-circle'
     };
@@ -274,15 +284,22 @@ function showNotificationModal(notification) {
     currentNotification = notification;
     
     const modal = document.getElementById('notificationModal');
-    const modalTitle = document.getElementById('modalNotificationTitle');
+    const modalHeaderTitle = document.getElementById('modalTitle');
+    const modalDetailTitle = document.getElementById('modalNotificationTitle');
     const modalType = document.getElementById('modalNotificationType');
     const modalTime = document.getElementById('modalNotificationTime');
     const modalContent = document.getElementById('modalNotificationContent');
     
-    if (modal && modalTitle && modalType && modalTime && modalContent) {
-        modalTitle.textContent = notification.title;
-        modalType.textContent = notification.type;
-        modalType.className = `notification-detail-type ${notification.type}`;
+    if (modal && modalHeaderTitle && modalType && modalTime && modalContent) {
+        // Minimalist: put the specific notification title in the header
+        modalHeaderTitle.textContent = notification.title;
+        // Hide the duplicate detail title to avoid redundancy
+        if (modalDetailTitle) {
+            modalDetailTitle.style.display = 'none';
+        }
+        const mappedType = mapTypeForDisplay(notification.type);
+        modalType.textContent = mappedType;
+        modalType.className = `notification-detail-type ${mappedType}`;
         modalTime.textContent = getTimeAgo(notification.timestamp);
         modalContent.textContent = notification.content;
         
