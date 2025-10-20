@@ -2604,8 +2604,30 @@ function createRequestItem(request) {
         ? JSON.parse(request.requested_changes) 
         : request.requested_changes || {};
     
-    // Create change details showing only the fields that are being changed
-    const changeDetails = createChangeDetails(originalData, requestedChanges);
+    // Check if this is a deletion request
+    const requestType = request.request_type || 'modification';
+    const isDeletion = requestType === 'deletion';
+    
+    // Create change details - handle deletion requests differently
+    let changeDetails;
+    if (isDeletion) {
+        const transactionDate = formatDate(originalData.transaction_date);
+        changeDetails = `
+            <div class="changes-section">
+                <div class="changes-title">Requested Changes:</div>
+                <div class="change-item">
+                    <div class="change-field">Delete Transaction</div>
+                    <div class="change-values">
+                        <span class="change-from">${transactionDate}</span>
+                        <span class="change-arrow">→</span>
+                        <span class="change-to">DELETE</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        changeDetails = createChangeDetails(originalData, requestedChanges);
+    }
     
     // For marketing clerks, show status and any notes
     let statusInfo = '';
@@ -3518,7 +3540,7 @@ function createFinanceOfficerRequestsModal(requests, highlightRequestId = null) 
         
         /* Deletion request specific styles */
         .deletion-request {
-            border-left: 4px solid #EF4444 !important;
+            /* Removed red left border */
         }
         
         .deletion-badge {
@@ -3662,33 +3684,35 @@ function createFinanceOfficerRequestItem(request) {
         ? JSON.parse(request.requested_changes) 
         : request.requested_changes;
     
-    // For deletion requests, show different UI
+    // For deletion requests, show similar UI to modification but with delete content
     if (isDeletion) {
         return `
             <div class="finance-officer-request-item deletion-request" data-request-id="${request.id}">
                 <div class="request-header">
                     <span class="request-id">Request #${request.id.substring(0, 8)}</span>
-                    <span class="deletion-badge">
-                        <i class="fas fa-trash"></i> DELETE REQUEST
-                    </span>
                     <span class="request-date">${requestDate}</span>
-                </div>
-                <div class="request-details">
-                    <strong>Action:</strong> Delete Transaction
                 </div>
                 <div class="request-details">
                     <strong>Transaction:</strong> ${transactionPayee}
                 </div>
-                <div class="transaction-details">
-                    <strong>Amount:</strong> ${formatCurrency(originalData.amount || 0)}
-                    <br>
-                    <strong>Date:</strong> ${formatDate(originalData.transaction_date)}
+                <div class="change-details">
+                    <div class="changes-section">
+                        <div class="changes-title">Requested Changes:</div>
+                        <div class="change-item">
+                            <div class="change-field">Delete Transaction</div>
+                            <div class="change-values">
+                                <span class="change-from">${formatDate(originalData.transaction_date)}</span>
+                                <span class="change-arrow">→</span>
+                                <span class="change-to">DELETE</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="requested-by-info">
                     <strong>Requested by:</strong> ${requestedBy}
                 </div>
                 <div class="request-reason">
-                    ${request.reason || 'No reason provided'}
+                    Transaction modification requested by marketing clerk
                 </div>
                 <div class="deletion-warning">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -3697,11 +3721,11 @@ function createFinanceOfficerRequestItem(request) {
                 <div class="request-actions">
                     <button class="btn-approve" onclick="approveDeleteRequest('${request.id}')">
                         <i class="fas fa-check"></i>
-                        Approve Delete
+                        Approve
                     </button>
                     <button class="btn-reject" onclick="rejectDeleteRequest('${request.id}')">
                         <i class="fas fa-times"></i>
-                        Reject Delete
+                        Reject
                     </button>
                 </div>
             </div>
@@ -3951,3 +3975,4 @@ function showRequestProcessedMessage(action) {
         }
     }, 2000);
 }
+
