@@ -321,6 +321,10 @@ router.use('/', notificationRoutes);
 const reportRequestRoutes = require('./reportRequestRoutes');
 router.use('/', reportRequestRoutes);
 
+// AI/MCDA and PDF routes
+const aiRecommendationRoutes = require('./aiRecommendationRoutes');
+router.use('/', aiRecommendationRoutes);
+
 // Health check endpoint
 router.get('/health', async (req, res) => {
     try {

@@ -653,6 +653,13 @@ async function generateReport() {
         // Display report (will render chart if present)
         displayReport(reportData);
 
+        // Expose current report data/type for AI generation
+        window.currentReportData = reportData;
+        window.currentReportType = reportType;
+
+        // Show AI controls (optional step by user)
+        showAIRecommendationControls();
+
         // Optionally mark the linked report request as completed
         tryMarkRequestCompleted();
 
@@ -1285,6 +1292,106 @@ function showSendFinanceSection() {
     }
 }
 
+// Show AI controls when a report is generated
+function showAIRecommendationControls() {
+    const ctrl = document.getElementById('aiRecommendationControls');
+    if (ctrl) ctrl.style.display = 'flex';
+}
+
+// Generate AI recommendations via backend
+async function generateAIRecommendation() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            showMessage('You are not authenticated.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('generateAIButton');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Generating...</span>';
+        }
+
+        const body = {
+            reportType: window.currentReportType,
+            reportData: window.currentReportData
+        };
+
+        const res = await fetch('/api/auth/reports/generate-ai-recommendations', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to generate AI recommendations');
+        }
+
+        const json = await res.json();
+        const data = json && json.data ? json.data : null;
+        if (!data) throw new Error('Invalid AI response');
+
+        renderAIRecommendations(data);
+        window.aiRecommendationsGenerated = true;
+        showMessage('AI recommendations generated.', 'success');
+    } catch (e) {
+        console.error('AI generation failed:', e);
+        showMessage('AI recommendation failed.', 'error');
+    } finally {
+        const btn = document.getElementById('generateAIButton');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-brain"></i><span>Generate AI Recommendation</span>';
+        }
+    }
+}
+
+function renderAIRecommendations(payload) {
+    const section = document.getElementById('aiRecommendationSection');
+    if (!section) return;
+    section.style.display = 'block';
+
+    // Strategic text
+    const strategicEl = document.getElementById('aiStrategicText');
+    const strategic = (payload.ai && payload.ai.recommendations && payload.ai.recommendations.strategic) ||
+                      (payload.mcda && payload.mcda.recommendations && payload.mcda.recommendations.strategic) ||
+                      'No strategic recommendations available.';
+    if (strategicEl) strategicEl.textContent = strategic;
+
+    // Branch list
+    const branchList = document.getElementById('aiBranchList');
+    const branchRecs = (payload.ai && payload.ai.recommendations && payload.ai.recommendations.branchLevel) || [];
+    if (branchList) {
+        branchList.innerHTML = branchRecs.map(item => `
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin-bottom:8px;background:#fff">
+                <div style="font-weight:600;color:#111827">${item.branchName || 'Branch'}</div>
+                <div style="font-size:12px;color:#374151;margin:4px 0">Priority: ${item.priority || 'Medium'}</div>
+                <ul style="margin:0;padding-left:18px">${(item.recommendations || []).map(r => `<li>${r}</li>`).join('')}</ul>
+                ${item.rationale ? `<div style="font-size:12px;color:#6b7280;margin-top:6px">Reason: ${item.rationale}</div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    // Ranking table
+    const tbody = document.querySelector('#aiRankingTable tbody');
+    const ranked = (payload.mcda && payload.mcda.rankedBranches) || [];
+    if (tbody) {
+        tbody.innerHTML = ranked.map(r => `
+            <tr>
+                <td>${r.rank}</td>
+                <td>${r.branch_name || 'Branch'}</td>
+                <td>${(r.topsisScore * 100).toFixed(1)}%</td>
+                <td>${r.category}</td>
+            </tr>
+        `).join('');
+    }
+}
+
 // Hide send finance section
 function hideSendFinanceSection() {
     const sendFinanceSection = document.getElementById('sendFinanceSection');
@@ -1506,6 +1613,24 @@ function sendToFinanceOfficer() {
         return;
     }
     
+    // Generate PDF with current canvas (including AI section if present)
+    try {
+        const canvas = document.getElementById('reportCanvas');
+        const aiSection = document.getElementById('aiRecommendationSection');
+        const wrapper = document.createElement('div');
+        if (canvas) wrapper.appendChild(canvas.cloneNode(true));
+        if (aiSection && aiSection.style.display !== 'none') wrapper.appendChild(aiSection.cloneNode(true));
+
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            fetch('/api/auth/reports/generate-pdf', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reportHTML: wrapper.innerHTML, title: 'IMVCMPC Report' })
+            }).catch(() => {});
+        }
+    } catch (_) {}
+
     // Create sent report entry
     const sentReport = createSentReportEntry(reportData);
     
