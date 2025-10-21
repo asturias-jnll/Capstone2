@@ -1265,11 +1265,23 @@ function displayReceivedReports(reports) {
         return;
     }
     
-    container.innerHTML = reports.map(report => `
+    container.innerHTML = reports.map(report => {
+        // Format the timestamp consistently with the rest of the application
+        const reportDate = new Date(report.created_at);
+        const formattedDate = reportDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        return `
         <div class="report-item" data-report-id="${report.id}">
             <div class="report-info">
                 <h4>${report.report_type} Report</h4>
-                <p>Generated: ${new Date(report.created_at).toLocaleString()}</p>
+                <p>Generated: ${formattedDate}</p>
                 <p>By: ${report.generated_by_first_name || 'Marketing Clerk'} ${report.generated_by_last_name || ''}</p>
             </div>
             <div class="report-actions">
@@ -1281,7 +1293,8 @@ function displayReceivedReports(reports) {
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // View specific report

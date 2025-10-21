@@ -57,6 +57,9 @@ function initializeReports() {
     
     // Initialize report histories
     initializeReportHistories();
+    
+    // Load and display all history sections since they're now visible by default
+    loadReportHistories();
 }
 
 // Prefill the UI when arriving from a report_request notification
@@ -2059,10 +2062,8 @@ function formatReportDate(dateString) {
 function showReportHistory(reportType) {
     console.log('Showing report history for:', reportType);
     
-    // Hide all other report histories first
-    hideAllReportHistories();
-    
-    // Show the selected report history
+    // Since all histories are now visible by default, we don't need to hide/show them
+    // Just ensure the selected report type history is visible (it should already be)
     const historySection = document.getElementById(`${reportType}ReportHistory`);
     console.log('History section found:', historySection);
     
@@ -2084,10 +2085,7 @@ function hideReportHistory(reportType) {
 
 // Hide all report histories
 function hideAllReportHistories() {
-    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
-    console.log('Hiding all report histories');
-    reportTypes.forEach(type => {
-        console.log('Hiding history for:', type);
-        hideReportHistory(type);
-    });
+    // Since all histories are now visible by default, this function is no longer needed
+    // but kept for compatibility with existing code
+    console.log('All report histories remain visible by default');
 }

@@ -82,7 +82,7 @@ class GeneratedReportService {
                 SELECT u.id, u.first_name, u.last_name
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
-                WHERE u.branch_id = $1 AND r.name = 'Finance Officer' AND u.is_active = true
+                WHERE u.branch_id = $1 AND r.name = 'finance_officer' AND u.is_active = true
                 ORDER BY u.created_at
                 LIMIT 1
             `;
@@ -93,7 +93,8 @@ class GeneratedReportService {
                 branchId,
                 query: foQuery,
                 resultCount: foResult.rows.length,
-                financeOfficer: financeOfficer ? { id: financeOfficer.id, name: `${financeOfficer.first_name} ${financeOfficer.last_name}` } : null
+                financeOfficer: financeOfficer ? { id: financeOfficer.id, name: `${financeOfficer.first_name} ${financeOfficer.last_name}` } : null,
+                rawFinanceOfficer: financeOfficer
             });
 
             // Create notification for Finance Officer
@@ -106,14 +107,18 @@ class GeneratedReportService {
                 });
                 
                 try {
+                    console.log('🔔 About to create notification with userId:', financeOfficer.id);
+                    console.log('🔔 financeOfficer object keys:', Object.keys(financeOfficer));
+                    console.log('🔔 financeOfficer.id type:', typeof financeOfficer.id);
+                    
                     notification = await this.notificationService.createNotification({
-                        userId: financeOfficer.id,
-                        branchId: branchId,
+                        user_id: financeOfficer.id,
+                        branch_id: branchId,
                         title: `New ${reportType} Report Available`,
                         content: `Marketing Clerk has generated a ${reportType} report for your review.`,
                         type: 'report_generated',
-                        referenceType: 'generated_report',
-                        referenceId: report.id,
+                        reference_type: 'generated_report',
+                        reference_id: report.id,
                         metadata: {
                             report_type: reportType,
                             generated_by: generatedBy,
