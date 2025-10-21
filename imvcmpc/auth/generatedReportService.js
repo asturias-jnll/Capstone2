@@ -74,7 +74,7 @@ class GeneratedReportService {
                 SELECT u.id, u.first_name, u.last_name
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
-                WHERE u.branch_id = $1 AND r.name = 'finance_officer' AND u.is_active = true
+                WHERE u.branch_id = $1 AND r.name = 'Finance Officer' AND u.is_active = true
                 ORDER BY u.created_at
                 LIMIT 1
             `;
