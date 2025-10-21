@@ -23,6 +23,14 @@ class GeneratedReportService {
         pdfData, // base64 string
         fileName
     }) {
+        console.log('🚀 Starting createGeneratedReport:', {
+            reportRequestId,
+            generatedBy,
+            branchId,
+            reportType,
+            fileName: fileName ? fileName.substring(0, 50) + '...' : 'none'
+        });
+        
         const client = await this.pool.connect();
         try {
             await client.query('BEGIN');
@@ -81,26 +89,46 @@ class GeneratedReportService {
             const foResult = await client.query(foQuery, [branchId]);
             const financeOfficer = foResult.rows[0];
 
+            console.log('🔍 Finance Officer Query Result:', {
+                branchId,
+                query: foQuery,
+                resultCount: foResult.rows.length,
+                financeOfficer: financeOfficer ? { id: financeOfficer.id, name: `${financeOfficer.first_name} ${financeOfficer.last_name}` } : null
+            });
+
             // Create notification for Finance Officer
             let notification = null;
             if (financeOfficer) {
-                notification = await this.notificationService.createNotification({
+                console.log('🔔 Creating notification for Finance Officer:', {
                     userId: financeOfficer.id,
                     branchId: branchId,
-                    title: `New ${reportType} Report Available`,
-                    content: `Marketing Clerk has generated a ${reportType} report for your review.`,
-                    type: 'report_generated',
-                    referenceType: 'generated_report',
-                    referenceId: report.id,
-                    metadata: {
-                        report_type: reportType,
-                        generated_by: generatedBy,
-                        report_id: report.id,
-                        file_name: fileName,
-                        file_size: fileSize,
-                        redirect_url: `/financeofficer/html/reports.html?reportId=${report.id}`
-                    }
+                    title: `New ${reportType} Report Available`
                 });
+                
+                try {
+                    notification = await this.notificationService.createNotification({
+                        userId: financeOfficer.id,
+                        branchId: branchId,
+                        title: `New ${reportType} Report Available`,
+                        content: `Marketing Clerk has generated a ${reportType} report for your review.`,
+                        type: 'report_generated',
+                        referenceType: 'generated_report',
+                        referenceId: report.id,
+                        metadata: {
+                            report_type: reportType,
+                            generated_by: generatedBy,
+                            report_id: report.id,
+                            file_name: fileName,
+                            file_size: fileSize,
+                            redirect_url: `/financeofficer/html/reports.html?reportId=${report.id}`
+                        }
+                    });
+                    console.log('✅ Notification created successfully:', notification ? notification.id : 'null');
+                } catch (error) {
+                    console.error('❌ Notification creation failed:', error);
+                }
+            } else {
+                console.log('⚠️ No Finance Officer found for branch:', branchId);
             }
 
             await client.query('COMMIT');
@@ -348,10 +376,10 @@ class GeneratedReportService {
                 return null;
             }
 
-            // Update viewed timestamp (we'll add this column if needed)
+            // Update viewed timestamp (using created_at since updated_at doesn't exist)
             const updateQuery = `
                 UPDATE generated_reports 
-                SET updated_at = CURRENT_TIMESTAMP
+                SET created_at = CURRENT_TIMESTAMP
                 WHERE id = $1
                 RETURNING *
             `;
