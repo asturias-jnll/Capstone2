@@ -1,8 +1,19 @@
 # Production Dockerfile for Render deployment (Repository Root)
 FROM node:18-alpine
 
-# Install runtime dependencies only
-RUN apk add --no-cache dumb-init
+# Install Chromium and dependencies for Puppeteer, plus runtime dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Tell Puppeteer to use installed Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Set working directory
 WORKDIR /app

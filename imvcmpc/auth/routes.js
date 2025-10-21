@@ -325,6 +325,10 @@ router.use('/', reportRequestRoutes);
 const aiRecommendationRoutes = require('./aiRecommendationRoutes');
 router.use('/', aiRecommendationRoutes);
 
+// Generated reports routes
+const generatedReportRoutes = require('./generatedReportRoutes');
+router.use('/', generatedReportRoutes);
+
 // Health check endpoint
 router.get('/health', async (req, res) => {
     try {

@@ -22,6 +22,9 @@ function initializeFOReports() {
     
     // Initialize report histories
     initializeReportHistories();
+    
+    // Load received reports from Marketing Clerk
+    loadReceivedReports();
 }
 
 // Initialize branch-specific reports
@@ -1232,4 +1235,168 @@ function hideAllReportHistories() {
         console.log('Hiding history for:', type);
         hideReportHistory(type);
     });
+}
+
+// Load received reports from backend
+async function loadReceivedReports() {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/api/auth/generated-reports?limit=20', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load reports');
+        
+        const result = await response.json();
+        displayReceivedReports(result.data.reports);
+    } catch (error) {
+        console.error('Error loading reports:', error);
+        showMessage('Failed to load reports', 'error');
+    }
+}
+
+// Display list of reports
+function displayReceivedReports(reports) {
+    const container = document.getElementById('receivedReportsContainer');
+    if (!container) return;
+    
+    if (reports.length === 0) {
+        container.innerHTML = '<div class="empty-state">No reports received yet</div>';
+        return;
+    }
+    
+    container.innerHTML = reports.map(report => `
+        <div class="report-item" data-report-id="${report.id}">
+            <div class="report-info">
+                <h4>${report.report_type} Report</h4>
+                <p>Generated: ${new Date(report.created_at).toLocaleString()}</p>
+                <p>By: ${report.generated_by_first_name || 'Marketing Clerk'} ${report.generated_by_last_name || ''}</p>
+            </div>
+            <div class="report-actions">
+                <button onclick="viewGeneratedReport('${report.id}')" class="btn-view">
+                    <i class="fas fa-eye"></i> View
+                </button>
+                <button onclick="downloadReportPDF('${report.id}')" class="btn-download">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// View specific report
+async function viewGeneratedReport(reportId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/auth/generated-reports/${reportId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load report');
+        
+        const result = await response.json();
+        const report = result.data;
+        
+        // Display report data
+        displayReportContent(report);
+        
+        // Mark as viewed
+        markReportAsViewed(reportId);
+    } catch (error) {
+        console.error('Error viewing report:', error);
+        showMessage('Failed to load report', 'error');
+    }
+}
+
+// Display report content in a modal or dedicated section
+function displayReportContent(report) {
+    // Create or update a modal/section to display the report
+    let modal = document.getElementById('reportViewModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'reportViewModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>${report.report_type} Report</h2>
+                    <span class="close" onclick="closeReportModal()">&times;</span>
+                </div>
+                <div class="modal-body" id="reportModalBody">
+                    <!-- Report content will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button onclick="downloadReportPDF('${report.id}')" class="btn-download">
+                        <i class="fas fa-download"></i> Download PDF
+                    </button>
+                    <button onclick="closeReportModal()" class="btn-close">Close</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    const modalBody = document.getElementById('reportModalBody');
+    if (modalBody) {
+        // Display report data in a formatted way
+        modalBody.innerHTML = `
+            <div class="report-details">
+                <h3>Report Information</h3>
+                <p><strong>Type:</strong> ${report.report_type}</p>
+                <p><strong>Generated:</strong> ${new Date(report.created_at).toLocaleString()}</p>
+                <p><strong>By:</strong> ${report.generated_by_first_name || 'Marketing Clerk'} ${report.generated_by_last_name || ''}</p>
+                <p><strong>Branch:</strong> ${report.branch_name || 'N/A'}</p>
+            </div>
+            <div class="report-data">
+                <h3>Report Data</h3>
+                <pre>${JSON.stringify(report.data, null, 2)}</pre>
+            </div>
+        `;
+    }
+    
+    modal.style.display = 'block';
+}
+
+// Close report modal
+function closeReportModal() {
+    const modal = document.getElementById('reportViewModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Download PDF
+async function downloadReportPDF(reportId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/auth/generated-reports/${reportId}/pdf`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to download PDF');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `report_${reportId}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        showMessage('Failed to download PDF', 'error');
+    }
+}
+
+// Mark report as viewed
+async function markReportAsViewed(reportId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        await fetch(`/api/auth/generated-reports/${reportId}/viewed`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+    } catch (error) {
+        console.error('Error marking report as viewed:', error);
+    }
 }

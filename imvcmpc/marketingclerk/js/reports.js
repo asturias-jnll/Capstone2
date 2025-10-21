@@ -1598,7 +1598,7 @@ function clearBranchConfig() {
 }
 
 // Send to Finance Officer
-function sendToFinanceOfficer() {
+async function sendToFinanceOfficer() {
     const activeReportType = document.querySelector('.report-type-btn.active');
     if (!activeReportType) {
         showMessage('Please generate a report first.', 'error');
@@ -1606,41 +1606,93 @@ function sendToFinanceOfficer() {
     }
     
     const reportType = activeReportType.getAttribute('data-type');
-    const reportData = generateReportData(reportType);
+    const reportData = window.currentReportData;
     
     if (!reportData) {
         showMessage('No report data available to send.', 'error');
         return;
     }
     
-    // Generate PDF with current canvas (including AI section if present)
     try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            showMessage('Authentication required.', 'error');
+            return;
+        }
+        
+        // Show loading state
+        showMessage('Generating and sending report...', 'info');
+        
+        // Generate PDF from canvas + AI section
         const canvas = document.getElementById('reportCanvas');
         const aiSection = document.getElementById('aiRecommendationSection');
         const wrapper = document.createElement('div');
         if (canvas) wrapper.appendChild(canvas.cloneNode(true));
-        if (aiSection && aiSection.style.display !== 'none') wrapper.appendChild(aiSection.cloneNode(true));
-
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            fetch('/api/auth/reports/generate-pdf', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reportHTML: wrapper.innerHTML, title: 'IMVCMPC Report' })
-            }).catch(() => {});
+        if (aiSection && aiSection.style.display !== 'none') {
+            wrapper.appendChild(aiSection.cloneNode(true));
         }
-    } catch (_) {}
-
-    // Create sent report entry
-    const sentReport = createSentReportEntry(reportData);
-    
-    // Save to report history
-    saveReportHistory(reportType, reportData);
-    
-    // Show report history for this report type
-    showReportHistory(reportType);
-    
-    showMessage('Report sent to Finance Officer successfully!', 'success');
+        
+        // Generate PDF
+        const pdfRes = await fetch('/api/auth/reports/generate-pdf', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                reportHTML: wrapper.innerHTML,
+                title: `${reportType} Report`
+            })
+        });
+        
+        if (!pdfRes.ok) {
+            throw new Error('PDF generation failed');
+        }
+        
+        const pdfBlob = await pdfRes.blob();
+        const pdfBase64 = await blobToBase64(pdfBlob);
+        
+        // Get report_request_id from URL if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportRequestId = urlParams.get('requestId') || null;
+        
+        // Collect configuration
+        const reportConfig = collectReportConfig(reportType);
+        
+        // Save to database
+        const saveRes = await fetch('/api/auth/generated-reports', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                report_request_id: reportRequestId,
+                report_type: reportType,
+                config: reportConfig,
+                data: reportData,
+                pdf_data: pdfBase64,
+                file_name: `${reportType}_report_${new Date().getTime()}.pdf`
+            })
+        });
+        
+        if (!saveRes.ok) {
+            const errorText = await saveRes.text();
+            throw new Error(errorText || 'Failed to save report');
+        }
+        
+        const result = await saveRes.json();
+        
+        // Update local history
+        saveReportHistory(reportType, reportData);
+        showReportHistory(reportType);
+        
+        showMessage('Report sent to Finance Officer successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error sending report:', error);
+        showMessage('Failed to send report. Please try again.', 'error');
+    }
 }
 
 // Create sent report entry
@@ -1693,6 +1745,47 @@ function getBranchInfoForReport(reportData) {
         const userBranchName = localStorage.getItem('user_branch_name');
         const userBranchLocation = localStorage.getItem('user_branch_location');
         return `${userBranchName} - ${userBranchLocation}` || `Branch ${userBranchId}`;
+    }
+}
+
+// Helper: Convert blob to base64
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+// Helper: Collect report configuration
+function collectReportConfig(reportType) {
+    try {
+        switch (reportType) {
+            case 'savings':
+            case 'disbursement': {
+                const year = document.getElementById(reportType + 'Year')?.value;
+                const month = document.getElementById(reportType + 'Month')?.value;
+                return { year, month };
+            }
+            case 'member': {
+                const member = document.getElementById('memberSearch')?.value?.trim();
+                const activeBtn = document.querySelector('#memberConfig .type-btn.active');
+                const transactionType = activeBtn ? activeBtn.getAttribute('data-type') : 'savings';
+                return { member, transactionType };
+            }
+            case 'branch': {
+                const selected = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => cb.value);
+                const year = document.getElementById('branchYear')?.value;
+                const month = document.getElementById('branchMonth')?.value;
+                const types = Array.from(document.querySelectorAll('#branchConfig .type-btn.active')).map(b => b.getAttribute('data-type'));
+                return { branches: selected, year, month, transactionTypes: types };
+            }
+            default:
+                return {};
+        }
+    } catch (_) {
+        return {};
     }
 }
 

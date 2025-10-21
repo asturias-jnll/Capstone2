@@ -83,7 +83,7 @@ router.post('/reports/generate-pdf',
         return res.status(400).json({ success: false, error: 'reportHTML is required' });
       }
 
-      const pdfBuffer = await pdfService.htmlToPDF(reportHTML, { title: title || 'IMVCMPC Report' });
+      const pdfBuffer = await pdfService.generatePDF(reportHTML, { title: title || 'IMVCMPC Report' });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="report.pdf"');
       return res.send(pdfBuffer);
