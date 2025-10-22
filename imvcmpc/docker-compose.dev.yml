@@ -6,8 +6,16 @@ services:
       NODE_ENV: development
       LOG_LEVEL: debug
     volumes:
+      # Mount backend code for hot-reload
       - ./auth:/app/auth
       - /app/auth/node_modules
+      # Mount static files for frontend hot-reload
+      - ./shared:/app/static/shared
+      - ./financeofficer:/app/static/financeofficer
+      - ./marketingclerk:/app/static/marketingclerk
+      - ./ithead:/app/static/ithead
+      - ./logpage:/app/static/logpage
+      - ./assets:/app/static/assets
     command: ["npm", "run", "dev"]
     ports:
       - "3001:3001"

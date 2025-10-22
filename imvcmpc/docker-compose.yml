@@ -27,6 +27,17 @@ services:
       LOG_LEVEL: info
     ports:
       - "3001:3001"
+    volumes:
+      # Mount backend code for hot-reload
+      - ./auth:/app/auth
+      - /app/auth/node_modules
+      # Mount static files for frontend hot-reload
+      - ./shared:/app/static/shared
+      - ./financeofficer:/app/static/financeofficer
+      - ./marketingclerk:/app/static/marketingclerk
+      - ./ithead:/app/static/ithead
+      - ./logpage:/app/static/logpage
+      - ./assets:/app/static/assets
     networks:
       - imvcmpc-network
     healthcheck:
