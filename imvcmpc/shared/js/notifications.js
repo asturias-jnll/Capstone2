@@ -51,13 +51,18 @@ function setupNotificationEventListeners() {
             // Find the notification
             const notification = allNotifications.find(n => n.id === notificationId);
             if (notification) {
-                // Show modal for important notifications: change request or report request
-                if (notification.category === 'important' && (notification.reference_type === 'change_request' || notification.reference_type === 'report_request')) {
+                // Always mark as read when clicked
+                await markAsRead(notificationId, false);
+                
+                // Update the UI to reflect the read state
+                filterNotifications(currentFilter);
+                updateNotificationCounts();
+                
+                // Show modal for important notifications: change request, report request, or generated report
+                if (notification.category === 'important' && (notification.reference_type === 'change_request' || notification.reference_type === 'report_request' || notification.reference_type === 'generated_report')) {
                     showNotificationModal(notification);
-                } else {
-                    // For other notifications, just mark as read
-                    await markAsRead(notificationId);
                 }
+                // For other notifications, they are already marked as read above
         }
         }
     });
@@ -148,6 +153,8 @@ function createNotificationItem(notification) {
     
     // Use only state-driven classes for container coloring
     const shouldShowAsUnread = isUnread || isPending || isHighlighted;
+    
+    // Simplified: just read vs unread, all read notifications will be white via CSS
     notificationItem.className = `notification-item ${shouldShowAsUnread ? 'unread' : 'read'} ${isHighlighted ? 'highlighted' : ''}`;
     notificationItem.setAttribute('data-id', notification.id);
     notificationItem.setAttribute('data-category', notification.category);
@@ -303,18 +310,26 @@ function showNotificationModal(notification) {
         modalTime.textContent = getTimeAgo(notification.timestamp);
         modalContent.textContent = notification.content;
         
-        // Show appropriate buttons based on notification status
+        // Show appropriate buttons based on notification type and status
         const initialButtons = document.getElementById('initialButtons');
         const actionTakenButtons = document.getElementById('actionTakenButtons');
+        const reportButtons = document.getElementById('reportButtons');
         
-        if (notification.status === 'completed') {
+        if (notification.reference_type === 'generated_report') {
+            // Show Delete/View Report buttons for generated report notifications
+            if (initialButtons) initialButtons.style.display = 'none';
+            if (actionTakenButtons) actionTakenButtons.style.display = 'none';
+            if (reportButtons) reportButtons.style.display = 'flex';
+        } else if (notification.status === 'completed') {
             // Show Close/Delete buttons for completed notifications
             if (initialButtons) initialButtons.style.display = 'none';
             if (actionTakenButtons) actionTakenButtons.style.display = 'flex';
+            if (reportButtons) reportButtons.style.display = 'none';
         } else {
             // Show Later/Take Action buttons for pending notifications
             if (initialButtons) initialButtons.style.display = 'flex';
             if (actionTakenButtons) actionTakenButtons.style.display = 'none';
+            if (reportButtons) reportButtons.style.display = 'none';
         }
         
         modal.style.display = 'flex';
@@ -390,8 +405,192 @@ function handleClose() {
     filterNotifications(currentFilter);
 }
 
+// Handle "View Report" button (for generated report notifications)
+function handleViewReport() {
+    if (currentNotification && currentNotification.reference_type === 'generated_report') {
+        const reportId = currentNotification.reference_id;
+        const metadata = currentNotification.metadata || {};
+        
+        // Close modal
+        closeNotificationModal();
+        
+        // Mark as read
+        markAsRead(currentNotification.id, false);
+        
+        // Redirect to FO reports page with report ID
+        const redirectUrl = metadata.redirect_url || `/financeofficer/html/reports.html?reportId=${reportId}`;
+        window.location.href = redirectUrl;
+    }
+}
+
 // Handle "Delete" button (after action taken)
 async function handleDelete() {
+    if (currentNotification) {
+        // Show confirmation modal before deletion
+        showDeleteConfirmationModal();
+    }
+}
+
+// Show delete confirmation modal
+function showDeleteConfirmationModal() {
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'delete-modal-overlay';
+    modalOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'delete-modal';
+    modalContent.style.cssText = `
+        background: #E9EEF3;
+        border-radius: 24px;
+        padding: 24px;
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease-out;
+    `;
+
+    modalContent.innerHTML = `
+        <h2 style="
+            font-size: 18px;
+            font-weight: 600;
+            color: #0B5E1C;
+            margin-bottom: 8px;
+        ">Confirm Delete</h2>
+        <p style="
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        ">Are you sure you want to delete this notification? This action cannot be undone.</p>
+        <div style="
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        ">
+            <button id="cancelDelete" style="
+                padding: 12px 24px;
+                border: 1px solid #D1D5DB;
+                border-radius: 10px;
+                background: white;
+                color: #4B5563;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 100px;
+            ">Cancel</button>
+            <button id="confirmDelete" style="
+                padding: 12px 24px;
+                border: none;
+                border-radius: 10px;
+                background: #EF4444;
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 100px;
+            ">Delete</button>
+        </div>
+    `;
+
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        @keyframes modalSlideOut {
+            from {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+        }
+        
+        #cancelDelete:hover {
+            border-color: #9CA3AF;
+            background: #F9FAFB;
+            transform: translateY(-1px);
+        }
+        
+        #confirmDelete:hover {
+            background: #DC2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Add modal to page
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+
+    // Add event listeners
+    document.getElementById('cancelDelete').addEventListener('click', () => {
+        closeDeleteModal();
+    });
+
+    document.getElementById('confirmDelete').addEventListener('click', () => {
+        closeDeleteModal();
+        performDelete();
+    });
+
+    // Close modal on overlay click
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            closeDeleteModal();
+        }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDeleteModal();
+        }
+    });
+}
+
+// Close delete modal
+function closeDeleteModal() {
+    const modal = document.querySelector('.delete-modal-overlay');
+    if (modal) {
+        modal.style.animation = 'modalSlideOut 0.2s ease-in';
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 200);
+    }
+}
+
+// Perform actual deletion
+async function performDelete() {
     if (currentNotification) {
         const notificationId = currentNotification.id;
         
@@ -554,4 +753,5 @@ function showEmptyState() {
 window.closeNotificationModal = closeNotificationModal;
 window.handleLater = handleLater;
 window.handleTakeAction = handleTakeAction;
+window.handleViewReport = handleViewReport;
 window.unhighlightNotification = unhighlightNotification;

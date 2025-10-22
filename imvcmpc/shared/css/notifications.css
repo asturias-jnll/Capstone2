@@ -191,7 +191,9 @@
 }
 .notification-item:not(.unread) {
     box-shadow: 0 1px 3px var(--shadow-light);
-    background: var(--gray-25) !important;
+    background: #FFFFFF !important;
+    border-left-color: #D1D5DB !important;
+    color: #6B7280;
 }
 
 /* Unread should not show any highlight overlay or extra stripe */

@@ -25,6 +25,9 @@ function initializeFOReports() {
     
     // Load received reports from Marketing Clerk
     loadReceivedReports();
+    
+    // Check for report highlighting from notification
+    checkForReportHighlight();
 }
 
 // Initialize branch-specific reports
@@ -1411,5 +1414,72 @@ async function markReportAsViewed(reportId) {
         });
     } catch (error) {
         console.error('Error marking report as viewed:', error);
+    }
+}
+
+// Check for report highlighting from notification
+function checkForReportHighlight() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('reportId');
+    
+    if (reportId) {
+        console.log('📌 Highlighting report:', reportId);
+        
+        // Wait for reports to load, then highlight
+        setTimeout(() => {
+            highlightReport(reportId);
+            
+            // Clear the URL parameter to prevent re-highlighting on refresh
+            window.history.replaceState({}, document.title, 'reports.html');
+        }, 1000);
+    }
+}
+
+// Highlight a specific report in the received reports list
+function highlightReport(reportId) {
+    const reportItem = document.querySelector(`[data-report-id="${reportId}"]`);
+    
+    if (reportItem) {
+        console.log('🎯 Found report item, highlighting...');
+        
+        // Scroll to the report item
+        reportItem.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Add highlight effect
+        reportItem.style.transition = 'all 0.3s ease';
+        reportItem.style.backgroundColor = '#FEF3C7'; // Light yellow
+        reportItem.style.border = '2px solid #F59E0B'; // Orange border
+        reportItem.style.borderRadius = '8px';
+        reportItem.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.3)';
+        
+        // Remove highlight after 5 seconds
+        setTimeout(() => {
+            reportItem.style.backgroundColor = '';
+            reportItem.style.border = '';
+            reportItem.style.borderRadius = '';
+            reportItem.style.boxShadow = '';
+        }, 5000);
+        
+        // Add a subtle pulse animation
+        reportItem.style.animation = 'pulse 1s ease-in-out 3';
+        
+        // Add CSS for pulse animation if not already present
+        if (!document.getElementById('highlight-animation-styles')) {
+            const style = document.createElement('style');
+            style.id = 'highlight-animation-styles';
+            style.textContent = `
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.02); }
+                    100% { transform: scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    } else {
+        console.log('⚠️ Report item not found for ID:', reportId);
     }
 }
