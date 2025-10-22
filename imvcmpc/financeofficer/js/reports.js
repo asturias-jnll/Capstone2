@@ -1324,24 +1324,29 @@ async function viewGeneratedReport(reportId) {
     }
 }
 
-// Display report content in a modal or dedicated section
-function displayReportContent(report) {
-    // Create or update a modal/section to display the report
+// Display report content in a modal (render PDF inline)
+// Requirement: Must be in PDF format when viewed
+let currentPdfObjectUrl = null;
+async function displayReportContent(report) {
+    // Create or update a modal to display the report PDF
     let modal = document.getElementById('reportViewModal');
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'reportViewModal';
         modal.className = 'modal';
         modal.innerHTML = `
-            <div class="modal-content">
+            <div class="modal-content" style="max-width: 1000px; width: 95vw;">
                 <div class="modal-header">
-                    <h2>${report.report_type} Report</h2>
+                    <h2 id="reportModalTitle">Report</h2>
                     <span class="close" onclick="closeReportModal()">&times;</span>
                 </div>
-                <div class="modal-body" id="reportModalBody">
-                    <!-- Report content will be inserted here -->
+                <div class="modal-body" id="reportModalBody" style="height: 75vh; padding: 0;">
+                    <iframe id="reportPdfFrame" title="Report PDF" style="width: 100%; height: 100%; border: none;" src="about:blank"></iframe>
                 </div>
                 <div class="modal-footer">
+                    <button id="openPdfNewTabBtn" class="btn-download">
+                        <i class="fas fa-external-link-alt"></i> Open in New Tab
+                    </button>
                     <button onclick="downloadReportPDF('${report.id}')" class="btn-download">
                         <i class="fas fa-download"></i> Download PDF
                     </button>
@@ -1351,25 +1356,53 @@ function displayReportContent(report) {
         `;
         document.body.appendChild(modal);
     }
-    
-    const modalBody = document.getElementById('reportModalBody');
-    if (modalBody) {
-        // Display report data in a formatted way
-        modalBody.innerHTML = `
-            <div class="report-details">
-                <h3>Report Information</h3>
-                <p><strong>Type:</strong> ${report.report_type}</p>
-                <p><strong>Generated:</strong> ${new Date(report.created_at).toLocaleString()}</p>
-                <p><strong>By:</strong> ${report.generated_by_first_name || 'Marketing Clerk'} ${report.generated_by_last_name || ''}</p>
-                <p><strong>Branch:</strong> ${report.branch_name || 'N/A'}</p>
-            </div>
-            <div class="report-data">
-                <h3>Report Data</h3>
-                <pre>${JSON.stringify(report.data, null, 2)}</pre>
-            </div>
-        `;
+
+    // Update title
+    const titleEl = document.getElementById('reportModalTitle');
+    if (titleEl) {
+        titleEl.textContent = `${report.report_type} Report`;
     }
-    
+
+    // Fetch PDF blob and display in iframe regardless of Content-Disposition
+    try {
+        const token = localStorage.getItem('access_token');
+        const pdfRes = await fetch(`/api/auth/generated-reports/${report.id}/pdf`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!pdfRes.ok) throw new Error('Failed to load PDF');
+
+        const pdfBlob = await pdfRes.blob();
+        // Revoke prior object URL if any
+        if (currentPdfObjectUrl) {
+            try { URL.revokeObjectURL(currentPdfObjectUrl); } catch (_) {}
+            currentPdfObjectUrl = null;
+        }
+        currentPdfObjectUrl = URL.createObjectURL(pdfBlob);
+        const iframe = document.getElementById('reportPdfFrame');
+        if (iframe) iframe.src = currentPdfObjectUrl;
+
+        // Wire "Open in New Tab"
+        const openBtn = document.getElementById('openPdfNewTabBtn');
+        if (openBtn) {
+            openBtn.onclick = () => {
+                if (currentPdfObjectUrl) {
+                    window.open(currentPdfObjectUrl, '_blank');
+                }
+            };
+        }
+    } catch (err) {
+        console.error('Error loading PDF for inline view:', err);
+        const modalBody = document.getElementById('reportModalBody');
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <div style="padding: 16px;">
+                    <p style="color: #b91c1c; font-weight: 600;">Failed to load PDF preview.</p>
+                    <p>You can try downloading the report instead.</p>
+                </div>
+            `;
+        }
+    }
+
     modal.style.display = 'block';
 }
 
@@ -1378,6 +1411,11 @@ function closeReportModal() {
     const modal = document.getElementById('reportViewModal');
     if (modal) {
         modal.style.display = 'none';
+    }
+    // Revoke object URL to avoid memory leaks
+    if (currentPdfObjectUrl) {
+        try { URL.revokeObjectURL(currentPdfObjectUrl); } catch (_) {}
+        currentPdfObjectUrl = null;
     }
 }
 

@@ -49,25 +49,59 @@ function setupNotificationEventListeners() {
             const notificationId = notificationItem.getAttribute('data-id');
             
             // Find the notification
-            const notification = allNotifications.find(n => n.id === notificationId);
+            let notification = allNotifications.find(n => n.id === notificationId);
             if (notification) {
                 // Always mark as read when clicked
                 await markAsRead(notificationId, false);
-                
+
+                // Try to refresh this notification from the API for latest status (e.g., report_request -> completed)
+                try {
+                    const token = localStorage.getItem('access_token');
+                    if (token) {
+                        console.log('🔄 Refreshing notification:', notificationId);
+                        const res = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            console.log('📥 Refreshed notification data:', data);
+                            if (data && data.success && data.data) {
+                                // Replace in local cache
+                                const idx = allNotifications.findIndex(n => n.id === notificationId);
+                                if (idx !== -1) {
+                                    allNotifications[idx] = data.data;
+                                    notification = data.data; // Use the fresh data directly
+                                    console.log('✅ Updated notification in cache. New status:', notification.status);
+                                } else {
+                                    notification = data.data;
+                                    console.log('✅ Using fresh notification (not in cache). Status:', notification.status);
+                                }
+                            }
+                        } else {
+                            console.error('❌ Failed to refresh notification. Status:', res.status);
+                        }
+                    }
+                } catch (refreshErr) {
+                    console.warn('⚠️ Failed to refresh notification; proceeding with cached version.', refreshErr);
+                }
+
                 // Immediately update the UI to show read state (white background)
                 notificationItem.classList.remove('unread');
                 notificationItem.classList.add('read');
-                
+
                 // Update the UI to reflect the read state
                 filterNotifications(currentFilter);
                 updateNotificationCounts();
-                
+
                 // Show modal for important notifications: change request, report request, or generated report
                 if (notification.category === 'important' && (notification.reference_type === 'change_request' || notification.reference_type === 'report_request' || notification.reference_type === 'generated_report')) {
                     showNotificationModal(notification);
                 }
                 // For other notifications, they are already marked as read above
-        }
+            }
         }
     });
 }
@@ -295,6 +329,14 @@ function updateNotificationCounts() {
 function showNotificationModal(notification) {
     currentNotification = notification;
     
+    console.log('🔔 showNotificationModal called with:', {
+        id: notification.id,
+        title: notification.title,
+        reference_type: notification.reference_type,
+        status: notification.status,
+        category: notification.category
+    });
+    
     const modal = document.getElementById('notificationModal');
     const modalHeaderTitle = document.getElementById('modalTitle');
     const modalDetailTitle = document.getElementById('modalNotificationTitle');
@@ -320,18 +362,28 @@ function showNotificationModal(notification) {
         const actionTakenButtons = document.getElementById('actionTakenButtons');
         const reportButtons = document.getElementById('reportButtons');
         
+        console.log('🔘 Determining button set:', {
+            reference_type: notification.reference_type,
+            status: notification.status,
+            isGeneratedReport: notification.reference_type === 'generated_report',
+            isCompleted: notification.status === 'completed'
+        });
+        
         if (notification.reference_type === 'generated_report') {
             // Show Delete/View Report buttons for generated report notifications
+            console.log('➡️ Showing reportButtons (Delete/View Report)');
             if (initialButtons) initialButtons.style.display = 'none';
             if (actionTakenButtons) actionTakenButtons.style.display = 'none';
             if (reportButtons) reportButtons.style.display = 'flex';
         } else if (notification.status === 'completed') {
             // Show Close/Delete buttons for completed notifications
+            console.log('➡️ Showing actionTakenButtons (Close/Delete)');
             if (initialButtons) initialButtons.style.display = 'none';
             if (actionTakenButtons) actionTakenButtons.style.display = 'flex';
             if (reportButtons) reportButtons.style.display = 'none';
         } else {
             // Show Later/Take Action buttons for pending notifications
+            console.log('➡️ Showing initialButtons (Later/Take Action)');
             if (initialButtons) initialButtons.style.display = 'flex';
             if (actionTakenButtons) actionTakenButtons.style.display = 'none';
             if (reportButtons) reportButtons.style.display = 'none';

@@ -71,10 +71,29 @@ class GeneratedReportService {
 
             // Update report request status if linked
             if (reportRequestId) {
+                console.log('🔄 Updating report request and notification status for:', reportRequestId);
                 await client.query(
                     'UPDATE report_requests SET status = $1 WHERE id = $2',
                     ['completed', reportRequestId]
                 );
+                console.log('✅ Updated report_request status to completed');
+                
+                // Update notification status to completed for the report request
+                try {
+                    console.log('🔔 Calling updateNotificationStatus with:', {
+                        referenceType: 'report_request',
+                        referenceId: reportRequestId,
+                        status: 'completed'
+                    });
+                    const updatedNotifications = await this.notificationService.updateNotificationStatus('report_request', reportRequestId, 'completed');
+                    console.log('✅ Updated notification status to completed. Updated count:', updatedNotifications.length);
+                    console.log('📋 Updated notifications:', updatedNotifications.map(n => ({ id: n.id, status: n.status })));
+                } catch (error) {
+                    console.error('❌ Failed to update notification status:', error);
+                    console.error('❌ Error details:', error.message, error.stack);
+                }
+            } else {
+                console.log('⚠️ No report_request_id provided, skipping notification update');
             }
 
             // Find Finance Officer in the same branch

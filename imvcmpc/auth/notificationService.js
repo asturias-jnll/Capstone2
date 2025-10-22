@@ -255,6 +255,42 @@ class NotificationService {
         }
     }
 
+    // Update notification status (used when report request is completed)
+    async updateNotificationStatus(referenceType, referenceId, status) {
+        const client = await this.pool.connect();
+        try {
+            // Check if updated_at column exists
+            const columnCheck = await client.query(
+                `SELECT column_name FROM information_schema.columns 
+                 WHERE table_name = 'notifications' AND column_name = 'updated_at'`
+            );
+            const hasUpdatedAt = columnCheck.rows.length > 0;
+
+            let query;
+            if (hasUpdatedAt) {
+                query = `
+                    UPDATE notifications 
+                    SET status = $1, updated_at = CURRENT_TIMESTAMP
+                    WHERE reference_type = $2 AND reference_id = $3
+                    RETURNING *
+                `;
+            } else {
+                query = `
+                    UPDATE notifications 
+                    SET status = $1
+                    WHERE reference_type = $2 AND reference_id = $3
+                    RETURNING *
+                `;
+            }
+
+            const result = await client.query(query, [status, referenceType, referenceId]);
+            console.log(`✅ Updated ${result.rows.length} notification(s) status to '${status}' for ${referenceType}:${referenceId}`);
+            return result.rows.map(row => this.transformToFrontendFormat(row));
+        } finally {
+            client.release();
+        }
+    }
+
     // Delete notification
     async deleteNotification(notificationId, userId) {
         const client = await this.pool.connect();
