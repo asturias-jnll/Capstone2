@@ -10,8 +10,7 @@
     "dev": "nodemon server.js",
     "dev:local": "set NODE_ENV=local&& nodemon server.js",
     "dev:production": "set NODE_ENV=production&& nodemon server.js",
-    "test": "jest",
-    "setup-db": "node setup-database.js"
+    "test": "jest"
   },
   "keywords": [
     "authentication",
