@@ -54,6 +54,10 @@ function setupNotificationEventListeners() {
                 // Always mark as read when clicked
                 await markAsRead(notificationId, false);
                 
+                // Immediately update the UI to show read state (white background)
+                notificationItem.classList.remove('unread');
+                notificationItem.classList.add('read');
+                
                 // Update the UI to reflect the read state
                 filterNotifications(currentFilter);
                 updateNotificationCounts();
@@ -151,8 +155,9 @@ function createNotificationItem(notification) {
     const isHighlighted = notification.is_highlighted;
     const isImportant = notification.category === 'important';
     
-    // Use only state-driven classes for container coloring
-    const shouldShowAsUnread = isUnread || isPending || isHighlighted;
+    // Show as unread only if it's actually unread AND not clicked yet
+    // Once clicked, it should show as read (white background) regardless of status
+    const shouldShowAsUnread = isUnread;
     
     // Simplified: just read vs unread, all read notifications will be white via CSS
     notificationItem.className = `notification-item ${shouldShowAsUnread ? 'unread' : 'read'} ${isHighlighted ? 'highlighted' : ''}`;
@@ -351,7 +356,7 @@ function closeNotificationModal() {
 
 // Handle "Later" button
 function handleLater() {
-    // Just close the modal, keep notification highlighted
+    // Just close the modal, notification should remain read (white background)
     closeNotificationModal();
     // Refresh to show current state
     filterNotifications(currentFilter);
@@ -406,20 +411,43 @@ function handleClose() {
 }
 
 // Handle "View Report" button (for generated report notifications)
-function handleViewReport() {
-    if (currentNotification && currentNotification.reference_type === 'generated_report') {
+async function handleViewReport() {
+    console.log('🔍 handleViewReport called');
+    console.log('📋 currentNotification:', currentNotification);
+    
+    // Check if currentNotification exists
+    if (!currentNotification) {
+        console.error('❌ currentNotification is null - cannot proceed');
+        alert('Error: Notification data not available. Please try again.');
+        return;
+    }
+    
+    if (currentNotification.reference_type === 'generated_report') {
+        // Store notification data before closing modal
         const reportId = currentNotification.reference_id;
         const metadata = currentNotification.metadata || {};
+        const notificationId = currentNotification.id;
         
-        // Close modal
+        console.log('📊 reportId:', reportId);
+        console.log('📋 metadata:', metadata);
+        console.log('📋 notificationId:', notificationId);
+        
+        // Close modal first
         closeNotificationModal();
         
-        // Mark as read
-        markAsRead(currentNotification.id, false);
+        // Mark as read (await to ensure it completes)
+        await markAsRead(notificationId, false);
         
         // Redirect to FO reports page with report ID
-        const redirectUrl = metadata.redirect_url || `/financeofficer/html/reports.html?reportId=${reportId}`;
+        const redirectUrl = metadata.redirect_url || `../../financeofficer/html/reports.html?reportId=${reportId}`;
+        console.log('🔗 Redirecting to:', redirectUrl);
+        
+        // Redirect to reports page
         window.location.href = redirectUrl;
+    } else {
+        console.log('❌ Invalid notification or wrong reference type');
+        console.log('📋 currentNotification exists:', !!currentNotification);
+        console.log('📋 reference_type:', currentNotification?.reference_type);
     }
 }
 
