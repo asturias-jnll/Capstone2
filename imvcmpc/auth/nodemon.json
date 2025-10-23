@@ -1,9 +1,14 @@
 {
   "watch": ["."],
   "ext": "js,json",
-  "ignore": ["node_modules", "temp"],
-  "delay": "1000",
+  "ignore": ["node_modules", "temp", "*.log"],
+  "delay": "500",
+  "verbose": true,
+  "legacyWatch": true,
   "env": {
     "NODE_ENV": "development"
+  },
+  "events": {
+    "restart": "echo '[Nodemon] 🔄 Restarting server due to file changes...'"
   }
 }

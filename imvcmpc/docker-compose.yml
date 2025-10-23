@@ -55,13 +55,13 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./shared:/usr/share/nginx/html/shared:ro
-      - ./financeofficer:/usr/share/nginx/html/financeofficer:ro
-      - ./marketingclerk:/usr/share/nginx/html/marketingclerk:ro
-      - ./ithead:/usr/share/nginx/html/ithead:ro
-      - ./logpage:/usr/share/nginx/html/logpage:ro
-      - ./assets:/usr/share/nginx/html/assets:ro
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./shared:/usr/share/nginx/html/shared
+      - ./financeofficer:/usr/share/nginx/html/financeofficer
+      - ./marketingclerk:/usr/share/nginx/html/marketingclerk
+      - ./ithead:/usr/share/nginx/html/ithead
+      - ./logpage:/usr/share/nginx/html/logpage
+      - ./assets:/usr/share/nginx/html/assets
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf
     depends_on:
       - api
     networks:

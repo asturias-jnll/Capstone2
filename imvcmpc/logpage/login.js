@@ -28,7 +28,6 @@ async function login() {
     // Immediately show role-specific message (we'll get the role from the form or make an educated guess)
     if (loadingText) {
         // Try to get role from username pattern or show generic message
-        const username = document.getElementById('username').value;
         let roleGuess = 'User';
         
         if (username.includes('mc.')) {
