@@ -200,19 +200,32 @@ function initializeBranchSpecificReports() {
     const userBranchName = localStorage.getItem('user_branch_name');
     const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
+    console.log('🔍 Branch-specific reports initialization:', {
+        userBranchId,
+        userBranchName,
+        isMainBranchUser
+    });
+    
     // Update reports header based on branch
     updateReportsHeader(userBranchName, isMainBranchUser);
     
     // For non-main branch users, hide branch-related options
     if (!isMainBranchUser && userBranchName) {
+        console.log('🔍 Hiding branch-related options for non-main branch user');
+        
         // Hide branch selection for branch-specific users
         hideBranchSelection();
         
         // Hide branch reports option for non-main branch users
-        hideBranchReportsOption();
+        // Add a small delay to ensure DOM elements are loaded
+        setTimeout(() => {
+            hideBranchReportsOption();
+        }, 100);
         
         // Filter reports data based on user's branch
         filterReportsForBranch(userBranchId, userBranchName);
+    } else {
+        console.log('🔍 User is main branch user or no branch name, not hiding branch options');
     }
 }
 
@@ -278,10 +291,42 @@ function showBranchIndicators() {
 
 // Hide branch reports option for non-main branch users
 function hideBranchReportsOption() {
+    console.log('🔍 Hiding branch reports for non-main branch user');
+    
     // Hide the branch reports button
     const branchReportsBtn = document.querySelector('.report-type-btn[data-type="branch"]');
     if (branchReportsBtn) {
         branchReportsBtn.style.display = 'none';
+        console.log('✅ Hidden branch reports button');
+    } else {
+        console.log('❌ Branch reports button not found');
+    }
+    
+    // Hide the branch reports option from dropdown
+    const branchOption = document.querySelector('#reportHistoryFilter option[value="branch"]');
+    if (branchOption) {
+        branchOption.style.display = 'none';
+        console.log('✅ Hidden branch option from dropdown');
+    } else {
+        console.log('❌ Branch option not found in dropdown');
+    }
+    
+    // Hide the branch report history section
+    const branchReportHistory = document.getElementById('branchReportHistory');
+    if (branchReportHistory) {
+        branchReportHistory.style.display = 'none';
+        console.log('✅ Hidden branch report history section');
+    } else {
+        console.log('❌ Branch report history section not found');
+    }
+    
+    // Hide the branch configuration section
+    const branchConfig = document.getElementById('branchConfig');
+    if (branchConfig) {
+        branchConfig.style.display = 'none';
+        console.log('✅ Hidden branch configuration section');
+    } else {
+        console.log('❌ Branch configuration section not found');
     }
 }
 

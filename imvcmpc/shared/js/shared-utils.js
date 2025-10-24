@@ -29,12 +29,16 @@ class SharedUtils {
     init() {
         this.updateDateTime();
         setInterval(() => this.updateDateTime(), 1000);
-        this.setActiveNavigation();
         this.initializeSessionManagement();
         this.initializeBranchDisplay();
         this.initializeDynamicUserHeader();
         this.loadNavigation();
         this.hideDashboardForFinanceOfficer();
+        
+        // Set active navigation after navigation is loaded
+        setTimeout(() => {
+            this.setActiveNavigation();
+        }, 50);
     }
 
     // Update date and time display
@@ -122,15 +126,42 @@ class SharedUtils {
 
     // Set active navigation item based on current page
     setActiveNavigation() {
-        const currentPage = window.location.pathname.split('/').pop();
+        const currentPath = window.location.pathname;
+        const currentPage = currentPath.split('/').pop();
         const navItems = document.querySelectorAll('.nav-item');
+        
+        console.log('Setting active navigation:', {
+            currentPath,
+            currentPage,
+            navItemsCount: navItems.length
+        });
         
         navItems.forEach(item => {
             item.classList.remove('active');
             
             // Check if this nav item corresponds to current page
             const href = item.getAttribute('href');
+            
+            console.log('Checking nav item:', {
+                href,
+                text: item.textContent.trim(),
+                currentPage,
+                currentPath
+            });
+            
+            // Check for exact match first
             if (href === currentPage) {
+                console.log('Exact match found:', href);
+                item.classList.add('active');
+            }
+            // Check for full path match (for reports pages)
+            else if (href === currentPath) {
+                console.log('Full path match found:', href);
+                item.classList.add('active');
+            }
+            // Check if current path contains the href (for reports pages with full paths)
+            else if (href.includes('reports.html') && currentPath.includes('reports.html')) {
+                console.log('Reports page match found:', href);
                 item.classList.add('active');
             }
         });

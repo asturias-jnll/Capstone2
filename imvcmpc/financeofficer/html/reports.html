@@ -93,31 +93,21 @@
                         <p>Generate financial reports for savings, disbursements, members, and branch performance.</p>
                     </div>
                     <div class="header-right">
-                        <!-- Report Type Dropdown Selector -->
-                        <div class="report-type-selector">
-                            <div class="report-type-dropdown">
-                                <select id="reportTypeDropdown">
-                                    <option value="">Choose Type of Report</option>
-                                    <option value="savings">Savings Report</option>
-                                    <option value="disbursement">Disbursement Report</option>
-                                    <option value="member">Member Report</option>
-                                    <option value="branch" id="branchReportOption" style="display: none;">Branch Report</option>
-                                </select>
-                            </div>
+                        <!-- Report Type Filter -->
+                        <div class="report-type-filter">
+                            <select id="reportTypeDropdown">
+                                <option value="">Choose Type of Report</option>
+                                <option value="savings">Savings Report</option>
+                                <option value="disbursement">Disbursement Report</option>
+                                <option value="member">Member Report</option>
+                                <option value="branch" id="branchReportOption" style="display: none;">Branch Report</option>
+                            </select>
                         </div>
                     </div>
                 </div>
 
                 <!-- Report Configuration -->
                 <div class="report-config">
-                    <!-- Initial State -->
-                    <div id="initialState" class="initial-state">
-                        <div class="initial-message">
-                            <i class="fas fa-file-alt"></i>
-                            <h4>Choose a Report Type</h4>
-                            <p>Select a report type from the dropdown above to configure and generate your report.</p>
-                        </div>
-                    </div>
 
                     <!-- Savings Configuration -->
                     <div id="savingsConfig" class="config-section">
@@ -425,55 +415,25 @@
 
                 <!-- Request-only flow: no direct send button for finance officer -->
 
-                <!-- Report History Sections -->
-                <div id="savingsReportHistory" class="report-history-section" style="display: none;">
-                    <div class="history-header">
-                        <h4>Savings Report History</h4>
-                        <p>Previously sent savings reports</p>
-                    </div>
-                    <div class="history-list" id="savingsHistoryList">
-                        <!-- Savings report history will be displayed here -->
-                    </div>
-                </div>
-
-                <div id="disbursementReportHistory" class="report-history-section" style="display: none;">
-                    <div class="history-header">
-                        <h4>Disbursement Report History</h4>
-                        <p>Previously sent disbursement reports</p>
-                    </div>
-                    <div class="history-list" id="disbursementHistoryList">
-                        <!-- Disbursement report history will be displayed here -->
-                    </div>
-                </div>
-
-                <div id="memberReportHistory" class="report-history-section" style="display: none;">
-                    <div class="history-header">
-                        <h4>Member Report History</h4>
-                        <p>Previously sent member reports</p>
-                    </div>
-                    <div class="history-list" id="memberHistoryList">
-                        <!-- Member report history will be displayed here -->
-                    </div>
-                </div>
-
-                <div id="branchReportHistory" class="report-history-section" style="display: none;">
-                    <div class="history-header">
-                        <h4>Branch Report History</h4>
-                        <p>Previously sent branch reports</p>
-                    </div>
-                    <div class="history-list" id="branchHistoryList">
-                        <!-- Branch report history will be displayed here -->
-                    </div>
-                </div>
-
-                <!-- Received Reports Section -->
+                <!-- Received Reports Section - Main Reports Page Only -->
                 <div class="received-reports-section">
                     <div class="section-header">
-                        <h3><i class="fas fa-inbox"></i> Received Reports</h3>
-                        <p>Reports generated by Marketing Clerk for your review</p>
-                        <button onclick="loadReceivedReports()" class="refresh-btn" title="Refresh reports">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
+                        <div class="section-title">
+                            <h3><i class="fas fa-inbox"></i> Received Reports</h3>
+                            <p>Reports generated by Marketing Clerk for your review</p>
+                        </div>
+                        <div class="section-controls">
+                            <div class="report-filters">
+                                <button class="filter-btn active" data-filter="all" onclick="filterReceivedReports('all')">All</button>
+                                <button class="filter-btn" data-filter="savings" onclick="filterReceivedReports('savings')">Savings</button>
+                                <button class="filter-btn" data-filter="disbursement" onclick="filterReceivedReports('disbursement')">Disbursement</button>
+                                <button class="filter-btn" data-filter="member" onclick="filterReceivedReports('member')">Member</button>
+                                <button class="filter-btn" data-filter="branch" onclick="filterReceivedReports('branch')">Branch</button>
+                            </div>
+                            <button onclick="loadReceivedReports()" class="refresh-btn" title="Refresh reports">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div id="receivedReportsContainer" class="received-reports-container">
                         <!-- Received reports will be displayed here -->

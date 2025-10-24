@@ -26,6 +26,9 @@ function initializeFOReports() {
     // Load received reports from Marketing Clerk
     loadReceivedReports();
     
+    // Show received reports section by default (main page)
+    showReceivedReportsSection();
+    
     // Check for report highlighting from notification
     checkForReportHighlight();
 }
@@ -117,6 +120,12 @@ function hideBranchReportsOption() {
     if (branchOption) {
         branchOption.style.display = 'none';
     }
+    
+    // Hide the branch filter button in received reports section
+    const branchFilterBtn = document.querySelector('.filter-btn[data-filter="branch"]');
+    if (branchFilterBtn) {
+        branchFilterBtn.style.display = 'none';
+    }
 }
 
 // Setup report type dropdown selector
@@ -133,6 +142,9 @@ function setupReportTypeDropdown() {
                 hideAllConfigurations();
                 hideAllReportHistories();
                 hideSendFinanceSection();
+                
+                // Show received reports section when on main page
+                showReceivedReportsSection();
             } else {
                 // Show corresponding configuration section
                 showConfigurationSection(selectedType);
@@ -182,6 +194,9 @@ function showConfigurationSection(reportType) {
         // Add request button after the configuration
         addReportCanvas();
     }
+    
+    // Hide received reports section when in configuration mode
+    hideReceivedReportsSection();
 }
 
 // Add request button (no canvas)
@@ -248,7 +263,7 @@ function generateReport() {
     try {
         const reportTypeDropdown = document.getElementById('reportTypeDropdown');
         if (!reportTypeDropdown || !reportTypeDropdown.value) {
-            showMessage('Please select a report type first.', 'error');
+            showReportTypeDialog();
             return;
         }
         
@@ -272,7 +287,7 @@ function generateReport() {
         // Show send to finance section
         showSendFinanceSection();
         
-        showMessage('Report generated successfully!', 'success');
+        showSuccessDialog('Report generated successfully!');
     } catch (error) {
         console.error('Error generating report:', error);
         showMessage('An error occurred while generating the report.', 'error');
@@ -312,7 +327,7 @@ function validateSavingsDisbursementConfig(reportType) {
 function validateMemberConfig() {
     const memberSearch = document.getElementById('memberSearch').value.trim();
     if (!memberSearch) {
-        showMessage('Please enter a member name or ID.', 'error');
+        showValidationDialog('Please enter a member name or ID.');
         return false;
     }
     
@@ -333,13 +348,13 @@ function validateMemberConfig() {
 function validateBranchConfig() {
     const selectedBranches = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked'));
     if (selectedBranches.length === 0) {
-        showMessage('Please select at least one branch.', 'error');
+        showValidationDialog('Please select at least one branch.');
         return false;
     }
     
     const activeTypeBtns = document.querySelectorAll('#branchConfig .type-btn.active');
     if (activeTypeBtns.length === 0) {
-        showMessage('Please select at least one transaction type (Savings or Disbursement).', 'error');
+        showValidationDialog('Please select at least one transaction type (Savings or Disbursement).');
         return false;
     }
     
@@ -680,7 +695,7 @@ function hideSendFinanceSection() {}
 function requestReport() {
     const reportTypeDropdown = document.getElementById('reportTypeDropdown');
     if (!reportTypeDropdown || !reportTypeDropdown.value) {
-        showMessage('Please select a report type first.', 'error');
+        showReportTypeDialog();
         return;
     }
 
@@ -719,7 +734,7 @@ function requestReport() {
         }
         return res.json();
     }).then(() => {
-        showMessage('Report request sent to Marketing Clerk!', 'success');
+        showSuccessDialog('Report request sent to Marketing Clerk!');
     }).catch((err) => {
         console.error('Report request error:', err);
         showMessage('Failed to send report request.', 'error');
@@ -787,10 +802,9 @@ function clearConfiguration(reportType) {
         clearReportCanvas();
         hideSendFinanceSection();
         
-        showMessage('Configuration cleared successfully!', 'success');
+        showSuccessDialog('Configuration cleared successfully!');
     } catch (error) {
         console.error('Error clearing configuration:', error);
-        showMessage('An error occurred while clearing the configuration.', 'error');
     }
 }
 
@@ -885,7 +899,7 @@ function sendToFinanceOfficer() {
     // Show report history for this report type
     showReportHistory(reportType);
     
-    showMessage('Report sent to Finance Officer successfully!', 'success');
+    showSuccessDialog('Report sent to Finance Officer successfully!');
 }
 
 // Create sent report entry
@@ -1240,6 +1254,327 @@ function hideAllReportHistories() {
     });
 }
 
+// Show received reports section
+function showReceivedReportsSection() {
+    const receivedReportsSection = document.querySelector('.received-reports-section');
+    if (receivedReportsSection) {
+        receivedReportsSection.style.display = 'block';
+        console.log('Showing received reports section');
+    }
+}
+
+// Hide received reports section
+function hideReceivedReportsSection() {
+    const receivedReportsSection = document.querySelector('.received-reports-section');
+    if (receivedReportsSection) {
+        receivedReportsSection.style.display = 'none';
+        console.log('Hiding received reports section');
+    }
+}
+
+// Show minimalist dialog for report type selection
+function showReportTypeDialog() {
+    // Remove existing dialog if any
+    const existingDialog = document.getElementById('reportTypeDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+
+    // Create dialog
+    const dialog = document.createElement('div');
+    dialog.id = 'reportTypeDialog';
+    dialog.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    `;
+
+    dialog.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 320px;
+            width: 90%;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: #fef3c7;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 12px;
+            ">
+                <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 16px;"></i>
+            </div>
+            <h3 style="
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 8px 0;
+            ">Select Report Type</h3>
+            <p style="
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0 0 20px 0;
+                line-height: 1.4;
+            ">Please select a report type first.</p>
+            <button onclick="closeReportTypeDialog()" style="
+                background: #0D5B11;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#0a4a0e'" onmouseout="this.style.background='#0D5B11'">
+                OK
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    // Animate in
+    setTimeout(() => {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(1)';
+        content.style.opacity = '1';
+    }, 10);
+}
+
+// Close report type dialog
+function closeReportTypeDialog() {
+    const dialog = document.getElementById('reportTypeDialog');
+    if (dialog) {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(0.95)';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            dialog.remove();
+        }, 300);
+    }
+}
+
+// Show minimalist validation dialog
+function showValidationDialog(message) {
+    // Remove existing dialog if any
+    const existingDialog = document.getElementById('validationDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+
+    // Create dialog
+    const dialog = document.createElement('div');
+    dialog.id = 'validationDialog';
+    dialog.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    `;
+
+    dialog.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 320px;
+            width: 90%;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: #fef2f2;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 12px;
+            ">
+                <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 16px;"></i>
+            </div>
+            <h3 style="
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 8px 0;
+            ">Validation Required</h3>
+            <p style="
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0 0 20px 0;
+                line-height: 1.4;
+            ">${message}</p>
+            <button onclick="closeValidationDialog()" style="
+                background: #0D5B11;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#0a4a0e'" onmouseout="this.style.background='#0D5B11'">
+                OK
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    // Animate in
+    setTimeout(() => {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(1)';
+        content.style.opacity = '1';
+    }, 10);
+}
+
+// Close validation dialog
+function closeValidationDialog() {
+    const dialog = document.getElementById('validationDialog');
+    if (dialog) {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(0.95)';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            dialog.remove();
+        }, 300);
+    }
+}
+
+// Show minimalist success dialog
+function showSuccessDialog(message) {
+    // Remove existing dialog if any
+    const existingDialog = document.getElementById('successDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+
+    // Create dialog
+    const dialog = document.createElement('div');
+    dialog.id = 'successDialog';
+    dialog.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    `;
+
+    dialog.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 320px;
+            width: 90%;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: #f0fdf4;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 12px;
+            ">
+                <i class="fas fa-check-circle" style="color: #0D5B11; font-size: 16px;"></i>
+            </div>
+            <h3 style="
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 8px 0;
+            ">Success</h3>
+            <p style="
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0 0 20px 0;
+                line-height: 1.4;
+            ">${message}</p>
+            <button onclick="closeSuccessDialog()" style="
+                background: #0D5B11;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#0a4a0e'" onmouseout="this.style.background='#0D5B11'">
+                OK
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    // Animate in
+    setTimeout(() => {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(1)';
+        content.style.opacity = '1';
+    }, 10);
+}
+
+// Close success dialog
+function closeSuccessDialog() {
+    const dialog = document.getElementById('successDialog');
+    if (dialog) {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(0.95)';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            dialog.remove();
+        }, 300);
+    }
+}
+
 // Load received reports from backend
 async function loadReceivedReports() {
     try {
@@ -1258,17 +1593,51 @@ async function loadReceivedReports() {
     }
 }
 
+// Store all reports for filtering
+let allReceivedReports = [];
+
 // Display list of reports
 function displayReceivedReports(reports) {
     const container = document.getElementById('receivedReportsContainer');
     if (!container) return;
+    
+    // Store all reports for filtering
+    allReceivedReports = reports;
     
     if (reports.length === 0) {
         container.innerHTML = '<div class="empty-state">No reports received yet</div>';
         return;
     }
     
-    container.innerHTML = reports.map(report => {
+    // Display all reports initially
+    filterReceivedReports('all');
+}
+
+// Filter received reports by type
+function filterReceivedReports(filterType) {
+    const container = document.getElementById('receivedReportsContainer');
+    if (!container) return;
+    
+    // Update active filter button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-filter="${filterType}"]`).classList.add('active');
+    
+    // Filter reports
+    let filteredReports = allReceivedReports;
+    if (filterType !== 'all') {
+        filteredReports = allReceivedReports.filter(report => 
+            report.report_type.toLowerCase() === filterType.toLowerCase()
+        );
+    }
+    
+    if (filteredReports.length === 0) {
+        container.innerHTML = `<div class="empty-state">No ${filterType === 'all' ? '' : filterType + ' '}reports found</div>`;
+        return;
+    }
+    
+    container.innerHTML = filteredReports.map(report => {
         // Format the timestamp consistently with the rest of the application
         const reportDate = new Date(report.created_at);
         const formattedDate = reportDate.toLocaleDateString('en-US', {
