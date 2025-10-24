@@ -47,6 +47,7 @@ function setSelectValueByNormalized(select, value) {
 // Initialize reports system
 function initializeReports() {
     setupReportTypeSelector();
+    setupReportHistoryFilter();
     setupBranchSelection();
     setupTransactionTypeButtons();
     updateCurrentDateTime();
@@ -58,8 +59,14 @@ function initializeReports() {
     // Initialize report histories
     initializeReportHistories();
     
-    // Load and display all history sections since they're now visible by default
+    // Load and display all history sections by default
     loadReportHistories();
+    
+    // Set default filter to show all report types
+    filterReportHistory('all');
+    
+    // Hide generate report section by default (only show history)
+    hideGenerateReportSection();
 }
 
 // Prefill the UI when arriving from a report_request notification
@@ -117,6 +124,9 @@ function prefillFromReportRequest() {
             if (!metadata || !metadata.report_type) return;
 
             const reportType = metadata.report_type;
+
+            // Show the report configuration section and hide history
+            showReportConfiguration();
 
             // Activate report type UI
             const btn = document.querySelector(`.report-type-btn[data-type="${reportType}"]`);
@@ -305,6 +315,34 @@ function setupReportTypeSelector() {
             // Hide send finance section
             hideSendFinanceSection();
         });
+    });
+}
+
+// Setup report history filter
+function setupReportHistoryFilter() {
+    const filterSelect = document.getElementById('reportHistoryFilterSelect');
+    
+    if (filterSelect) {
+        filterSelect.addEventListener('change', function() {
+            const selectedType = this.value;
+            filterReportHistory(selectedType);
+        });
+    }
+}
+
+// Filter report history based on selected type
+function filterReportHistory(selectedType) {
+    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    
+    reportTypes.forEach(type => {
+        const historySection = document.getElementById(`${type}ReportHistory`);
+        if (historySection) {
+            if (selectedType === 'all' || selectedType === type) {
+                historySection.style.display = 'block';
+            } else {
+                historySection.style.display = 'none';
+            }
+        }
     });
 }
 
@@ -668,8 +706,6 @@ async function generateReport() {
 
         // Show send to finance section
         showSendFinanceSection();
-
-        showMessage('Report generated successfully!', 'success');
     } catch (error) {
         console.error('Error generating report:', error);
         showMessage('An error occurred while generating the report.', 'error');
@@ -969,7 +1005,9 @@ function displayReport(reportData) {
             const container = document.createElement('div');
             container.id = chartContainerId;
             container.style.marginTop = '16px';
-            container.innerHTML = `<canvas id="${chartCanvasId}" height="120"></canvas>`;
+            container.style.width = '100%';
+            container.style.boxSizing = 'border-box';
+            container.innerHTML = `<canvas id="${chartCanvasId}" width="400" height="200"></canvas>`;
             reportCanvas.appendChild(container);
 
             if (window.Chart) {
@@ -1011,16 +1049,20 @@ function displayReport(reportData) {
             if (showSavings) {
                 const savingsWrap = document.createElement('div');
                 savingsWrap.style.marginTop = '16px';
-                savingsWrap.style.height = '260px';
-                savingsWrap.innerHTML = `<h4 style=\"margin:0 0 8px 0;color:#374151;\">Savings by Branch</h4><canvas id=\"branchSavingsChart\" style=\"width:100%;height:200px\"></canvas>`;
+                savingsWrap.style.width = '100%';
+                savingsWrap.style.boxSizing = 'border-box';
+                savingsWrap.style.minHeight = '260px';
+                savingsWrap.innerHTML = `<h4>Savings by Branch</h4><canvas id=\"branchSavingsChart\" width=\"400\" height=\"200\"></canvas>`;
                 reportCanvas.appendChild(savingsWrap);
             }
 
             if (showDisb) {
                 const disbWrap = document.createElement('div');
                 disbWrap.style.marginTop = '20px';
-                disbWrap.style.height = '260px';
-                disbWrap.innerHTML = `<h4 style=\"margin:0 0 8px 0;color:#374151;\">Disbursements by Branch</h4><canvas id=\"branchDisbChart\" style=\"width:100%;height:200px\"></canvas>`;
+                disbWrap.style.width = '100%';
+                disbWrap.style.boxSizing = 'border-box';
+                disbWrap.style.minHeight = '260px';
+                disbWrap.innerHTML = `<h4>Disbursements by Branch</h4><canvas id=\"branchDisbChart\" width=\"400\" height=\"200\"></canvas>`;
                 reportCanvas.appendChild(disbWrap);
             }
 
@@ -1281,7 +1323,7 @@ function clearReportCanvas() {
             <div class="canvas-placeholder">
                 <i class="fas fa-chart-bar"></i>
                 <h3>Report Canvas</h3>
-                <p>Configure your report settings above and click "Generate Report" to display data here.</p>
+                <p>"Generate Report" to display data here.</p>
             </div>
         `;
     }
@@ -1313,7 +1355,7 @@ async function generateAIRecommendation() {
         const btn = document.getElementById('generateAIButton');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Generating...</span>';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading...</span>';
         }
 
         const body = {
@@ -1341,7 +1383,6 @@ async function generateAIRecommendation() {
 
         renderAIRecommendations(data);
         window.aiRecommendationsGenerated = true;
-        showMessage('AI recommendations generated.', 'success');
     } catch (e) {
         console.error('AI generation failed:', e);
         showMessage('AI recommendation failed.', 'error');
@@ -1517,15 +1558,20 @@ function lockPrefilledConfiguration(reportType) {
             }
         }
 
-        // Add a subtle note to the header
-        const header = document.querySelector('.config-header h3');
-        if (header && !document.getElementById('locked-note')) {
-            const note = document.createElement('small');
-            note.id = 'locked-note';
-            note.textContent = ' (Locked by Finance Officer request)';
-            note.style.color = '#6b7280';
-            header.appendChild(note);
-        }
+        // Add a subtle note to ALL configuration headers
+        const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+        reportTypes.forEach(type => {
+            const configSection = document.getElementById(type + 'Config');
+            if (configSection) {
+                const header = configSection.querySelector('.config-header h3');
+                if (header && !header.querySelector('.locked-note')) {
+                    const note = document.createElement('small');
+                    note.className = 'locked-note';
+                    note.textContent = ' (Locked by Finance Officer request)';
+                    header.appendChild(note);
+                }
+            }
+        });
 
         // Also dim and disable type buttons within the active section
         disableButtons(activeSection);
@@ -1624,7 +1670,7 @@ async function sendToFinanceOfficer() {
         }
         
         // Show loading state
-        showMessage('Generating and sending report...', 'info');
+        showLoadingDialog('Sending report to Finance Officer...');
         
         // Generate PDF from canvas + AI section
         const canvas = document.getElementById('reportCanvas');
@@ -1690,12 +1736,250 @@ async function sendToFinanceOfficer() {
         saveReportHistory(reportType, reportData);
         showReportHistory(reportType);
         
-        showMessage('Report sent to Finance Officer successfully!', 'success');
+        // Hide loading dialog and show success
+        hideLoadingDialog();
+        const reportDetails = getReportDetailsForMessage(reportType, reportData);
+        showSuccessDialog(`${reportDetails} was sent successfully`);
         
     } catch (error) {
         console.error('Error sending report:', error);
+        hideLoadingDialog();
         showMessage('Failed to send report. Please try again.', 'error');
     }
+}
+
+// Get report details for success message
+function getReportDetailsForMessage(reportType, reportData) {
+    try {
+        const reportTypeCapitalized = reportType.charAt(0).toUpperCase() + reportType.slice(1);
+        const details = [];
+        
+        switch (reportType) {
+            case 'savings':
+            case 'disbursement': {
+                const year = reportData.year || new Date().getFullYear();
+                const month = reportData.month || new Date().getMonth() + 1;
+                const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+                details.push(`${reportTypeCapitalized} Report for ${monthName} ${year}`);
+                break;
+            }
+            case 'member': {
+                const memberName = reportData.memberName || 'Member';
+                const year = reportData.year || new Date().getFullYear();
+                const month = reportData.month || new Date().getMonth() + 1;
+                const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+                details.push(`${reportTypeCapitalized} Report for ${memberName} (${monthName} ${year})`);
+                break;
+            }
+            case 'branch': {
+                const selectedBranches = reportData.selectedBranches || [];
+                if (selectedBranches.length > 0) {
+                    const branchNames = selectedBranches.map(branch => branch.name || branch).join(', ');
+                    details.push(`${reportTypeCapitalized} Report for ${branchNames}`);
+                } else {
+                    details.push(`${reportTypeCapitalized} Report`);
+                }
+                break;
+            }
+            default:
+                details.push(`${reportTypeCapitalized} Report`);
+        }
+        
+        return details.join(' ');
+    } catch (error) {
+        console.error('Error generating report details message:', error);
+        return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+    }
+}
+
+// Show loading dialog
+function showLoadingDialog(message) {
+    // Remove existing dialogs
+    hideLoadingDialog();
+    hideSuccessDialog();
+    
+    // Create dialog overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'loadingDialog';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+    `;
+    
+    // Create dialog content
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 300px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.2s ease;
+    `;
+    
+    // Trigger animation after element is added to DOM
+    setTimeout(() => {
+        dialog.style.opacity = '1';
+        dialog.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Create loading spinner
+    const spinner = document.createElement('div');
+    spinner.style.cssText = `
+        width: 32px;
+        height: 32px;
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #0D5B11;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+    `;
+    
+    // Create message
+    const messageEl = document.createElement('p');
+    messageEl.style.cssText = `
+        color: #374151;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0;
+        line-height: 1.4;
+    `;
+    messageEl.textContent = message;
+    
+    // Assemble dialog
+    dialog.appendChild(spinner);
+    dialog.appendChild(messageEl);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+}
+
+// Hide loading dialog
+function hideLoadingDialog() {
+    const existingDialog = document.getElementById('loadingDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+}
+
+// Hide success dialog
+function hideSuccessDialog() {
+    const existingDialog = document.getElementById('successDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+}
+
+// Show minimalist success dialog
+function showSuccessDialog(message) {
+    // Remove existing dialogs
+    hideLoadingDialog();
+    hideSuccessDialog();
+    
+    // Create dialog overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'successDialog';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+    `;
+    
+    // Create dialog content
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.2s ease;
+    `;
+    
+    // Trigger animation after element is added to DOM
+    setTimeout(() => {
+        dialog.style.opacity = '1';
+        dialog.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Create success icon
+    const icon = document.createElement('div');
+    icon.style.cssText = `
+        width: 32px;
+        height: 32px;
+        background: #0D5B11;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        font-size: 14px;
+        color: white;
+    `;
+    icon.innerHTML = '<i class="fas fa-check"></i>';
+    
+    // Create message
+    const messageEl = document.createElement('p');
+    messageEl.style.cssText = `
+        color: #374151;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0;
+        line-height: 1.4;
+    `;
+    messageEl.textContent = message;
+    
+    // Add click outside to close
+    overlay.onclick = (e) => {
+        if (e.target === overlay) overlay.remove();
+    };
+    
+    // Add escape key to close
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Assemble dialog
+    dialog.appendChild(icon);
+    dialog.appendChild(messageEl);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // Auto-close after 2.5 seconds
+    setTimeout(() => {
+        if (document.getElementById('successDialog')) {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    }, 2500);
 }
 
 // Create sent report entry
@@ -2062,17 +2346,14 @@ function formatReportDate(dateString) {
 function showReportHistory(reportType) {
     console.log('Showing report history for:', reportType);
     
-    // Since all histories are now visible by default, we don't need to hide/show them
-    // Just ensure the selected report type history is visible (it should already be)
-    const historySection = document.getElementById(`${reportType}ReportHistory`);
-    console.log('History section found:', historySection);
-    
-    if (historySection) {
-        historySection.style.display = 'block';
-        console.log('History section displayed for:', reportType);
-    } else {
-        console.error('History section not found for:', reportType);
+    // Update the filter dropdown to show the selected type
+    const filterSelect = document.getElementById('reportHistoryFilter');
+    if (filterSelect) {
+        filterSelect.value = reportType;
     }
+    
+    // Filter the history sections
+    filterReportHistory(reportType);
 }
 
 // Hide report history for a specific type
@@ -2089,3 +2370,138 @@ function hideAllReportHistories() {
     // but kept for compatibility with existing code
     console.log('All report histories remain visible by default');
 }
+
+// Show report configuration section (called when "Take Action" is clicked)
+function showReportConfiguration() {
+    // Hide report history container
+    const reportHistoryContainer = document.querySelector('.report-history-container');
+    if (reportHistoryContainer) {
+        reportHistoryContainer.style.display = 'none';
+    }
+    
+    // Hide filter dropdown and show back button
+    const filterContainer = document.getElementById('reportHistoryFilter');
+    const backContainer = document.getElementById('backToHistoryContainer');
+    if (filterContainer) filterContainer.style.display = 'none';
+    if (backContainer) backContainer.style.display = 'block';
+    
+    // Show report configuration section
+    const reportConfig = document.querySelector('.report-config');
+    if (reportConfig) {
+        reportConfig.style.display = 'block';
+        // Scroll to the top of the page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+// Hide report configuration and show history (for returning to history view)
+function hideReportConfiguration() {
+    // Show report history container
+    const reportHistoryContainer = document.querySelector('.report-history-container');
+    if (reportHistoryContainer) {
+        reportHistoryContainer.style.display = 'block';
+    }
+    
+    // Show filter dropdown and hide back button
+    const filterContainer = document.getElementById('reportHistoryFilter');
+    const backContainer = document.getElementById('backToHistoryContainer');
+    if (filterContainer) filterContainer.style.display = 'block';
+    if (backContainer) backContainer.style.display = 'none';
+    
+    // Hide report configuration section
+    const reportConfig = document.querySelector('.report-config');
+    if (reportConfig) {
+        reportConfig.style.display = 'none';
+    }
+    
+    // Hide generate report button and canvas
+    hideGenerateReportSection();
+    
+    // Unlock configuration and remove locked notes
+    unlockConfiguration();
+    
+    // Reset filter to show all reports
+    const filterSelect = document.getElementById('reportHistoryFilterSelect');
+    if (filterSelect) {
+        filterSelect.value = 'all';
+        filterReportHistory('all');
+    }
+}
+
+// Unlock configuration and remove locked notes
+function unlockConfiguration() {
+    try {
+        // Reset locked state
+        window.isPrefillLocked = false;
+        
+        // Remove locked notes from all configuration headers
+        const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+        reportTypes.forEach(type => {
+            const configSection = document.getElementById(type + 'Config');
+            if (configSection) {
+                const header = configSection.querySelector('.config-header h3');
+                if (header) {
+                    const lockedNote = header.querySelector('.locked-note');
+                    if (lockedNote) {
+                        lockedNote.remove();
+                    }
+                }
+            }
+        });
+        
+        // Re-enable all form elements
+        const allInputs = document.querySelectorAll('input, select, button');
+        allInputs.forEach(input => {
+            input.disabled = false;
+            input.style.opacity = '';
+            input.style.cursor = '';
+        });
+        
+        // Re-enable report type buttons
+        document.querySelectorAll('.report-type-btn').forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.cursor = '';
+        });
+        
+    } catch (error) {
+        console.error('Error unlocking configuration:', error);
+    }
+}
+
+// Hide generate report section (button and canvas)
+function hideGenerateReportSection() {
+    // Hide generate button
+    const generateSection = document.querySelector('.generate-section');
+    if (generateSection) {
+        generateSection.style.display = 'none';
+    }
+    
+    // Hide report canvas
+    const reportCanvas = document.getElementById('reportCanvas');
+    if (reportCanvas) {
+        reportCanvas.style.display = 'none';
+    }
+    
+    // Hide send finance section
+    const sendFinanceSection = document.getElementById('sendFinanceSection');
+    if (sendFinanceSection) {
+        sendFinanceSection.style.display = 'none';
+    }
+    
+    // Hide AI recommendation section
+    const aiRecommendationSection = document.getElementById('aiRecommendationSection');
+    if (aiRecommendationSection) {
+        aiRecommendationSection.style.display = 'none';
+    }
+    
+    // Hide AI recommendation controls
+    const aiRecommendationControls = document.getElementById('aiRecommendationControls');
+    if (aiRecommendationControls) {
+        aiRecommendationControls.style.display = 'none';
+    }
+}
+
+// Make function globally available
+window.showReportConfiguration = showReportConfiguration;
+

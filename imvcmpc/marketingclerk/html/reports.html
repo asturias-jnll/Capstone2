@@ -89,34 +89,100 @@
             <div class="reports-content">
                 <div class="reports-header">
                     <div class="header-left">
-                    <h1>Reports</h1>
-                        <p>Generate financial reports for savings, disbursements, members, and branch performance.</p>
-                </div>
+                        <h1>Reports</h1>
+                        <p>View and manage your generated reports history.</p>
+                    </div>
                     <div class="header-right">
-                        <!-- Report Type Selection -->
-                        <div class="report-type-selector">
-                            <button class="report-type-btn" data-type="savings">
-                                <i class="fas fa-piggy-bank"></i>
-                                <span>Savings Reports</span>
+                        <!-- Report Type History Filter (Hidden when in configuration mode) -->
+                        <div class="report-history-filter" id="reportHistoryFilter">
+                            <select id="reportHistoryFilterSelect">
+                                <option value="all">All Report Types</option>
+                                <option value="savings">Savings Reports</option>
+                                <option value="disbursement">Disbursement Reports</option>
+                                <option value="member">Member Reports</option>
+                                <option value="branch">Branch Reports</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Back to History Button (Hidden by default) -->
+                        <div class="back-to-history-container" id="backToHistoryContainer" style="display: none;">
+                            <button class="back-to-history-btn" onclick="hideReportConfiguration()">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Back to Report History</span>
                             </button>
-                            <button class="report-type-btn" data-type="disbursement">
-                                <i class="fas fa-money-bill-wave"></i>
-                                <span>Disbursement Reports</span>
-                            </button>
-                            <button class="report-type-btn" data-type="member">
-                        <i class="fas fa-user"></i>
-                                <span>Member Reports</span>
-                    </button>
-                            <button class="report-type-btn" data-type="branch" id="branchReportsBtn" style="display: none;">
-                        <i class="fas fa-store"></i>
-                                <span>Branch Reports</span>
-                    </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Report Configuration -->
-                <div class="report-config">
+                <!-- Report History Sections -->
+                <div class="report-history-container">
+                    <!-- Savings Report History -->
+                    <div id="savingsReportHistory" class="report-history-section">
+                        <div class="history-header">
+                            <h4>Savings Reports</h4>
+                            <p>Previously generated savings reports</p>
+                        </div>
+                        <div class="history-list" id="savingsHistoryList">
+                            <!-- Savings report history will be displayed here -->
+                        </div>
+                    </div>
+
+                    <!-- Disbursement Report History -->
+                    <div id="disbursementReportHistory" class="report-history-section">
+                        <div class="history-header">
+                            <h4>Disbursement Reports</h4>
+                            <p>Previously generated disbursement reports</p>
+                        </div>
+                        <div class="history-list" id="disbursementHistoryList">
+                            <!-- Disbursement report history will be displayed here -->
+                        </div>
+                    </div>
+
+                    <!-- Member Report History -->
+                    <div id="memberReportHistory" class="report-history-section">
+                        <div class="history-header">
+                            <h4>Member Reports</h4>
+                            <p>Previously generated member reports</p>
+                        </div>
+                        <div class="history-list" id="memberHistoryList">
+                            <!-- Member report history will be displayed here -->
+                        </div>
+                    </div>
+
+                    <!-- Branch Report History -->
+                    <div id="branchReportHistory" class="report-history-section">
+                        <div class="history-header">
+                            <h4>Branch Reports</h4>
+                            <p>Previously generated branch reports</p>
+                        </div>
+                        <div class="history-list" id="branchHistoryList">
+                            <!-- Branch report history will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Configuration (Hidden by default) -->
+                <div class="report-config" style="display: none;">
+                    <!-- Report Type Selection (Hidden - type is already determined) -->
+                    <div class="report-type-selector" style="display: none;">
+                        <button class="report-type-btn" data-type="savings">
+                            <i class="fas fa-piggy-bank"></i>
+                            <span>Savings Reports</span>
+                        </button>
+                        <button class="report-type-btn" data-type="disbursement">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Disbursement Reports</span>
+                        </button>
+                        <button class="report-type-btn" data-type="member">
+                            <i class="fas fa-user"></i>
+                            <span>Member Reports</span>
+                        </button>
+                        <button class="report-type-btn" data-type="branch" id="branchReportsBtn" style="display: none;">
+                            <i class="fas fa-store"></i>
+                            <span>Branch Reports</span>
+                        </button>
+                    </div>
+
                     <!-- Initial State -->
                     <div id="initialState" class="initial-state">
                         <div class="initial-message">
@@ -124,7 +190,7 @@
                             <h4>Choose a Report Type</h4>
                             <p>Select one of the report types above to configure and generate your report.</p>
                         </div>
-                </div>
+                    </div>
 
                     <!-- Savings/Disbursement Configuration -->
                     <div id="savingsConfig" class="config-section">
@@ -464,46 +530,6 @@
                     <span>SEND TO FINANCE OFFICER</span>
                 </button>
 
-                <!-- Report History Sections -->
-                <div id="savingsReportHistory" class="report-history-section" style="display: block;">
-                    <div class="history-header">
-                        <h4>Savings Report History</h4>
-                        <p>Previously sent savings reports</p>
-                    </div>
-                    <div class="history-list" id="savingsHistoryList">
-                        <!-- Savings report history will be displayed here -->
-                    </div>
-                </div>
-
-                <div id="disbursementReportHistory" class="report-history-section" style="display: block;">
-                    <div class="history-header">
-                        <h4>Disbursement Report History</h4>
-                        <p>Previously sent disbursement reports</p>
-                    </div>
-                    <div class="history-list" id="disbursementHistoryList">
-                        <!-- Disbursement report history will be displayed here -->
-                    </div>
-                </div>
-
-                <div id="memberReportHistory" class="report-history-section" style="display: block;">
-                    <div class="history-header">
-                        <h4>Member Report History</h4>
-                        <p>Previously sent member reports</p>
-                    </div>
-                    <div class="history-list" id="memberHistoryList">
-                        <!-- Member report history will be displayed here -->
-                    </div>
-                </div>
-
-                <div id="branchReportHistory" class="report-history-section" style="display: block;">
-                    <div class="history-header">
-                        <h4>Branch Report History</h4>
-                        <p>Previously sent branch reports</p>
-                    </div>
-                    <div class="history-list" id="branchHistoryList">
-                        <!-- Branch report history will be displayed here -->
-                    </div>
-                </div>
 
             </div>
         </main>
