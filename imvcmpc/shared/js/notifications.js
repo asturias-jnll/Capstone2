@@ -8,9 +8,13 @@ let currentNotification = null;
 let allNotifications = [];
 
 // Map backend type 'warning' (any case) to display as 'important'
+// Map 'error' to 'rejected' and 'success' to 'approved'
 function mapTypeForDisplay(type) {
     const t = (type || '').toString().toLowerCase();
-    return t === 'warning' ? 'important' : t;
+    if (t === 'warning') return 'important';
+    if (t === 'error') return 'rejected';
+    if (t === 'success') return 'approved';
+    return t;
 }
 
 // Initialize notifications when page loads
@@ -227,8 +231,8 @@ function getTypeIcon(type) {
         'info': 'info-circle',
         'warning': 'exclamation-triangle',
         'important': 'exclamation-triangle',
-        'error': 'times-circle',
-        'success': 'check-circle'
+        'rejected': 'times-circle',
+        'approved': 'check-circle'
     };
     return icons[type] || 'bell';
 }

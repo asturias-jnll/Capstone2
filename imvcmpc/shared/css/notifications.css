@@ -255,12 +255,12 @@
     color: var(--yellow-700);
 }
 
-.notification-type.error {
+.notification-type.rejected {
     background: var(--red-100);
     color: var(--red-700);
 }
 
-.notification-type.success {
+.notification-type.approved {
     background: var(--green-100);
     color: var(--green-700);
 }
@@ -719,12 +719,12 @@
     color: var(--yellow-700);
 }
 
-.notification-detail-type.error {
+.notification-detail-type.rejected {
     background: var(--red-100);
     color: var(--red-700);
 }
 
-.notification-detail-type.success {
+.notification-detail-type.approved {
     background: var(--green-100);
     color: var(--green-700);
 }
