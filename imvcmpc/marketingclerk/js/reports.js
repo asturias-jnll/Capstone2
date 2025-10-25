@@ -2511,7 +2511,17 @@ function displayReportHistory(reportType, history) {
 
 // Generate report title based on type and config
 function generateReportTitle(reportType, config, createdAt) {
-    const generationDate = new Date(createdAt).toLocaleDateString('en-US', {
+    // Parse date string and handle timezone properly to avoid day shift
+    let localDateString = createdAt;
+    if (createdAt.includes('T')) {
+        localDateString = createdAt.split('T')[0];
+    }
+    
+    // Create date from YYYY-MM-DD format to avoid timezone issues
+    const [year, month, day] = localDateString.split('-').map(Number);
+    const reportDate = new Date(year, month - 1, day);
+    
+    const generationDate = reportDate.toLocaleDateString('en-US', {
         month: '2-digit',
         day: '2-digit',
         year: 'numeric'
@@ -2644,7 +2654,16 @@ function formatReportDate(dateString) {
 
 // Format smart timestamp (time for same day, date for older)
 function formatSmartTimestamp(dateString) {
-    const reportDate = new Date(dateString);
+    // Parse date string and handle timezone properly
+    // Replace 'Z' or timezone info to treat as local time
+    let localDateString = dateString.replace('Z', '').split('+')[0].split('-').slice(0, 3).join('-');
+    if (dateString.includes('T')) {
+        localDateString = dateString.split('T')[0];
+    }
+    
+    // Create date from YYYY-MM-DD format to avoid timezone issues
+    const [year, month, day] = localDateString.split('-').map(Number);
+    const reportDate = new Date(year, month - 1, day);
     const today = new Date();
     
     // Check if same day
@@ -2653,8 +2672,9 @@ function formatSmartTimestamp(dateString) {
                      reportDate.getFullYear() === today.getFullYear();
     
     if (isSameDay) {
-        // Show time for same day
-        return reportDate.toLocaleTimeString('en-US', {
+        // For same day, parse the full timestamp to get the time
+        const fullDate = new Date(dateString);
+        return fullDate.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: true

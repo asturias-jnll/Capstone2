@@ -53,7 +53,7 @@ class GeneratedReportService {
                     status,
                     created_at,
                     completed_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW() AT TIME ZONE 'Asia/Manila', NOW() AT TIME ZONE 'Asia/Manila')
                 RETURNING *
             `;
 
