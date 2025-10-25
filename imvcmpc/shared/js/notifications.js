@@ -6,6 +6,11 @@ const API_BASE_URL = '/api/auth';
 let currentFilter = 'all';
 let currentNotification = null;
 let allNotifications = [];
+let currentPage = 1;
+const notificationsPerPage = 20;
+
+// Simple localStorage key for completed notifications
+const COMPLETED_KEY = 'completed_notifications';
 
 // Map backend type 'warning' (any case) to display as 'important'
 // Map 'error' to 'rejected' and 'success' to 'approved'
@@ -21,7 +26,10 @@ function mapTypeForDisplay(type) {
 document.addEventListener('DOMContentLoaded', function() {
     setupFilterEventListeners();
     setupNotificationEventListeners();
-    loadNotificationsFromAPI();
+    loadNotificationsFromAPI().then(() => {
+        // Display all notifications initially
+        displayNotifications(allNotifications);
+    });
     
     // Refresh notifications every 30 seconds
     setInterval(loadNotificationsFromAPI, 30000);
@@ -92,9 +100,19 @@ function setupNotificationEventListeners() {
                     console.warn('⚠️ Failed to refresh notification; proceeding with cached version.', refreshErr);
                 }
 
-                // Immediately update the UI to show read state (white background)
-                notificationItem.classList.remove('unread');
-                notificationItem.classList.add('read');
+                // Update UI based on notification status
+                // For Finance Officer: clicking notification makes it read (no blue dot) but keeps green if not completed
+                // For Marketing Clerk: clicking notification makes it read (white background)
+                const userRole = localStorage.getItem('user_role');
+                if (userRole === 'Finance Officer') {
+                    // FO: Remove blue dot but keep green background if not completed
+                    notificationItem.classList.remove('unread');
+                    notificationItem.classList.add('read');
+                } else {
+                    // MC: Remove blue dot and change to white background
+                    notificationItem.classList.remove('unread');
+                    notificationItem.classList.add('read');
+                }
 
                 // Update the UI to reflect the read state
                 filterNotifications(currentFilter);
@@ -142,8 +160,18 @@ async function loadNotificationsFromAPI() {
         
         if (data.success) {
             allNotifications = data.data || [];
+            
+            // Apply completed status from localStorage
+            const completedIds = JSON.parse(localStorage.getItem(COMPLETED_KEY) || '[]');
+            allNotifications = allNotifications.map(notification => {
+                if (completedIds.includes(notification.id)) {
+                    return { ...notification, status: 'completed', is_highlighted: false };
+                }
+                return notification;
+            });
+            
             console.log(`✅ Loaded ${allNotifications.length} notifications`);
-            displayNotifications(allNotifications);
+            // Don't display all notifications here - let the calling function handle display
             updateNotificationCounts();
             
             // Update notification count for both roles
@@ -161,7 +189,7 @@ async function loadNotificationsFromAPI() {
     }
 }
 
-// Display notifications in the UI
+// Display notifications in the UI with pagination
 function displayNotifications(notifications) {
     const notificationsList = document.getElementById('notificationsList');
     const notificationsEmpty = document.getElementById('notificationsEmpty');
@@ -171,14 +199,26 @@ function displayNotifications(notifications) {
     if (notifications.length === 0) {
         notificationsList.style.display = 'none';
         notificationsEmpty.style.display = 'flex';
+        updatePaginationInfo(0, 0);
         return;
     }
     
     notificationsList.style.display = 'block';
     notificationsEmpty.style.display = 'none';
-    notificationsList.innerHTML = '';
     
-    notifications.forEach(notification => {
+    // Calculate pagination
+    const totalNotifications = notifications.length;
+    const totalPages = Math.ceil(totalNotifications / notificationsPerPage);
+    const startIndex = (currentPage - 1) * notificationsPerPage;
+    const endIndex = Math.min(startIndex + notificationsPerPage, totalNotifications);
+    const paginatedNotifications = notifications.slice(startIndex, endIndex);
+    
+    // Update pagination info
+    updatePaginationInfo(startIndex + 1, endIndex, totalNotifications);
+    
+    // Display paginated notifications
+    notificationsList.innerHTML = '';
+    paginatedNotifications.forEach(notification => {
         const notificationItem = createNotificationItem(notification);
         notificationsList.appendChild(notificationItem);
     });
@@ -190,15 +230,38 @@ function createNotificationItem(notification) {
     
     const isUnread = !notification.isRead;
     const isPending = (notification.status === 'pending');
+    const isCompleted = (notification.status === 'completed');
     const isHighlighted = notification.is_highlighted;
     const isImportant = notification.category === 'important';
     
-    // Show as unread only if it's actually unread AND not clicked yet
-    // Once clicked, it should show as read (white background) regardless of status
+    // For Marketing Clerk: Green background until action is taken (status changes from pending)
+    // Blue dot only shows for unread notifications
     const shouldShowAsUnread = isUnread;
+    const shouldShowAsPending = isPending; // Green background for pending notifications
+    const shouldShowAsCompleted = isCompleted; // White background for completed notifications
     
-    // Simplified: just read vs unread, all read notifications will be white via CSS
-    notificationItem.className = `notification-item ${shouldShowAsUnread ? 'unread' : 'read'} ${isHighlighted ? 'highlighted' : ''}`;
+    // Build class string based on state
+    let classString = 'notification-item';
+    
+    // For completed notifications, always use 'read' class (no unread, no pending)
+    if (shouldShowAsCompleted) {
+        classString += ' read completed';
+    } else if (shouldShowAsUnread) {
+        classString += ' unread';
+        if (shouldShowAsPending) {
+            classString += ' pending';
+        }
+    } else {
+        classString += ' read';
+        if (shouldShowAsPending) {
+            classString += ' pending';
+        }
+    }
+    
+    if (isHighlighted) {
+        classString += ' highlighted';
+    }
+    notificationItem.className = classString;
     notificationItem.setAttribute('data-id', notification.id);
     notificationItem.setAttribute('data-category', notification.category);
     notificationItem.setAttribute('data-type', mapTypeForDisplay(notification.type));
@@ -208,18 +271,18 @@ function createNotificationItem(notification) {
     
     notificationItem.innerHTML = `
         <div class="notification-header">
-            <div>
-                <div class="notification-title">${notification.title}</div>
-                <div class="notification-meta">
-                    <span class="notification-type ${typeClass}">
-                        <i class="fas fa-${getTypeIcon(typeClass)}"></i>
-                        ${typeClass}
-                    </span>
-                    <span class="notification-time">${timeAgo}</span>
-                </div>
+            <div class="notification-title">${notification.title}</div>
+        </div>
+        <div class="notification-content-wrapper">
+            <div class="notification-content">${notification.content}</div>
+            <div class="notification-meta">
+                <span class="notification-time">${timeAgo}</span>
+                <span class="notification-type ${typeClass}">
+                    <i class="fas fa-${getTypeIcon(typeClass)}"></i>
+                    ${typeClass}
+                </span>
             </div>
         </div>
-        <div class="notification-content">${notification.content}</div>
     `;
     
     return notificationItem;
@@ -258,7 +321,9 @@ function filterNotifications(filterType) {
     
     switch (filterType) {
         case 'unread':
-            filteredNotifications = validNotifications.filter(n => !n.isRead);
+            // For both roles: to do = not completed (green background notifications)
+            // Green notifications (with or without blue dot) are considered to do
+            filteredNotifications = validNotifications.filter(n => n.status !== 'completed');
             break;
         case 'important':
             filteredNotifications = validNotifications.filter(n => n.category === 'important');
@@ -276,56 +341,26 @@ function filterNotifications(filterType) {
 
 // Update notification counts
 function updateNotificationCounts() {
-    const userRole = localStorage.getItem('user_role');
+    // Count to do notifications (green notifications - with or without blue dot)
+    const unreadCount = allNotifications.filter(n => n.status !== 'completed').length;
     
-    // Count unread notifications (all roles)
-    const unreadCount = allNotifications.filter(n => !n.isRead).length;
-    
-    // Update Unread filter badge
+    // Update To Do filter badge (only badge that shows count)
     const unreadBadge = document.getElementById('unreadFilterBadge');
     if (unreadBadge) {
         unreadBadge.textContent = unreadCount;
         unreadBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
-        console.log('🔔 Updated Unread filter badge:', unreadCount);
     }
     
-    // Important filter badge logic differs by role
-    if (userRole === 'Finance Officer') {
-        // FO: Show unread + highlighted important notifications
-        // Badge only disappears when action is taken (status changes from pending)
-        const importantCount = allNotifications.filter(n => 
-            n.category === 'important' && 
-            n.reference_type === 'change_request' &&
-            n.status === 'pending' && // Only pending requests
-            n.is_highlighted
-        ).length;
-        
-        const importantBadge = document.getElementById('importantFilterBadge');
-        if (importantBadge) {
-            importantBadge.textContent = importantCount;
-            importantBadge.style.display = importantCount > 0 ? 'inline-block' : 'none';
-            console.log('🔔 Updated FO Important filter badge:', importantCount);
-        }
-    } else if (userRole === 'Marketing Clerk') {
-        // MC: Don't show badge on Important filter
-        const importantBadge = document.getElementById('importantFilterBadge');
-        if (importantBadge) {
-            importantBadge.style.display = 'none';
-            console.log('🔔 MC Important filter badge hidden');
-        }
+    // Hide badges on all other filters
+    const importantBadge = document.getElementById('importantFilterBadge');
+    if (importantBadge) {
+        importantBadge.style.display = 'none';
     }
     
-    // Update existing important badge (if it exists) - legacy support
-    const importantCountLegacy = allNotifications.filter(n => 
-        n.category === 'important' && 
-        n.is_highlighted && 
-        n.status === 'pending'
-    ).length;
-    
+    // Hide any legacy badges
     const importantBadgeLegacy = document.getElementById('importantCount');
     if (importantBadgeLegacy) {
-        importantBadgeLegacy.textContent = importantCountLegacy;
-        importantBadgeLegacy.style.display = importantCountLegacy > 0 ? 'inline-block' : 'none';
+        importantBadgeLegacy.style.display = 'none';
     }
 }
 
@@ -491,8 +526,9 @@ async function handleViewReport() {
         // Close modal first
         closeNotificationModal();
         
-        // Mark as read (await to ensure it completes)
+        // Mark as read AND completed (white background)
         await markAsRead(notificationId, false);
+        await markAsCompleted(notificationId);
         
         // Redirect to FO reports page with report ID
         const redirectUrl = metadata.redirect_url || `../../financeofficer/html/reports.html?reportId=${reportId}`;
@@ -786,6 +822,32 @@ async function markAsRead(notificationId, refreshList = true) {
     }
 }
 
+// Mark a notification as completed (for Finance Officer View Report action)
+async function markAsCompleted(notificationId) {
+    try {
+        // Save to localStorage
+        const completedIds = JSON.parse(localStorage.getItem(COMPLETED_KEY) || '[]');
+        if (!completedIds.includes(notificationId)) {
+            completedIds.push(notificationId);
+            localStorage.setItem(COMPLETED_KEY, JSON.stringify(completedIds));
+        }
+        
+        // Update local state
+        const notification = allNotifications.find(n => n.id === notificationId);
+        if (notification) {
+            notification.status = 'completed';
+            notification.is_highlighted = false;
+            console.log('✅ Marked notification as completed:', notificationId);
+            
+            // Refresh display
+            displayNotifications(allNotifications);
+            updateNotificationCounts();
+        }
+    } catch (error) {
+        console.error('Error marking notification as completed:', error);
+    }
+}
+
 // Unhighlight notification (called from member data when request is processed)
 async function unhighlightNotification(changeRequestId) {
     try {
@@ -815,10 +877,43 @@ async function unhighlightNotification(changeRequestId) {
                 
                 // Refresh display
                 await loadNotificationsFromAPI();
+                // Reapply current filter after refresh
+                filterNotifications(currentFilter);
             }
         }
     } catch (error) {
         console.error('Error unhighlighting notification:', error);
+    }
+}
+
+// Update pagination info display
+function updatePaginationInfo(start, end, total) {
+    const paginationInfo = document.getElementById('paginationInfo');
+    if (paginationInfo) {
+        if (total === 0) {
+            paginationInfo.textContent = '0-0 of 0';
+        } else {
+            paginationInfo.textContent = `${start}-${end} of ${total}`;
+        }
+    }
+}
+
+// Go to next page
+function nextPage() {
+    const totalNotifications = allNotifications.length;
+    const totalPages = Math.ceil(totalNotifications / notificationsPerPage);
+    
+    if (currentPage < totalPages) {
+        currentPage++;
+        filterNotifications(currentFilter);
+    }
+}
+
+// Go to previous page
+function prevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        filterNotifications(currentFilter);
     }
 }
 
@@ -831,11 +926,59 @@ function showEmptyState() {
         notificationsList.style.display = 'none';
         notificationsEmpty.style.display = 'flex';
     }
+    updatePaginationInfo(0, 0, 0);
 }
 
 // Make functions available globally
 window.closeNotificationModal = closeNotificationModal;
 window.handleLater = handleLater;
+// Refresh notifications function
+function refreshNotifications() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    const icon = refreshBtn.querySelector('i');
+    
+    // Get current active filter
+    const activeFilter = document.querySelector('.filter-btn.active');
+    const currentFilter = activeFilter ? activeFilter.getAttribute('data-filter') : 'all';
+    
+    // Add spinning animation
+    icon.style.animation = 'spin 1s linear infinite';
+    refreshBtn.disabled = true;
+    
+    // Reload notifications from API
+    loadNotificationsFromAPI().then(() => {
+        // Remove spinning animation
+        icon.style.animation = '';
+        refreshBtn.disabled = false;
+        
+        // Reapply current filter after refresh
+        filterNotifications(currentFilter);
+        
+        // Show success feedback
+        refreshBtn.style.borderColor = 'var(--dark-green)';
+        refreshBtn.style.color = 'var(--dark-green)';
+        setTimeout(() => {
+            refreshBtn.style.borderColor = '';
+            refreshBtn.style.color = '';
+        }, 1000);
+    }).catch(error => {
+        console.error('Error refreshing notifications:', error);
+        icon.style.animation = '';
+        refreshBtn.disabled = false;
+        
+        // Show error feedback
+        refreshBtn.style.borderColor = 'var(--red)';
+        refreshBtn.style.color = 'var(--red)';
+        setTimeout(() => {
+            refreshBtn.style.borderColor = '';
+            refreshBtn.style.color = '';
+        }, 1000);
+    });
+}
+
 window.handleTakeAction = handleTakeAction;
 window.handleViewReport = handleViewReport;
 window.unhighlightNotification = unhighlightNotification;
+window.nextPage = nextPage;
+window.prevPage = prevPage;
+window.refreshNotifications = refreshNotifications;

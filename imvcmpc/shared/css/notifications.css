@@ -137,6 +137,99 @@
 }
 
 
+/* Pagination Container */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    margin-top: -20px;
+    margin-bottom: 8px;
+}
+
+.pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pagination-info span {
+    font-size: 14px;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--gray-600);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 32px;
+    height: 30px;
+}
+
+.pagination-btn:hover:not(.disabled) {
+    border-color: var(--dark-green);
+    color: var(--dark-green);
+    background: var(--gray-50);
+}
+
+.refresh-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--gray-600);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 32px;
+    height: 30px;
+}
+
+.refresh-btn:hover {
+    border-color: var(--dark-green);
+    color: var(--dark-green);
+    background: var(--gray-50);
+}
+
+.refresh-btn:active {
+    transform: scale(0.95);
+}
+
+.refresh-btn i {
+    transition: transform 0.3s ease;
+}
+
+.refresh-btn:hover i {
+    transform: rotate(180deg);
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.pagination-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Notifications List */
 .notifications-list {
     display: flex;
@@ -185,11 +278,39 @@
 /* State overrides: unread should always be green; read defaults to grey */
 /* Place after category rules to take precedence */
 .notification-list-state-overrides{ display: none; }
-.notification-item.unread {
+
+/* Completed notifications - White background (highest priority) */
+.notification-item.completed,
+.notification-item.read.completed {
+    box-shadow: 0 1px 3px var(--shadow-light) !important;
+    background: #FFFFFF !important;
+    border-left-color: #D1D5DB !important;
+    color: #6B7280 !important;
+}
+
+/* Override any other background colors for completed notifications */
+.notification-item.completed.pending,
+.notification-item.completed.unread,
+.notification-item.read.completed.pending,
+.notification-item.read.completed.unread {
+    background: #FFFFFF !important;
+    border-left-color: #D1D5DB !important;
+    color: #6B7280 !important;
+}
+
+/* Pending notifications (regardless of read status) - Green background */
+.notification-item.pending {
     border-left-color: var(--green-500) !important;
     background: var(--green-25) !important;
 }
-.notification-item:not(.unread) {
+
+/* Legacy support for unread/read without pending/completed */
+.notification-item.unread {
+    border-left-color: var(--green-500) !important;
+    background: var(--green-25) !important;
+
+}
+.notification-item:not(.unread):not(.pending):not(.completed) {
     box-shadow: 0 1px 3px var(--shadow-light);
     background: #FFFFFF !important;
     border-left-color: #D1D5DB !important;
@@ -207,7 +328,7 @@
 .notification-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     margin-bottom: 8px;
 }
 
@@ -230,7 +351,8 @@
     gap: 8px;
     font-size: 11px;
     color: var(--gray-500);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
 }
 
 .notification-type {
@@ -278,11 +400,18 @@
     color: var(--gray-400);
 }
 
+.notification-content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
 .notification-content {
     color: var(--gray-600);
     line-height: 1.5;
-    margin-bottom: 12px;
     font-size: 13px;
+    flex: 1;
 }
 
 .notification-actions {
@@ -338,7 +467,7 @@
     font-size: 12px;
 }
 
-/* Unread Indicator */
+/* Unread Indicator - Only show blue dot for unread notifications */
 .notification-item.unread::before {
     content: '';
     position: absolute;
@@ -349,6 +478,11 @@
     background: var(--blue-500);
     border-radius: 50%;
     animation: pulse 2s infinite;
+}
+
+/* Read notifications (even if pending) should not show blue dot */
+.notification-item.read::before {
+    display: none;
 }
 
 /* Empty State */
@@ -406,6 +540,11 @@
         gap: 10px;
         margin-bottom: 60px; /* Further increased bottom margin for tablets */
     }
+    
+    .pagination-container {
+        margin-top: -20px;
+        margin-bottom: -5px;
+    }
 
     .filter-buttons {
         gap: 6px; /* Reduced gap for tablets */
@@ -415,7 +554,7 @@
     }
 
     .notifications-list {
-        margin-top: 60px; /* Further increased top margin for tablets */
+        margin-top: 20px; /* Reduced top margin for tablets */
     }
 
     .filter-btn {
@@ -448,7 +587,7 @@
     }
 
     .notifications-list {
-        margin-top: 80px; /* Further increased top margin for mobile */
+        margin-top: 20px; /* Reduced top margin for mobile */
     }
 
     .filter-buttons {
@@ -485,9 +624,16 @@
     .notification-header {
         flex-direction: column;
         gap: 6px;
+        align-items: flex-start;
     }
-
+    
+    .notification-content-wrapper {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
     .notification-meta {
+        align-self: flex-end;
         flex-wrap: wrap;
         gap: 6px;
     }
@@ -499,6 +645,37 @@
 
     .notification-action-btn {
         justify-content: center;
+    }
+    
+    .pagination-container {
+        padding: 0 8px;
+        margin-top: -15px;
+        margin-bottom: -10px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .refresh-btn {
+        padding: 4px 8px;
+        min-width: 28px;
+        height: 26px;
+        font-size: 10px;
+    }
+    
+    .pagination-info {
+        gap: 8px;
+    }
+    
+    .pagination-info span {
+        font-size: 12px;
+    }
+    
+    .pagination-btn {
+        padding: 4px 8px;
+        min-width: 28px;
+        height: 26px;
+        font-size: 10px;
     }
 }
 
@@ -521,6 +698,37 @@
 
     .filter-btn i {
         font-size: 10px; /* Smaller icon for very small screens */
+    }
+    
+    .pagination-container {
+        padding: 0 4px;
+        margin-top: -15px;
+        margin-bottom: -10px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .refresh-btn {
+        padding: 3px 6px;
+        min-width: 24px;
+        height: 24px;
+        font-size: 9px;
+    }
+    
+    .pagination-info {
+        gap: 4px;
+    }
+    
+    .pagination-info span {
+        font-size: 10px;
+    }
+    
+    .pagination-btn {
+        padding: 3px 6px;
+        min-width: 24px;
+        height: 24px;
+        font-size: 9px;
     }
 }
 
@@ -819,6 +1027,7 @@
 .filter-btn .filter-badge:not(:empty) {
     display: inline-block;
 }
+
 
 
 

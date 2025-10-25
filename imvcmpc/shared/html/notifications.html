@@ -96,7 +96,7 @@
                         </button>
                         <button class="filter-btn" data-filter="unread">
                             <i class="fas fa-envelope"></i>
-                            <span>Unread</span>
+                            <span>To Do</span>
                             <span class="filter-badge" id="unreadFilterBadge" style="display: none;">0</span>
                         </button>
                         <button class="filter-btn" data-filter="important">
@@ -110,6 +110,24 @@
                         </button>
                     </div>
 
+                </div>
+
+                <!-- Pagination Info -->
+                <div class="pagination-container">
+                    <button class="refresh-btn" onclick="refreshNotifications()" id="refreshBtn" title="Refresh notifications">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <div class="pagination-info">
+                        <span id="paginationInfo">0-0 of 0</span>
+                        <div class="pagination-buttons">
+                            <button class="pagination-btn" onclick="prevPage()" id="prevBtn">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="pagination-btn" onclick="nextPage()" id="nextBtn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Notifications List -->
