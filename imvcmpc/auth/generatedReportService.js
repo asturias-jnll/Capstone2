@@ -31,6 +31,12 @@ class GeneratedReportService {
             fileName: fileName ? fileName.substring(0, 50) + '...' : 'none'
         });
         
+        console.log('🔍 Branch ID details:', {
+            branchId,
+            branchIdType: typeof branchId,
+            branchIdValue: branchId
+        });
+        
         const client = await this.pool.connect();
         try {
             await client.query('BEGIN');
@@ -242,6 +248,13 @@ class GeneratedReportService {
     async getReportsByUser(userId, userRole, userBranchId, filters = {}) {
         const client = await this.pool.connect();
         try {
+            console.log('🔍 getReportsByUser called:', {
+                userId,
+                userRole,
+                userBranchId,
+                filters
+            });
+
             const {
                 page = 1,
                 limit = 20,
@@ -262,10 +275,12 @@ class GeneratedReportService {
                 whereClause = 'WHERE gr.generated_by = $1';
                 params.push(userId);
                 paramCount = 1;
+                console.log('📝 Marketing Clerk query: WHERE gr.generated_by = $1, userId:', userId);
             } else if (userRole === 'finance_officer') {
                 whereClause = 'WHERE gr.branch_id = $1';
                 params.push(userBranchId);
                 paramCount = 1;
+                console.log('📝 Finance Officer query: WHERE gr.branch_id = $1, userBranchId:', userBranchId);
             }
 
             // Add filters
@@ -303,8 +318,11 @@ class GeneratedReportService {
                 FROM generated_reports gr
                 ${whereClause}
             `;
+            console.log('🔢 Count query:', countQuery);
+            console.log('🔢 Count params:', params);
             const countResult = await client.query(countQuery, params);
             const total = parseInt(countResult.rows[0].total);
+            console.log('📊 Total reports found:', total);
 
             // Data query
             const dataQuery = `
@@ -325,8 +343,11 @@ class GeneratedReportService {
                 LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
             `;
 
-            params.push(limit, offset);
-            const result = await client.query(dataQuery, params);
+            const dataParams = [...params, limit, offset];
+            console.log('📋 Data query:', dataQuery);
+            console.log('📋 Data params:', dataParams);
+            const result = await client.query(dataQuery, dataParams);
+            console.log('📋 Query results:', result.rows);
 
             return {
                 reports: result.rows,

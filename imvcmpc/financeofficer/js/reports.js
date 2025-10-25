@@ -1613,17 +1613,41 @@ function closeSuccessDialog() {
 async function loadReceivedReports() {
     try {
         const token = localStorage.getItem('access_token');
+        const userRole = localStorage.getItem('user_role');
+        const userBranchId = localStorage.getItem('user_branch_id');
+        
+        console.log('🔍 Loading received reports:', {
+            userRole,
+            userBranchId,
+            tokenExists: !!token
+        });
+        
         const response = await fetch('/api/auth/generated-reports?limit=20', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (!response.ok) throw new Error('Failed to load reports');
+        console.log('📡 API Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error:', errorText);
+            throw new Error(`Failed to load reports: ${response.status} - ${errorText}`);
+        }
         
         const result = await response.json();
+        console.log('📊 API Response data:', result);
+        
+        if (result.data && result.data.reports) {
+        console.log('📋 Reports found:', result.data.reports.length);
+        console.log('📋 Report data:', result.data.reports);
         displayReceivedReports(result.data.reports);
+        } else {
+            console.log('⚠️ No reports data in response');
+            displayReceivedReports([]);
+        }
     } catch (error) {
         console.error('Error loading reports:', error);
-        showMessage('Failed to load reports', 'error');
+        showMessage('Failed to load reports: ' + error.message, 'error');
     }
 }
 
@@ -1671,15 +1695,26 @@ function filterReceivedReports(filterType) {
 // Apply all active filters (type + date)
 function applyAllFilters() {
     const container = document.getElementById('receivedReportsContainer');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ receivedReportsContainer not found in applyAllFilters!');
+        return;
+    }
     
     let filteredReports = [...allReceivedReports];
+    
+    console.log('🔍 Applying filters:', {
+        totalReports: allReceivedReports.length,
+        currentFilterType,
+        currentDateRange,
+        initialFilteredCount: filteredReports.length
+    });
     
     // Apply type filter
     if (currentFilterType !== 'all') {
         filteredReports = filteredReports.filter(report => 
             report.report_type.toLowerCase() === currentFilterType.toLowerCase()
         );
+        console.log('📊 After type filter:', filteredReports.length);
     }
     
     // Apply date filter
@@ -1691,7 +1726,10 @@ function applyAllFilters() {
             const reportDate = new Date(report.created_at);
             return reportDate >= startDate && reportDate <= endDate;
         });
+        console.log('📅 After date filter:', filteredReports.length);
     }
+    
+    console.log('📋 Final filtered reports count:', filteredReports.length);
     
     // Display filtered results
     displayFilteredReports(filteredReports);
@@ -1700,7 +1738,17 @@ function applyAllFilters() {
 // Display filtered reports
 function displayFilteredReports(reports) {
     const container = document.getElementById('receivedReportsContainer');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ receivedReportsContainer not found!');
+        return;
+    }
+    
+    console.log('🎨 Displaying filtered reports:', {
+        reportsCount: reports.length,
+        container: container,
+        currentFilterType,
+        currentDateRange
+    });
     
     if (reports.length === 0) {
         let emptyMessage = 'No reports found';
@@ -1711,6 +1759,7 @@ function displayFilteredReports(reports) {
             emptyMessage += ' in the selected date range';
         }
         
+        console.log('📭 Showing empty state:', emptyMessage);
         container.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
         return;
     }
@@ -1745,6 +1794,10 @@ function displayFilteredReports(reports) {
         </div>
         `;
     }).join('');
+    
+    console.log('✅ Reports HTML generated and set to container');
+    console.log('📋 Container innerHTML length:', container.innerHTML.length);
+    console.log('📋 First 200 chars of HTML:', container.innerHTML.substring(0, 200));
 }
 
 // View specific report
@@ -1975,7 +2028,7 @@ function setupDateRangeFilter() {
     const endDateInput = document.getElementById('endDate');
     
     if (startDateInput && endDateInput) {
-        // Set default date range (last 30 days)
+        // Set default date range (last 30 days) but don't apply filter automatically
         const today = new Date();
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(today.getDate() - 30);
@@ -1983,8 +2036,8 @@ function setupDateRangeFilter() {
         startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
         endDateInput.value = today.toISOString().split('T')[0];
         
-        // Apply initial filter
-        applyDateFilter();
+        // Don't apply initial filter - let all reports show by default
+        // applyDateFilter();
     }
 }
 

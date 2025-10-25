@@ -634,9 +634,10 @@ function clearDateFilter() {
                 item.style.display = 'flex';
             });
             
-            // Reload the original history
+            // Reload the original history with branch filtering
             const history = getReportHistory(type);
-            displayReportHistory(type, history);
+            const filteredHistory = filterReportsByBranch(history);
+            displayReportHistory(type, filteredHistory);
         }
     });
     
@@ -1856,6 +1857,19 @@ async function sendToFinanceOfficer() {
         // Collect configuration
         const reportConfig = collectReportConfig(reportType);
         
+        // Get user info for debugging
+        const userRole = localStorage.getItem('user_role');
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const userBranchName = localStorage.getItem('user_branch_name');
+        
+        console.log('📤 Sending report to Finance Officer:', {
+            userRole,
+            userBranchId,
+            userBranchName,
+            reportType,
+            reportRequestId
+        });
+        
         // Save to database
         const saveRes = await fetch('/api/auth/generated-reports', {
             method: 'POST',
@@ -2357,7 +2371,9 @@ function loadReportHistories() {
     
     reportTypes.forEach(type => {
         const history = getReportHistory(type);
-        displayReportHistory(type, history);
+        // Filter reports by user's branch
+        const filteredHistory = filterReportsByBranch(history);
+        displayReportHistory(type, filteredHistory);
     });
 }
 
@@ -2368,10 +2384,25 @@ function getReportHistory(reportType) {
     return history ? JSON.parse(history) : [];
 }
 
+// Filter reports by user's branch
+function filterReportsByBranch(history) {
+    const userBranchId = localStorage.getItem('user_branch_id');
+    if (!userBranchId) return history;
+    
+    return history.filter(report => {
+        // If report doesn't have branch_id, include it (backward compatibility)
+        if (!report.branch_id) return true;
+        return report.branch_id === userBranchId;
+    });
+}
+
 // Save report history for a specific type
 function saveReportHistory(reportType, reportData) {
     const key = `reportHistory_${reportType}`;
     const history = getReportHistory(reportType);
+    
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const userBranchName = localStorage.getItem('user_branch_name');
     
     const newReport = {
         id: Date.now(),
@@ -2379,7 +2410,10 @@ function saveReportHistory(reportType, reportData) {
         details: generateReportDetails(reportType, reportData),
         date: new Date().toISOString(),
         status: 'sent',
-        type: reportType
+        type: reportType,
+        branch_id: userBranchId,
+        branch_name: userBranchName,
+        config: reportData.config || {}
     };
     
     history.unshift(newReport); // Add to beginning
@@ -2416,8 +2450,8 @@ function displayReportHistory(reportType, history) {
                     <div class="history-details">${report.details}</div>
                 </div>
                 <div class="history-meta">
-                    <div class="history-date">${formatReportDate(report.date)}</div>
-                    <div class="history-status ${report.status}">${report.status}</div>
+                    <div class="history-status ${report.status}">SENT</div>
+                    <div class="history-timestamp">${formatSmartTimestamp(report.date)}</div>
                 </div>
             </div>
         `).join('');
@@ -2426,17 +2460,46 @@ function displayReportHistory(reportType, history) {
 
 // Generate report title based on type and data
 function generateReportTitle(reportType, data) {
+    const generationDate = new Date().toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+    });
+    
     switch (reportType) {
-        case 'savings':
-            return `Savings Report - ${data.month || 'All'} ${data.year || new Date().getFullYear()}`;
-        case 'disbursement':
-            return `Disbursement Report - ${data.month || 'All'} ${data.year || new Date().getFullYear()}`;
-        case 'member':
-            return `Member Report - ${data.memberName || 'All Members'}`;
-        case 'branch':
-            return `Branch Report - ${data.branchName || 'All Branches'}`;
+        case 'savings': {
+            const month = data.month || new Date().getMonth() + 1;
+            const year = data.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            return `Savings Report – ${monthName} ${year} | Generated on: ${generationDate}`;
+        }
+        case 'disbursement': {
+            const month = data.month || new Date().getMonth() + 1;
+            const year = data.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            return `Disbursement Report – ${monthName} ${year} | Generated on: ${generationDate}`;
+        }
+        case 'member': {
+            // Skip member name for now as per user request
+            return `Member Report – [Member Name] | Generated on: ${generationDate}`;
+        }
+        case 'branch': {
+            // Count selected branches from config
+            let branchCount = 0;
+            if (data.config && data.config.branches) {
+                branchCount = data.config.branches.length;
+            } else if (data.branches) {
+                branchCount = data.branches.length;
+            } else {
+                // Count selected branches from DOM if available
+                const selectedBranches = document.querySelectorAll('input[name="branchSelection"]:checked');
+                branchCount = selectedBranches.length;
+            }
+            const branchText = branchCount === 1 ? '1 Branch' : `${branchCount} Branches`;
+            return `Branch Report – ${branchText} | Generated on: ${generationDate}`;
+        }
         default:
-            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report | Generated on: ${generationDate}`;
     }
 }
 
@@ -2488,6 +2551,33 @@ function formatReportDate(dateString) {
         hour: '2-digit',
         minute: '2-digit'
     });
+}
+
+// Format smart timestamp (time for same day, date for older)
+function formatSmartTimestamp(dateString) {
+    const reportDate = new Date(dateString);
+    const today = new Date();
+    
+    // Check if same day
+    const isSameDay = reportDate.getDate() === today.getDate() &&
+                     reportDate.getMonth() === today.getMonth() &&
+                     reportDate.getFullYear() === today.getFullYear();
+    
+    if (isSameDay) {
+        // Show time for same day
+        return reportDate.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    } else {
+        // Show date for different day
+        return reportDate.toLocaleDateString('en-US', {
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric'
+        });
+    }
 }
 
 // Show report history for a specific type

@@ -332,7 +332,7 @@
     gap: 4px;
 }
 
-.history-date {
+.history-timestamp {
     font-size: 12px;
     color: var(--gray-500);
     font-weight: 500;

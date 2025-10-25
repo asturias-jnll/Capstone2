@@ -15,6 +15,14 @@ router.post('/generated-reports',
             const userId = req.user.id;
             const branchId = req.user.branch_id;
             const { report_request_id, report_type, config, data, pdf_data, file_name } = req.body;
+            
+            console.log('📥 Generated report creation request:', {
+                userId,
+                branchId,
+                userRole: req.user.role,
+                reportType: report_type,
+                hasPdfData: !!pdf_data
+            });
 
             // Validate required fields
             if (!report_type || !config || !data || !pdf_data || !file_name) {
@@ -74,6 +82,13 @@ router.get('/generated-reports',
             const userId = req.user.id;
             const userRole = req.user.role;
             const branchId = req.user.branch_id;
+            
+            console.log('📥 Generated reports GET request:', {
+                userId,
+                userRole,
+                branchId,
+                query: req.query
+            });
             
             const filters = {
                 page: parseInt(req.query.page) || 1,

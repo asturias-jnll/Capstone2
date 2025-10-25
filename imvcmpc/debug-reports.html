@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Reports API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Debug Reports API</h1>
+    
+    <div class="section">
+        <h2>1. Check Authentication</h2>
+        <button onclick="checkAuth()">Check Current Auth</button>
+        <div id="authResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Test Generated Reports API</h2>
+        <button onclick="testGetReports()">Get Reports</button>
+        <div id="reportsResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Test Create Report (MC only)</h2>
+        <button onclick="testCreateReport()">Create Test Report</button>
+        <div id="createResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Check Database Directly</h2>
+        <button onclick="checkDatabase()">Check Database</button>
+        <div id="dbResult"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="${className}">${message}</div>`;
+        }
+
+        function clear(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function checkAuth() {
+            clear('authResult');
+            log('authResult', 'Checking authentication...', 'info');
+            
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                log('authResult', 'No token found in localStorage', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    log('authResult', `Auth failed: ${response.status}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log('authResult', `Auth successful!`, 'success');
+                log('authResult', `<pre>${JSON.stringify(data.user, null, 2)}</pre>`, 'info');
+            } catch (error) {
+                log('authResult', `Auth error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetReports() {
+            clear('reportsResult');
+            log('reportsResult', 'Testing GET /api/auth/generated-reports...', 'info');
+            
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                log('reportsResult', 'No token found', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/generated-reports?limit=20', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                log('reportsResult', `Response status: ${response.status}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('reportsResult', `Error: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log('reportsResult', `Success! Found ${data.data.reports.length} reports`, 'success');
+                log('reportsResult', `<pre>${JSON.stringify(data, null, 2)}</pre>`, 'info');
+            } catch (error) {
+                log('reportsResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCreateReport() {
+            clear('createResult');
+            log('createResult', 'Testing POST /api/auth/generated-reports...', 'info');
+            
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                log('createResult', 'No token found', 'error');
+                return;
+            }
+            
+            try {
+                const testData = {
+                    report_type: 'savings',
+                    config: { year: '2025', month: '1' },
+                    data: { test: true },
+                    pdf_data: 'data:application/pdf;base64,JVBERi0xLjQKJcfsj6IKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDMgMCBSCi9NZWRpYUJveCBbMCAwIDU5NSA4NDJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDIgMCBSCj4+Cj4+Ci9Db250ZW50cyA0IDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovTGVuZ3RoIDQ0Cj4+CnN0cmVhbQpCVApxCjcyIDcyMCAyNTYgMjc2IHJlClYKRlQKZW5kc3RyZWFtCmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9TdWJ0eXBlIC9UeXBlMQovQmFzZUZvbnQgL0hlbHZldGljYQo+PgplbmRvYqoKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDMgMCBSCi9NZWRpYUJveCBbMCAwIDU5NSA4NDJdCi9SZXNvdXJjZXMgPDwKL0ZvbnQgPDwKL0YxIDIgMCBSCj4+Cj4+Ci9Db250ZW50cyA0IDAgUgo+PgplbmRvYmoKMyAwIG9iago8PAovVHlwZSAvUGFnZXMKL0tpZHMgWzUgMCBSXQovQ291bnQgMQo+PgplbmRvYmoKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMyAwIFIKPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZgowMDAwMDAwMDA5IDAwMDAwIG4KMDAwMDAwMDA1OCAwMDAwMCBuCjAwMDAwMDAxMTUgMDAwMDAgbgowMDAwMDAwMjQ0IDAwMDAwIG4KMDAwMDAwMDMxMyAwMDAwMCBuCnRyYWlsZXIKPDwKL1NpemUgNgovUm9vdCAxIDAgUgo+PgpzdGFydHhyZWYKNDAxCiUlRU9G',
+                    file_name: 'test_report.pdf'
+                };
+                
+                const response = await fetch('/api/auth/generated-reports', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                log('createResult', `Response status: ${response.status}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('createResult', `Error: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log('createResult', `Success! Report created`, 'success');
+                log('createResult', `<pre>${JSON.stringify(data, null, 2)}</pre>`, 'info');
+            } catch (error) {
+                log('createResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkDatabase() {
+            clear('dbResult');
+            log('dbResult', 'This would require direct database access...', 'info');
+            log('dbResult', 'Check the server console logs for database queries', 'info');
+        }
+    </script>
+</body>
+</html>
