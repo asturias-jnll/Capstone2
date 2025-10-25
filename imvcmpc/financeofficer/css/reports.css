@@ -43,6 +43,87 @@
     white-space: nowrap;
 }
 
+/* Date Range Filter */
+.date-range-filter {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.date-input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+}
+
+.date-input-group label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    white-space: nowrap;
+    position: absolute;
+    top: -8px;
+    z-index: 2;
+}
+
+.date-input {
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: #0D5B11;
+    box-shadow: 0 0 0 2px rgba(13, 91, 17, 0.1);
+}
+
+.apply-date-filter-btn,
+.clear-date-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.apply-date-filter-btn {
+    background: #0D5B11;
+    color: white;
+}
+
+.apply-date-filter-btn:hover {
+    background: #187C19;
+    transform: translateY(-1px);
+}
+
+.clear-date-filter-btn {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+}
+
+.clear-date-filter-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
 /* Report Type Filter - Minimalist Design */
 .report-type-filter {
     display: flex;

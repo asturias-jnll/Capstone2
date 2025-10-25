@@ -561,7 +561,6 @@ function applyDateFilter() {
     const endDate = document.getElementById('endDate').value;
     
     if (!startDate || !endDate) {
-        showMessage('Please select both start and end dates.', 'warning');
         return;
     }
     

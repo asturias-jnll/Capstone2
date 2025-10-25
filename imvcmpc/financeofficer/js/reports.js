@@ -31,6 +31,9 @@ function initializeFOReports() {
     
     // Check for report highlighting from notification
     checkForReportHighlight();
+    
+    // Initialize date range filter
+    setupDateRangeFilter();
 }
 
 // Initialize branch-specific reports
@@ -165,6 +168,9 @@ function showInitialState() {
     if (initialState) {
         initialState.style.display = 'flex';
     }
+    
+    // Show date range picker on main page
+    showDateRangeFilter();
 }
 
 // Hide all configuration sections
@@ -173,6 +179,10 @@ function hideAllConfigurations() {
     configSections.forEach(section => {
         section.classList.remove('active');
     });
+    
+    // Also remove any existing generate sections
+    const existingSections = document.querySelectorAll('.generate-section');
+    existingSections.forEach(section => section.remove());
 }
 
 // Show configuration section based on report type
@@ -191,9 +201,12 @@ function showConfigurationSection(reportType) {
     if (selectedSection) {
         selectedSection.classList.add('active');
 
-        // Add request button after the configuration
+        // Add request button after the configuration (only if not already exists)
         addReportCanvas();
     }
+    
+    // Hide date range picker when in configuration mode
+    hideDateRangeFilter();
     
     // Hide received reports section when in configuration mode
     hideReceivedReportsSection();
@@ -201,9 +214,12 @@ function showConfigurationSection(reportType) {
 
 // Add request button (no canvas)
 function addReportCanvas() {
+    // Remove any existing generate sections first
+    const existingSections = document.querySelectorAll('.generate-section');
+    existingSections.forEach(section => section.remove());
+    
     const reportConfig = document.querySelector('.report-config');
-    const existing = document.querySelector('.generate-section');
-    if (!existing) {
+    if (reportConfig) {
         // Create request section
         const requestSection = document.createElement('div');
         requestSection.className = 'generate-section';
@@ -215,7 +231,7 @@ function addReportCanvas() {
         `;
 
         // Append after configuration block
-        if (reportConfig && reportConfig.parentNode) {
+        if (reportConfig.parentNode) {
             reportConfig.parentNode.insertBefore(requestSection, reportConfig.nextSibling);
         }
     }
@@ -1272,6 +1288,24 @@ function hideReceivedReportsSection() {
     }
 }
 
+// Show date range filter
+function showDateRangeFilter() {
+    const dateRangeFilter = document.getElementById('dateRangeFilter');
+    if (dateRangeFilter) {
+        dateRangeFilter.style.display = 'flex';
+        console.log('Showing date range filter');
+    }
+}
+
+// Hide date range filter
+function hideDateRangeFilter() {
+    const dateRangeFilter = document.getElementById('dateRangeFilter');
+    if (dateRangeFilter) {
+        dateRangeFilter.style.display = 'none';
+        console.log('Hiding date range filter');
+    }
+}
+
 // Show minimalist dialog for report type selection
 function showReportTypeDialog() {
     // Remove existing dialog if any
@@ -1613,31 +1647,75 @@ function displayReceivedReports(reports) {
     filterReceivedReports('all');
 }
 
+// Store current filter state
+let currentFilterType = 'all';
+let currentDateRange = { start: null, end: null };
+
 // Filter received reports by type
 function filterReceivedReports(filterType) {
-    const container = document.getElementById('receivedReportsContainer');
-    if (!container) return;
+    currentFilterType = filterType;
     
     // Update active filter button
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    document.querySelector(`[data-filter="${filterType}"]`).classList.add('active');
+    const filterButton = document.querySelector(`[data-filter="${filterType}"]`);
+    if (filterButton) {
+        filterButton.classList.add('active');
+    }
     
-    // Filter reports
-    let filteredReports = allReceivedReports;
-    if (filterType !== 'all') {
-        filteredReports = allReceivedReports.filter(report => 
-            report.report_type.toLowerCase() === filterType.toLowerCase()
+    // Apply both type and date filters
+    applyAllFilters();
+}
+
+// Apply all active filters (type + date)
+function applyAllFilters() {
+    const container = document.getElementById('receivedReportsContainer');
+    if (!container) return;
+    
+    let filteredReports = [...allReceivedReports];
+    
+    // Apply type filter
+    if (currentFilterType !== 'all') {
+        filteredReports = filteredReports.filter(report => 
+            report.report_type.toLowerCase() === currentFilterType.toLowerCase()
         );
     }
     
-    if (filteredReports.length === 0) {
-        container.innerHTML = `<div class="empty-state">No ${filterType === 'all' ? '' : filterType + ' '}reports found</div>`;
+    // Apply date filter
+    if (currentDateRange.start && currentDateRange.end) {
+        const startDate = new Date(currentDateRange.start);
+        const endDate = new Date(currentDateRange.end);
+        
+        filteredReports = filteredReports.filter(report => {
+            const reportDate = new Date(report.created_at);
+            return reportDate >= startDate && reportDate <= endDate;
+        });
+    }
+    
+    // Display filtered results
+    displayFilteredReports(filteredReports);
+}
+
+// Display filtered reports
+function displayFilteredReports(reports) {
+    const container = document.getElementById('receivedReportsContainer');
+    if (!container) return;
+    
+    if (reports.length === 0) {
+        let emptyMessage = 'No reports found';
+        if (currentFilterType !== 'all') {
+            emptyMessage = `No ${currentFilterType} reports found`;
+        }
+        if (currentDateRange.start && currentDateRange.end) {
+            emptyMessage += ' in the selected date range';
+        }
+        
+        container.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
         return;
     }
     
-    container.innerHTML = filteredReports.map(report => {
+    container.innerHTML = reports.map(report => {
         // Format the timestamp consistently with the rest of the application
         const reportDate = new Date(report.created_at);
         const formattedDate = reportDate.toLocaleDateString('en-US', {
@@ -1650,7 +1728,7 @@ function filterReceivedReports(filterType) {
         });
         
         return `
-        <div class="report-item" data-report-id="${report.id}">
+        <div class="report-item received-report-item" data-report-id="${report.id}" data-report-date="${report.created_at}">
             <div class="report-info">
                 <h4>${report.report_type} Report</h4>
                 <p>Generated: ${formattedDate}</p>
@@ -1665,7 +1743,7 @@ function filterReceivedReports(filterType) {
                 </button>
             </div>
         </div>
-    `;
+        `;
     }).join('');
 }
 
@@ -1890,3 +1968,59 @@ function highlightReport(reportId) {
         console.log('⚠️ Report item not found for ID:', reportId);
     }
 }
+
+// Date Range Filter Functions
+function setupDateRangeFilter() {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (startDateInput && endDateInput) {
+        // Set default date range (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+        endDateInput.value = today.toISOString().split('T')[0];
+        
+        // Apply initial filter
+        applyDateFilter();
+    }
+}
+
+function applyDateFilter() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        // Clear date filter
+        currentDateRange = { start: null, end: null };
+        applyAllFilters();
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        // Invalid date range - swap dates silently
+        document.getElementById('startDate').value = endDate;
+        document.getElementById('endDate').value = startDate;
+        currentDateRange = { start: endDate, end: startDate };
+    } else {
+        currentDateRange = { start: startDate, end: endDate };
+    }
+    
+    // Apply all filters (type + date)
+    applyAllFilters();
+}
+
+function clearDateFilter() {
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    
+    // Clear date filter and apply all filters
+    currentDateRange = { start: null, end: null };
+    applyAllFilters();
+}
+
+// Old date filtering functions removed - now using integrated filtering system
+
+// Old empty state functions removed - now handled in displayFilteredReports function
