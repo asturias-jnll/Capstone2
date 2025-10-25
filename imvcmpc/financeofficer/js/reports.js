@@ -1083,13 +1083,20 @@ function formatSmartTimestamp(dateString) {
                      reportDate.getFullYear() === today.getFullYear();
     
     if (isSameDay) {
-        // For same day, parse the full timestamp to get the time
+        // For same day, parse the timestamp
+        // The database stores UTC, but we want to display it as if it's local time
         const fullDate = new Date(dateString);
-        return fullDate.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
+        
+        // Get the UTC time components
+        const hours = fullDate.getUTCHours();
+        const minutes = fullDate.getUTCMinutes();
+        
+        // Convert to 12-hour format
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const displayMinutes = String(minutes).padStart(2, '0');
+        
+        return `${String(displayHours).padStart(2, '0')}:${displayMinutes} ${period}`;
     } else {
         // Show date for different day
         return reportDate.toLocaleDateString('en-US', {
