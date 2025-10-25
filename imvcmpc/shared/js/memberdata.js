@@ -3323,6 +3323,57 @@ function createFinanceOfficerRequestsModal(requests, highlightRequestId = null) 
             width: 90%;
         }
         
+        .finance-officer-requests-modal .modal-body {
+            padding-top: 30px; /* Add space for the "Take Action" banner */
+        }
+        
+        /* Mobile responsive styles for the banner */
+        @media (max-width: 768px) {
+            .finance-officer-requests-modal .modal-body {
+                padding-top: 20px; /* Reduced padding to prevent overlap */
+            }
+            
+            .highlighted-request {
+                position: relative;
+                margin-top: 20px; /* More space above the highlighted request */
+            }
+            
+            .highlighted-request::before {
+                content: '👉 Action';
+                position: absolute;
+                top: -8px; /* Closer to container to prevent overlap */
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 3px 8px;
+                font-size: 9px;
+                border-radius: 8px;
+                z-index: 20;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .finance-officer-requests-modal .modal-body {
+                padding-top: 15px; /* Minimal padding on very small screens */
+            }
+            
+            .highlighted-request {
+                position: relative;
+                margin-top: 18px; /* Adequate space above the highlighted request */
+            }
+            
+            .highlighted-request::before {
+                content: '👉';
+                position: absolute;
+                top: -6px; /* Very close to container */
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 2px 6px;
+                font-size: 8px;
+                border-radius: 6px;
+                z-index: 20;
+            }
+        }
+        
         .finance-officer-request-item {
             background: var(--gray-50);
             border: 1px solid var(--gray-200);
@@ -3516,16 +3567,16 @@ function createFinanceOfficerRequestsModal(requests, highlightRequestId = null) 
         
         /* Add a "focus on this" badge */
         .highlighted-request::before {
-            content: '👉 Take Action on This Request';
+            content: '👉 Take Action';
             position: absolute;
-            top: -12px;
+            top: -10px;
             left: 50%;
             transform: translateX(-50%);
             background: var(--orange);
             color: white;
             padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
+            border-radius: 10px;
+            font-size: 10px;
             font-weight: 600;
             white-space: nowrap;
             box-shadow: 0 2px 8px rgba(255, 167, 38, 0.4);

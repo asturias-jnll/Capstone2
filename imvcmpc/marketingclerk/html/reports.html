@@ -114,6 +114,26 @@
                     </div>
                 </div>
 
+                <!-- Date Range Filter -->
+                <div class="date-range-filter" id="dateRangeFilter">
+                    <div class="date-input-group">
+                        <label for="startDate">From:</label>
+                        <input type="date" id="startDate" class="date-input">
+                    </div>
+                    <div class="date-input-group">
+                        <label for="endDate">To:</label>
+                        <input type="date" id="endDate" class="date-input">
+                    </div>
+                    <button class="apply-date-filter-btn" onclick="applyDateFilter()">
+                        <i class="fas fa-filter"></i>
+                        <span>Apply</span>
+                    </button>
+                    <button class="clear-date-filter-btn" onclick="clearDateFilter()">
+                        <i class="fas fa-times"></i>
+                        <span>Clear</span>
+                    </button>
+                </div>
+
                 <!-- Report History Sections -->
                 <div class="report-history-container">
                     <!-- Savings Report History -->

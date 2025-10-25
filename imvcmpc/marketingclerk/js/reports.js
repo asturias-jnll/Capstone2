@@ -50,6 +50,7 @@ function initializeReports() {
     setupReportHistoryFilter();
     setupBranchSelection();
     setupTransactionTypeButtons();
+    setupDateRangeFilter();
     updateCurrentDateTime();
     setInterval(updateCurrentDateTime, 1000);
     
@@ -538,6 +539,109 @@ function setupTransactionTypeButtons() {
             }
         });
     });
+}
+
+// Setup date range filter
+function setupDateRangeFilter() {
+    // Set default date range (last 30 days)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    
+    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+    
+    // Apply initial filter
+    applyDateFilter();
+}
+
+// Apply date range filter
+function applyDateFilter() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        showMessage('Please select both start and end dates.', 'warning');
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        // Invalid date range - swap dates silently
+        document.getElementById('startDate').value = endDate;
+        document.getElementById('endDate').value = startDate;
+        return;
+    }
+    
+    // Filter all report history sections
+    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    
+    reportTypes.forEach(type => {
+        const historyList = document.getElementById(`${type}HistoryList`);
+        if (historyList) {
+            const historyItems = historyList.querySelectorAll('.history-item');
+            
+            historyItems.forEach(item => {
+                const dateElement = item.querySelector('.history-date');
+                if (dateElement) {
+                    const itemDate = new Date(dateElement.textContent);
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59, 999); // Include entire end date
+                    
+                    if (itemDate >= start && itemDate <= end) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Check if any items are visible
+            const visibleItems = historyList.querySelectorAll('.history-item[style*="display: flex"], .history-item:not([style*="display: none"])');
+            const emptyState = historyList.querySelector('.empty-history');
+            
+            if (visibleItems.length === 0 && !emptyState) {
+                // Show "No reports in date range" message
+                historyList.innerHTML = `
+                    <div class="empty-history">
+                        <i class="fas fa-calendar-times"></i>
+                        <h5>No Reports in Date Range</h5>
+                        <p>No reports found for the selected date range.</p>
+                    </div>
+                `;
+            } else if (visibleItems.length > 0 && emptyState) {
+                // Remove empty state if items are visible
+                emptyState.remove();
+            }
+        }
+    });
+    
+    // Date filter applied silently
+}
+
+// Clear date range filter
+function clearDateFilter() {
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    
+    // Show all history items
+    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    
+    reportTypes.forEach(type => {
+        const historyList = document.getElementById(`${type}HistoryList`);
+        if (historyList) {
+            const historyItems = historyList.querySelectorAll('.history-item');
+            historyItems.forEach(item => {
+                item.style.display = 'flex';
+            });
+            
+            // Reload the original history
+            const history = getReportHistory(type);
+            displayReportHistory(type, history);
+        }
+    });
+    
+    // Date filter cleared silently
 }
 
 // Generate report based on current configuration (fetch from backend and render chart when applicable)
@@ -2424,6 +2528,12 @@ function showReportConfiguration() {
         reportHistoryContainer.style.display = 'none';
     }
     
+    // Hide date range filter
+    const dateRangeFilter = document.getElementById('dateRangeFilter');
+    if (dateRangeFilter) {
+        dateRangeFilter.style.display = 'none';
+    }
+    
     // Hide filter dropdown and show back button
     const filterContainer = document.getElementById('reportHistoryFilter');
     const backContainer = document.getElementById('backToHistoryContainer');
@@ -2445,6 +2555,12 @@ function hideReportConfiguration() {
     const reportHistoryContainer = document.querySelector('.report-history-container');
     if (reportHistoryContainer) {
         reportHistoryContainer.style.display = 'block';
+    }
+    
+    // Show date range filter
+    const dateRangeFilter = document.getElementById('dateRangeFilter');
+    if (dateRangeFilter) {
+        dateRangeFilter.style.display = 'flex';
     }
     
     // Show filter dropdown and hide back button

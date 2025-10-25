@@ -19,6 +19,87 @@
     gap: 24px;
 }
 
+/* Date Range Filter */
+.date-range-filter {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.date-input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+}
+
+.date-input-group label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    white-space: nowrap;
+    position: absolute;
+    top: -8px;
+    z-index: 2;
+}
+
+.date-input {
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: #0D5B11;
+    box-shadow: 0 0 0 2px rgba(13, 91, 17, 0.1);
+}
+
+.apply-date-filter-btn,
+.clear-date-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.apply-date-filter-btn {
+    background: #0D5B11;
+    color: white;
+}
+
+.apply-date-filter-btn:hover {
+    background: #187C19;
+    transform: translateY(-1px);
+}
+
+.clear-date-filter-btn {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+}
+
+.clear-date-filter-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
 /* Report History Filter */
 .report-history-filter {
     display: flex;
@@ -104,6 +185,7 @@
     max-width: 400px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -169,6 +251,9 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     display: none !important; /* Hidden by default */
+    height: 400px; /* Fixed height for ALL report history sections */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .report-history-section[style*="display: block"] {
@@ -196,8 +281,10 @@
 
 .history-list {
     padding: 16px 24px 24px 24px;
-    max-height: 300px;
+    height: 320px; /* Fixed height for content area */
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .history-item {
@@ -279,6 +366,11 @@
     text-align: center;
     padding: 40px 20px;
     color: var(--gray-500);
+    height: 100%; /* Fill the entire history-list height */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .empty-history i {
