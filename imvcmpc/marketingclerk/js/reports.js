@@ -58,10 +58,9 @@ function initializeReports() {
     initializeBranchSpecificReports();
     
     // Initialize report histories
-    initializeReportHistories();
-    
-    // Load and display all history sections by default
-    loadReportHistories();
+    initializeReportHistories().catch(error => {
+        console.error('Error initializing report histories:', error);
+    });
     
     // Set default filter to show all report types
     filterReportHistory('all');
@@ -1862,13 +1861,6 @@ async function sendToFinanceOfficer() {
         const userBranchId = localStorage.getItem('user_branch_id');
         const userBranchName = localStorage.getItem('user_branch_name');
         
-        console.log('📤 Sending report to Finance Officer:', {
-            userRole,
-            userBranchId,
-            userBranchName,
-            reportType,
-            reportRequestId
-        });
         
         // Save to database
         const saveRes = await fetch('/api/auth/generated-reports', {
@@ -1894,9 +1886,8 @@ async function sendToFinanceOfficer() {
         
         const result = await saveRes.json();
         
-        // Update local history
-        saveReportHistory(reportType, reportData);
-        showReportHistory(reportType);
+        // Reload reports from database to show the new report
+        await loadReportHistories();
         
         // Hide loading dialog and show success
         hideLoadingDialog();
@@ -2360,13 +2351,73 @@ function updateCurrentDateTime() {
 }
 
 // Initialize report histories
-function initializeReportHistories() {
-    // Load existing report histories from localStorage
-    loadReportHistories();
+async function initializeReportHistories() {
+    // Load existing report histories from database (with localStorage fallback)
+    await loadReportHistories();
 }
 
 // Load report histories for all report types
-function loadReportHistories() {
+async function loadReportHistories() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.error('No access token found');
+            return;
+        }
+
+        // Load reports from database
+        const response = await fetch('/api/auth/generated-reports?limit=50', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            console.error('Failed to load reports from database:', response.status);
+            // Fallback to localStorage if database fails
+            loadReportHistoriesFromLocalStorage();
+            return;
+        }
+
+        const result = await response.json();
+        const reports = result.data?.reports || [];
+
+        // Group reports by type
+        const reportsByType = {
+            savings: [],
+            disbursement: [],
+            member: [],
+            branch: []
+        };
+
+        reports.forEach(report => {
+            if (reportsByType[report.report_type]) {
+                reportsByType[report.report_type].push({
+                    id: report.id,
+                    title: generateReportTitle(report.report_type, report.config, report.created_at),
+                    details: generateReportDetails(report.report_type, report.config),
+                    date: report.created_at,
+                    status: 'sent',
+                    type: report.report_type,
+                    branch_id: report.branch_id,
+                    branch_name: report.branch_name,
+                    config: report.config || {}
+                });
+            }
+        });
+
+        // Display reports for each type
+        Object.keys(reportsByType).forEach(type => {
+            displayReportHistory(type, reportsByType[type]);
+        });
+
+    } catch (error) {
+        console.error('Error loading reports from database:', error);
+        // Fallback to localStorage if database fails
+        loadReportHistoriesFromLocalStorage();
+    }
+}
+
+// Fallback function to load from localStorage
+function loadReportHistoriesFromLocalStorage() {
     const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
     
     reportTypes.forEach(type => {
@@ -2458,24 +2509,44 @@ function displayReportHistory(reportType, history) {
     }
 }
 
-// Generate report title based on type and data
-function generateReportTitle(reportType, data) {
-    const generationDate = new Date().toLocaleDateString('en-US', {
+// Generate report title based on type and config
+function generateReportTitle(reportType, config, createdAt) {
+    const generationDate = new Date(createdAt).toLocaleDateString('en-US', {
         month: '2-digit',
         day: '2-digit',
         year: 'numeric'
     });
     
+    // Parse config if it's a string
+    let parsedConfig = {};
+    try {
+        if (config) {
+            if (typeof config === 'string') {
+                parsedConfig = JSON.parse(config);
+            } else if (typeof config === 'object' && config !== null) {
+                parsedConfig = config;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to parse config:', e);
+        parsedConfig = {};
+    }
+    
+    // Ensure parsedConfig is always an object
+    if (!parsedConfig || typeof parsedConfig !== 'object') {
+        parsedConfig = {};
+    }
+    
     switch (reportType) {
         case 'savings': {
-            const month = data.month || new Date().getMonth() + 1;
-            const year = data.year || new Date().getFullYear();
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
             const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
             return `Savings Report – ${monthName} ${year} | Generated on: ${generationDate}`;
         }
         case 'disbursement': {
-            const month = data.month || new Date().getMonth() + 1;
-            const year = data.year || new Date().getFullYear();
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
             const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
             return `Disbursement Report – ${monthName} ${year} | Generated on: ${generationDate}`;
         }
@@ -2486,14 +2557,12 @@ function generateReportTitle(reportType, data) {
         case 'branch': {
             // Count selected branches from config
             let branchCount = 0;
-            if (data.config && data.config.branches) {
-                branchCount = data.config.branches.length;
-            } else if (data.branches) {
-                branchCount = data.branches.length;
+            if (parsedConfig && parsedConfig.branches) {
+                branchCount = parsedConfig.branches.length;
+            } else if (parsedConfig && parsedConfig.transactionTypes) {
+                branchCount = parsedConfig.transactionTypes.length;
             } else {
-                // Count selected branches from DOM if available
-                const selectedBranches = document.querySelectorAll('input[name="branchSelection"]:checked');
-                branchCount = selectedBranches.length;
+                branchCount = 1; // Default to 1 if no config
             }
             const branchText = branchCount === 1 ? '1 Branch' : `${branchCount} Branches`;
             return `Branch Report – ${branchText} | Generated on: ${generationDate}`;
@@ -2503,37 +2572,57 @@ function generateReportTitle(reportType, data) {
     }
 }
 
-// Generate report details based on type and data
-function generateReportDetails(reportType, data) {
+// Generate report details based on type and config
+function generateReportDetails(reportType, config) {
     const details = [];
+    
+    // Parse config if it's a string
+    let parsedConfig = {};
+    try {
+        if (config) {
+            if (typeof config === 'string') {
+                parsedConfig = JSON.parse(config);
+            } else if (typeof config === 'object' && config !== null) {
+                parsedConfig = config;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to parse config in generateReportDetails:', e);
+        parsedConfig = {};
+    }
+    
+    // Ensure parsedConfig is always an object
+    if (!parsedConfig || typeof parsedConfig !== 'object') {
+        parsedConfig = {};
+    }
     
     switch (reportType) {
         case 'savings':
         case 'disbursement':
-            if (data.branches && data.branches.length > 0) {
-                details.push(`${data.branches.length} branch(es) selected`);
+            if (parsedConfig.branches && parsedConfig.branches.length > 0) {
+                details.push(`${parsedConfig.branches.length} branch(es) selected`);
             }
-            if (data.month) {
-                details.push(`Month: ${getMonthName(data.month)}`);
+            if (parsedConfig.month) {
+                details.push(`Month: ${getMonthName(parsedConfig.month)}`);
             }
-            if (data.year) {
-                details.push(`Year: ${data.year}`);
+            if (parsedConfig.year) {
+                details.push(`Year: ${parsedConfig.year}`);
             }
             break;
         case 'member':
-            if (data.transactionType) {
-                details.push(`Transaction Type: ${data.transactionType}`);
+            if (parsedConfig.transactionType) {
+                details.push(`Transaction Type: ${parsedConfig.transactionType}`);
             }
-            if (data.memberName) {
-                details.push(`Member: ${data.memberName}`);
+            if (parsedConfig.memberName) {
+                details.push(`Member: ${parsedConfig.memberName}`);
             }
             break;
         case 'branch':
-            if (data.branchName) {
-                details.push(`Branch: ${data.branchName}`);
+            if (parsedConfig.branchName) {
+                details.push(`Branch: ${parsedConfig.branchName}`);
             }
-            if (data.transactionTypes && data.transactionTypes.length > 0) {
-                details.push(`Types: ${data.transactionTypes.join(', ')}`);
+            if (parsedConfig.transactionTypes && parsedConfig.transactionTypes.length > 0) {
+                details.push(`Types: ${parsedConfig.transactionTypes.join(', ')}`);
             }
             break;
     }

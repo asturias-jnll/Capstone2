@@ -1202,22 +1202,52 @@
     margin-bottom: 0;
 }
 
-.report-info h4 {
+.report-info {
+    flex: 1;
+}
+
+.report-title {
     font-size: 16px;
     font-weight: 600;
     color: #111827;
-    margin: 0 0 8px 0;
-    text-transform: capitalize;
+    margin: 0 0 4px 0;
+    line-height: 1.4;
 }
 
-.report-info p {
+.report-details {
     font-size: 13px;
     color: #6b7280;
-    margin: 0 0 4px 0;
+    margin: 0;
+    font-weight: 400;
 }
 
-.report-info p:last-child {
-    margin-bottom: 0;
+.report-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.report-timestamp {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.report-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.report-status.received {
+    background: #0D5B11;
+    color: #ffffff;
 }
 
 .report-actions {

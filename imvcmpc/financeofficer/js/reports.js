@@ -1063,6 +1063,98 @@ function getMonthName(monthNumber) {
     return months[monthNumber - 1] || 'Unknown';
 }
 
+// Format smart timestamp - shows time if same day, date if different day
+function formatSmartTimestamp(dateString) {
+    const reportDate = new Date(dateString);
+    const today = new Date();
+    
+    // Check if same day
+    const isSameDay = reportDate.getDate() === today.getDate() &&
+                     reportDate.getMonth() === today.getMonth() &&
+                     reportDate.getFullYear() === today.getFullYear();
+    
+    if (isSameDay) {
+        // Show time for same day
+        return reportDate.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    } else {
+        // Show date for different day
+        return reportDate.toLocaleDateString('en-US', {
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric'
+        });
+    }
+}
+
+// Generate report title based on type and config
+function generateReportTitle(reportType, config, createdAt) {
+    const generationDate = new Date(createdAt).toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+    });
+    
+    // Parse config if it's a string, default to empty object if null/undefined
+    let parsedConfig = {};
+    try {
+        if (config) {
+            if (typeof config === 'string') {
+                parsedConfig = JSON.parse(config);
+            } else if (typeof config === 'object' && config !== null) {
+                parsedConfig = config;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to parse config:', e);
+        parsedConfig = {};
+    }
+    
+    // Ensure parsedConfig is always an object
+    if (!parsedConfig || typeof parsedConfig !== 'object') {
+        parsedConfig = {};
+    }
+    
+    
+    switch (reportType) {
+        case 'savings': {
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            return `Savings Report – ${monthName} ${year} | Generated on: ${generationDate}`;
+        }
+        case 'disbursement': {
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            return `Disbursement Report – ${monthName} ${year} | Generated on: ${generationDate}`;
+        }
+        case 'member': {
+            // Skip member name for now as per user request
+            return `Member Report – [Member Name] | Generated on: ${generationDate}`;
+        }
+        case 'branch': {
+            // Count selected branches from config
+            let branchCount = 0;
+            if (parsedConfig && parsedConfig.branches) {
+                branchCount = parsedConfig.branches.length;
+            } else if (parsedConfig && parsedConfig.transactionTypes) {
+                // Fallback to transaction types count
+                branchCount = parsedConfig.transactionTypes.length;
+            } else {
+                branchCount = 1; // Default to 1 if no config
+            }
+            const branchText = branchCount === 1 ? '1 Branch' : `${branchCount} Branches`;
+            return `Branch Report – ${branchText} | Generated on: ${generationDate}`;
+        }
+        default:
+            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report | Generated on: ${generationDate}`;
+    }
+}
+
 // Update current date and time
 function updateCurrentDateTime() {
     const now = new Date();
@@ -1167,21 +1259,6 @@ function displayReportHistory(reportType, history) {
     }
 }
 
-// Generate report title based on type and data
-function generateReportTitle(reportType, data) {
-    switch (reportType) {
-        case 'savings':
-            return `Savings Report - ${data.month || 'All'} ${data.year || new Date().getFullYear()}`;
-        case 'disbursement':
-            return `Disbursement Report - ${data.month || 'All'} ${data.year || new Date().getFullYear()}`;
-        case 'member':
-            return `Member Report - ${data.memberName || 'All Members'}`;
-        case 'branch':
-            return `Branch Report - ${data.branchName || 'All Branches'}`;
-        default:
-            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
-    }
-}
 
 // Generate report details based on type and data
 function generateReportDetails(reportType, data) {
@@ -1616,30 +1693,18 @@ async function loadReceivedReports() {
         const userRole = localStorage.getItem('user_role');
         const userBranchId = localStorage.getItem('user_branch_id');
         
-        console.log('🔍 Loading received reports:', {
-            userRole,
-            userBranchId,
-            tokenExists: !!token
-        });
-        
-        const response = await fetch('/api/auth/generated-reports?limit=20', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        console.log('📡 API Response status:', response.status);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ API Error:', errorText);
-            throw new Error(`Failed to load reports: ${response.status} - ${errorText}`);
-        }
-        
-        const result = await response.json();
-        console.log('📊 API Response data:', result);
+    const response = await fetch('/api/auth/generated-reports?limit=20', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to load reports: ${response.status} - ${errorText}`);
+    }
+    
+    const result = await response.json();
         
         if (result.data && result.data.reports) {
-        console.log('📋 Reports found:', result.data.reports.length);
-        console.log('📋 Report data:', result.data.reports);
         displayReceivedReports(result.data.reports);
         } else {
             console.log('⚠️ No reports data in response');
@@ -1695,26 +1760,15 @@ function filterReceivedReports(filterType) {
 // Apply all active filters (type + date)
 function applyAllFilters() {
     const container = document.getElementById('receivedReportsContainer');
-    if (!container) {
-        console.error('❌ receivedReportsContainer not found in applyAllFilters!');
-        return;
-    }
+    if (!container) return;
     
     let filteredReports = [...allReceivedReports];
-    
-    console.log('🔍 Applying filters:', {
-        totalReports: allReceivedReports.length,
-        currentFilterType,
-        currentDateRange,
-        initialFilteredCount: filteredReports.length
-    });
     
     // Apply type filter
     if (currentFilterType !== 'all') {
         filteredReports = filteredReports.filter(report => 
             report.report_type.toLowerCase() === currentFilterType.toLowerCase()
         );
-        console.log('📊 After type filter:', filteredReports.length);
     }
     
     // Apply date filter
@@ -1726,10 +1780,7 @@ function applyAllFilters() {
             const reportDate = new Date(report.created_at);
             return reportDate >= startDate && reportDate <= endDate;
         });
-        console.log('📅 After date filter:', filteredReports.length);
     }
-    
-    console.log('📋 Final filtered reports count:', filteredReports.length);
     
     // Display filtered results
     displayFilteredReports(filteredReports);
@@ -1738,17 +1789,7 @@ function applyAllFilters() {
 // Display filtered reports
 function displayFilteredReports(reports) {
     const container = document.getElementById('receivedReportsContainer');
-    if (!container) {
-        console.error('❌ receivedReportsContainer not found!');
-        return;
-    }
-    
-    console.log('🎨 Displaying filtered reports:', {
-        reportsCount: reports.length,
-        container: container,
-        currentFilterType,
-        currentDateRange
-    });
+    if (!container) return;
     
     if (reports.length === 0) {
         let emptyMessage = 'No reports found';
@@ -1759,45 +1800,37 @@ function displayFilteredReports(reports) {
             emptyMessage += ' in the selected date range';
         }
         
-        console.log('📭 Showing empty state:', emptyMessage);
         container.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
         return;
     }
     
     container.innerHTML = reports.map(report => {
-        // Format the timestamp consistently with the rest of the application
-        const reportDate = new Date(report.created_at);
-        const formattedDate = reportDate.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
+        // Generate dynamic report title
+        const reportTitle = generateReportTitle(report.report_type, report.config, report.created_at);
+        
+        // Format smart timestamp with "Received:" prefix
+        const smartTimestamp = formatSmartTimestamp(report.created_at);
         
         return `
         <div class="report-item received-report-item" data-report-id="${report.id}" data-report-date="${report.created_at}">
             <div class="report-info">
-                <h4>${report.report_type} Report</h4>
-                <p>Generated: ${formattedDate}</p>
-                <p>By: ${report.generated_by_first_name || 'Marketing Clerk'} ${report.generated_by_last_name || ''}</p>
+                <div class="report-title">${reportTitle}</div>
             </div>
-            <div class="report-actions">
-                <button onclick="viewGeneratedReport('${report.id}')" class="btn-view">
-                    <i class="fas fa-eye"></i> View
-                </button>
-                <button onclick="downloadReportPDF('${report.id}')" class="btn-download">
-                    <i class="fas fa-download"></i> Download PDF
-                </button>
+            <div class="report-meta">
+                <div class="report-status received">RECEIVED</div>
+                <div class="report-timestamp">${smartTimestamp}</div>
+                <div class="report-actions">
+                    <button onclick="viewGeneratedReport('${report.id}')" class="btn-view">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                    <button onclick="downloadReportPDF('${report.id}')" class="btn-download">
+                        <i class="fas fa-download"></i> Download PDF
+                    </button>
+                </div>
             </div>
         </div>
         `;
     }).join('');
-    
-    console.log('✅ Reports HTML generated and set to container');
-    console.log('📋 Container innerHTML length:', container.innerHTML.length);
-    console.log('📋 First 200 chars of HTML:', container.innerHTML.substring(0, 200));
 }
 
 // View specific report
