@@ -144,13 +144,13 @@ function prefillFromReportRequest() {
                 }
                 case 'member': {
                     if (document.getElementById('memberSearch')) document.getElementById('memberSearch').value = cfg.member || '';
-                    if (cfg.transactionType) {
-                        const tbtn = document.querySelector(`#memberConfig .type-btn[data-type="${cfg.transactionType}"]`);
-                        if (tbtn) {
-                            document.querySelectorAll('#memberConfig .type-btn').forEach(b => b.classList.remove('active'));
-                            tbtn.classList.add('active');
-                        }
-                    }
+                    // Member reports always include both transaction types (savings and disbursement)
+                    // No need to set transaction type buttons since they're always both active
+                    // Prefill year and month for member reports
+                    const yearEl = document.getElementById('memberYear');
+                    const monthEl = document.getElementById('memberMonth');
+                    if (yearEl && cfg.year != null) setSelectValueByNormalized(yearEl, cfg.year);
+                    if (monthEl && cfg.month != null) setSelectValueByNormalized(monthEl, cfg.month);
                     break;
                 }
                 case 'branch': {
@@ -749,8 +749,59 @@ async function generateReport() {
                 }
             };
         } else if (reportType === 'member') {
-            // Keep existing stub for now (no dedicated endpoint in scope)
-            reportData = generateMemberReportData();
+            // Fetch member transactions data
+            const memberName = document.getElementById('memberSearch').value.trim();
+            const year = document.getElementById('memberYear').value;
+            const month = document.getElementById('memberMonth').value;
+            
+            // Compute date range for the selected month
+            const { startDate, endDate } = computeDateRangeForReport('member');
+            
+            // Fetch all transactions for this member in the date range
+            // Note: Using date_from and date_to parameters as expected by the backend
+            const transactionsEndpoint = `/api/auth/transactions?payee=${encodeURIComponent(memberName)}&date_from=${encodeURIComponent(startDate)}&date_to=${encodeURIComponent(endDate)}`;
+            
+            console.log('Fetching member transactions:', {
+                member: memberName,
+                startDate,
+                endDate,
+                endpoint: transactionsEndpoint
+            });
+            
+            const loading = document.getElementById('reportCanvas');
+            if (loading) loading.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-spinner fa-spin"></i><h3>Generating member report...</h3></div>';
+            
+            const res = await fetch(transactionsEndpoint, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Failed to fetch member transactions');
+            }
+            const payload = await res.json();
+            let transactions = (payload && payload.data) || [];
+            
+            console.log('Fetched transactions:', transactions);
+            
+            // Client-side filtering to ensure only transactions within the selected month are included
+            // This is an extra safeguard in case the API returns transactions outside the date range
+            transactions = transactions.filter(transaction => {
+                const transactionDate = new Date(transaction.transaction_date);
+                const transactionYear = transactionDate.getFullYear();
+                const transactionMonth = transactionDate.getMonth() + 1;
+                
+                return transactionYear === parseInt(year, 10) && transactionMonth === parseInt(month, 10);
+            });
+            
+            console.log('Filtered transactions (client-side):', transactions);
+            
+            // Generate report data with fetched transactions
+            reportData = {
+                type: 'Member Report',
+                member: memberName,
+                year: year,
+                month: month,
+                transactionTypes: ['savings', 'disbursement'],
+                data: transactions
+            };
         } else if (reportType === 'branch') {
             // Fetch all branches performance, then filter/shape rows
             const { startDate: s, endDate: e } = computeDateRangeForReport('branch');
@@ -885,9 +936,15 @@ function computeDateRangeForReport(reportType) {
         if (m) month = m.value || month;
     }
     const start = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
-    const end = new Date(parseInt(year, 10), parseInt(month, 10), 0);
+    const end = new Date(parseInt(year, 10), parseInt(month, 10), 0); // Last day of the selected month
+    
+    // Format dates properly
     const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
     const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+    
+    // Debug: Log to verify date calculation
+    console.log(`Date range for ${month}/${year}:`, startDate, 'to', endDate);
+    
     return { startDate, endDate, periodLabel: `${month} ${year}` };
 }
 
@@ -1080,13 +1137,13 @@ function generateDisbursementReportData() {
 // Generate member report data
 function generateMemberReportData() {
     const memberSearch = document.getElementById('memberSearch').value.trim();
-    const activeTypeBtn = document.querySelector('#memberConfig .type-btn.active');
-    const transactionType = activeTypeBtn ? activeTypeBtn.getAttribute('data-type') : 'savings';
+    // Member reports always include both transaction types
+    const transactionTypes = ['savings', 'disbursement'];
     
     return {
         type: 'Member Report',
         member: memberSearch,
-        transactionType: transactionType,
+        transactionTypes: transactionTypes,
         data: []
     };
 }
@@ -1338,6 +1395,15 @@ function generateMemberReportHTML(reportData) {
         day: 'numeric' 
     });
     
+    // Calculate totals from fetched transactions
+    const transactions = reportData.data || [];
+    const totalTransactions = transactions.length;
+    const totalAmount = transactions.reduce((sum, t) => {
+        const debit = parseFloat(t.debit_amount || 0);
+        const credit = parseFloat(t.credit_amount || 0);
+        return sum + Math.max(debit, credit);
+    }, 0);
+    
     let html = `
         <div class="report-content">
             <div class="report-stats">
@@ -1346,15 +1412,15 @@ function generateMemberReportHTML(reportData) {
                     <div class="stat-label">Member</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">0</div>
+                    <div class="stat-value">${totalTransactions}</div>
                     <div class="stat-label">Total Transactions</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱0</div>
+                    <div class="stat-value">₱${totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     <div class="stat-label">Total Amount</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${reportData.transactionType}</div>
+                    <div class="stat-value">${Array.isArray(reportData.transactionTypes) ? reportData.transactionTypes.join(', ').replace(/\b\w/g, l => l.toUpperCase()) : 'Both'}</div>
                     <div class="stat-label">Transaction Type</div>
                 </div>
                 <div class="stat-card">
@@ -1367,23 +1433,45 @@ function generateMemberReportHTML(reportData) {
                 <table>
                     <thead>
                         <tr>
-                            <th>Reference</th>
-                            <th>Amount</th>
                             <th>Date</th>
+                            <th>Payee</th>
+                            <th>Particulars</th>
+                            <th>Reference</th>
+                            <th>Debit</th>
+                            <th>Credit</th>
                         </tr>
                     </thead>
                     <tbody>
         `;
         
-    // Show empty data since no database is connected
-    html += `
+    // Display transactions or show "no data" message
+    if (totalTransactions === 0) {
+        html += `
                 <tr>
-                    <td colspan="3" style="text-align: center; padding: 40px; color: #9ca3af;">
+                    <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
                         <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
-                        No data available - Database not connected
+                        No transactions found for this member in ${new Date(reportData.year || new Date().getFullYear(), (reportData.month || 1) - 1).toLocaleString('default', { month: 'long' })} ${reportData.year || new Date().getFullYear()}
                     </td>
                 </tr>
             `;
+    } else {
+        transactions.forEach(transaction => {
+            const date = new Date(transaction.transaction_date).toLocaleDateString('en-US');
+            const debit = parseFloat(transaction.debit_amount || 0);
+            const credit = parseFloat(transaction.credit_amount || 0);
+            
+            html += `
+                <tr>
+                    <td>${date}</td>
+                    <td>${transaction.payee || ''}</td>
+                    <td>${transaction.particulars || ''}</td>
+                    <td>${transaction.reference || ''}</td>
+                    <td>${debit > 0 ? '₱' + debit.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+                    <td>${credit > 0 ? '₱' + credit.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+                </tr>
+            `;
+        });
+    }
         
         html += `
                     </tbody>
@@ -2210,9 +2298,10 @@ function collectReportConfig(reportType) {
             }
             case 'member': {
                 const member = document.getElementById('memberSearch')?.value?.trim();
-                const activeBtn = document.querySelector('#memberConfig .type-btn.active');
-                const transactionType = activeBtn ? activeBtn.getAttribute('data-type') : 'savings';
-                return { member, transactionType };
+                // Member reports always include both savings and disbursement
+                const year = document.getElementById('memberYear')?.value;
+                const month = document.getElementById('memberMonth')?.value;
+                return { member, transactionTypes: ['savings', 'disbursement'], year, month };
             }
             case 'branch': {
                 const selected = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => cb.value);
@@ -2561,8 +2650,9 @@ function generateReportTitle(reportType, config, createdAt) {
             return `Disbursement Report – ${monthName} ${year} | Generated on: ${generationDate}`;
         }
         case 'member': {
-            // Skip member name for now as per user request
-            return `Member Report – [Member Name] | Generated on: ${generationDate}`;
+            // Get member name from config
+            const memberName = parsedConfig.member || '[Member Name]';
+            return `Member Report – ${memberName} | Generated on: ${generationDate}`;
         }
         case 'branch': {
             // Count selected branches from config

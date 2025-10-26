@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     initializeFOReports();
+    initializeMemberSearchAutocomplete();
 });
 
 // Initialize Finance Officer reports system
@@ -34,6 +35,176 @@ function initializeFOReports() {
     
     // Initialize date range filter
     setupDateRangeFilter();
+}
+
+// Member Search Autocomplete Functionality
+let memberSearchInitialized = false;
+function initializeMemberSearchAutocomplete() {
+    if (memberSearchInitialized) return; // Prevent duplicate initialization
+    memberSearchInitialized = true;
+    
+    const memberSearchInput = document.getElementById('memberSearch');
+    if (!memberSearchInput) return;
+    
+    // Create autocomplete container
+    const autocompleteContainer = document.createElement('div');
+    autocompleteContainer.id = 'memberAutocompleteContainer';
+    autocompleteContainer.className = 'member-autocomplete-container';
+    memberSearchInput.parentNode.appendChild(autocompleteContainer);
+    
+    // Debounced search function
+    const debouncedSearch = debounce(async (searchTerm) => {
+        if (!searchTerm || searchTerm.trim().length < 2) {
+            hideMemberSuggestions();
+            return;
+        }
+        
+        try {
+            const members = await searchMembers(searchTerm);
+            showMemberSuggestions(members);
+        } catch (error) {
+            console.error('Error searching members:', error);
+            hideMemberSuggestions();
+        }
+    }, 300);
+    
+    // Handle input changes
+    memberSearchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.trim();
+        debouncedSearch(searchTerm);
+    });
+    
+    // Handle focus - show recent suggestions if any
+    memberSearchInput.addEventListener('focus', function(e) {
+        const searchTerm = e.target.value.trim();
+        if (searchTerm.length >= 2) {
+            debouncedSearch(searchTerm);
+        }
+    });
+    
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!memberSearchInput.contains(e.target) && 
+            !autocompleteContainer.contains(e.target)) {
+            hideMemberSuggestions();
+        }
+    });
+    
+    // Handle escape key to close suggestions
+    memberSearchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideMemberSuggestions();
+        }
+    });
+}
+
+// Debounce function for search optimization
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Fetch member suggestions from API
+async function searchMembers(searchTerm) {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        throw new Error('Authentication required');
+    }
+    
+    try {
+        const response = await fetch(`/api/auth/transactions/search/payee/${encodeURIComponent(searchTerm)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to search members');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            // Extract unique member names from transactions
+            const uniqueMembers = [...new Set(result.data.map(t => t.payee))];
+            return uniqueMembers.slice(0, 10); // Limit to 10 suggestions
+        }
+        
+        return [];
+    } catch (error) {
+        console.error('Error fetching member suggestions:', error);
+        return [];
+    }
+}
+
+// Display autocomplete dropdown
+function showMemberSuggestions(members) {
+    const container = document.getElementById('memberAutocompleteContainer');
+    if (!container) return;
+    
+    if (members.length === 0) {
+        container.innerHTML = `
+            <div class="autocomplete-suggestion no-results">
+                <i class="fas fa-search"></i>
+                <span>No members found</span>
+            </div>
+        `;
+        container.style.display = 'block';
+        return;
+    }
+    
+    container.innerHTML = members.map(member => `
+        <div class="autocomplete-suggestion" onclick="selectMember('${member.replace(/'/g, "\\'")}')">
+            <i class="fas fa-user"></i>
+            <span>${member}</span>
+        </div>
+    `).join('');
+    
+    container.style.display = 'block';
+}
+
+// Hide autocomplete suggestions
+function hideMemberSuggestions() {
+    const container = document.getElementById('memberAutocompleteContainer');
+    if (container) {
+        container.style.display = 'none';
+    }
+}
+
+// Handle member selection
+function selectMember(memberName) {
+    const memberSearchInput = document.getElementById('memberSearch');
+    if (memberSearchInput) {
+        memberSearchInput.value = memberName;
+        hideMemberSuggestions();
+        // Trigger input event to validate
+        memberSearchInput.dispatchEvent(new Event('input'));
+    }
+}
+
+// Validate member exists before report request
+async function validateMemberExists(memberName) {
+    if (!memberName || memberName.trim().length < 2) {
+        return false;
+    }
+    
+    try {
+        const members = await searchMembers(memberName.trim());
+        // Check if exact match exists
+        return members.some(member => 
+            member.toLowerCase() === memberName.trim().toLowerCase()
+        );
+    } catch (error) {
+        console.error('Error validating member:', error);
+        return false;
+    }
 }
 
 // Initialize branch-specific reports
@@ -311,13 +482,13 @@ function generateReport() {
 }
 
 // Validate configuration based on report type
-function validateConfiguration(reportType) {
+async function validateConfiguration(reportType) {
     switch (reportType) {
         case 'savings':
         case 'disbursement':
             return validateSavingsDisbursementConfig(reportType);
         case 'member':
-            return validateMemberConfig();
+            return await validateMemberConfig();
         case 'branch':
             return validateBranchConfig();
         default:
@@ -340,10 +511,17 @@ function validateSavingsDisbursementConfig(reportType) {
 }
 
 // Validate member configuration
-function validateMemberConfig() {
+async function validateMemberConfig() {
     const memberSearch = document.getElementById('memberSearch').value.trim();
     if (!memberSearch) {
         showValidationDialog('Please enter a member name or ID.');
+        return false;
+    }
+    
+    // Validate that member exists in the database
+    const memberExists = await validateMemberExists(memberSearch);
+    if (!memberExists) {
+        showValidationDialog('The member name you entered does not exist. Please search for a valid member name.');
         return false;
     }
     
@@ -708,7 +886,7 @@ function showSendFinanceSection() {}
 function hideSendFinanceSection() {}
 
 // New: Request report handler
-function requestReport() {
+async function requestReport() {
     const reportTypeDropdown = document.getElementById('reportTypeDropdown');
     if (!reportTypeDropdown || !reportTypeDropdown.value) {
         showReportTypeDialog();
@@ -716,7 +894,7 @@ function requestReport() {
     }
 
     const reportType = reportTypeDropdown.value;
-    if (!validateConfiguration(reportType)) {
+    if (!(await validateConfiguration(reportType))) {
         return;
     }
 
@@ -769,9 +947,10 @@ function collectReportConfig(reportType) {
             }
             case 'member': {
                 const member = document.getElementById('memberSearch')?.value?.trim();
-                const activeBtn = document.querySelector('#memberConfig .type-btn.active');
-                const transactionType = activeBtn ? activeBtn.getAttribute('data-type') : 'savings';
-                return { member, transactionType };
+                // Member reports always include both savings and disbursement
+                const year = document.getElementById('memberYear')?.value;
+                const month = document.getElementById('memberMonth')?.value;
+                return { member, transactionTypes: ['savings', 'disbursement'], year, month };
             }
             case 'branch': {
                 const selected = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => cb.value);
@@ -1160,8 +1339,9 @@ function generateReportTitle(reportType, config, createdAt) {
             return `Disbursement Report – ${monthName} ${year} | Generated on: ${generationDate}`;
         }
         case 'member': {
-            // Skip member name for now as per user request
-            return `Member Report – [Member Name] | Generated on: ${generationDate}`;
+            // Get member name from config
+            const memberName = parsedConfig.member || '[Member Name]';
+            return `Member Report – ${memberName} | Generated on: ${generationDate}`;
         }
         case 'branch': {
             // Count selected branches from config
