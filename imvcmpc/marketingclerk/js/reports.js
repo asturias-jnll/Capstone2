@@ -2479,6 +2479,13 @@ async function loadReportHistories() {
 
         reports.forEach(report => {
             if (reportsByType[report.report_type]) {
+                console.log(`Loading report ${report.id}:`, {
+                    type: report.report_type,
+                    configType: typeof report.config,
+                    configString: JSON.stringify(report.config),
+                    configKeys: report.config ? Object.keys(report.config) : []
+                });
+                
                 reportsByType[report.report_type].push({
                     id: report.id,
                     title: generateReportTitle(report.report_type, report.config, report.created_at),
@@ -2650,9 +2657,28 @@ function generateReportTitle(reportType, config, createdAt) {
             return `Disbursement Report – ${monthName} ${year} | Generated on: ${generationDate}`;
         }
         case 'member': {
-            // Get member name from config
-            const memberName = parsedConfig.member || '[Member Name]';
-            return `Member Report – ${memberName} | Generated on: ${generationDate}`;
+            // Get member name from config with multiple fallback options
+            console.log('DEBUG: Full parsedConfig object:', parsedConfig);
+            console.log('DEBUG: parsedConfig keys:', parsedConfig ? Object.keys(parsedConfig) : 'null');
+            console.log('DEBUG: parsedConfig.member:', parsedConfig.member);
+            console.log('DEBUG: parsedConfig.payee:', parsedConfig.payee);
+            
+            let memberName = parsedConfig.member || 
+                           parsedConfig.payee ||
+                           parsedConfig.memberName ||
+                           parsedConfig.name ||
+                           '[Member Name]';
+            
+            console.log('Debug generateReportTitle - parsedConfig:', parsedConfig);
+            console.log('Debug generateReportTitle - memberName:', memberName);
+            
+            // If still showing placeholder, try alternative extraction
+            if (memberName === '[Member Name]') {
+                console.warn('Warning: Could not extract member name from config');
+                console.warn('Full config object:', JSON.stringify(parsedConfig, null, 2));
+            }
+            
+            return `Member Report - ${memberName} | Generated on: ${generationDate}`;
         }
         case 'branch': {
             // Count selected branches from config

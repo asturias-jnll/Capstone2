@@ -312,6 +312,7 @@ class GeneratedReportService {
             const dataQuery = `
                 SELECT gr.id,
                        gr.report_type,
+                       gr.config,
                        gr.status,
                        gr.created_at,
                        gr.completed_at,
@@ -330,8 +331,20 @@ class GeneratedReportService {
             const dataParams = [...params, limit, offset];
             const result = await client.query(dataQuery, dataParams);
 
+            // Parse JSON fields for each report
+            const reports = result.rows.map(report => {
+                if (report.config && typeof report.config === 'string') {
+                    try {
+                        report.config = JSON.parse(report.config);
+                    } catch (e) {
+                        report.config = {};
+                    }
+                }
+                return report;
+            });
+
             return {
-                reports: result.rows,
+                reports: reports,
                 total,
                 page,
                 limit,
