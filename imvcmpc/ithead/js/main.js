@@ -132,10 +132,9 @@ function setActiveNavigation() {
 // Initialize dashboard
 function initializeDashboard() {
     checkAuthentication();
-    setupEventListeners();
 }
 
-// Check authentication
+// Check authentication and redirect
 function checkAuthentication() {
     const accessToken = localStorage.getItem('access_token');
     const user = localStorage.getItem('user');
@@ -154,17 +153,15 @@ function checkAuthentication() {
             logout();
             return;
         }
+        
+        // Redirect to user management page if on main.html
+        const currentPage = window.location.pathname.split('/').pop();
+        if (currentPage === 'main.html') {
+            window.location.href = 'usermanagement.html';
+        }
     } catch (error) {
         console.error('Error parsing user data:', error);
         logout();
         return;
     }
 }
-
-// Setup event listeners
-function setupEventListeners() {
-    // Add any additional event listeners here
-}
-
-// Logout function is provided by shared/main.js
-// This file only handles IT Head specific functionality
