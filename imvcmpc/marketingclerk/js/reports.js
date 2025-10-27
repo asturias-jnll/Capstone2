@@ -889,25 +889,57 @@ async function generateReport() {
                 charts: {
                     savings: showSavings ? {
                         labels: finalRows.map(x => x.branch_name),
-                        datasets: [{
-                            label: 'Total Savings',
-                            data: finalRows.map(x => x.total_savings),
-                            backgroundColor: 'rgba(0, 117, 66, 0.7)',
-                            borderColor: '#007542',
-                            borderWidth: 2,
-                            type: 'bar'
-                        }]
+                        datasets: [
+                            {
+                                label: 'Total Savings (Bar)',
+                                data: finalRows.map(x => x.total_savings),
+                                backgroundColor: 'rgba(0, 117, 66, 0.7)',
+                                borderColor: '#007542',
+                                borderWidth: 2,
+                                type: 'bar'
+                            },
+                            {
+                                label: 'Savings Trend (Line)',
+                                data: finalRows.map(x => x.total_savings),
+                                borderColor: '#58BB43',
+                                backgroundColor: 'transparent',
+                                borderWidth: 3,
+                                fill: false,
+                                tension: 0.4,
+                                type: 'line',
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: '#007542',
+                                pointBorderColor: '#58BB43'
+                            }
+                        ]
                     } : null,
                     disbursement: showDisb ? {
                         labels: finalRows.map(x => x.branch_name),
-                        datasets: [{
-                            label: 'Total Disbursements',
-                            data: finalRows.map(x => x.total_disbursements),
-                            backgroundColor: 'rgba(88, 187, 67, 0.6)',
-                            borderColor: '#58BB43',
-                            borderWidth: 2,
-                            type: 'bar'
-                        }]
+                        datasets: [
+                            {
+                                label: 'Total Disbursements (Bar)',
+                                data: finalRows.map(x => x.total_disbursements),
+                                backgroundColor: 'rgba(88, 187, 67, 0.6)',
+                                borderColor: '#58BB43',
+                                borderWidth: 2,
+                                type: 'bar'
+                            },
+                            {
+                                label: 'Disbursement Trend (Line)',
+                                data: finalRows.map(x => x.total_disbursements),
+                                borderColor: '#1E8C45',
+                                backgroundColor: 'transparent',
+                                borderWidth: 3,
+                                fill: false,
+                                tension: 0.4,
+                                type: 'line',
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: '#58BB43',
+                                pointBorderColor: '#1E8C45'
+                            }
+                        ]
                     } : null
                 }
             };
@@ -1945,6 +1977,337 @@ async function sendToFinanceOfficer() {
             wrapper.appendChild(aiSection.cloneNode(true));
         }
         
+        // Add Chart.js library and chart initialization scripts to the HTML
+        let fullHTML = wrapper.innerHTML;
+        
+        // Get all computed styles for the canvas content
+        const styleSheets = Array.from(document.styleSheets)
+            .map(sheet => {
+                try {
+                    return Array.from(sheet.cssRules)
+                        .map(rule => rule.cssText)
+                        .join('\n');
+                } catch (e) {
+                    return '';
+                }
+            })
+            .join('\n');
+        
+        // Get report type for header
+        const reportTypeMap = {
+            'Savings Report': 'Savings Report',
+            'Disbursement Report': 'Disbursement Report',
+            'Member Report': 'Member Report',
+            'Branch Performance Report': 'Branch Performance Report'
+        };
+        const reportTypeForHeader = reportTypeMap[reportData.type] || 'Financial Report';
+        
+        // Get branch information
+        const branchName = localStorage.getItem('user_branch_name') || 'Unknown Branch';
+        
+        // Get current date and time
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
+        
+        // Safely serialize chart data
+        let chartDataJSON = 'null';
+        let chartTypeStr = 'bar';
+        let chartsJSON = 'null';
+        
+        try {
+            if (reportData && reportData.chart) {
+                chartDataJSON = JSON.stringify(reportData.chart);
+            }
+            if (reportData && reportData.chartType) {
+                chartTypeStr = reportData.chartType;
+            }
+            if (reportData && reportData.charts) {
+                chartsJSON = JSON.stringify(reportData.charts);
+            }
+        } catch (e) {
+            console.error('Error serializing chart data:', e);
+        }
+        
+        // Wrap with Chart.js library and initialization, including all styles
+        fullHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        ${styleSheets}
+        
+        /* Additional styles for PDF rendering - Smaller text and better spacing */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 15px;
+            background: white;
+            color: #333;
+            font-size: 11px;
+        }
+        
+        /* Report Header Styling */
+        .report-header-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+        .report-main-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0D5B11;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .report-type {
+            font-size: 14px;
+            font-weight: 600;
+            color: #187C19;
+            margin-bottom: 10px;
+            padding-left: 0;
+        }
+        .report-meta {
+            font-size: 12px;
+            color: #374151;
+            margin-bottom: 4px;
+            padding-left: 0;
+        }
+        .report-meta strong {
+            color: #0D5B11;
+            font-weight: 600;
+        }
+        .report-timestamp {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #cbd5e1;
+            font-size: 10px;
+            color: #6b7280;
+            padding-left: 0;
+        }
+        
+        .report-content {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        canvas { 
+            max-width: 100%;
+            height: 200px !important;
+        }
+        
+        /* Smaller text for tables */
+        table { 
+            width: 100%; 
+            border-collapse: collapse;
+            page-break-inside: auto;
+            font-size: 9px;
+        }
+        th, td {
+            padding: 6px 8px;
+            font-size: 9px;
+        }
+        th {
+            font-size: 10px !important;
+            font-weight: 600;
+        }
+        
+        tr { 
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        /* Smaller stat cards */
+        .report-stats { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .stat-card {
+            padding: 8px;
+        }
+        .stat-card .stat-value {
+            font-size: 14px !important;
+        }
+        .stat-card .stat-label {
+            font-size: 8px !important;
+        }
+        
+        /* Smaller headings */
+        h4 {
+            font-size: 11px !important;
+            margin-bottom: 8px !important;
+        }
+        
+        /* Better chart container sizing */
+        #reportChartContainer,
+        div[style*="height: 260px"],
+        div[style*="height: 300px"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        /* Chart wrapper adjustments - more compact */
+        div[style*="height: 260px"] canvas,
+        div[style*="height: 300px"] canvas,
+        #reportChart {
+            height: 200px !important;
+            width: 100% !important;
+        }
+        
+        @media print {
+            body { padding: 0; font-size: 9px; }
+            .report-content { padding: 8px; }
+            .report-header-section {
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header-section">
+        <div class="report-main-title">IMVCMPC Finance Management System Report</div>
+        <div class="report-type">${reportTypeForHeader}</div>
+        <div class="report-meta"><strong>Generated by:</strong> Marketing Clerk - ${branchName}</div>
+        <div class="report-meta"><strong>Submitted to:</strong> Finance Officer - ${branchName}</div>
+        <div class="report-timestamp">Downloaded on: ${dateStr} at ${timeStr}</div>
+    </div>
+    ${fullHTML}
+    <script>
+        // Initialize charts after DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for Chart.js to load
+            if (typeof Chart !== 'undefined') {
+                // Get the chart data from the reportData
+                const chartData = ${chartDataJSON};
+                const chartType = '${chartTypeStr}';
+                const charts = ${chartsJSON};
+                
+                // Initialize single chart (savings/disbursement)
+                if (chartData && Array.isArray(chartData.labels)) {
+                    const canvas = document.getElementById('reportChart');
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        new Chart(ctx, {
+                            type: chartType,
+                            data: chartData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                aspectRatio: 3,
+                                scales: { 
+                                    y: { 
+                                        beginAtZero: true,
+                                        ticks: { font: { size: 8 } }
+                                    },
+                                    x: {
+                                        ticks: { font: { size: 8 } }
+                                    }
+                                },
+                                plugins: {
+                                    legend: { 
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            font: { size: 8 },
+                                            padding: 6,
+                                            boxWidth: 10,
+                                            usePointStyle: false
+                                        }
+                                    },
+                                    title: { display: false }
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                // Initialize branch report charts
+                if (charts) {
+                    const savingsCanvas = document.getElementById('branchSavingsChart');
+                    if (savingsCanvas && charts.savings) {
+                        const ctx = savingsCanvas.getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: charts.savings,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                aspectRatio: 3,
+                                scales: { 
+                                    y: { 
+                                        beginAtZero: true,
+                                        ticks: { font: { size: 8 } }
+                                    },
+                                    x: {
+                                        ticks: { font: { size: 8 } }
+                                    }
+                                },
+                                plugins: {
+                                    legend: { 
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            font: { size: 8 },
+                                            padding: 6,
+                                            boxWidth: 10,
+                                            usePointStyle: false
+                                        }
+                                    },
+                                    title: { display: false }
+                                }
+                            }
+                        });
+                    }
+                    
+                    const disbursementCanvas = document.getElementById('branchDisbChart');
+                    if (disbursementCanvas && charts.disbursement) {
+                        const ctx = disbursementCanvas.getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: charts.disbursement,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                aspectRatio: 3,
+                                scales: { 
+                                    y: { 
+                                        beginAtZero: true,
+                                        ticks: { font: { size: 8 } }
+                                    },
+                                    x: {
+                                        ticks: { font: { size: 8 } }
+                                    }
+                                },
+                                plugins: {
+                                    legend: { 
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            font: { size: 8 },
+                                            padding: 6,
+                                            boxWidth: 10,
+                                            usePointStyle: false
+                                        }
+                                    },
+                                    title: { display: false }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>`;
+        
         // Generate PDF
         const pdfRes = await fetch('/api/auth/reports/generate-pdf', {
             method: 'POST',
@@ -1953,7 +2316,7 @@ async function sendToFinanceOfficer() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                reportHTML: wrapper.innerHTML,
+                reportHTML: fullHTML,
                 title: `${reportType} Report`
             })
         });

@@ -2216,13 +2216,13 @@ async function displayReportContent(report) {
         modal.id = 'reportViewModal';
         modal.className = 'modal';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 1000px; width: 95vw;">
+            <div class="modal-content">
                 <div class="modal-header">
                     <h2 id="reportModalTitle">Report</h2>
                     <span class="close" onclick="closeReportModal()">&times;</span>
                 </div>
-                <div class="modal-body" id="reportModalBody" style="height: 75vh; padding: 0;">
-                    <iframe id="reportPdfFrame" title="Report PDF" style="width: 100%; height: 100%; border: none;" src="about:blank"></iframe>
+                <div class="modal-body" id="reportModalBody">
+                    <iframe id="reportPdfFrame" title="Report PDF" style="width: 100%; height: calc(100vh - 200px); border: none;" src="about:blank"></iframe>
                 </div>
                 <div class="modal-footer">
                     <button id="openPdfNewTabBtn" class="btn-download">

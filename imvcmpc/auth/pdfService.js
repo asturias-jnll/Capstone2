@@ -22,14 +22,13 @@ class PDFService {
                 format: 'A4',
                 printBackground: true,
                 margin: {
-                    top: '20mm',
-                    right: '15mm',
-                    bottom: '20mm',
-                    left: '15mm'
+                    top: '10mm',
+                    right: '10mm',
+                    bottom: '10mm',
+                    left: '10mm'
                 },
-                displayHeaderFooter: true,
-                headerTemplate: this.getHeaderTemplate(),
-                footerTemplate: this.getFooterTemplate(),
+                displayHeaderFooter: false,
+                preferCSSPageSize: true,
                 ...config.pdfOptions
             },
             tempDir: config.tempDir || path.join(__dirname, 'temp'),
@@ -66,8 +65,11 @@ class PDFService {
             // Inject CSS and JavaScript for better PDF rendering
             await this.injectPDFEnhancements(page);
             
+            // Wrap HTML content with Chart.js library if it contains canvas elements
+            const wrappedHTML = this.wrapHTMLWithChartJS(htmlContent);
+            
             // Set content
-            await page.setContent(htmlContent, { 
+            await page.setContent(wrappedHTML, { 
                 waitUntil: 'networkidle0',
                 timeout: 30000 
             });
@@ -75,8 +77,13 @@ class PDFService {
             // Wait for charts to render
             await this.waitForCharts(page);
             
-            // Generate PDF
-            const pdfOptions = { ...this.config.pdfOptions, ...options };
+            // Generate PDF with proper scaling
+            const pdfOptions = { 
+                ...this.config.pdfOptions, 
+                ...options,
+                width: '210mm',  // A4 width
+                height: '297mm',  // A4 height
+            };
             const pdfBuffer = await page.pdf(pdfOptions);
             
             return pdfBuffer;
@@ -89,6 +96,62 @@ class PDFService {
                 await page.close();
             }
         }
+    }
+    
+    /**
+     * Wrap HTML content with Chart.js library if it contains canvas elements
+     * @param {String} htmlContent - HTML content to wrap
+     * @returns {String} Wrapped HTML content
+     */
+    wrapHTMLWithChartJS(htmlContent) {
+        // Check if HTML is already a complete document (has DOCTYPE or <html> tag)
+        const isCompleteDocument = htmlContent.trim().startsWith('<!DOCTYPE html>') || 
+                                   htmlContent.trim().startsWith('<html');
+        
+        // If it's already a complete HTML document, return as-is
+        if (isCompleteDocument) {
+            return htmlContent;
+        }
+        
+        // Check if HTML contains canvas elements
+        if (htmlContent.includes('<canvas')) {
+            return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .report-container {
+            max-width: 100%;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    ${htmlContent}
+    <script>
+        // Wait for Chart.js to be loaded, then initialize charts from canvas data
+        if (typeof Chart !== 'undefined') {
+            console.log('Chart.js loaded successfully');
+        }
+    </script>
+</body>
+</html>`;
+        }
+        
+        // If no canvas elements, return original content
+        return htmlContent;
     }
 
     /**
@@ -140,6 +203,7 @@ class PDFService {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${reportData.type || 'Financial Report'} - IMVCMPC</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         ${this.getPDFStyles()}
     </style>
@@ -241,19 +305,95 @@ class PDFService {
             </div>`;
         }
 
-        // Chart placeholders (charts will be rendered as images)
+        // Render charts with Chart.js
         if (reportData.chart || reportData.charts) {
-            content += `
-            <div class="report-charts">
-                <h3>Performance Visualizations</h3>
-                <div class="chart-placeholder">
-                    <p>Charts and graphs would be displayed here in the actual implementation.</p>
-                    <p>Note: Chart rendering in PDF requires additional image generation steps.</p>
-                </div>
-            </div>`;
+            content += this.generateChartHTML(reportData);
         }
 
         return content;
+    }
+
+    /**
+     * Generate chart HTML with canvas elements
+     * @param {Object} reportData - Report data
+     * @returns {String} Chart HTML
+     */
+    generateChartHTML(reportData) {
+        let chartHTML = '<div class="report-charts"><h3>Performance Visualizations</h3>';
+        
+        // Single chart (Savings/Disbursement)
+        if (reportData.chart && Array.isArray(reportData.chart.labels)) {
+            chartHTML += `
+            <div style="margin-top: 20px; width: 100%;">
+                <canvas id="reportChart" style="width: 100%; height: 400px;"></canvas>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const ctx = document.getElementById('reportChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: '${reportData.chartType || 'bar'}',
+                        data: ${JSON.stringify(reportData.chart)},
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true }
+                            }
+                        }
+                    });
+                });
+            </script>`;
+        }
+        
+        // Multiple charts (Branch Performance)
+        if (reportData.type === 'Branch Performance Report' && reportData.charts) {
+            if (reportData.charts.savings) {
+                chartHTML += `
+                <div style="margin-top: 20px; width: 100%;">
+                    <h4>Savings by Branch</h4>
+                    <canvas id="branchSavingsChart" style="width: 100%; height: 400px;"></canvas>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const ctx = document.getElementById('branchSavingsChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: ${JSON.stringify(reportData.charts.savings)},
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: { y: { beginAtZero: true } }
+                            }
+                        });
+                    });
+                </script>`;
+            }
+            
+            if (reportData.charts.disbursement) {
+                chartHTML += `
+                <div style="margin-top: 30px; width: 100%;">
+                    <h4>Disbursements by Branch</h4>
+                    <canvas id="branchDisbChart" style="width: 100%; height: 400px;"></canvas>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const ctx = document.getElementById('branchDisbChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: ${JSON.stringify(reportData.charts.disbursement)},
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: { y: { beginAtZero: true } }
+                            }
+                        });
+                    });
+                </script>`;
+            }
+        }
+        
+        chartHTML += '</div>';
+        return chartHTML;
     }
 
     /**
@@ -659,11 +799,22 @@ class PDFService {
      */
     async waitForCharts(page) {
         try {
-            // Wait for any chart elements to be rendered
-            await page.waitForSelector('canvas, .chart-container', { timeout: 5000 });
+            // Wait for Chart.js to be loaded
+            await page.waitForFunction(() => {
+                return typeof window.Chart !== 'undefined';
+            }, { timeout: 10000 });
             
-            // Additional wait for chart animations
-            await page.waitForTimeout(2000);
+            // Wait for canvas elements to be rendered
+            await page.waitForSelector('canvas', { timeout: 5000 });
+            
+            // Wait for Chart.js to initialize and render charts
+            await page.waitForFunction(() => {
+                const canvases = document.querySelectorAll('canvas');
+                return canvases.length > 0;
+            }, { timeout: 10000 });
+            
+            // Additional wait for chart animations to complete
+            await page.waitForTimeout(3000);
         } catch (error) {
             // Charts might not be present, continue
             console.log('No charts detected or timeout waiting for charts');
