@@ -1286,6 +1286,46 @@ function formatSmartTimestamp(dateString) {
     }
 }
 
+// Generate report details in format "Month: January • Year: 2025"
+function generateReportDetails(reportType, config) {
+    // Parse config if it's a string, default to empty object if null/undefined
+    let parsedConfig = {};
+    try {
+        if (config) {
+            if (typeof config === 'string') {
+                parsedConfig = JSON.parse(config);
+            } else if (typeof config === 'object' && config !== null) {
+                parsedConfig = config;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to parse config:', e);
+        parsedConfig = {};
+    }
+    
+    // Ensure parsedConfig is always an object
+    if (!parsedConfig || typeof parsedConfig !== 'object') {
+        parsedConfig = {};
+    }
+    
+    switch (reportType) {
+        case 'savings':
+        case 'disbursement':
+        case 'member':
+        case 'branch': {
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            return `Month: ${monthName} • Year: ${year}`;
+        }
+        default:
+            const currentDate = new Date();
+            const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+            const currentYear = currentDate.getFullYear();
+            return `Month: ${currentMonth} • Year: ${currentYear}`;
+    }
+}
+
 // Generate report title based on type and config
 function generateReportTitle(reportType, config, createdAt) {
     // Parse date string and handle timezone properly to avoid day shift
@@ -1330,13 +1370,13 @@ function generateReportTitle(reportType, config, createdAt) {
             const month = parsedConfig.month || new Date().getMonth() + 1;
             const year = parsedConfig.year || new Date().getFullYear();
             const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-            return `Savings Report – ${monthName} ${year} | Generated on: ${generationDate}`;
+            return `Savings Report – ${monthName} ${year} <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
         }
         case 'disbursement': {
             const month = parsedConfig.month || new Date().getMonth() + 1;
             const year = parsedConfig.year || new Date().getFullYear();
             const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-            return `Disbursement Report – ${monthName} ${year} | Generated on: ${generationDate}`;
+            return `Disbursement Report – ${monthName} ${year} <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
         }
         case 'member': {
             // Get member name from config with multiple fallback options
@@ -1360,7 +1400,7 @@ function generateReportTitle(reportType, config, createdAt) {
                 console.warn('Full config object:', JSON.stringify(parsedConfig, null, 2));
             }
             
-            return `Member Report - ${memberName} | Generated on: ${generationDate}`;
+            return `Member Report - ${memberName} <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
         }
         case 'branch': {
             // Count selected branches from config
@@ -1374,10 +1414,10 @@ function generateReportTitle(reportType, config, createdAt) {
                 branchCount = 1; // Default to 1 if no config
             }
             const branchText = branchCount === 1 ? '1 Branch' : `${branchCount} Branches`;
-            return `Branch Report – ${branchText} | Generated on: ${generationDate}`;
+            return `Branch Report – ${branchText} <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
         }
         default:
-            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report | Generated on: ${generationDate}`;
+            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
     }
 }
 
@@ -2049,25 +2089,29 @@ function displayFilteredReports(reports) {
         // Generate dynamic report title
         const reportTitle = generateReportTitle(report.report_type, report.config, report.created_at);
         
-        // Format smart timestamp with "Received:" prefix
+        // Generate report details in format "Month: January • Year: 2025"
+        const reportDetails = generateReportDetails(report.report_type, report.config);
+        
+        // Format smart timestamp
         const smartTimestamp = formatSmartTimestamp(report.created_at);
         
         return `
-        <div class="report-item received-report-item" data-report-id="${report.id}" data-report-date="${report.created_at}">
-            <div class="report-info">
-                <div class="report-title">${reportTitle}</div>
+        <div class="history-item" data-report-id="${report.id}" data-report-date="${report.created_at}">
+            <div class="report-actions">
+                <button onclick="viewGeneratedReport('${report.id}')" class="btn-view">
+                    <i class="fas fa-eye"></i> View
+                </button>
+                <button onclick="downloadReportPDF('${report.id}')" class="btn-download">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
             </div>
-            <div class="report-meta">
-                <div class="report-status received">RECEIVED</div>
-                <div class="report-timestamp">${smartTimestamp}</div>
-                <div class="report-actions">
-                    <button onclick="viewGeneratedReport('${report.id}')" class="btn-view">
-                        <i class="fas fa-eye"></i> View
-                    </button>
-                    <button onclick="downloadReportPDF('${report.id}')" class="btn-download">
-                        <i class="fas fa-download"></i> Download PDF
-                    </button>
-                </div>
+            <div class="history-info">
+                <div class="history-title">${reportTitle}</div>
+                <div class="history-details">${reportDetails}</div>
+            </div>
+            <div class="history-status-time">
+                <div class="history-status received">RECEIVED</div>
+                <div class="history-timestamp">${smartTimestamp}</div>
             </div>
         </div>
         `;

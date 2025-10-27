@@ -47,7 +47,6 @@ function setSelectValueByNormalized(select, value) {
 // Initialize reports system
 function initializeReports() {
     setupReportTypeSelector();
-    setupReportHistoryFilter();
     setupBranchSelection();
     setupTransactionTypeButtons();
     setupDateRangeFilter();
@@ -62,8 +61,8 @@ function initializeReports() {
         console.error('Error initializing report histories:', error);
     });
     
-    // Set default filter to show all report types
-    filterReportHistory('all');
+    // Set default filter to show all reports
+    filterSentReports('all');
     
     // Hide generate report section by default (only show history)
     hideGenerateReportSection();
@@ -363,32 +362,59 @@ function setupReportTypeSelector() {
     });
 }
 
-// Setup report history filter
-function setupReportHistoryFilter() {
-    const filterSelect = document.getElementById('reportHistoryFilterSelect');
+// Store all sent reports for filtering
+let allSentReports = [];
+let currentSentFilterType = 'all';
+let currentSentDateRange = { start: null, end: null };
+
+// Filter sent reports by type
+function filterSentReports(filterType) {
+    currentSentFilterType = filterType;
     
-    if (filterSelect) {
-        filterSelect.addEventListener('change', function() {
-            const selectedType = this.value;
-            filterReportHistory(selectedType);
-        });
+    // Update active filter button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const filterButton = document.querySelector(`[data-filter="${filterType}"]`);
+    if (filterButton) {
+        filterButton.classList.add('active');
     }
+    
+    // Apply filter
+    applySentReportsFilter();
 }
 
-// Filter report history based on selected type
-function filterReportHistory(selectedType) {
-    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+// Apply filter to sent reports (type filter only)
+function applySentReportsFilter() {
+    // Apply all filters (type + date)
+    applyAllSentFilters();
+}
+
+// Display sent reports in unified container
+function displaySentReports(reports) {
+    const container = document.getElementById('sentReportsContainer');
+    if (!container) {
+        console.error('sentReportsContainer not found');
+        return;
+    }
     
-    reportTypes.forEach(type => {
-        const historySection = document.getElementById(`${type}ReportHistory`);
-        if (historySection) {
-            if (selectedType === 'all' || selectedType === type) {
-                historySection.style.display = 'block';
-            } else {
-                historySection.style.display = 'none';
-            }
-        }
-    });
+    if (!reports || reports.length === 0) {
+        container.innerHTML = '<div class="empty-state">No reports sent yet</div>';
+        return;
+    }
+    
+    container.innerHTML = reports.map(report => `
+        <div class="history-item" data-report-id="${report.id}" data-report-date="${report.date}">
+            <div class="history-info">
+                <div class="history-title">${report.title}</div>
+                <div class="history-details">${report.details}</div>
+            </div>
+            <div class="history-status-time">
+                <div class="history-status sent">SENT</div>
+                <div class="history-timestamp">${formatSmartTimestamp(report.date)}</div>
+            </div>
+        </div>
+    `).join('');
 }
 
 // Clear all report configurations
@@ -542,16 +568,18 @@ function setupTransactionTypeButtons() {
 
 // Setup date range filter
 function setupDateRangeFilter() {
-    // Set default date range (last 30 days)
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
+    // Set default date range (last 30 days) but don't apply filter automatically
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
     
-    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
     
-    // Apply initial filter
-    applyDateFilter();
+    if (startDateInput && endDateInput) {
+        startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+        endDateInput.value = today.toISOString().split('T')[0];
+    }
 }
 
 // Apply date range filter
@@ -560,6 +588,9 @@ function applyDateFilter() {
     const endDate = document.getElementById('endDate').value;
     
     if (!startDate || !endDate) {
+        // Clear date filter
+        currentSentDateRange = { start: null, end: null };
+        applyAllSentFilters();
         return;
     }
     
@@ -567,54 +598,59 @@ function applyDateFilter() {
         // Invalid date range - swap dates silently
         document.getElementById('startDate').value = endDate;
         document.getElementById('endDate').value = startDate;
-        return;
+        currentSentDateRange = { start: endDate, end: startDate };
+    } else {
+        currentSentDateRange = { start: startDate, end: endDate };
     }
     
-    // Filter all report history sections
-    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    // Apply all filters (type + date)
+    applyAllSentFilters();
+}
+
+// Apply all active filters (type + date) for sent reports
+function applyAllSentFilters() {
+    const container = document.getElementById('sentReportsContainer');
+    if (!container) return;
     
-    reportTypes.forEach(type => {
-        const historyList = document.getElementById(`${type}HistoryList`);
-        if (historyList) {
-            const historyItems = historyList.querySelectorAll('.history-item');
-            
-            historyItems.forEach(item => {
-                const dateElement = item.querySelector('.history-date');
-                if (dateElement) {
-                    const itemDate = new Date(dateElement.textContent);
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    end.setHours(23, 59, 59, 999); // Include entire end date
-                    
-                    if (itemDate >= start && itemDate <= end) {
-                        item.style.display = 'flex';
-                    } else {
-                        item.style.display = 'none';
-                    }
-                }
-            });
-            
-            // Check if any items are visible
-            const visibleItems = historyList.querySelectorAll('.history-item[style*="display: flex"], .history-item:not([style*="display: none"])');
-            const emptyState = historyList.querySelector('.empty-history');
-            
-            if (visibleItems.length === 0 && !emptyState) {
-                // Show "No reports in date range" message
-                historyList.innerHTML = `
-                    <div class="empty-history">
-                        <i class="fas fa-calendar-times"></i>
-                        <h5>No Reports in Date Range</h5>
-                        <p>No reports found for the selected date range.</p>
-                    </div>
-                `;
-            } else if (visibleItems.length > 0 && emptyState) {
-                // Remove empty state if items are visible
-                emptyState.remove();
+    let filteredReports = [...allSentReports];
+    
+    // Apply type filter
+    if (currentSentFilterType !== 'all') {
+        filteredReports = filteredReports.filter(report => 
+            report.type && report.type.toLowerCase() === currentSentFilterType.toLowerCase()
+        );
+    }
+    
+    // Apply date filter
+    if (currentSentDateRange.start && currentSentDateRange.end) {
+        const startDate = new Date(currentSentDateRange.start);
+        const endDate = new Date(currentSentDateRange.end);
+        
+        filteredReports = filteredReports.filter(report => {
+            // Parse report date properly to avoid timezone shift
+            let localDateString = report.date;
+            if (report.date.includes('T')) {
+                localDateString = report.date.split('T')[0];
             }
-        }
-    });
+            const [year, month, day] = localDateString.split('-').map(Number);
+            const reportDate = new Date(year, month - 1, day);
+            return reportDate >= startDate && reportDate <= endDate;
+        });
+    }
     
-    // Date filter applied silently
+    // Display filtered results
+    if (filteredReports.length === 0) {
+        let emptyMessage = 'No reports found';
+        if (currentSentFilterType !== 'all') {
+            emptyMessage = `No ${currentSentFilterType} reports found`;
+        }
+        if (currentSentDateRange.start && currentSentDateRange.end) {
+            emptyMessage += ' in the selected date range';
+        }
+        container.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
+    } else {
+        displaySentReports(filteredReports);
+    }
 }
 
 // Clear date range filter
@@ -622,25 +658,9 @@ function clearDateFilter() {
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
     
-    // Show all history items
-    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
-    
-    reportTypes.forEach(type => {
-        const historyList = document.getElementById(`${type}HistoryList`);
-        if (historyList) {
-            const historyItems = historyList.querySelectorAll('.history-item');
-            historyItems.forEach(item => {
-                item.style.display = 'flex';
-            });
-            
-            // Reload the original history with branch filtering
-            const history = getReportHistory(type);
-            const filteredHistory = filterReportsByBranch(history);
-            displayReportHistory(type, filteredHistory);
-        }
-    });
-    
-    // Date filter cleared silently
+    // Clear date filter and apply all filters
+    currentSentDateRange = { start: null, end: null };
+    applyAllSentFilters();
 }
 
 // Generate report based on current configuration (fetch from backend and render chart when applicable)
@@ -2469,41 +2489,26 @@ async function loadReportHistories() {
         const result = await response.json();
         const reports = result.data?.reports || [];
 
-        // Group reports by type
-        const reportsByType = {
-            savings: [],
-            disbursement: [],
-            member: [],
-            branch: []
-        };
-
-        reports.forEach(report => {
-            if (reportsByType[report.report_type]) {
-                console.log(`Loading report ${report.id}:`, {
-                    type: report.report_type,
-                    configType: typeof report.config,
-                    configString: JSON.stringify(report.config),
-                    configKeys: report.config ? Object.keys(report.config) : []
-                });
-                
-                reportsByType[report.report_type].push({
-                    id: report.id,
-                    title: generateReportTitle(report.report_type, report.config, report.created_at),
-                    details: generateReportDetails(report.report_type, report.config),
-                    date: report.created_at,
-                    status: 'sent',
-                    type: report.report_type,
-                    branch_id: report.branch_id,
-                    branch_name: report.branch_name,
-                    config: report.config || {}
-                });
-            }
+        // Process all reports into unified format
+        const allReports = reports.map(report => {
+            return {
+                id: report.id,
+                title: generateReportTitle(report.report_type, report.config, report.created_at),
+                details: generateReportDetails(report.report_type, report.config),
+                date: report.created_at,
+                status: 'sent',
+                type: report.report_type,
+                branch_id: report.branch_id,
+                branch_name: report.branch_name,
+                config: report.config || {}
+            };
         });
 
-        // Display reports for each type
-        Object.keys(reportsByType).forEach(type => {
-            displayReportHistory(type, reportsByType[type]);
-        });
+        // Store all reports for filtering
+        allSentReports = allReports;
+
+        // Display all reports in unified container
+        displaySentReports(allSentReports);
 
     } catch (error) {
         console.error('Error loading reports from database:', error);
@@ -2512,16 +2517,33 @@ async function loadReportHistories() {
     }
 }
 
+// Make function globally available for manual refresh
+window.displaySentReports = displaySentReports;
+
 // Fallback function to load from localStorage
 function loadReportHistoriesFromLocalStorage() {
     const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    const allReports = [];
     
     reportTypes.forEach(type => {
         const history = getReportHistory(type);
         // Filter reports by user's branch
         const filteredHistory = filterReportsByBranch(history);
-        displayReportHistory(type, filteredHistory);
+        
+        // Add type to each report
+        filteredHistory.forEach(report => {
+            allReports.push({
+                ...report,
+                type: type
+            });
+        });
     });
+    
+    // Store all reports for filtering
+    allSentReports = allReports;
+    
+    // Display all reports in unified container
+    displaySentReports(allSentReports);
 }
 
 // Get report history for a specific type
@@ -2648,13 +2670,13 @@ function generateReportTitle(reportType, config, createdAt) {
             const month = parsedConfig.month || new Date().getMonth() + 1;
             const year = parsedConfig.year || new Date().getFullYear();
             const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-            return `Savings Report – ${monthName} ${year} | Generated on: ${generationDate}`;
+            return `Savings Report – ${monthName} ${year} <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
         }
         case 'disbursement': {
             const month = parsedConfig.month || new Date().getMonth() + 1;
             const year = parsedConfig.year || new Date().getFullYear();
             const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-            return `Disbursement Report – ${monthName} ${year} | Generated on: ${generationDate}`;
+            return `Disbursement Report – ${monthName} ${year} <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
         }
         case 'member': {
             // Get member name from config with multiple fallback options
@@ -2678,7 +2700,7 @@ function generateReportTitle(reportType, config, createdAt) {
                 console.warn('Full config object:', JSON.stringify(parsedConfig, null, 2));
             }
             
-            return `Member Report - ${memberName} | Generated on: ${generationDate}`;
+            return `Member Report - ${memberName} <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
         }
         case 'branch': {
             // Count selected branches from config
@@ -2691,18 +2713,16 @@ function generateReportTitle(reportType, config, createdAt) {
                 branchCount = 1; // Default to 1 if no config
             }
             const branchText = branchCount === 1 ? '1 Branch' : `${branchCount} Branches`;
-            return `Branch Report – ${branchText} | Generated on: ${generationDate}`;
+            return `Branch Report – ${branchText} <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
         }
         default:
-            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report | Generated on: ${generationDate}`;
+            return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report <span style="color: rgba(13, 91, 17, 0.7);">|</span> <span style="color: #6b7280;">Generated on: ${generationDate}</span>`;
     }
 }
 
 // Generate report details based on type and config
 function generateReportDetails(reportType, config) {
-    const details = [];
-    
-    // Parse config if it's a string
+    // Parse config if it's a string, default to empty object if null/undefined
     let parsedConfig = {};
     try {
         if (config) {
@@ -2713,7 +2733,7 @@ function generateReportDetails(reportType, config) {
             }
         }
     } catch (e) {
-        console.warn('Failed to parse config in generateReportDetails:', e);
+        console.warn('Failed to parse config:', e);
         parsedConfig = {};
     }
     
@@ -2725,35 +2745,19 @@ function generateReportDetails(reportType, config) {
     switch (reportType) {
         case 'savings':
         case 'disbursement':
-            if (parsedConfig.branches && parsedConfig.branches.length > 0) {
-                details.push(`${parsedConfig.branches.length} branch(es) selected`);
-            }
-            if (parsedConfig.month) {
-                details.push(`Month: ${getMonthName(parsedConfig.month)}`);
-            }
-            if (parsedConfig.year) {
-                details.push(`Year: ${parsedConfig.year}`);
-            }
-            break;
         case 'member':
-            if (parsedConfig.transactionType) {
-                details.push(`Transaction Type: ${parsedConfig.transactionType}`);
-            }
-            if (parsedConfig.memberName) {
-                details.push(`Member: ${parsedConfig.memberName}`);
-            }
-            break;
-        case 'branch':
-            if (parsedConfig.branchName) {
-                details.push(`Branch: ${parsedConfig.branchName}`);
-            }
-            if (parsedConfig.transactionTypes && parsedConfig.transactionTypes.length > 0) {
-                details.push(`Types: ${parsedConfig.transactionTypes.join(', ')}`);
-            }
-            break;
+        case 'branch': {
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            return `Month: ${monthName} • Year: ${year}`;
+        }
+        default:
+            const currentDate = new Date();
+            const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+            const currentYear = currentDate.getFullYear();
+            return `Month: ${currentMonth} • Year: ${currentYear}`;
     }
-    
-    return details.join(' • ') || 'Report generated';
 }
 
 // Format report date for display
@@ -2843,10 +2847,10 @@ function hideAllReportHistories() {
 
 // Show report configuration section (called when "Take Action" is clicked)
 function showReportConfiguration() {
-    // Hide report history container
-    const reportHistoryContainer = document.querySelector('.report-history-container');
-    if (reportHistoryContainer) {
-        reportHistoryContainer.style.display = 'none';
+    // Hide sent reports section
+    const sentReportsSection = document.querySelector('.sent-reports-section');
+    if (sentReportsSection) {
+        sentReportsSection.style.display = 'none';
     }
     
     // Hide date range filter
@@ -2855,10 +2859,8 @@ function showReportConfiguration() {
         dateRangeFilter.style.display = 'none';
     }
     
-    // Hide filter dropdown and show back button
-    const filterContainer = document.getElementById('reportHistoryFilter');
+    // Show back button
     const backContainer = document.getElementById('backToHistoryContainer');
-    if (filterContainer) filterContainer.style.display = 'none';
     if (backContainer) backContainer.style.display = 'block';
     
     // Show report configuration section
@@ -2872,10 +2874,10 @@ function showReportConfiguration() {
 
 // Hide report configuration and show history (for returning to history view)
 function hideReportConfiguration() {
-    // Show report history container
-    const reportHistoryContainer = document.querySelector('.report-history-container');
-    if (reportHistoryContainer) {
-        reportHistoryContainer.style.display = 'block';
+    // Show sent reports section
+    const sentReportsSection = document.querySelector('.sent-reports-section');
+    if (sentReportsSection) {
+        sentReportsSection.style.display = 'block';
     }
     
     // Show date range filter
@@ -2884,10 +2886,8 @@ function hideReportConfiguration() {
         dateRangeFilter.style.display = 'flex';
     }
     
-    // Show filter dropdown and hide back button
-    const filterContainer = document.getElementById('reportHistoryFilter');
+    // Hide back button
     const backContainer = document.getElementById('backToHistoryContainer');
-    if (filterContainer) filterContainer.style.display = 'block';
     if (backContainer) backContainer.style.display = 'none';
     
     // Hide report configuration section
@@ -2903,11 +2903,7 @@ function hideReportConfiguration() {
     unlockConfiguration();
     
     // Reset filter to show all reports
-    const filterSelect = document.getElementById('reportHistoryFilterSelect');
-    if (filterSelect) {
-        filterSelect.value = 'all';
-        filterReportHistory('all');
-    }
+    filterSentReports('all');
 }
 
 // Unlock configuration and remove locked notes

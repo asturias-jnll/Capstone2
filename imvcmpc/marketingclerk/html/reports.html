@@ -93,17 +93,6 @@
                         <p>View and manage your generated reports history.</p>
                     </div>
                     <div class="header-right">
-                        <!-- Report Type History Filter (Hidden when in configuration mode) -->
-                        <div class="report-history-filter" id="reportHistoryFilter">
-                            <select id="reportHistoryFilterSelect">
-                                <option value="all">All Report Types</option>
-                                <option value="savings">Savings Reports</option>
-                                <option value="disbursement">Disbursement Reports</option>
-                                <option value="member">Member Reports</option>
-                                <option value="branch">Branch Reports</option>
-                            </select>
-                        </div>
-                        
                         <!-- Back to History Button (Hidden by default) -->
                         <div class="back-to-history-container" id="backToHistoryContainer" style="display: none;">
                             <button class="back-to-history-btn" onclick="hideReportConfiguration()">
@@ -134,50 +123,28 @@
                     </button>
                 </div>
 
-                <!-- Report History Sections -->
-                <div class="report-history-container">
-                    <!-- Savings Report History -->
-                    <div id="savingsReportHistory" class="report-history-section">
-                        <div class="history-header">
-                            <h4>Savings Reports</h4>
-                            <p>Previously generated savings reports</p>
+                <!-- Sent Reports Section - Main Reports Page -->
+                <div class="sent-reports-section">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <h3><i class="fas fa-paper-plane"></i> Sent Reports</h3>
+                            <p>Reports you have sent to Finance Officer</p>
                         </div>
-                        <div class="history-list" id="savingsHistoryList">
-                            <!-- Savings report history will be displayed here -->
-                        </div>
-                    </div>
-
-                    <!-- Disbursement Report History -->
-                    <div id="disbursementReportHistory" class="report-history-section">
-                        <div class="history-header">
-                            <h4>Disbursement Reports</h4>
-                            <p>Previously generated disbursement reports</p>
-                        </div>
-                        <div class="history-list" id="disbursementHistoryList">
-                            <!-- Disbursement report history will be displayed here -->
+                        <div class="section-controls">
+                            <div class="report-filters">
+                                <button class="filter-btn active" data-filter="all" onclick="filterSentReports('all')">All</button>
+                                <button class="filter-btn" data-filter="savings" onclick="filterSentReports('savings')">Savings</button>
+                                <button class="filter-btn" data-filter="disbursement" onclick="filterSentReports('disbursement')">Disbursement</button>
+                                <button class="filter-btn" data-filter="member" onclick="filterSentReports('member')">Member</button>
+                                <button class="filter-btn" data-filter="branch" onclick="filterSentReports('branch')">Branch</button>
+                            </div>
+                            <button onclick="initializeReportHistories()" class="refresh-btn" title="Refresh reports">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
                         </div>
                     </div>
-
-                    <!-- Member Report History -->
-                    <div id="memberReportHistory" class="report-history-section">
-                        <div class="history-header">
-                            <h4>Member Reports</h4>
-                            <p>Previously generated member reports</p>
-                        </div>
-                        <div class="history-list" id="memberHistoryList">
-                            <!-- Member report history will be displayed here -->
-                        </div>
-                    </div>
-
-                    <!-- Branch Report History -->
-                    <div id="branchReportHistory" class="report-history-section">
-                        <div class="history-header">
-                            <h4>Branch Reports</h4>
-                            <p>Previously generated branch reports</p>
-                        </div>
-                        <div class="history-list" id="branchHistoryList">
-                            <!-- Branch report history will be displayed here -->
-                        </div>
+                    <div id="sentReportsContainer" class="sent-reports-container">
+                        <!-- Sent reports will be displayed here -->
                     </div>
                 </div>
 

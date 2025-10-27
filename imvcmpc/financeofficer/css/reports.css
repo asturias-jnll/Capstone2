@@ -183,7 +183,6 @@
 
 .history-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
     background: var(--white);
@@ -191,6 +190,7 @@
     border-radius: 8px;
     margin-bottom: 8px;
     transition: all 0.3s ease;
+    gap: 16px;
 }
 
 .history-item:hover {
@@ -204,6 +204,7 @@
 
 .history-info {
     flex: 1;
+    min-width: 0;
 }
 
 .history-title {
@@ -221,9 +222,16 @@
 
 .history-meta {
     display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.history-status-time {
+    display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 4px;
+    flex-shrink: 0;
 }
 
 .history-date {
@@ -239,10 +247,17 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    min-width: 70px;
+    text-align: center;
 }
 
 .history-status.sent {
     background: var(--green);
+    color: var(--white);
+}
+
+.history-status.received {
+    background: #0D5B11;
     color: var(--white);
 }
 
@@ -254,6 +269,13 @@
 .history-status.failed {
     background: var(--red);
     color: var(--white);
+}
+
+.history-timestamp {
+    font-size: 12px;
+    color: var(--gray-600);
+    margin-top: 4px;
+    text-align: right;
 }
 
 .empty-history {
@@ -1178,97 +1200,26 @@
     padding: 24px;
 }
 
-.report-item {
-    background: #ffffff;
-    border: 1px solid #e5e7e5;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.report-item:hover {
-    border-color: #0D5B11;
-    box-shadow: 0 4px 12px rgba(13, 91, 17, 0.1);
-    transform: translateY(-1px);
-}
-
-.report-item:last-child {
-    margin-bottom: 0;
-}
-
-.report-info {
-    flex: 1;
-}
-
-.report-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #111827;
-    margin: 0 0 4px 0;
-    line-height: 1.4;
-}
-
-.report-details {
-    font-size: 13px;
-    color: #6b7280;
-    margin: 0;
-    font-weight: 400;
-}
-
-.report-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.report-timestamp {
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: 500;
-}
-
-.report-status {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-}
-
-.report-status.received {
-    background: #0D5B11;
-    color: #ffffff;
-}
-
 .report-actions {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     flex-shrink: 0;
+    align-items: center;
 }
 
 .btn-view,
 .btn-download {
     background: #ffffff;
     border: 1px solid #d1d5db;
-    border-radius: 8px;
-    padding: 8px 16px;
+    border-radius: 6px;
+    padding: 6px 12px;
     color: #374151;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 13px;
+    gap: 4px;
+    font-size: 12px;
     font-weight: 500;
     text-decoration: none;
 }

@@ -336,6 +336,7 @@
     font-size: 12px;
     color: var(--gray-500);
     font-weight: 500;
+    text-align: right;
 }
 
 .history-status {
@@ -345,6 +346,8 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    min-width: 70px;
+    text-align: center;
 }
 
 .history-status.sent {
@@ -982,6 +985,103 @@ div[style*="height: 260px"] h4 {
     border: 1px solid #e2e8f0;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     overflow: hidden;
+}
+
+.section-header {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7e5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.section-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.report-filters {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.filter-btn {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.filter-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    color: #374151;
+}
+
+.filter-btn.active {
+    background: #0D5B11;
+    border-color: #0D5B11;
+    color: white;
+}
+
+.filter-btn.active:hover {
+    background: #0a4a0e;
+    border-color: #0a4a0e;
+}
+
+.section-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #0D5B11;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-header p {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 4px 0 0 0;
+}
+
+.refresh-btn {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.refresh-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.sent-reports-container {
+    padding: 24px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #9ca3af;
 }
 
 .sent-reports-header {
