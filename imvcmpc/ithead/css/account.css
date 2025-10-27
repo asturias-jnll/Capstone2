@@ -1,0 +1,64 @@
+/* Password Input Wrapper Styles */
+.password-input-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.password-input-wrapper .password-field,
+#mainScreen .password-input-wrapper input.password-field {
+    width: 100% !important;
+    padding: 10px 40px 10px 12px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    color: #111827 !important;
+    background: white !important;
+    transition: all 0.2s ease !important;
+    display: block !important;
+    box-sizing: border-box !important;
+}
+
+.password-input-wrapper .password-field:focus,
+#mainScreen .password-input-wrapper input.password-field:focus {
+    outline: none !important;
+    border-color: #69B41E !important;
+    box-shadow: 0 0 0 3px rgba(105, 180, 30, 0.1) !important;
+}
+
+.password-input-wrapper .password-field::placeholder,
+#mainScreen .password-input-wrapper input.password-field::placeholder {
+    color: #9ca3af !important;
+}
+
+.password-input-wrapper .toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #6b7280;
+    font-size: 14px;
+    transition: color 0.2s ease;
+    z-index: 1;
+}
+
+.password-input-wrapper .toggle-password:hover {
+    color: #0D5B11;
+}
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .password-input-wrapper .toggle-password {
+        font-size: 13px;
+        right: 10px;
+    }
+    
+    .password-input-wrapper .password-field,
+    #mainScreen .password-input-wrapper input.password-field {
+        padding: 8px 35px 8px 10px !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+

@@ -35,6 +35,9 @@ function initializeFOReports() {
     
     // Initialize date range filter
     setupDateRangeFilter();
+    
+    // Clear any saved selection on initial load to ensure no auto-check
+    localStorage.removeItem('currentReportType');
 }
 
 // Member Search Autocomplete Functionality
@@ -217,6 +220,9 @@ function initializeBranchSpecificReports() {
     // Update reports header based on branch
     updateReportsHeader(userBranchName, isMainBranchUser);
     
+    // Show branch indicators for ALL users
+    showBranchIndicators();
+    
     // For non-main branch users, hide branch-related options
     if (!isMainBranchUser && userBranchName) {
         // Hide branch selection for branch-specific users
@@ -255,20 +261,25 @@ function hideBranchSelection() {
     if (disbursementBranchSelection) {
         disbursementBranchSelection.style.display = 'none';
     }
-    
-    // Show branch indicators for non-main branch users
-    showBranchIndicators();
 }
 
-// Show branch indicators for non-main branch users
+// Show branch indicators for all users
 function showBranchIndicators() {
     const userBranchId = localStorage.getItem('user_branch_id');
     const userBranchName = localStorage.getItem('user_branch_name');
     const userBranchLocation = localStorage.getItem('user_branch_location');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
-    if (userBranchId && userBranchName && userBranchLocation) {
-        const branchDisplayName = `${userBranchName} - ${userBranchLocation}`;
-        
+    let branchDisplayName = '';
+    
+    // Determine branch display name for all users
+    if (isMainBranchUser) {
+        branchDisplayName = `Main Branch - ${userBranchLocation || 'IBAAN'}`;
+    } else if (userBranchId && userBranchName && userBranchLocation) {
+        branchDisplayName = `${userBranchName} - ${userBranchLocation}`;
+    }
+    
+    if (branchDisplayName) {
         // Show savings branch indicator
         const savingsIndicator = document.getElementById('savingsBranchIndicator');
         const savingsBranchName = document.getElementById('savingsBranchName');
@@ -304,34 +315,86 @@ function hideBranchReportsOption() {
 
 // Setup report type dropdown selector
 function setupReportTypeDropdown() {
-    const reportTypeDropdown = document.getElementById('reportTypeDropdown');
-    
-    if (reportTypeDropdown) {
-        reportTypeDropdown.addEventListener('change', function() {
-            const selectedType = this.value;
-            
-            if (selectedType === '') {
-                // Show initial state
-                showInitialState();
-                hideAllConfigurations();
-                hideAllReportHistories();
-                hideSendFinanceSection();
-                
-                // Show received reports section when on main page
-                showReceivedReportsSection();
-            } else {
-                // Show corresponding configuration section
-                showConfigurationSection(selectedType);
-                
-                // Show corresponding history section
-                showReportHistory(selectedType);
-                
-                // Hide send finance section
-                hideSendFinanceSection();
-            }
-        });
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+        const menu = document.getElementById('reportTypeMenu');
+        const btn = document.getElementById('reportTypeBtn');
+        
+        if (menu && btn && !menu.contains(event.target) && !btn.contains(event.target)) {
+            menu.classList.remove('show');
+        }
+    });
+}
+
+// Toggle report type menu
+function toggleReportTypeMenu() {
+    const menu = document.getElementById('reportTypeMenu');
+    if (menu) {
+        menu.classList.toggle('show');
     }
 }
+
+// Select report type
+function selectReportType(type) {
+    const menu = document.getElementById('reportTypeMenu');
+    const btnText = document.getElementById('reportTypeText');
+    
+    if (menu) menu.classList.remove('show');
+    
+    // Save selection to localStorage
+    localStorage.setItem('currentReportType', type);
+    
+    // Hide all checkmarks first
+    const allOptions = document.querySelectorAll('.menu-option');
+    allOptions.forEach(option => {
+        const checkIcon = option.querySelector('.check-icon');
+        if (checkIcon) checkIcon.style.display = 'none';
+    });
+    
+    // Show checkmark only if it's NOT Request Report (empty type)
+    if (type !== '') {
+        const selectedOption = document.querySelector(`[data-type="${type}"]`);
+        if (selectedOption) {
+            const checkIcon = selectedOption.querySelector('.check-icon');
+            if (checkIcon) checkIcon.style.display = 'block';
+        }
+    }
+    
+    // Update button text
+    const types = {
+        '': 'Request Report',
+        'savings': 'Savings Report',
+        'disbursement': 'Disbursement Report',
+        'member': 'Member Report',
+        'branch': 'Branch Report'
+    };
+    
+    if (btnText) btnText.textContent = types[type] || 'Request Report';
+    
+    if (type === '') {
+        // Show initial state
+        showInitialState();
+        hideAllConfigurations();
+        hideAllReportHistories();
+        hideSendFinanceSection();
+        
+        // Show received reports section when on main page
+        showReceivedReportsSection();
+    } else {
+        // Show corresponding configuration section
+        showConfigurationSection(type);
+        
+        // Show corresponding history section
+        showReportHistory(type);
+        
+        // Hide send finance section
+        hideSendFinanceSection();
+    }
+}
+
+// Make functions globally available
+window.toggleReportTypeMenu = toggleReportTypeMenu;
+window.selectReportType = selectReportType;
 
 // Show initial state
 function showInitialState() {
@@ -887,13 +950,13 @@ function hideSendFinanceSection() {}
 
 // New: Request report handler
 async function requestReport() {
-    const reportTypeDropdown = document.getElementById('reportTypeDropdown');
-    if (!reportTypeDropdown || !reportTypeDropdown.value) {
+    const reportType = localStorage.getItem('currentReportType');
+    
+    if (!reportType || reportType === '') {
         showReportTypeDialog();
         return;
     }
 
-    const reportType = reportTypeDropdown.value;
     if (!(await validateConfiguration(reportType))) {
         return;
     }

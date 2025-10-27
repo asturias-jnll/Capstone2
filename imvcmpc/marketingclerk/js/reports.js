@@ -208,6 +208,9 @@ function initializeBranchSpecificReports() {
     // Update reports header based on branch
     updateReportsHeader(userBranchName, isMainBranchUser);
     
+    // Show branch indicators for ALL users
+    showBranchIndicators();
+    
     // For non-main branch users, hide branch-related options
     if (!isMainBranchUser && userBranchName) {
         console.log('🔍 Hiding branch-related options for non-main branch user');
@@ -256,20 +259,25 @@ function hideBranchSelection() {
     if (disbursementBranchSelection) {
         disbursementBranchSelection.style.display = 'none';
     }
-    
-    // Show branch indicators for non-main branch users
-    showBranchIndicators();
 }
 
-// Show branch indicators for non-main branch users
+// Show branch indicators for all users
 function showBranchIndicators() {
     const userBranchId = localStorage.getItem('user_branch_id');
     const userBranchName = localStorage.getItem('user_branch_name');
     const userBranchLocation = localStorage.getItem('user_branch_location');
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
-    if (userBranchId && userBranchName && userBranchLocation) {
-        const branchDisplayName = `${userBranchName} - ${userBranchLocation}`;
-        
+    let branchDisplayName = '';
+    
+    // Determine branch display name for all users
+    if (isMainBranchUser) {
+        branchDisplayName = `Main Branch - ${userBranchLocation || 'IBAAN'}`;
+    } else if (userBranchId && userBranchName && userBranchLocation) {
+        branchDisplayName = `${userBranchName} - ${userBranchLocation}`;
+    }
+    
+    if (branchDisplayName) {
         // Show savings branch indicator
         const savingsIndicator = document.getElementById('savingsBranchIndicator');
         const savingsBranchName = document.getElementById('savingsBranchName');

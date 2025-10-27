@@ -95,13 +95,34 @@
                     <div class="header-right">
                         <!-- Report Type Filter -->
                         <div class="report-type-filter">
-                            <select id="reportTypeDropdown">
-                                <option value="">Request Report</option>
-                                <option value="savings">Savings Report</option>
-                                <option value="disbursement">Disbursement Report</option>
-                                <option value="member">Member Report</option>
-                                <option value="branch" id="branchReportOption" style="display: none;">Branch Report</option>
-                            </select>
+                            <button class="report-type-btn" onclick="toggleReportTypeMenu()" id="reportTypeBtn">
+                                <span id="reportTypeText">Request Report</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="report-type-menu" id="reportTypeMenu">
+                                <div class="menu-section">
+                                    <div class="menu-option" data-type="" onclick="selectReportType('')">
+                                        <span>Request Report</span>
+                                        <i class="fas fa-check check-icon" style="display: none;"></i>
+                                    </div>
+                                    <div class="menu-option" data-type="savings" onclick="selectReportType('savings')">
+                                        <span>Savings Report</span>
+                                        <i class="fas fa-check check-icon" style="display: none;"></i>
+                                    </div>
+                                    <div class="menu-option" data-type="disbursement" onclick="selectReportType('disbursement')">
+                                        <span>Disbursement Report</span>
+                                        <i class="fas fa-check check-icon" style="display: none;"></i>
+                                    </div>
+                                    <div class="menu-option" data-type="member" onclick="selectReportType('member')">
+                                        <span>Member Report</span>
+                                        <i class="fas fa-check check-icon" style="display: none;"></i>
+                                    </div>
+                                    <div class="menu-option" id="branchReportOption" data-type="branch" style="display: none;" onclick="selectReportType('branch')">
+                                        <span>Branch Report</span>
+                                        <i class="fas fa-check check-icon" style="display: none;"></i>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -523,7 +544,7 @@
             if (isMainBranchUser) {
                 // Show branch reports option for main branch users
                 if (branchReportOption) {
-                    branchReportOption.style.display = 'block';
+                    branchReportOption.style.display = 'flex';
                     console.log('Showing branch reports option for main branch user');
                 }
             } else {

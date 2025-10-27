@@ -1,0 +1,387 @@
+/* User Management Styles for IT Head */
+
+/* User Management Content */
+.user-management-content {
+    padding: 0px 32px 32px;
+}
+
+/* Table Controls */
+.table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-container i {
+    position: absolute;
+    left: 14px;
+    color: var(--gray-500);
+    font-size: 14px;
+}
+
+.search-container input {
+    width: 300px;
+    padding: 10px 16px 10px 42px;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--gray-700);
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(24, 124, 25, 0.1);
+}
+
+.search-container input::placeholder {
+    color: var(--gray-400);
+}
+
+.controls-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Sort Dropdown */
+.sort-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.sort-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: white;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sort-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.sort-btn i {
+    font-size: 14px;
+    color: var(--gray-600);
+}
+
+.sort-btn .fa-chevron-down {
+    font-size: 12px;
+}
+
+.sort-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 180px;
+    background: white;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: none;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.sort-menu.active {
+    display: block;
+}
+
+.sort-section {
+    padding: 4px 0;
+}
+
+.sort-separator {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 4px 0;
+}
+
+.sort-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    font-size: 14px;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.sort-option:hover {
+    background: var(--gray-50);
+}
+
+.sort-option i {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin-right: 10px;
+}
+
+.sort-check {
+    color: var(--green);
+    font-size: 14px;
+}
+
+.sort-option span {
+    flex: 1;
+}
+
+/* User Management Header */
+.user-management-header {
+    padding: 16px 32px;
+    margin-bottom: 8px;
+}
+
+.header-content h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--dark-green);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0;
+    flex-wrap: wrap;
+}
+
+.header-description {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--gray-600);
+    margin-left: 8px;
+    letter-spacing: 0;
+}
+
+.header-description::before {
+    content: '•';
+    margin-right: 12px;
+    color: var(--gray-400);
+}
+
+/* Add User Button */
+.add-user-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--dark-green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.add-user-btn:hover {
+    background: var(--green);
+    transform: translateY(-1px);
+}
+
+.add-user-btn:active {
+    transform: translateY(0);
+}
+
+.add-user-btn i {
+    font-size: 16px;
+}
+
+.add-user-btn span {
+    font-weight: 500;
+}
+
+/* Users Table */
+.users-table {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-top: 16px;
+}
+
+.users-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table thead {
+    background: var(--gray-50);
+}
+
+.users-table th {
+    padding: 16px 24px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.users-table td {
+    padding: 16px 24px;
+    font-size: 14px;
+    color: var(--gray-700);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.users-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background: var(--green-100);
+    color: var(--green-700);
+}
+
+.status-badge.inactive {
+    background: var(--red-100);
+    color: var(--red-600);
+}
+
+/* Action Buttons */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    margin-right: 8px;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn.edit {
+    background: var(--blue-100);
+    color: var(--blue-600);
+}
+
+.action-btn.edit:hover {
+    background: var(--blue-500);
+    color: white;
+}
+
+.action-btn.deactivate {
+    background: var(--red-100);
+    color: var(--red-600);
+}
+
+.action-btn.deactivate:hover {
+    background: var(--red-500);
+    color: white;
+}
+
+.action-btn.activate {
+    background: var(--green-100);
+    color: var(--green-700);
+}
+
+.action-btn.activate:hover {
+    background: var(--green-500);
+    color: white;
+}
+
+.action-btn.reset {
+    background: var(--yellow-100);
+    color: var(--yellow-700);
+}
+
+.action-btn.reset:hover {
+    background: var(--yellow-500);
+    color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .user-management-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    
+    .table-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .search-container input {
+        width: 100%;
+    }
+    
+    .controls-group {
+        justify-content: flex-end;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .user-management-content {
+        padding: 16px;
+    }
+
+    .users-table {
+        overflow-x: auto;
+    }
+
+    .users-table table {
+        min-width: 800px;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        margin-right: 4px;
+    }
+
+    .add-user-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
+

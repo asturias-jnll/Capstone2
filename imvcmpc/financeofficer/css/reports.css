@@ -124,14 +124,16 @@
     color: #374151;
 }
 
-/* Report Type Filter - Minimalist Design */
+/* Report Type Filter - Custom Dropdown Design */
 .report-type-filter {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    position: relative;
 }
 
-.report-type-filter select {
+.report-type-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     padding: 8px 12px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
@@ -143,10 +145,58 @@
     transition: all 0.2s ease;
 }
 
-.report-type-filter select:focus {
-    outline: none;
-    border-color: #0D5B11;
-    box-shadow: 0 0 0 3px rgba(13, 91, 17, 0.1);
+.report-type-btn:hover {
+    border-color: #69B41E;
+}
+
+.report-type-btn i {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.report-type-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 200px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: none;
+    z-index: 1000;
+}
+
+.report-type-menu.show {
+    display: block;
+}
+
+.menu-section {
+    padding: 8px 0;
+}
+
+.menu-option {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-option:hover {
+    background: #f9fafb;
+}
+
+.menu-option span {
+    font-size: 14px;
+    color: #111827;
+}
+
+.menu-option .check-icon {
+    font-size: 14px;
+    color: #111827;
+    flex-shrink: 0;
 }
 
 
