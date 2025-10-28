@@ -121,6 +121,7 @@
                         <i class="fas fa-times"></i>
                         <span>Clear</span>
                     </button>
+                    <div class="report-count" id="reportCount" style="margin-left:auto; color:#6B7280; font-weight:500; font-size:13px; visibility:hidden;"></div>
                 </div>
 
                 <!-- Sent Reports Section - Main Reports Page -->
@@ -580,12 +581,20 @@
             // Show/hide branch reports button and configuration
             const branchReportsBtn = document.getElementById('branchReportsBtn');
             const branchConfig = document.getElementById('branchConfig');
+            
+            // Find and hide the Branch filter button for non-main branch users
+            const branchFilterBtn = document.querySelector('.report-filters button[data-filter="branch"]');
 
             if (isMainBranchUser) {
                 // Show branch reports button for main branch users
                 if (branchReportsBtn) {
                     branchReportsBtn.style.display = 'block';
                     console.log('Showing branch reports button for main branch user');
+                }
+                // Show Branch filter button for main branch users
+                if (branchFilterBtn) {
+                    branchFilterBtn.style.display = 'flex';
+                    console.log('Showing branch filter for main branch user');
                 }
                 // Branch configuration will be shown/hidden by the reports.js when button is clicked
             } else {
@@ -597,6 +606,11 @@
                 if (branchConfig) {
                     branchConfig.style.display = 'none';
                     console.log('Hiding branch configuration for non-main branch user');
+                }
+                // Hide Branch filter button for non-main branch users
+                if (branchFilterBtn) {
+                    branchFilterBtn.style.display = 'none';
+                    console.log('Hiding branch filter for non-main branch user');
                 }
             }
         }

@@ -1,6 +1,7 @@
 // Reports System - Marketing Clerk (Shared Implementation)
 // Global lock flag to prevent editing when prefilled from FO
 window.isPrefillLocked = false;
+window.inConfigurationMode = false;
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize shared utilities (includes user header)
     if (typeof SharedUtils !== 'undefined') {
@@ -45,7 +46,7 @@ function setSelectValueByNormalized(select, value) {
 }
 
 // Initialize reports system
-function initializeReports() {
+async function initializeReports() {
     setupReportTypeSelector();
     setupBranchSelection();
     setupTransactionTypeButtons();
@@ -57,14 +58,13 @@ function initializeReports() {
     initializeBranchSpecificReports();
     
     // Initialize report histories
-    initializeReportHistories().catch(error => {
+    try {
+        await initializeReportHistories();
+    } catch (error) {
         console.error('Error initializing report histories:', error);
-    });
+    }
     
-    // Set default filter to show all reports
-    filterSentReports('all');
-    
-    // Hide generate report section by default (only show history)
+    // Keep history view by default; generation UI is hidden until configuring a report
     hideGenerateReportSection();
 }
 
@@ -187,6 +187,11 @@ function prefillFromReportRequest() {
                     body: JSON.stringify({ status: 'in_progress' })
                 }).catch(() => {});
             }
+
+            // Ensure generation UI is visible after taking action from notification
+            showGenerateReportSection();
+            // Scroll to configuration area (top)
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         })();
     } catch (e) {
         console.error('Prefill from report request failed:', e);
@@ -390,6 +395,8 @@ function filterSentReports(filterType) {
     
     // Apply filter
     applySentReportsFilter();
+    // Also refresh count from backend for accuracy on Branch filter
+    updateSentCountFromBackend();
 }
 
 // Apply filter to sent reports (type filter only)
@@ -487,7 +494,8 @@ function addReportCanvas() {
     const sendFinanceSection = document.getElementById('sendFinanceSection');
     
     // Check if report canvas already exists
-    if (!document.getElementById('reportCanvas')) {
+    const existingCanvas = document.getElementById('reportCanvas');
+    if (!existingCanvas) {
         // Create report canvas
         const reportCanvas = document.createElement('div');
         reportCanvas.className = 'report-canvas';
@@ -501,18 +509,34 @@ function addReportCanvas() {
         `;
         
         // Create generate section
-        const generateSection = document.createElement('div');
-        generateSection.className = 'generate-section';
-        generateSection.innerHTML = `
-            <button class="generate-btn" onclick="generateReport()">
-                <i class="fas fa-chart-line"></i>
-                <span>Generate Report</span>
-            </button>
-        `;
+        let generateSection = document.querySelector('.generate-section');
+        if (!generateSection) {
+            generateSection = document.createElement('div');
+            generateSection.className = 'generate-section';
+            generateSection.innerHTML = `
+                <button class="generate-btn" onclick="generateReport()">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Generate Report</span>
+                </button>
+            `;
+        }
         
         // Insert before send finance section
-        sendFinanceSection.parentNode.insertBefore(generateSection, sendFinanceSection);
-        sendFinanceSection.parentNode.insertBefore(reportCanvas, sendFinanceSection);
+        if (sendFinanceSection && sendFinanceSection.parentNode) {
+            sendFinanceSection.parentNode.insertBefore(generateSection, sendFinanceSection);
+            sendFinanceSection.parentNode.insertBefore(reportCanvas, sendFinanceSection);
+        } else if (reportConfig && reportConfig.parentNode) {
+            // Fallback: insert after config if sendFinanceSection is not present yet
+            reportConfig.parentNode.insertBefore(generateSection, reportConfig.nextSibling);
+            reportConfig.parentNode.insertBefore(reportCanvas, reportConfig.nextSibling);
+        }
+        // Ensure send button stays hidden until a report is generated
+        if (sendFinanceSection) sendFinanceSection.style.display = 'none';
+    } else {
+        // Ensure existing canvas and generate section are visible
+        existingCanvas.style.display = 'block';
+        const existingGenerate = document.querySelector('.generate-section');
+        if (existingGenerate) existingGenerate.style.display = 'block';
     }
 }
 
@@ -530,7 +554,9 @@ function showGenerateButton() {
                 </button>
             </div>
         `;
-        reportConfig.insertAdjacentHTML('afterend', generateSectionHTML);
+        if (reportConfig) {
+            reportConfig.insertAdjacentHTML('afterend', generateSectionHTML);
+        }
     } else {
         generateSection.style.display = 'block';
     }
@@ -646,6 +672,10 @@ function applyAllSentFilters() {
         });
     }
     
+    // Hide count until backend total arrives to avoid flashing intermediate values
+    const countEl = document.getElementById('reportCount');
+    if (countEl) countEl.style.visibility = 'hidden';
+
     // Display filtered results
     if (filteredReports.length === 0) {
         let emptyMessage = 'No reports found';
@@ -659,6 +689,36 @@ function applyAllSentFilters() {
     } else {
         displaySentReports(filteredReports);
     }
+    // Refresh count from backend (single source of truth to avoid flicker)
+    updateSentCountFromBackend();
+}
+
+// Update count using backend totals for current filters (accurate for Branch and others)
+async function updateSentCountFromBackend() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        const params = new URLSearchParams();
+        params.set('limit', '1');
+        if (currentSentFilterType && currentSentFilterType !== 'all') {
+            params.set('report_type', currentSentFilterType);
+        }
+        if (currentSentDateRange.start && currentSentDateRange.end) {
+            params.set('start_date', currentSentDateRange.start);
+            params.set('end_date', currentSentDateRange.end);
+        }
+        const res = await fetch(`/api/auth/generated-reports?${params.toString()}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const total = data && data.data && typeof data.data.total === 'number' ? data.data.total : null;
+        const countEl = document.getElementById('reportCount');
+        if (countEl && total !== null) {
+            countEl.textContent = `${total} ${total === 1 ? 'Report' : 'Reports'}`;
+            countEl.style.visibility = 'visible';
+        }
+    } catch (_) {}
 }
 
 // Clear date range filter
@@ -2837,6 +2897,7 @@ async function initializeReportHistories() {
 }
 
 // Load report histories for all report types
+let backendSentTotal = null;
 async function loadReportHistories() {
     try {
         const token = localStorage.getItem('access_token');
@@ -2858,6 +2919,12 @@ async function loadReportHistories() {
         }
 
         const result = await response.json();
+        // Track backend total for accurate count in All view (include Branch-only when filtered)
+        if (result && result.data && typeof result.data.total === 'number') {
+            backendSentTotal = result.data.total;
+        } else {
+            backendSentTotal = null;
+        }
         const reports = result.data?.reports || [];
 
         // Process all reports into unified format
@@ -2878,8 +2945,8 @@ async function loadReportHistories() {
         // Store all reports for filtering
         allSentReports = allReports;
 
-        // Display all reports in unified container
-        displaySentReports(allSentReports);
+        // Display all reports and update count via filters pipeline
+        applyAllSentFilters();
 
     } catch (error) {
         console.error('Error loading reports from database:', error);
@@ -2910,11 +2977,9 @@ function loadReportHistoriesFromLocalStorage() {
         });
     });
     
-    // Store all reports for filtering
+    // Store and render through filters to update count
     allSentReports = allReports;
-    
-    // Display all reports in unified container
-    displaySentReports(allSentReports);
+    applyAllSentFilters();
 }
 
 // Get report history for a specific type
@@ -3218,6 +3283,7 @@ function hideAllReportHistories() {
 
 // Show report configuration section (called when "Take Action" is clicked)
 function showReportConfiguration() {
+    window.inConfigurationMode = true;
     // Hide sent reports section
     const sentReportsSection = document.querySelector('.sent-reports-section');
     if (sentReportsSection) {
@@ -3241,10 +3307,14 @@ function showReportConfiguration() {
         // Scroll to the top of the page
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // Show generation UI when entering configuration
+    showGenerateReportSection();
 }
 
 // Hide report configuration and show history (for returning to history view)
 function hideReportConfiguration() {
+    window.inConfigurationMode = false;
     // Show sent reports section
     const sentReportsSection = document.querySelector('.sent-reports-section');
     if (sentReportsSection) {
@@ -3320,6 +3390,10 @@ function unlockConfiguration() {
 
 // Hide generate report section (button and canvas)
 function hideGenerateReportSection() {
+    // Do not hide generation UI while in configuration mode (e.g., from notification action)
+    if (window.inConfigurationMode) {
+        return;
+    }
     // Hide generate button
     const generateSection = document.querySelector('.generate-section');
     if (generateSection) {
@@ -3349,6 +3423,19 @@ function hideGenerateReportSection() {
     if (aiRecommendationControls) {
         aiRecommendationControls.style.display = 'none';
     }
+}
+
+// Show generate report section (button and canvas)
+function showGenerateReportSection() {
+    addReportCanvas();
+    // Make sure only one generate section is visible
+    const gen = document.querySelector('.generate-section');
+    if (gen) gen.style.display = 'block';
+    const sendFinanceSection = document.getElementById('sendFinanceSection');
+    // Keep send button hidden until a report is actually generated
+    if (sendFinanceSection) sendFinanceSection.style.display = 'none';
+    const reportCanvas = document.getElementById('reportCanvas');
+    if (reportCanvas) reportCanvas.style.display = 'block';
 }
 
 // Make function globally available

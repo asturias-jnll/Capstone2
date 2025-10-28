@@ -145,6 +145,7 @@
                         <i class="fas fa-times"></i>
                         <span>Clear</span>
                     </button>
+                    <div class="report-count" id="reportCount" style="margin-left:auto; color:#6B7280; font-weight:500; font-size:13px; visibility:hidden;"></div>
                 </div>
 
                 <!-- Report Configuration -->
@@ -540,6 +541,9 @@
 
             // Show/hide branch reports option in dropdown
             const branchReportOption = document.getElementById('branchReportOption');
+            
+            // Find and show/hide the Branch filter button
+            const branchFilterBtn = document.querySelector('.report-filters button[data-filter="branch"]');
 
             if (isMainBranchUser) {
                 // Show branch reports option for main branch users
@@ -547,11 +551,21 @@
                     branchReportOption.style.display = 'flex';
                     console.log('Showing branch reports option for main branch user');
                 }
+                // Show Branch filter button for main branch users
+                if (branchFilterBtn) {
+                    branchFilterBtn.style.display = 'flex';
+                    console.log('Showing branch filter for main branch user');
+                }
             } else {
                 // Hide branch reports for non-main branch users
                 if (branchReportOption) {
                     branchReportOption.style.display = 'none';
                     console.log('Hiding branch reports option for non-main branch user');
+                }
+                // Hide Branch filter button for non-main branch users
+                if (branchFilterBtn) {
+                    branchFilterBtn.style.display = 'none';
+                    console.log('Hiding branch filter for non-main branch user');
                 }
             }
         }
