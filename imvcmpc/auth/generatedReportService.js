@@ -194,9 +194,11 @@ class GeneratedReportService {
             const params = [reportId];
 
             // Add access control based on role
+            // Marketing Clerk: can only view reports they generated from their branch
+            // Finance Officer: can only view reports from their branch
             if (userRole === 'marketing_clerk') {
-                query += ' AND gr.generated_by = $2';
-                params.push(userId);
+                query += ' AND gr.generated_by = $2 AND gr.branch_id = $3';
+                params.push(userId, userBranchId);
             } else if (userRole === 'finance_officer') {
                 query += ' AND gr.branch_id = $2';
                 params.push(userBranchId);
@@ -260,10 +262,12 @@ class GeneratedReportService {
             let paramCount = 0;
 
             // Build WHERE clause based on role
+            // Marketing Clerk: only see reports they generated AND from their branch
+            // Finance Officer: only see reports from their branch
             if (userRole === 'marketing_clerk') {
-                whereClause = 'WHERE gr.generated_by = $1';
-                params.push(userId);
-                paramCount = 1;
+                whereClause = 'WHERE gr.generated_by = $1 AND gr.branch_id = $2';
+                params.push(userId, userBranchId);
+                paramCount = 2;
             } else if (userRole === 'finance_officer') {
                 whereClause = 'WHERE gr.branch_id = $1';
                 params.push(userBranchId);
@@ -370,9 +374,11 @@ class GeneratedReportService {
             const params = [reportId];
 
             // Add access control
+            // Marketing Clerk: can only download reports they generated from their branch
+            // Finance Officer: can only download reports from their branch
             if (userRole === 'marketing_clerk') {
-                query += ' AND generated_by = $2';
-                params.push(userId);
+                query += ' AND generated_by = $2 AND branch_id = $3';
+                params.push(userId, userBranchId);
             } else if (userRole === 'finance_officer') {
                 query += ' AND branch_id = $2';
                 params.push(userBranchId);

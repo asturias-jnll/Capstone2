@@ -73,7 +73,7 @@ router.get('/generated-reports',
     async (req, res) => {
         try {
             const userId = req.user.id;
-            const userRole = req.user.role;
+            const userRole = req.user.role_name; // use normalized role key
             const branchId = req.user.branch_id;
             
             
@@ -110,7 +110,7 @@ router.get('/generated-reports/:id',
         try {
             const { id } = req.params;
             const userId = req.user.id;
-            const userRole = req.user.role;
+            const userRole = req.user.role_name; // use normalized role key
             const branchId = req.user.branch_id;
 
             const report = await service.getReportById(id, userId, userRole, branchId);
@@ -144,7 +144,7 @@ router.get('/generated-reports/:id/pdf',
         try {
             const { id } = req.params;
             const userId = req.user.id;
-            const userRole = req.user.role;
+            const userRole = req.user.role_name; // use normalized role key
             const branchId = req.user.branch_id;
 
             const pdfBuffer = await service.getReportPDF(id, userId, userRole, branchId);
