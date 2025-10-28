@@ -84,12 +84,35 @@ function setupNotificationEventListeners() {
                                 // Replace in local cache
                                 const idx = allNotifications.findIndex(n => n.id === notificationId);
                                 if (idx !== -1) {
-                                    allNotifications[idx] = data.data;
-                                    notification = data.data; // Use the fresh data directly
+                                    // Before replacing, check if notification is marked as completed in localStorage
+                                    const completedIds = JSON.parse(localStorage.getItem(COMPLETED_KEY) || '[]');
+                                    const isCompleted = completedIds.includes(notificationId);
+                                    
+                                    // If completed, preserve the completed status
+                                    if (isCompleted) {
+                                        allNotifications[idx] = { ...data.data, status: 'completed', is_highlighted: false };
+                                        notification = { ...data.data, status: 'completed', is_highlighted: false };
+                                    } else {
+                                        allNotifications[idx] = data.data;
+                                        notification = data.data;
+                                    }
                                     console.log('✅ Updated notification in cache. New status:', notification.status);
                                 } else {
-                                    notification = data.data;
-                                    console.log('✅ Using fresh notification (not in cache). Status:', notification.status);
+                                    // Notification not in cache, add it and preserve completed status if exists
+                                    const completedIds = JSON.parse(localStorage.getItem(COMPLETED_KEY) || '[]');
+                                    const isCompleted = completedIds.includes(notificationId);
+                                    
+                                    let notificationData = data.data;
+                                    if (isCompleted) {
+                                        notificationData = { ...data.data, status: 'completed', is_highlighted: false };
+                                        console.log('✅ Using fresh notification (not in cache) with completed status');
+                                    } else {
+                                        console.log('✅ Using fresh notification (not in cache). Status:', notificationData.status);
+                                    }
+                                    
+                                    // Add to allNotifications array
+                                    allNotifications.push(notificationData);
+                                    notification = notificationData;
                                 }
                             }
                         } else {
