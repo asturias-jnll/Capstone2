@@ -672,9 +672,13 @@ function applyAllSentFilters() {
         });
     }
     
-    // Hide count until backend total arrives to avoid flashing intermediate values
+    // Update count to match what is displayed
     const countEl = document.getElementById('reportCount');
-    if (countEl) countEl.style.visibility = 'hidden';
+    if (countEl) {
+        const count = filteredReports.length;
+        countEl.textContent = `${count} ${count === 1 ? 'Report' : 'Reports'}`;
+        countEl.style.visibility = 'visible';
+    }
 
     // Display filtered results
     if (filteredReports.length === 0) {
@@ -689,8 +693,7 @@ function applyAllSentFilters() {
     } else {
         displaySentReports(filteredReports);
     }
-    // Refresh count from backend (single source of truth to avoid flicker)
-    updateSentCountFromBackend();
+    // No backend fetch for count; count equals displayed items
 }
 
 // Update count using backend totals for current filters (accurate for Branch and others)
@@ -2907,7 +2910,7 @@ async function loadReportHistories() {
         }
 
         // Load reports from database
-        const response = await fetch('/api/auth/generated-reports?limit=50', {
+        const response = await fetch('/api/auth/generated-reports?limit=1000', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 

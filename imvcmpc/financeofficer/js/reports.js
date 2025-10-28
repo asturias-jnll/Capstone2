@@ -2016,19 +2016,11 @@ function closeSuccessDialog() {
 }
 
 // Load received reports from backend
-let backendReceivedTotal = null;
-let updateCountTimer = null;
-function debounce(fn, wait) {
-    return function(...args) {
-        if (updateCountTimer) clearTimeout(updateCountTimer);
-        updateCountTimer = setTimeout(() => fn.apply(this, args), wait);
-    };
-}
 async function loadReceivedReports() {
     try {
         const token = localStorage.getItem('access_token');
         
-    const response = await fetch('/api/auth/generated-reports?limit=20', {
+    const response = await fetch('/api/auth/generated-reports?limit=1000', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     
@@ -2038,12 +2030,6 @@ async function loadReceivedReports() {
     }
     
     const result = await response.json();
-    // Save backend total for accurate All count (not limited by page size)
-    if (result && result.data && typeof result.data.total === 'number') {
-        backendReceivedTotal = result.data.total;
-    } else {
-        backendReceivedTotal = null;
-    }
         
         if (result.data && result.data.reports) {
         displayReceivedReports(result.data.reports);
@@ -2091,8 +2077,6 @@ function filterReceivedReports(filterType) {
     
     // Apply both type and date filters
     applyAllFilters();
-    // Also refresh count from backend for accuracy (debounced to avoid flicker)
-    debouncedUpdateReceivedCountFromBackend();
 }
 
 // Apply all active filters (type + date)
@@ -2128,18 +2112,20 @@ function applyAllFilters() {
     
     // Display filtered results
     displayFilteredReports(filteredReports);
-    // Refresh count from backend (single source of truth to avoid flicker)
-    debouncedUpdateReceivedCountFromBackend();
 }
 
 // Display filtered reports
 function displayFilteredReports(reports) {
     const container = document.getElementById('receivedReportsContainer');
     if (!container) return;
-
-    // Hide count until backend total arrives to avoid flashing intermediate values
+    
+    // Update count to match what is displayed
     const countEl = document.getElementById('reportCount');
-    if (countEl) countEl.style.visibility = 'hidden';
+    if (countEl) {
+        const count = Array.isArray(reports) ? reports.length : 0;
+        countEl.textContent = `${count} ${count === 1 ? 'Report' : 'Reports'}`;
+        countEl.style.visibility = 'visible';
+    }
     
     if (reports.length === 0) {
         let emptyMessage = 'No reports found';
@@ -2196,35 +2182,7 @@ function displayFilteredReports(reports) {
     }).join('');
 }
 
-// Update count using backend totals for current filters (accurate for Branch and others)
-async function updateReceivedCountFromBackend() {
-    try {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
-        const params = new URLSearchParams();
-        params.set('limit', '1');
-        if (currentFilterType && currentFilterType !== 'all') {
-            params.set('report_type', currentFilterType);
-        }
-        if (currentDateRange.start && currentDateRange.end) {
-            params.set('start_date', currentDateRange.start);
-            params.set('end_date', currentDateRange.end);
-        }
-        const res = await fetch(`/api/auth/generated-reports?${params.toString()}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const total = data && data.data && typeof data.data.total === 'number' ? data.data.total : null;
-        const countEl = document.getElementById('reportCount');
-        if (countEl && total !== null) {
-            countEl.textContent = `${total} ${total === 1 ? 'Report' : 'Reports'}`;
-            countEl.style.visibility = 'visible';
-        }
-    } catch (_) {}
-}
-
-const debouncedUpdateReceivedCountFromBackend = debounce(updateReceivedCountFromBackend, 120);
+// (Backend count fetch removed) Count now strictly reflects displayed items
 
 // View specific report
 async function viewGeneratedReport(reportId) {
