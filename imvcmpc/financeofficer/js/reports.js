@@ -42,6 +42,7 @@ function initializeFOReports() {
 
 // Member Search Autocomplete Functionality
 let memberSearchInitialized = false;
+let isProgrammaticSelection = false; // Flag to track programmatic value setting
 function initializeMemberSearchAutocomplete() {
     if (memberSearchInitialized) return; // Prevent duplicate initialization
     memberSearchInitialized = true;
@@ -57,6 +58,12 @@ function initializeMemberSearchAutocomplete() {
     
     // Debounced search function
     const debouncedSearch = debounce(async (searchTerm) => {
+        // Don't show suggestions if we just programmatically selected a member
+        if (isProgrammaticSelection) {
+            isProgrammaticSelection = false;
+            return;
+        }
+        
         if (!searchTerm || searchTerm.trim().length < 2) {
             hideMemberSuggestions();
             return;
@@ -64,6 +71,17 @@ function initializeMemberSearchAutocomplete() {
         
         try {
             const members = await searchMembers(searchTerm);
+            // Check if there's an exact match with the current input value
+            const inputValue = memberSearchInput.value.trim().toLowerCase();
+            const exactMatch = members.find(m => m.toLowerCase() === inputValue);
+            
+            // If there's only one result and it exactly matches what's in the input field, don't show suggestions
+            // This prevents showing dropdown when user has already selected/typed the exact member name
+            if (exactMatch && members.length === 1 && inputValue === exactMatch.toLowerCase()) {
+                hideMemberSuggestions();
+                return;
+            }
+            
             showMemberSuggestions(members);
         } catch (error) {
             console.error('Error searching members:', error);
@@ -73,12 +91,22 @@ function initializeMemberSearchAutocomplete() {
     
     // Handle input changes
     memberSearchInput.addEventListener('input', function(e) {
+        // Skip if this was a programmatic selection
+        if (isProgrammaticSelection) {
+            isProgrammaticSelection = false;
+            return;
+        }
         const searchTerm = e.target.value.trim();
         debouncedSearch(searchTerm);
     });
     
     // Handle focus - show recent suggestions if any
     memberSearchInput.addEventListener('focus', function(e) {
+        // Don't show suggestions if we just programmatically selected a member
+        if (isProgrammaticSelection) {
+            isProgrammaticSelection = false;
+            return;
+        }
         const searchTerm = e.target.value.trim();
         if (searchTerm.length >= 2) {
             debouncedSearch(searchTerm);
@@ -185,9 +213,11 @@ function hideMemberSuggestions() {
 function selectMember(memberName) {
     const memberSearchInput = document.getElementById('memberSearch');
     if (memberSearchInput) {
+        // Set flag to prevent showing suggestions after programmatic selection
+        isProgrammaticSelection = true;
         memberSearchInput.value = memberName;
         hideMemberSuggestions();
-        // Trigger input event to validate
+        // Trigger input event to validate (but suggestions won't show due to flag)
         memberSearchInput.dispatchEvent(new Event('input'));
     }
 }
