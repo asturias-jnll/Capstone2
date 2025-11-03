@@ -109,22 +109,22 @@ class AuthService {
 
             const user = userResult.rows[0];
 
-            // Check if account is locked
-            if (user.locked_until && new Date() < user.locked_until) {
-                const lockoutTime = Math.ceil((user.locked_until - new Date()) / 1000 / 60);
-                throw new Error(`Account is locked. Try again in ${lockoutTime} minutes.`);
-            }
+            // Check if account is locked - DISABLED
+            // if (user.locked_until && new Date() < user.locked_until) {
+            //     const lockoutTime = Math.ceil((user.locked_until - new Date()) / 1000 / 60);
+            //     throw new Error(`Account is locked. Try again in ${lockoutTime} minutes.`);
+            // }
 
             // Verify password
             const isValidPassword = await bcrypt.compare(password, user.password_hash);
             if (!isValidPassword) {
-                // Increment login attempts
-                await this.incrementLoginAttempts(user.id);
+                // Increment login attempts - DISABLED
+                // await this.incrementLoginAttempts(user.id);
                 throw new Error('Invalid credentials');
             }
 
-            // Reset login attempts on successful login
-            await this.resetLoginAttempts(user.id);
+            // Reset login attempts on successful login - DISABLED
+            // await this.resetLoginAttempts(user.id);
 
             // Update last login
             await db.query(`

@@ -1,0 +1,265 @@
+/* IT Head Dashboard Styles */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.metric-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #1a73e8;
+    flex-shrink: 0;
+}
+
+.metric-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.metric-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.metric-detail {
+    font-size: 12px;
+    color: #999;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.dashboard-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 16px;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-header h2 i {
+    color: #1a73e8;
+}
+
+.status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    background: #f9f9f9;
+    font-size: 14px;
+}
+
+.status-item.status-good {
+    border-left: 3px solid #34a853;
+}
+
+.status-item.status-warning {
+    border-left: 3px solid #fbbc04;
+}
+
+.status-item.status-error {
+    border-left: 3px solid #ea4335;
+}
+
+.status-item.loading {
+    color: #999;
+}
+
+.incidents-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.incident-item {
+    padding: 12px;
+    border-radius: 6px;
+    background: #f9f9f9;
+    border-left: 3px solid #fbbc04;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.incident-item.no-incidents {
+    border-left-color: #34a853;
+    color: #34a853;
+}
+
+.activity-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.activity-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a73e8;
+}
+
+.role-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.role-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #f9f9f9;
+    border-radius: 6px;
+}
+
+.role-label {
+    font-size: 14px;
+    color: #1a1a1a;
+    font-weight: 500;
+}
+
+.role-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a73e8;
+}
+
+.alert-banner {
+    background: #fff3cd;
+    border-left: 4px solid #fbbc04;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.alert-content i {
+    color: #fbbc04;
+    font-size: 18px;
+}
+
+.alert-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #fbbc04;
+    cursor: pointer;
+}
+
+.dashboard-header {
+    margin-bottom: 25px;
+}
+
+.dashboard-header h1 {
+    margin: 0 0 5px 0;
+    font-size: 28px;
+    color: #1a1a1a;
+}
+
+.header-description {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .activity-stats {
+        grid-template-columns: 1fr;
+    }
+}

@@ -2,6 +2,8 @@ const express = require('express');
 const authService = require('./authService');
 const { authenticateToken, checkPermission, checkRole, loginRateLimit, auditLog } = require('./middleware');
 const transactionRoutes = require('./transactionRoutes');
+const auditLogRoutes = require('./auditLogRoutes');
+const itHeadAnalyticsRoutes = require('./itHeadAnalyticsRoutes');
 
 const router = express.Router();
 
@@ -304,6 +306,12 @@ router.get('/roles/:roleId/permissions',
 
 // Transaction routes
 router.use('/transactions', transactionRoutes);
+
+// Audit log routes
+router.use('/', auditLogRoutes);
+
+// IT Head Analytics routes
+router.use('/', itHeadAnalyticsRoutes);
 
 // Change request routes
 const changeRequestRoutes = require('./changeRequestRoutes');

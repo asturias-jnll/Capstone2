@@ -1,7 +1,9 @@
 // IT Head Main JavaScript
 
-// Global variables
-let currentUser = null;
+// Ensure global currentUser is available (initialize from window scope if not exists)
+if (typeof window.currentUser === 'undefined') {
+    window.currentUser = null;
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
@@ -34,9 +36,12 @@ function initializeITHeadNavigation() {
     // Clear existing navigation items
     navMenu.innerHTML = '';
     
-    // IT Head navigation items (only User Management)
+    // IT Head navigation items
     const navItems = [
-        { href: 'usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' }
+        { href: 'dashboard.html', icon: 'fas fa-tachometer-alt', text: 'Dashboard' },
+        { href: 'usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
+        { href: 'auditlogs.html', icon: 'fas fa-history', text: 'Audit Logs' },
+        { href: 'analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' }
     ];
     
     // Generate navigation HTML
@@ -145,10 +150,10 @@ function checkAuthentication() {
     }
     
     try {
-        currentUser = JSON.parse(user);
+        window.currentUser = JSON.parse(user);
         
         // Verify user has IT Head role
-        if (currentUser.role !== 'it_head') {
+        if (window.currentUser.role !== 'it_head') {
             console.error('Access denied: User is not an IT Head');
             logout();
             return;

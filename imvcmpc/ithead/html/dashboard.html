@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - IT Head</title>
+    <link rel="stylesheet" href="../../shared/css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        (function() {
+            const isExpanded = localStorage.getItem('navExpanded') === 'true';
+            if (isExpanded) {
+                document.documentElement.classList.add('nav-expanded');
+            }
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                const navMenu = document.getElementById('nav-items-container');
+                if (navMenu) {
+                    navMenu.style.display = 'none';
+                }
+            });
+        })();
+    </script>
+</head>
+<body>
+    <div id="mainScreen" class="screen active">
+        <nav class="navigation">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <span class="logo-text">IMVCMPC</span>
+                </div>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            
+            <div class="nav-menu" id="nav-items-container">
+                <!-- Navigation items will be dynamically populated by JavaScript -->
+            </div>
+            
+            <div class="nav-account">
+                <a href="account.html" class="nav-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Account</span>
+                </a>
+            </div>
+            
+            <div class="nav-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="breadcrumb">
+                    <div class="breadcrumb-nav">
+                        <span class="breadcrumb-item">Dashboard</span>
+                    </div>
+                    <div class="datetime-display">
+                        <div class="date-display" id="currentDate"></div>
+                        <div class="time-display" id="currentTime"></div>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name" id="userName">User</span>
+                        <span class="user-role" id="userRole">IMVCMPC - Main Branch</span>
+                    </div>
+                    <div class="user-avatar" id="userAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="dropdown-content">
+                            <div class="dropdown-user-info">
+                                <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                                <span class="dropdown-user-role" id="dropdownUserRole">IMVCMPC - Main Branch</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <div class="dashboard-content">
+                    <!-- Alert Banner -->
+                    <div id="alertBanner" class="alert-banner" style="display: none;">
+                        <div class="alert-content">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span id="alertMessage">System Alert</span>
+                            <button class="alert-close" onclick="closeAlert()">&times;</button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-header">
+                        <h1>Dashboard Overview</h1>
+                        <p class="header-description">System health, incidents, and key metrics</p>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon" style="background: #e3f2fd;">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="metric-content">
+                                <span class="metric-label">Total Users</span>
+                                <span class="metric-value" id="totalUsers">0</span>
+                                <span class="metric-detail" id="activeUsersDetail">Active today</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon" style="background: #f3e5f5;">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="metric-content">
+                                <span class="metric-label">Active Branches</span>
+                                <span class="metric-value" id="activeBranches">0</span>
+                                <span class="metric-detail">All operational</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon" style="background: #e8f5e9;">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div class="metric-content">
+                                <span class="metric-label">System Health</span>
+                                <span class="metric-value" id="systemHealth">Good</span>
+                                <span class="metric-detail">All services running</span>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon" style="background: #fff3e0;">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="metric-content">
+                                <span class="metric-label">Pending Alerts</span>
+                                <span class="metric-value" id="pendingAlerts">0</span>
+                                <span class="metric-detail">Requires attention</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Status & Recent Incidents -->
+                    <div class="dashboard-grid">
+                        <!-- System Status -->
+                        <div class="dashboard-section system-status">
+                            <div class="section-header">
+                                <h2><i class="fas fa-heartbeat"></i> System Status</h2>
+                            </div>
+                            <div class="status-list" id="systemStatusList">
+                                <div class="status-item loading">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Incidents -->
+                        <div class="dashboard-section recent-incidents">
+                            <div class="section-header">
+                                <h2><i class="fas fa-exclamation-triangle"></i> Recent Incidents</h2>
+                            </div>
+                            <div class="incidents-list" id="incidentsList">
+                                <div class="incident-item no-incidents">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>No incidents reported</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Activity -->
+                        <div class="dashboard-section user-activity">
+                            <div class="section-header">
+                                <h2><i class="fas fa-chart-line"></i> User Activity (Last 24h)</h2>
+                            </div>
+                            <div class="activity-stats" id="activityStats">
+                                <div class="activity-stat">
+                                    <span class="stat-label">New Logins</span>
+                                    <span class="stat-value" id="newLogins">0</span>
+                                </div>
+                                <div class="activity-stat">
+                                    <span class="stat-label">Active Sessions</span>
+                                    <span class="stat-value" id="activeSessions">0</span>
+                                </div>
+                                <div class="activity-stat">
+                                    <span class="stat-label">Operations</span>
+                                    <span class="stat-value" id="operationCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Role Distribution -->
+                        <div class="dashboard-section role-distribution">
+                            <div class="section-header">
+                                <h2><i class="fas fa-pie-chart"></i> User Distribution</h2>
+                            </div>
+                            <div class="role-stats" id="roleStats">
+                                <div class="role-stat">
+                                    <span class="role-label">Finance Officers</span>
+                                    <span class="role-value" id="financeOfficerCount">0</span>
+                                </div>
+                                <div class="role-stat">
+                                    <span class="role-label">Marketing Clerks</span>
+                                    <span class="role-value" id="marketingClerkCount">0</span>
+                                </div>
+                                <div class="role-stat">
+                                    <span class="role-label">IT Heads</span>
+                                    <span class="role-value" id="itHeadCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../shared/js/main.js"></script>
+    <script src="../../shared/js/topbar.js"></script>
+    <script src="../js/main.js"></script>
+    <script src="../js/dashboard.js"></script>
+
+    <!-- Live Reload for Development -->
+    <script src="/shared/js/live-reload.js"></script>
+
+</body>
+</html>

@@ -2,17 +2,30 @@ const { Pool } = require('pg');
 const config = require('./config');
 
 // Database connection pool
-const pool = new Pool({
-    host: config.database.host,
-    port: config.database.port,
-    database: config.database.database,
-    user: config.database.user,
-    password: config.database.password,
-    max: 20, // Maximum number of clients in the pool
-    idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-    connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
-    maxUses: 7500, // Close (and replace) a connection after it has been used 7500 times
-});
+const connectionString = process.env.DATABASE_URL || config.database.connectionString;
+
+// Build a pool configuration that works for both URL and individual fields
+const poolConfig = {
+    max: config.database.max || 20,
+    idleTimeoutMillis: config.database.idleTimeoutMillis || 30000,
+    connectionTimeoutMillis: config.database.connectionTimeoutMillis || 2000,
+    maxUses: config.database.maxUses || 7500,
+};
+
+if (connectionString) {
+    poolConfig.connectionString = connectionString;
+    if (config.database.ssl) {
+        poolConfig.ssl = config.database.ssl;
+    }
+} else {
+    poolConfig.host = config.database.host;
+    poolConfig.port = config.database.port;
+    poolConfig.database = config.database.database;
+    poolConfig.user = config.database.user;
+    poolConfig.password = config.database.password;
+}
+
+const pool = new Pool(poolConfig);
 
 // Test database connection
 pool.on('connect', (client) => {

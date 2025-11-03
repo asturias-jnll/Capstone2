@@ -181,10 +181,12 @@ const checkRole = (allowedRoles) => {
     };
 };
 
-// Rate limiting middleware for login attempts
+// Rate limiting middleware for login attempts - DISABLED
 const loginRateLimit = (req, res, next) => {
     // This would typically use Redis or similar for production
     // For now, we'll implement basic in-memory rate limiting
+    // DISABLED: Account locking functionality temporarily removed
+    /*
     const clientIP = req.ip || req.connection.remoteAddress;
     const now = Date.now();
     
@@ -207,6 +209,7 @@ const loginRateLimit = (req, res, next) => {
             retryAfter: Math.ceil((config.security.lockoutDuration * 60 * 1000 - (now - attempts.firstAttempt)) / 1000)
         });
     }
+    */
 
     next();
 };

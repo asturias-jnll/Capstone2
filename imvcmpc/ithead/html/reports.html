@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports & Analytics - IT Head</title>
+    <link rel="stylesheet" href="../../shared/css/main.css">
+    <link rel="stylesheet" href="../css/reports.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        (function() {
+            const isExpanded = localStorage.getItem('navExpanded') === 'true';
+            if (isExpanded) {
+                document.documentElement.classList.add('nav-expanded');
+            }
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                const navMenu = document.getElementById('nav-items-container');
+                if (navMenu) {
+                    navMenu.style.display = 'none';
+                }
+            });
+        })();
+    </script>
+</head>
+<body>
+    <div id="mainScreen" class="screen active">
+        <nav class="navigation">
+            <div class="nav-header">
+                <div class="nav-logo">
+                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <span class="logo-text">IMVCMPC</span>
+                </div>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            
+            <div class="nav-menu" id="nav-items-container">
+                <!-- Navigation items will be dynamically populated by JavaScript -->
+            </div>
+            
+            <div class="nav-account">
+                <a href="account.html" class="nav-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Account</span>
+                </a>
+            </div>
+            
+            <div class="nav-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="breadcrumb">
+                    <div class="breadcrumb-nav">
+                        <span class="breadcrumb-item">Dashboard</span>
+                        <span class="breadcrumb-separator">/</span>
+                        <span class="breadcrumb-item active">Reports & Analytics</span>
+                    </div>
+                    <div class="datetime-display">
+                        <div class="date-display" id="currentDate"></div>
+                        <div class="time-display" id="currentTime"></div>
+                    </div>
+                </div>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name" id="userName">User</span>
+                        <span class="user-role" id="userRole">IMVCMPC - Main Branch</span>
+                    </div>
+                    <div class="user-avatar" id="userAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="dropdown-content">
+                            <div class="dropdown-user-info">
+                                <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                                <span class="dropdown-user-role" id="dropdownUserRole">IMVCMPC - Main Branch</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <div class="reports-content">
+                    <div class="reports-header">
+                        <h1>Reports & Analytics</h1>
+                        <p class="header-description">Usage trends, compliance summaries, and system performance metrics</p>
+                    </div>
+
+                    <!-- Report Filters -->
+                    <div class="report-filters">
+                        <div class="filter-group">
+                            <label>Date Range</label>
+                            <input type="date" id="reportStartDate" onchange="generateReports()">
+                            <span>to</span>
+                            <input type="date" id="reportEndDate" onchange="generateReports()">
+                        </div>
+
+                        <div class="filter-group">
+                            <label>Report Type</label>
+                            <select id="reportType" onchange="generateReports()">
+                                <option value="usage">Usage Analytics</option>
+                                <option value="compliance">Compliance Summary</option>
+                                <option value="performance">System Performance</option>
+                                <option value="security">Security Report</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="exportCurrentReport()">
+                            <i class="fas fa-download"></i> Export Report
+                        </button>
+                    </div>
+
+                    <!-- Reports Grid -->
+                    <div class="reports-grid">
+                        <!-- Usage Analytics Report -->
+                        <div class="report-section">
+                            <div class="report-title">
+                                <i class="fas fa-chart-line"></i> Usage Trends
+                            </div>
+                            <div class="report-content">
+                                <div class="metric-item">
+                                    <span class="metric-label">Total Logins (Last 30 days)</span>
+                                    <span class="metric-value" id="totalLogins">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Active Users</span>
+                                    <span class="metric-value" id="activeUsersCount">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Avg. Session Duration</span>
+                                    <span class="metric-value" id="avgSessionDuration">0 min</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Peak Usage Time</span>
+                                    <span class="metric-value" id="peakUsageTime">N/A</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compliance Summary -->
+                        <div class="report-section">
+                            <div class="report-title">
+                                <i class="fas fa-check-circle"></i> Compliance Summary
+                            </div>
+                            <div class="report-content">
+                                <div class="metric-item">
+                                    <span class="metric-label">Password Policy Compliance</span>
+                                    <span class="metric-value" id="passwordCompliance">0%</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Audit Log Completeness</span>
+                                    <span class="metric-value" id="auditCompliance">0%</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Inactive Accounts</span>
+                                    <span class="metric-value" id="inactiveAccounts">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Last Compliance Check</span>
+                                    <span class="metric-value" id="lastComplianceCheck">N/A</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Performance -->
+                        <div class="report-section">
+                            <div class="report-title">
+                                <i class="fas fa-tachometer-alt"></i> System Performance
+                            </div>
+                            <div class="report-content">
+                                <div class="metric-item">
+                                    <span class="metric-label">Uptime</span>
+                                    <span class="metric-value" id="uptime">99.9%</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Avg. Response Time</span>
+                                    <span class="metric-value" id="avgResponseTime">0 ms</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Database Size</span>
+                                    <span class="metric-value" id="databaseSize">0 MB</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Error Rate</span>
+                                    <span class="metric-value" id="errorRate">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Report -->
+                        <div class="report-section">
+                            <div class="report-title">
+                                <i class="fas fa-shield-alt"></i> Security Report
+                            </div>
+                            <div class="report-content">
+                                <div class="metric-item">
+                                    <span class="metric-label">Failed Login Attempts</span>
+                                    <span class="metric-value" id="failedLogins">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Blocked IP Addresses</span>
+                                    <span class="metric-value" id="blockedIps">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Privilege Changes</span>
+                                    <span class="metric-value" id="privilegeChanges">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Security Alerts</span>
+                                    <span class="metric-value" id="securityAlerts">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Charts Section -->
+                    <div class="charts-section">
+                        <h2>Detailed Analytics</h2>
+                        
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="fas fa-users"></i> User Activity Over Time
+                            </div>
+                            <div id="userActivityChart" class="chart-placeholder">
+                                <p>Chart data will be displayed here</p>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="fas fa-globe"></i> Usage by Branch
+                            </div>
+                            <div id="branchUsageChart" class="chart-placeholder">
+                                <p>Chart data will be displayed here</p>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="fas fa-id-badge"></i> Usage by Role
+                            </div>
+                            <div id="roleUsageChart" class="chart-placeholder">
+                                <p>Chart data will be displayed here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../../shared/js/main.js"></script>
+    <script src="../../shared/js/topbar.js"></script>
+    <script src="../js/main.js"></script>
+    <script src="../js/reports.js"></script>
+
+    <!-- Live Reload for Development -->
+    <script src="/shared/js/live-reload.js"></script>
+
+</body>
+</html>
