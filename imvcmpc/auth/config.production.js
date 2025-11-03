@@ -11,7 +11,11 @@ const config = {
 
     // Database Configuration - Render PostgreSQL
     database: {
-        connectionString: 'postgresql://imvcmpc_fms_bq79_user:jJAJxkwXBsqrl1hYhZY6WVchRLtZ18ph@dpg-d3l3qk3uibrs73ccg540-a.singapore-postgres.render.com/imvcmpc_fms_bq79',
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || 5432,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
         ssl: {
             rejectUnauthorized: false // Required for Render
         },

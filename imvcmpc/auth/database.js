@@ -8,7 +8,7 @@ const connectionString = process.env.DATABASE_URL || config.database.connectionS
 const poolConfig = {
     max: config.database.max || 20,
     idleTimeoutMillis: config.database.idleTimeoutMillis || 30000,
-    connectionTimeoutMillis: config.database.connectionTimeoutMillis || 2000,
+    connectionTimeoutMillis: config.database.connectionTimeoutMillis || 10000,
     maxUses: config.database.maxUses || 7500,
 };
 
@@ -17,12 +17,17 @@ if (connectionString) {
     if (config.database.ssl) {
         poolConfig.ssl = config.database.ssl;
     }
+    console.log('🔗 Connecting with connection string (SSL:', !!config.database.ssl, ')');
 } else {
     poolConfig.host = config.database.host;
     poolConfig.port = config.database.port;
     poolConfig.database = config.database.database;
     poolConfig.user = config.database.user;
     poolConfig.password = config.database.password;
+    if (config.database.ssl) {
+        poolConfig.ssl = config.database.ssl;
+    }
+    console.log('🔗 Connecting to:', poolConfig.host + ':' + poolConfig.port, '(SSL:', !!config.database.ssl, ')');
 }
 
 const pool = new Pool(poolConfig);
@@ -77,11 +82,19 @@ const db = {
     // Test connection
     testConnection: async () => {
         try {
+            console.log('🔍 Testing database connection...');
             const result = await pool.query('SELECT NOW()');
-            console.log('Database connection successful:', result.rows[0]);
+            console.log('✅ Database connection successful:', result.rows[0]);
             return true;
         } catch (error) {
-            console.error('Database connection failed:', error);
+            console.error('❌ Database connection failed:', error.message);
+            console.error('Error details:', {
+                code: error.code,
+                errno: error.errno,
+                syscall: error.syscall,
+                address: error.address,
+                port: error.port
+            });
             return false;
         }
     },
