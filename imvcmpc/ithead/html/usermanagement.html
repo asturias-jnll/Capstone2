@@ -111,9 +111,9 @@
                                     </button>
                                     <div class="sort-menu" id="sortMenu">
                                         <div class="sort-section">
-                                            <div class="sort-option" onclick="selectSortOption('name')">
-                                                <i class="fas fa-user"></i>
-                                                <span>Name</span>
+                                            <div class="sort-option" onclick="selectSortOption('location')">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                <span>Location</span>
                                             </div>
                                             <div class="sort-option" onclick="selectSortOption('role')">
                                                 <i class="fas fa-id-badge"></i>
@@ -148,7 +148,7 @@
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
+                                        <th>Location</th>
                                         <th>Username</th>
                                         <th>Role</th>
                                         <th>Branch</th>
@@ -165,6 +165,78 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2>Add Branch Users</h2>
+                <button class="modal-close" onclick="closeAddUserModal()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <!-- Step 1: Marketing Clerk -->
+                <div id="stepMarketing" class="modal-step active">
+                    <h3 class="step-title">Marketing Clerk</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="mcLocation">Location</label>
+                            <input type="text" id="mcLocation" placeholder="Enter location">
+                        </div>
+                        <div class="form-group">
+                            <label for="mcUsername">Username</label>
+                            <input type="text" id="mcUsername" placeholder="e.g., mc.username">
+                        </div>
+                        <div class="form-group">
+                            <label for="mcRole">Role</label>
+                            <input type="text" id="mcRole" value="Marketing Clerk" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="mcBranch">Branch</label>
+                            <input type="text" id="mcBranch" placeholder="Auto-assigned" readonly>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" onclick="goToFinanceStep()">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Finance Officer -->
+                <div id="stepFinance" class="modal-step">
+                    <h3 class="step-title">Finance Officer</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="foLocation">Location</label>
+                            <input type="text" id="foLocation" placeholder="Enter location">
+                        </div>
+                        <div class="form-group">
+                            <label for="foUsername">Username</label>
+                            <input type="text" id="foUsername" placeholder="e.g., fo.username">
+                        </div>
+                        <div class="form-group">
+                            <label for="foRole">Role</label>
+                            <input type="text" id="foRole" value="Finance Officer" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="foBranch">Branch</label>
+                            <input type="text" id="foBranch" placeholder="Auto-assigned" readonly>
+                        </div>
+                    </div>
+                    <div class="modal-actions between">
+                        <button class="btn btn-secondary" onclick="backToMarketingStep()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button class="btn btn-primary" onclick="saveAddUsers()">
+                            Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="../../shared/js/main.js"></script>

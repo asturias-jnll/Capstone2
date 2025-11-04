@@ -6,6 +6,8 @@ let sortOrder = 'asc';
 
 // Store all users for filtering
 let allUsers = [];
+// Cache next branch number after first computation or after save
+let nextBranchNumberCache = null;
 
 // Initialize user management
 document.addEventListener('DOMContentLoaded', function() {
@@ -21,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    // Note: Modal should only close via the X button; ESC and backdrop clicks are disabled per requirements.
 });
 
 // Load all users and filter for Marketing Clerks and Finance Officers only
@@ -71,6 +74,8 @@ async function loadUsers() {
             allUsers = filteredUsers;
             
             applySearchAndDisplay();
+            // Invalidate cached next branch number when user list refreshes
+            nextBranchNumberCache = null;
         } else {
             console.error('Failed to load users');
             displayError('Failed to load users. Please try again.');
@@ -99,17 +104,34 @@ function displayUsers(users) {
         return;
     }
     
+    // Helper to derive clean LOCATION text (e.g., IBAAN, BAUAN)
+    const getLocation = (u) => {
+        let loc = (u.branch_location || '').toString().trim();
+        if (!loc) {
+            // Try to derive from branch_name if available
+            let bn = (u.branch_name || '').toString();
+            // Remove common words and patterns, keep probable location token
+            bn = bn.replace(/imvcmpc/gi, '')
+                   .replace(/main\s*branch/gi, 'IBAAN')
+                   .replace(/branch\s*\d+/gi, '')
+                   .replace(/marketing\s*clerk|finance\s*officer/gi, '')
+                   .replace(/[-_]/g, ' ')
+                   .trim();
+            // Take first word chunk as fallback location
+            loc = bn.split(/\s+/)[0] || '';
+        }
+        return loc ? loc.toUpperCase() : 'N/A';
+    };
+
     // Apply sorting based on selected field
     const sortedUsers = users.sort((a, b) => {
         let valueA, valueB;
         
-        if (sortField === 'name') {
-            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
-            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
-            valueA = nameA;
-            valueB = nameB;
+        if (sortField === 'location') {
+            // Sort by derived location name
+            valueA = getLocation(a).toLowerCase();
+            valueB = getLocation(b).toLowerCase();
             
-            // Compare values
             const comparison = valueA.localeCompare(valueB);
             return sortOrder === 'asc' ? comparison : -comparison;
             
@@ -180,10 +202,11 @@ function displayUsers(users) {
         branchName = branchName.replace(/finance officer/gi, '').trim();
         branchName = branchName.replace(/marketing clerk/gi, '').trim();
         branchName = branchName.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+        const locationText = getLocation(user);
         
         return `
         <tr>
-            <td>${fullName || username}</td>
+            <td>${locationText}</td>
             <td>${username}</td>
             <td>${role}</td>
             <td>${branchName}</td>
@@ -193,14 +216,8 @@ function displayUsers(users) {
                 </span>
             </td>
             <td>
-                <button onclick="editUser('${user.id}', event)" class="action-btn edit" title="Edit User">
-                    <i class="fas fa-edit"></i>
-                </button>
                 <button onclick="toggleUserStatus('${user.id}', ${user.is_active}, event)" class="action-btn ${user.is_active ? 'deactivate' : 'activate'}" title="${user.is_active ? 'Deactivate' : 'Activate'}">
                     <i class="fas fa-${user.is_active ? 'lock' : 'unlock'}"></i>
-                </button>
-                <button onclick="resetPassword('${user.id}', event)" class="action-btn reset" title="Reset Password">
-                    <i class="fas fa-key"></i>
                 </button>
             </td>
         </tr>
@@ -225,14 +242,121 @@ function displayError(message) {
 
 // Show add user modal
 function showAddUserModal() {
-    alert('Add User feature will be implemented in future updates.');
+    const modal = document.getElementById('addUserModal');
+    const stepMarketing = document.getElementById('stepMarketing');
+    const stepFinance = document.getElementById('stepFinance');
+    if (!modal || !stepMarketing || !stepFinance) return;
+
+    // Reset fields
+    ['mcLocation','mcUsername','mcBranch','foLocation','foUsername','foBranch'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const mcRole = document.getElementById('mcRole');
+    const foRole = document.getElementById('foRole');
+    if (mcRole) mcRole.value = 'Marketing Clerk';
+    if (foRole) foRole.value = 'Finance Officer';
+
+    // Auto-assign next Branch number to both entries
+    const nextBranchNum = getNextBranchNumber();
+    const mcBranch = document.getElementById('mcBranch');
+    const foBranch = document.getElementById('foBranch');
+    if (mcBranch) mcBranch.value = `Branch ${nextBranchNum}`;
+    if (foBranch) foBranch.value = `Branch ${nextBranchNum}`;
+
+    // Show modal and first step
+    stepMarketing.classList.add('active');
+    stepFinance.classList.remove('active');
+    modal.style.display = 'flex';
 }
 
-// Edit user
-function editUser(userId, event) {
-    if (event) event.stopPropagation();
-    alert(`Edit user feature for user ID: ${userId}`);
-    // TODO: Implement edit user modal
+function closeAddUserModal() {
+    const modal = document.getElementById('addUserModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function goToFinanceStep() {
+    const stepMarketing = document.getElementById('stepMarketing');
+    const stepFinance = document.getElementById('stepFinance');
+    if (!stepMarketing || !stepFinance) return;
+
+    // Basic validation (optional, minimal)
+    const mcUsername = document.getElementById('mcUsername');
+    if (mcUsername && !mcUsername.value.trim()) {
+        alert('Please provide a Marketing Clerk username.');
+        return;
+    }
+
+    stepMarketing.classList.remove('active');
+    stepFinance.classList.add('active');
+}
+
+function backToMarketingStep() {
+    const stepMarketing = document.getElementById('stepMarketing');
+    const stepFinance = document.getElementById('stepFinance');
+    if (!stepMarketing || !stepFinance) return;
+    stepFinance.classList.remove('active');
+    stepMarketing.classList.add('active');
+}
+
+function saveAddUsers() {
+    // Collect values (no API call yet; will be implemented later per instruction)
+    const payload = {
+        marketingClerk: {
+            location: document.getElementById('mcLocation')?.value?.trim() || '',
+            username: document.getElementById('mcUsername')?.value?.trim() || '',
+            role: document.getElementById('mcRole')?.value || 'Marketing Clerk',
+            branch: document.getElementById('mcBranch')?.value?.trim() || ''
+        },
+        financeOfficer: {
+            location: document.getElementById('foLocation')?.value?.trim() || '',
+            username: document.getElementById('foUsername')?.value?.trim() || '',
+            role: document.getElementById('foRole')?.value || 'Finance Officer',
+            branch: document.getElementById('foBranch')?.value?.trim() || ''
+        }
+    };
+
+    console.log('Add Users payload (no submit yet):', payload);
+    // Pre-increment next branch number so successive additions increase: Branch N+1
+    const currentNext = getNextBranchNumber();
+    nextBranchNumberCache = currentNext + 1;
+    // Also update the visible fields in case user stays in modal to add more
+    const mcBranch = document.getElementById('mcBranch');
+    const foBranch = document.getElementById('foBranch');
+    if (mcBranch) mcBranch.value = `Branch ${nextBranchNumberCache}`;
+    if (foBranch) foBranch.value = `Branch ${nextBranchNumberCache}`;
+    // Do not close modal on save until further instructions
+}
+
+// Helpers to compute next Branch number based on existing users
+function parseBranchNumber(branchText) {
+    if (!branchText) return null;
+    const text = String(branchText).toLowerCase();
+    if (text.includes('main') || text.includes('ibaan')) return 1; // Treat Main/Ibaan as Branch 1
+    const match = /branch\s*(\d+)/i.exec(branchText);
+    if (match) return parseInt(match[1], 10);
+    const matchAny = /(\d+)/.exec(branchText);
+    if (matchAny) return parseInt(matchAny[1], 10);
+    return null;
+}
+
+function getMaxBranchNumberFromUsers() {
+    let maxNum = 0;
+    allUsers.forEach(u => {
+        const candidates = [u.branch_name, u.branch_location];
+        candidates.forEach(c => {
+            const n = parseBranchNumber(c);
+            if (typeof n === 'number' && n > maxNum) maxNum = n;
+        });
+    });
+    return maxNum;
+}
+
+function getNextBranchNumber() {
+    if (typeof nextBranchNumberCache === 'number') return nextBranchNumberCache;
+    const maxExisting = getMaxBranchNumberFromUsers();
+    nextBranchNumberCache = (maxExisting || 0) + 1;
+    return nextBranchNumberCache;
 }
 
 // Toggle user status (activate/deactivate)
@@ -247,14 +371,7 @@ function toggleUserStatus(userId, currentStatus, event) {
     }
 }
 
-// Reset password
-function resetPassword(userId, event) {
-    if (event) event.stopPropagation();
-    if (confirm('Are you sure you want to reset this user\'s password?')) {
-        console.log('Reset password for:', userId);
-        // TODO: Implement API call to reset password
-    }
-}
+// Note: Edit and Reset Password actions removed per requirements.
 
 // Toggle sort dropdown
 function toggleSortDropdown() {
@@ -272,7 +389,7 @@ function selectSortOption(field) {
     // Update active state in dropdown
     const sortOptions = document.querySelectorAll('.sort-section .sort-option');
     sortOptions.forEach((option, index) => {
-        if (index === (field === 'name' ? 0 : field === 'role' ? 1 : 2)) {
+        if (index === (field === 'location' ? 0 : field === 'role' ? 1 : 2)) {
             option.style.background = 'var(--gray-50)';
             option.style.fontWeight = '600';
         } else {
@@ -302,9 +419,11 @@ function selectSortOrder(order) {
 
 // Export functions
 window.showAddUserModal = showAddUserModal;
-window.editUser = editUser;
+window.closeAddUserModal = closeAddUserModal;
+window.goToFinanceStep = goToFinanceStep;
+window.backToMarketingStep = backToMarketingStep;
+window.saveAddUsers = saveAddUsers;
 window.toggleUserStatus = toggleUserStatus;
-window.resetPassword = resetPassword;
 window.loadUsers = loadUsers;
 window.toggleSortDropdown = toggleSortDropdown;
 window.selectSortOption = selectSortOption;
@@ -328,12 +447,14 @@ function applySearchAndDisplay() {
             const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase();
             const username = (user.username || '').toLowerCase();
             const role = (user.role_display_name || user.role || '').toLowerCase();
-            const branchName = ((user.branch_name || user.branch_location || '')).toLowerCase();
+         const branchName = ((user.branch_name || user.branch_location || '')).toLowerCase();
+         const locationText = ((user.branch_location || '') || '').toLowerCase();
             
             return fullName.includes(searchTerm) ||
                    username.includes(searchTerm) ||
                    role.includes(searchTerm) ||
-                   branchName.includes(searchTerm);
+             branchName.includes(searchTerm) ||
+             locationText.includes(searchTerm);
         });
     }
     
