@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Refresh notifications every 30 seconds
     setInterval(loadNotificationsFromAPI, 30000);
+    
+    // Update timestamps every second for real-time display
+    setInterval(updateAllTimestamps, 1000);
 });
 
 // Setup filter button event listeners
@@ -184,6 +187,21 @@ async function loadNotificationsFromAPI() {
         if (data.success) {
             allNotifications = data.data || [];
             
+            // Log notification timestamps for debugging
+            if (allNotifications.length > 0) {
+                console.log('🕐 Notification timestamps sample:');
+                allNotifications.slice(0, 3).forEach((notif, idx) => {
+                    const now = new Date();
+                    const notifTime = new Date(notif.timestamp);
+                    const diffSeconds = Math.floor((now - notifTime) / 1000);
+                    console.log(`  [${idx}] ID: ${notif.id}`);
+                    console.log(`      Timestamp: ${notif.timestamp}`);
+                    console.log(`      Current time: ${now.toISOString()}`);
+                    console.log(`      Diff (seconds): ${diffSeconds}`);
+                    console.log(`      Display: ${getTimeAgo(notif.timestamp)}`);
+                });
+            }
+            
             // Apply completed status from localStorage
             const completedIds = JSON.parse(localStorage.getItem(COMPLETED_KEY) || '[]');
             allNotifications = allNotifications.map(notification => {
@@ -288,6 +306,7 @@ function createNotificationItem(notification) {
     notificationItem.setAttribute('data-id', notification.id);
     notificationItem.setAttribute('data-category', notification.category);
     notificationItem.setAttribute('data-type', mapTypeForDisplay(notification.type));
+    notificationItem.setAttribute('data-timestamp', notification.timestamp);
     
     const timeAgo = getTimeAgo(notification.timestamp);
     const typeClass = mapTypeForDisplay(notification.type);
@@ -325,14 +344,84 @@ function getTypeIcon(type) {
 
 // Get time ago string
 function getTimeAgo(timestamp) {
+    if (!timestamp) {
+        console.warn('⚠️ No timestamp provided');
+        return 'Just now';
+    }
+    
     const now = new Date();
     const notificationTime = new Date(timestamp);
-    const diffInSeconds = Math.floor((now - notificationTime) / 1000);
     
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    // Check if the date is valid
+    if (isNaN(notificationTime.getTime())) {
+        console.error('❌ Invalid timestamp:', timestamp);
+        return 'Just now';
+    }
+    
+    let diffInMs = now - notificationTime;
+    let diffInSeconds = Math.floor(diffInMs / 1000);
+    
+    // Handle timezone issue: if timestamp appears to be in the future (negative diff),
+    // it's likely the database is storing Philippine time (UTC+8) as UTC
+    // Adjust by subtracting 8 hours (28800 seconds) from the notification time
+    if (diffInSeconds < 0) {
+        // Adjust for Philippine timezone (UTC+8 = 8 hours = 28800 seconds)
+        const adjustedTime = new Date(notificationTime.getTime() - (8 * 60 * 60 * 1000));
+        diffInMs = now - adjustedTime;
+        diffInSeconds = Math.floor(diffInMs / 1000);
+        
+        // If still negative after adjustment, just show "Just now"
+        if (diffInSeconds < 0) {
+            return 'Just now';
+        }
+    }
+    
+    if (diffInSeconds < 10) return 'Just now';
+    if (diffInSeconds < 60) return `${diffInSeconds} sec ago`;
+    if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes} min ago`;
+    }
+    if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    }
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+}
+
+// Update all timestamps in real-time
+function updateAllTimestamps() {
+    // Update timestamps in notification list
+    const notificationItems = document.querySelectorAll('.notification-item');
+    
+    if (notificationItems.length === 0) {
+        return; // No notifications to update
+    }
+    
+    notificationItems.forEach((item, index) => {
+        const timestamp = item.getAttribute('data-timestamp');
+        
+        if (timestamp) {
+            const timeElement = item.querySelector('.notification-time');
+            if (timeElement) {
+                const newTimeText = getTimeAgo(timestamp);
+                
+
+                
+                timeElement.textContent = newTimeText;
+            }
+        }
+    });
+    
+    // Update timestamp in modal if it's open
+    const modal = document.getElementById('notificationModal');
+    if (modal && modal.style.display !== 'none' && currentNotification) {
+        const modalTime = document.getElementById('modalNotificationTime');
+        if (modalTime && currentNotification.timestamp) {
+            modalTime.textContent = getTimeAgo(currentNotification.timestamp);
+        }
+    }
 }
 
 // Filter notifications based on selected filter
