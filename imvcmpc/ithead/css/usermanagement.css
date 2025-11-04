@@ -312,6 +312,13 @@
 .btn-secondary { background: var(--gray-200); color: var(--gray-800); }
 .btn-secondary:hover { background: var(--gray-300); }
 
+.btn:disabled,
+.btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(20%);
+}
+
 @media (max-width: 640px) {
     .form-grid { grid-template-columns: 1fr; }
 }
@@ -350,6 +357,14 @@
     border-bottom: 1px solid var(--gray-200);
 }
 
+/* Masked password appearance: show circles without a box */
+.password-mask {
+    display: inline-block;
+    font-size: 16px;
+    letter-spacing: 2px;
+    user-select: none;
+}
+
 .users-table tbody tr:hover {
     background: var(--gray-50);
 }
@@ -377,6 +392,31 @@
 .status-badge.inactive {
     background: var(--red-100);
     color: var(--red-600);
+}
+
+/* Action Buttons */
+.toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.98);
+    max-width: 520px;
+    background: var(--dark-green);
+    color: #fff;
+    padding: 14px 18px;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    z-index: 10100; /* Above modal overlay */
+    opacity: 0;
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+.toast.show {
+    display: block !important;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
 }
 
 /* Action Buttons */

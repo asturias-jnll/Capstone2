@@ -26,6 +26,178 @@ document.addEventListener('DOMContentLoaded', function() {
     // Note: Modal should only close via the X button; ESC and backdrop clicks are disabled per requirements.
 });
 
+// -------- Modal validation helpers --------
+function getVal(id) {
+    const el = document.getElementById(id);
+    return (el && typeof el.value === 'string') ? el.value.trim() : '';
+}
+
+function validateMarketingStep() {
+    return !!(getVal('mcLocation') && getVal('mcUsername') && getVal('mcPassword'));
+}
+
+function validateFinanceStep() {
+    return !!(getVal('foLocation') && getVal('foUsername') && getVal('foPassword'));
+}
+
+function updateNextButton() {
+    const btn = document.getElementById('nextBtn');
+    if (btn) btn.disabled = !validateMarketingStep();
+}
+
+function updateSaveButton() {
+    const btn = document.getElementById('saveBtn');
+    if (btn) btn.disabled = !validateFinanceStep();
+}
+
+// Show minimalist success dialog (matching Finance Officer design)
+function showSuccessDialog(message) {
+    // Remove existing dialog if any
+    const existingDialog = document.getElementById('successDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+
+    // Create dialog
+    const dialog = document.createElement('div');
+    dialog.id = 'successDialog';
+    dialog.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10100;
+    `;
+
+    dialog.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 320px;
+            width: 90%;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: #f0fdf4;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 12px;
+            ">
+                <i class="fas fa-check-circle" style="color: #0D5B11; font-size: 16px;"></i>
+            </div>
+            <h3 style="
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 8px 0;
+            ">Success</h3>
+            <p style="
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0 0 20px 0;
+                line-height: 1.4;
+            ">${message}</p>
+            <button onclick="closeSuccessDialog()" style="
+                background: #0D5B11;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#0a4a0e'" onmouseout="this.style.background='#0D5B11'">
+                OK
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    // Animate in
+    setTimeout(() => {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(1)';
+        content.style.opacity = '1';
+    }, 10);
+}
+
+// Close success dialog
+function closeSuccessDialog() {
+    const dialog = document.getElementById('successDialog');
+    if (dialog) {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(0.95)';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            dialog.remove();
+        }, 300);
+    }
+}
+
+// Generate username/password from a location string
+function formatBaseFromLocation(raw) {
+    if (!raw) return '';
+    return String(raw)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, ''); // keep letters/numbers only
+}
+
+function autofillCreds(prefix) {
+    // prefix: 'mc' or 'fo'
+    const locEl = document.getElementById(prefix + 'Location');
+    const userEl = document.getElementById(prefix + 'Username');
+    const passEl = document.getElementById(prefix + 'Password');
+    if (!locEl || !userEl || !passEl) return;
+
+    const base = formatBaseFromLocation(locEl.value);
+    if (base) {
+        userEl.value = `${prefix}.${base}`;
+        passEl.value = `${base}123!`;
+    } else {
+        userEl.value = '';
+        passEl.value = '';
+    }
+}
+
+// Keep Finance Officer fields mirrored from Marketing Clerk
+function syncFinanceFromMarketing() {
+    const mcLocVal = getVal('mcLocation');
+    const foLocEl = document.getElementById('foLocation');
+    if (foLocEl) {
+        foLocEl.value = mcLocVal;
+    }
+    // Derive FO username/password from FO location
+    autofillCreds('fo');
+    // Mirror Branch
+    const mcBranch = document.getElementById('mcBranch');
+    const foBranch = document.getElementById('foBranch');
+    if (mcBranch && foBranch) {
+        foBranch.value = mcBranch.value;
+    }
+    // Ensure role label is correct
+    const foRole = document.getElementById('foRole');
+    if (foRole) foRole.value = 'Finance Officer';
+    updateSaveButton();
+}
+
 // Load all users and filter for Marketing Clerks and Finance Officers only
 async function loadUsers() {
     try {
@@ -94,7 +266,7 @@ function displayUsers(users) {
     if (users.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align: center; padding: 40px;">
+                <td colspan="7" style="text-align: center; padding: 40px;">
                     <i class="fas fa-users" style="font-size: 48px; color: #9CA3AF; margin-bottom: 16px;"></i>
                     <p style="color: #6B7280; font-size: 16px;">No users found</p>
                     <p style="color: #9CA3AF; font-size: 14px; margin-top: 8px;">Showing Marketing Clerks and Finance Officers only</p>
@@ -204,10 +376,12 @@ function displayUsers(users) {
         branchName = branchName.replace(/\s+/g, ' ').trim(); // Remove extra spaces
         const locationText = getLocation(user);
         
+        const maskedPassword = '●'.repeat(8);
         return `
         <tr>
             <td>${locationText}</td>
             <td>${username}</td>
+            <td><span class="password-mask" aria-label="Hidden password" title="Hidden password">${maskedPassword}</span></td>
             <td>${role}</td>
             <td>${branchName}</td>
             <td>
@@ -232,7 +406,7 @@ function displayError(message) {
     
     tbody.innerHTML = `
         <tr>
-            <td colspan="6" style="text-align: center; padding: 40px;">
+            <td colspan="7" style="text-align: center; padding: 40px;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #EF4444; margin-bottom: 16px;"></i>
                 <p style="color: #EF4444; font-size: 16px;">${message}</p>
             </td>
@@ -248,7 +422,7 @@ function showAddUserModal() {
     if (!modal || !stepMarketing || !stepFinance) return;
 
     // Reset fields
-    ['mcLocation','mcUsername','mcBranch','foLocation','foUsername','foBranch'].forEach(id => {
+    ['mcLocation','mcUsername','mcPassword','mcBranch','foLocation','foUsername','foPassword','foBranch'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -268,6 +442,43 @@ function showAddUserModal() {
     stepMarketing.classList.add('active');
     stepFinance.classList.remove('active');
     modal.style.display = 'flex';
+
+    // Attach input listeners for validation
+    ['mcLocation','mcUsername','mcPassword'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', function() {
+            updateNextButton();
+            // Always mirror FO from MC context
+            syncFinanceFromMarketing();
+        }, { once: false });
+    });
+    ['foLocation','foUsername','foPassword'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateSaveButton, { once: false });
+    });
+
+    // Autofill credentials when location changes
+    const mcLoc = document.getElementById('mcLocation');
+    if (mcLoc) mcLoc.addEventListener('input', function() {
+        // Autofill MC creds from its location
+        autofillCreds('mc');
+        updateNextButton();
+        // Keep FO mirrored whenever MC location changes
+        syncFinanceFromMarketing();
+    });
+    const foLoc = document.getElementById('foLocation');
+    if (foLoc) foLoc.addEventListener('input', function() {
+        autofillCreds('fo');
+        updateSaveButton();
+    });
+
+    // Initialize autofill and mirror (in case locations are pre-populated later)
+    autofillCreds('mc');
+    syncFinanceFromMarketing();
+
+    // Initialize button states
+    updateNextButton();
+    updateSaveButton();
 }
 
 function closeAddUserModal() {
@@ -280,15 +491,17 @@ function goToFinanceStep() {
     const stepFinance = document.getElementById('stepFinance');
     if (!stepMarketing || !stepFinance) return;
 
-    // Basic validation (optional, minimal)
-    const mcUsername = document.getElementById('mcUsername');
-    if (mcUsername && !mcUsername.value.trim()) {
-        alert('Please provide a Marketing Clerk username.');
+    // Require all Marketing Clerk fields before proceeding
+    if (!validateMarketingStep()) {
+        alert('Please complete Location, Username, and Password for the Marketing Clerk.');
         return;
     }
 
     stepMarketing.classList.remove('active');
     stepFinance.classList.add('active');
+
+    // Ensure FO fields mirror MC when moving to step 2
+    syncFinanceFromMarketing();
 }
 
 function backToMarketingStep() {
@@ -297,35 +510,84 @@ function backToMarketingStep() {
     if (!stepMarketing || !stepFinance) return;
     stepFinance.classList.remove('active');
     stepMarketing.classList.add('active');
+    // Ensure Next button reflects current values
+    updateNextButton();
 }
 
 function saveAddUsers() {
+    // Block save unless Finance Officer fields are complete
+    if (!validateFinanceStep()) {
+        alert('Please complete Location, Username, and Password for the Finance Officer.');
+        return;
+    }
     // Collect values (no API call yet; will be implemented later per instruction)
     const payload = {
         marketingClerk: {
             location: document.getElementById('mcLocation')?.value?.trim() || '',
             username: document.getElementById('mcUsername')?.value?.trim() || '',
+            password: document.getElementById('mcPassword')?.value || '',
             role: document.getElementById('mcRole')?.value || 'Marketing Clerk',
             branch: document.getElementById('mcBranch')?.value?.trim() || ''
         },
         financeOfficer: {
             location: document.getElementById('foLocation')?.value?.trim() || '',
             username: document.getElementById('foUsername')?.value?.trim() || '',
+            password: document.getElementById('foPassword')?.value || '',
             role: document.getElementById('foRole')?.value || 'Finance Officer',
             branch: document.getElementById('foBranch')?.value?.trim() || ''
         }
     };
 
     console.log('Add Users payload (no submit yet):', payload);
-    // Pre-increment next branch number so successive additions increase: Branch N+1
-    const currentNext = getNextBranchNumber();
-    nextBranchNumberCache = currentNext + 1;
-    // Also update the visible fields in case user stays in modal to add more
-    const mcBranch = document.getElementById('mcBranch');
-    const foBranch = document.getElementById('foBranch');
-    if (mcBranch) mcBranch.value = `Branch ${nextBranchNumberCache}`;
-    if (foBranch) foBranch.value = `Branch ${nextBranchNumberCache}`;
-    // Do not close modal on save until further instructions
+
+    // Clean up any previous temp entries and duplicates by username
+    const mcUsername = payload.marketingClerk.username;
+    const foUsername = payload.financeOfficer.username;
+    allUsers = allUsers.filter(u => {
+        const isTemp = typeof u?.id === 'string' && u.id.startsWith('tmp_');
+        const isDup = (u?.username === mcUsername) || (u?.username === foUsername);
+        return !isTemp && !isDup;
+    });
+
+    // Add Marketing Clerk and Finance Officer as separate rows in the table (client-side)
+    const createClientUser = ({ location, username, role, branch }) => ({
+        id: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        username,
+        role,
+        role_display_name: role,
+        branch_name: branch,           // e.g., "Branch 14"
+        branch_location: location,     // e.g., "IBAAN"
+        is_active: true,
+        first_name: '',
+        last_name: ''
+    });
+
+    const mcUser = createClientUser({
+        location: payload.marketingClerk.location,
+        username: mcUsername,
+        role: payload.marketingClerk.role,
+        branch: payload.marketingClerk.branch
+    });
+    const foUser = createClientUser({
+        location: payload.financeOfficer.location,
+        username: foUsername,
+        role: payload.financeOfficer.role,
+        branch: payload.financeOfficer.branch
+    });
+
+    allUsers.push(mcUser, foUser);
+    applySearchAndDisplay();
+
+    // Show success dialog and auto-close modal
+    showSuccessDialog('The New Branch Users of IMVCMPC were added successfully');
+
+    // Reset branch cache so next modal open recalculates from current table
+    nextBranchNumberCache = null;
+
+    // Close modal shortly after showing dialog
+    setTimeout(() => {
+        closeAddUserModal();
+    }, 600);
 }
 
 // Helpers to compute next Branch number based on existing users
@@ -428,6 +690,7 @@ window.loadUsers = loadUsers;
 window.toggleSortDropdown = toggleSortDropdown;
 window.selectSortOption = selectSortOption;
 window.selectSortOrder = selectSortOrder;
+window.closeSuccessDialog = closeSuccessDialog;
 
 // Filter users based on search input
 function filterUsers() {

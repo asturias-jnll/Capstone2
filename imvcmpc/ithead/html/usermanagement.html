@@ -150,6 +150,7 @@
                                     <tr>
                                         <th>Location</th>
                                         <th>Username</th>
+                                        <th>Password</th>
                                         <th>Role</th>
                                         <th>Branch</th>
                                         <th>Status</th>
@@ -187,7 +188,11 @@
                         </div>
                         <div class="form-group">
                             <label for="mcUsername">Username</label>
-                            <input type="text" id="mcUsername" placeholder="e.g., mc.username">
+                            <input type="text" id="mcUsername" placeholder="e.g., mc.username" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="mcPassword">Password</label>
+                            <input type="text" id="mcPassword" placeholder="Set password" readonly>
                         </div>
                         <div class="form-group">
                             <label for="mcRole">Role</label>
@@ -199,7 +204,7 @@
                         </div>
                     </div>
                     <div class="modal-actions">
-                        <button class="btn btn-primary" onclick="goToFinanceStep()">
+                        <button id="nextBtn" class="btn btn-primary" onclick="goToFinanceStep()" disabled>
                             Next <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
@@ -211,11 +216,15 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="foLocation">Location</label>
-                            <input type="text" id="foLocation" placeholder="Enter location">
+                            <input type="text" id="foLocation" placeholder="Enter location" readonly>
                         </div>
                         <div class="form-group">
                             <label for="foUsername">Username</label>
-                            <input type="text" id="foUsername" placeholder="e.g., fo.username">
+                            <input type="text" id="foUsername" placeholder="e.g., fo.username" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="foPassword">Password</label>
+                            <input type="text" id="foPassword" placeholder="Set password" readonly>
                         </div>
                         <div class="form-group">
                             <label for="foRole">Role</label>
@@ -230,7 +239,7 @@
                         <button class="btn btn-secondary" onclick="backToMarketingStep()">
                             <i class="fas fa-arrow-left"></i> Back
                         </button>
-                        <button class="btn btn-primary" onclick="saveAddUsers()">
+                        <button id="saveBtn" class="btn btn-primary" onclick="saveAddUsers()" disabled>
                             Save
                         </button>
                     </div>
@@ -246,6 +255,7 @@
 
     <!-- Live Reload for Development -->
     <script src="/shared/js/live-reload.js"></script>
+
 
 </body>
 </html>
