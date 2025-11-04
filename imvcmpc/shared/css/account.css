@@ -141,7 +141,7 @@
 }
 
 #mainScreen .form-group label {
-    width: 140px !important;
+    width: 160px !important;
     color: #6b7280 !important;
     font-weight: 500 !important;
     font-size: 0.875rem !important;
@@ -165,7 +165,7 @@
 
 /* Edit Input Fields */
 #mainScreen .form-group .edit-input {
-    display: none !important;
+    display: block !important;
     width: 100% !important;
     padding: 0.5rem !important;
     border: 1px solid #69B41E !important;
@@ -173,6 +173,15 @@
     font-size: 0.875rem !important;
     background: white !important;
     color: #111827 !important;
+}
+
+/* Disabled state for inputs (when not editing) */
+#mainScreen .form-group .edit-input:disabled {
+    background: #f8f9fa !important;
+    color: #6b7280 !important;
+    border: 1px solid #d1d5db !important;
+    cursor: not-allowed !important;
+    opacity: 0.9 !important;
 }
 
 /* Dropdown spacing - add space for the dropdown icon */
@@ -206,13 +215,9 @@
 }
 
 /* Show input fields when editing */
-#mainScreen .form-group.editing .info-value {
-    display: none !important;
-}
-
-#mainScreen .form-group.editing .edit-input {
-    display: block !important;
-}
+/* The page now uses always-visible inputs; editing styles retained for safety */
+#mainScreen .form-group.editing .info-value { display: none !important; }
+#mainScreen .form-group.editing .edit-input { display: block !important; }
 
 /* Light green background for editing form groups */
 #mainScreen .form-group.editing {
@@ -231,6 +236,43 @@
     border-left: 3px solid #69B41E !important;
     margin-top: 0.75rem !important;
     transition: none !important;
+}
+
+/* Section actions (Edit/Update + Cancel) */
+#mainScreen .section-actions {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+}
+
+#mainScreen .btn-edit,
+#mainScreen .btn-cancel {
+    display: inline-flex;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 6px 12px !important;
+    background: transparent !important;
+    border: 1px solid var(--gray-300) !important;
+    border-radius: 6px !important;
+    color: var(--gray-700) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+#mainScreen .btn-edit:hover,
+#mainScreen .btn-cancel:hover {
+    background: var(--gray-50) !important;
+    border-color: var(--gray-400) !important;
+}
+
+#mainScreen .btn-edit i,
+#mainScreen .btn-cancel i { font-size: 12px !important; }
+
+#mainScreen .btn-edit:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
 }
 
 #mainScreen .role-info,
@@ -264,14 +306,8 @@
 }
 
 /* Action Buttons */
-#mainScreen .action-buttons {
-    display: flex !important;
-    gap: 1rem !important;
-    justify-content: center !important;
-    margin-top: 1.5rem !important;
-    padding-top: 1rem !important;
-    border-top: 1px solid #f0f2f5 !important;
-}
+/* Hide legacy action buttons (not used anymore) */
+#mainScreen .action-buttons { display: none !important; }
 
 #mainScreen .btn {
     padding: 0.625rem 1.25rem !important;
@@ -300,6 +336,119 @@
 #mainScreen .btn-secondary:hover {
     background: #5a6268 !important;
 }
+
+/* Change Password styles */
+#mainScreen .password-input-wrapper {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+}
+
+#mainScreen .password-input-wrapper .password-field,
+#mainScreen .password-input-wrapper input.password-field {
+    width: 100% !important;
+    padding: 10px 40px 10px 12px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    color: #111827 !important;
+    background: white !important;
+    transition: all 0.2s ease !important;
+    display: block !important;
+    box-sizing: border-box !important;
+}
+
+#mainScreen .password-input-wrapper .password-field:focus,
+#mainScreen .password-input-wrapper input.password-field:focus {
+    outline: none !important;
+    border-color: #69B41E !important;
+    box-shadow: 0 0 0 3px rgba(105, 180, 30, 0.1) !important;
+}
+
+#mainScreen .password-input-wrapper .password-field::placeholder,
+#mainScreen .password-input-wrapper input.password-field::placeholder {
+    color: #9ca3af !important;
+}
+
+#mainScreen .toggle-password {
+    position: absolute !important;
+    right: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    cursor: pointer !important;
+    color: #6b7280 !important;
+    font-size: 14px !important;
+    transition: color 0.2s ease !important;
+    z-index: 1 !important;
+}
+
+#mainScreen .toggle-password:hover { color: #0D5B11 !important; }
+
+#mainScreen .change-password-actions {
+    display: flex !important;
+    justify-content: flex-end !important;
+    margin-top: 16px !important;
+    padding-top: 12px !important;
+    border-top: 1px solid var(--gray-200) !important;
+}
+
+/* Personal section overrides to match IT Head exactly */
+#mainScreen .personal-section .form-group {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    padding: 0.5rem 0 !important;
+    margin-bottom: 0 !important;
+}
+
+#mainScreen .personal-section .form-group:last-child { border-bottom: none !important; }
+
+#mainScreen .personal-section .form-group label {
+    width: 160px !important;
+    flex-shrink: 0 !important;
+    color: #6b7280 !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    margin: 0 !important;
+}
+
+#mainScreen .personal-section .edit-input {
+    display: block !important;
+    flex: 1 !important;
+    width: auto !important;
+    padding: 8px 12px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    color: #111827 !important;
+    background: white !important;
+    transition: all 0.2s ease !important;
+}
+
+#mainScreen .personal-section .edit-input:disabled {
+    background: #f9fafb !important;
+    color: #6b7280 !important;
+    cursor: not-allowed !important;
+    border-color: #e5e7eb !important;
+}
+
+#mainScreen .personal-section .edit-input:not(:disabled):focus {
+    outline: none !important;
+    border-color: #69B41E !important;
+    box-shadow: 0 0 0 3px rgba(105, 180, 30, 0.1) !important;
+}
+
+#mainScreen .personal-section .edit-input[readonly] {
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+    cursor: default !important;
+    border-color: #e5e7eb !important;
+}
+
+#mainScreen .personal-section .edit-input::placeholder { color: #9ca3af !important; }
 
 /* Hover Effects - Section Boxes */
 #mainScreen .personal-section:hover,
@@ -599,6 +748,29 @@
         max-width: 120px !important;
         flex: 0 1 auto !important;
     }
+}
+
+
+
+
+
+
+
+/* Personal Information spacing tweaks to match IT Head */
+#mainScreen .personal-section .personal-content {
+    padding: 0.5rem !important;
+    margin-top: 0.5rem !important;
+}
+
+#mainScreen .personal-section .form-group {
+    margin-bottom: 0.5rem !important;
+    padding: 0.25rem 0 !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+
+#mainScreen .personal-section .form-group:last-child {
+    margin-bottom: 0 !important;
+    border-bottom: none !important;
 }
 
 
