@@ -8,7 +8,7 @@
     margin: 0 !important; /* Remove auto margins */
     background: #fafbfc !important;
     min-height: calc(100vh - 120px) !important;
-    padding-top: 40px !important; /* Added a bit more space for desktop */
+    padding-top: 60px !important; /* Space before Account Settings title */
 }
 
 /* Account Header */
@@ -55,9 +55,30 @@
 /* Account Grid Layout */
 #mainScreen .account-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)) !important;
     gap: 1rem !important;
-    margin: 0 32px 1.5rem 32px !important; /* Increase left/right margins to align with header date */
+    margin: 0 32px 1.5rem 32px !important;
+}
+
+/* Desktop: Larger screens */
+@media (min-width: 1441px) {
+    #mainScreen .account-grid {
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)) !important;
+        gap: 1.25rem !important;
+    }
+}
+
+/* Laptop/Small Desktop: 1024px - 1440px */
+@media (max-width: 1440px) and (min-width: 1024px) {
+    #mainScreen .account-grid {
+        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)) !important;
+        gap: 1rem !important;
+        margin: 0 24px 1.5rem 24px !important;
+    }
+    
+    #mainScreen .account-header {
+        margin: 2rem 24px 1.25rem 24px !important;
+    }
 }
 
 /* Section Cards */
@@ -70,11 +91,12 @@
     transition: all 0.2s ease !important;
 }
 
-/* Section Headers */
+/* Section Headers - with top spacing */
 #mainScreen .account-section h2 {
     color: #0D5B11 !important;
     font-size: 1rem !important;
     font-weight: 600 !important;
+    margin-top: 0.5rem !important; /* Space before title */
     margin-bottom: 1rem !important;
     padding-bottom: 0.5rem !important;
     border-bottom: 1px solid #f0f2f5 !important;
@@ -92,6 +114,7 @@
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
+    margin-top: 0.5rem !important; /* Space before title */
     margin-bottom: 0.75rem !important;
 }
 
@@ -127,7 +150,7 @@
     display: none !important;
 }
 
-/* Form Groups */
+/* Form Groups - Uniform text sizes across all sections */
 #mainScreen .form-group {
     margin-bottom: 0.75rem !important;
     display: flex !important;
@@ -144,29 +167,24 @@
     width: 160px !important;
     color: #6b7280 !important;
     font-weight: 500 !important;
-    font-size: 0.875rem !important;
+    font-size: 0.875rem !important; /* Uniform base size */
     margin: 0 !important;
     flex-shrink: 0 !important;
 }
 
-#mainScreen .form-group .info-value {
+#mainScreen .form-group .info-value,
+#mainScreen .form-group span {
     color: #111827 !important;
     font-weight: 500 !important;
-    font-size: 0.875rem !important;
+    font-size: 0.875rem !important; /* Uniform base size */
     margin: 0 !important;
     flex: 1 !important;
-}
-
-/* Security Status Styling */
-#mainScreen .form-group .info-value {
-    color: #111827 !important;
-    font-weight: 500 !important;
 }
 
 /* Edit Input Fields */
 #mainScreen .form-group .edit-input {
     display: block !important;
-    width: 100% !important;
+    flex: 1 !important;
     padding: 0.5rem !important;
     border: 1px solid #69B41E !important;
     border-radius: 4px !important;
@@ -232,10 +250,16 @@
 #mainScreen .status-content {
     background: #f8f9fa !important;
     padding: 0.75rem !important;
+    padding-top: 1rem !important;
     border-radius: 6px !important;
     border-left: 3px solid #69B41E !important;
     margin-top: 0.75rem !important;
     transition: none !important;
+}
+
+/* Change Password section - add spacing before fields */
+#mainScreen .status-section .status-content .form-group:first-child {
+    margin-top: 0.5rem !important;
 }
 
 /* Section actions (Edit/Update + Cancel) */
@@ -342,15 +366,16 @@
     position: relative !important;
     display: block !important;
     width: 100% !important;
+    flex: 1 !important;
 }
 
 #mainScreen .password-input-wrapper .password-field,
 #mainScreen .password-input-wrapper input.password-field {
     width: 100% !important;
-    padding: 10px 40px 10px 12px !important;
+    padding: 8px 40px 8px 12px;
     border: 1px solid #d1d5db !important;
     border-radius: 6px !important;
-    font-size: 0.875rem !important;
+    font-size: 0.875rem;
     font-weight: 400 !important;
     color: #111827 !important;
     background: white !important;
@@ -393,41 +418,22 @@
     border-top: 1px solid var(--gray-200) !important;
 }
 
-/* Personal section overrides to match IT Head exactly */
+/* Personal section - uses same form-group styling but with specific content padding */
+#mainScreen .personal-section .personal-content {
+    padding: 0.5rem !important;
+    margin-top: 0.5rem !important;
+}
+
 #mainScreen .personal-section .form-group {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    border-bottom: 1px solid #f3f4f6 !important;
-    padding: 0.5rem 0 !important;
+    margin-bottom: 0.5rem !important;
+    padding: 0.25rem 0 !important;
+}
+
+#mainScreen .personal-section .form-group:last-child {
     margin-bottom: 0 !important;
 }
 
-#mainScreen .personal-section .form-group:last-child { border-bottom: none !important; }
-
-#mainScreen .personal-section .form-group label {
-    width: 160px !important;
-    flex-shrink: 0 !important;
-    color: #6b7280 !important;
-    font-weight: 600 !important;
-    font-size: 0.875rem !important;
-    margin: 0 !important;
-}
-
-#mainScreen .personal-section .edit-input {
-    display: block !important;
-    flex: 1 !important;
-    width: auto !important;
-    padding: 8px 12px !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
-    font-size: 0.875rem !important;
-    font-weight: 400 !important;
-    color: #111827 !important;
-    background: white !important;
-    transition: all 0.2s ease !important;
-}
-
+/* Personal section edit inputs inherit base styles but need specific disabled state */
 #mainScreen .personal-section .edit-input:disabled {
     background: #f9fafb !important;
     color: #6b7280 !important;
@@ -459,320 +465,415 @@
     border-color: #69B41E !important;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-    #mainScreen .account-grid {
-        grid-template-columns: 1fr !important;
-        gap: 1rem !important;
-    }
-}
-
-@media (max-width: 768px) {
+/* Tablet: 768px - 1023px */
+@media (max-width: 1023px) and (min-width: 768px) {
     #mainScreen .account-content {
-        padding: 1rem !important;
+        padding: 1rem 0 !important;
+        padding-top: 60px !important; /* Added more space at top for tablet */
     }
     
     #mainScreen .account-header {
-        margin: 4rem 0 1.5rem 0 !important;
-        padding: 0.75rem !important;
+        margin: 1.75rem 20px 1rem 20px !important;
+        padding: 0.875rem !important;
+    }
+    
+    #mainScreen .account-header h1 {
+        font-size: 1.05rem !important;
+    }
+    
+    #mainScreen .account-header p {
+        font-size: 0.775rem !important;
+    }
+    
+    #mainScreen .account-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.875rem !important;
+        margin: 0 20px 1.25rem 20px !important;
     }
     
     #mainScreen .account-section {
-        padding: 1rem !important;
+        padding: 1.125rem !important;
     }
     
-    #mainScreen .form-group {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 0.25rem !important;
+    #mainScreen .section-header {
+        margin-top: 0.4rem !important;
     }
     
+    #mainScreen .account-section h2 {
+        font-size: 0.95rem !important;
+        margin-top: 0.4rem !important;
+    }
+    
+    /* Uniform text sizes - labels BESIDE fields */
     #mainScreen .form-group label {
-        width: auto !important;
+        width: 140px !important;
+        font-size: 0.825rem !important;
     }
     
-    #mainScreen .action-buttons {
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 1rem !important;
+    #mainScreen .form-group .info-value,
+    #mainScreen .form-group span,
+    #mainScreen .form-group .edit-input {
+        font-size: 0.825rem !important;
+    }
+    
+    #mainScreen .form-group .edit-input {
+        padding: 7px 11px !important;
+    }
+    
+    #mainScreen .btn-edit,
+    #mainScreen .btn-cancel {
+        padding: 5px 10px !important;
+        font-size: 12px !important;
     }
     
     #mainScreen .btn {
-        width: auto !important;
-        max-width: 180px !important;
-        flex: 0 1 auto !important;
+        padding: 0.5rem 1rem !important;
+        font-size: 0.825rem !important;
+    }
+    
+    #mainScreen .password-input-wrapper .password-field,
+    #mainScreen .password-input-wrapper input.password-field {
+        padding: 9px 38px 9px 11px;
+        font-size: 0.825rem;
     }
 }
 
-/* Tablet View - Enhanced Mobile Responsiveness */
-@media (max-width: 768px) {
+/* Mobile Landscape & Small Tablet: 481px - 767px - Keep labels BESIDE */
+@media (max-width: 767px) and (min-width: 481px) {
     #mainScreen .account-content {
-        padding: 0.75rem !important;
-        padding-top: 50px !important; /* Set to 50px for tablet */
+        padding: 0.75rem 0 !important;
+        padding-top: 55px !important; /* Added more space at top for mobile landscape */
     }
     
     #mainScreen .account-header {
-        margin: 1.5rem 16px 1rem 16px !important;
+        margin: 1.25rem 16px 0.875rem 16px !important;
         padding: 0.75rem !important;
     }
     
     #mainScreen .account-header h1 {
-        font-size: 1rem !important;
+        font-size: 0.95rem !important;
+        margin-bottom: 0.4rem !important;
     }
     
     #mainScreen .account-header p {
-        font-size: 0.75rem !important;
+        font-size: 0.725rem !important;
     }
     
     #mainScreen .account-grid {
-        margin: 0 16px 1rem 16px !important;
+        grid-template-columns: 1fr !important;
         gap: 0.75rem !important;
+        margin: 0 16px 1rem 16px !important;
     }
     
     #mainScreen .account-section {
         padding: 0.875rem !important;
     }
     
+    #mainScreen .section-header {
+        margin-top: 0.35rem !important;
+    }
+    
     #mainScreen .account-section h2 {
-        font-size: 0.9rem !important;
-        margin-bottom: 0.75rem !important;
+        font-size: 0.875rem !important;
+        margin-top: 0.35rem !important;
+        margin-bottom: 0.625rem !important;
     }
     
     #mainScreen .account-section h2 i {
-        font-size: 0.9rem !important;
+        font-size: 0.875rem !important;
     }
     
-    #mainScreen .form-group {
-        margin-bottom: 0.5rem !important;
-        padding: 0.375rem 0 !important;
-    }
-    
+    /* Uniform text sizes - labels BESIDE fields */
     #mainScreen .form-group label {
-        font-size: 0.8rem !important;
+        width: 120px !important;
+        font-size: 0.775rem !important;
     }
     
-    #mainScreen .form-group .info-value {
-        font-size: 0.8rem !important;
+    #mainScreen .form-group .info-value,
+    #mainScreen .form-group span,
+    #mainScreen .form-group .edit-input {
+        font-size: 0.775rem !important;
     }
     
-    #mainScreen .edit-btn {
-        padding: 0.25rem 0.5rem !important;
-        font-size: 0.75rem !important;
+    #mainScreen .form-group .edit-input {
+        padding: 7px 10px !important;
+    }
+    
+    #mainScreen .btn-edit,
+    #mainScreen .btn-cancel {
+        padding: 5px 9px !important;
+        font-size: 11.5px !important;
+    }
+    
+    #mainScreen .btn-edit i,
+    #mainScreen .btn-cancel i {
+        font-size: 11px !important;
     }
     
     #mainScreen .personal-content,
-    #mainScreen .status-content,
-    #mainScreen .role-info,
-    #mainScreen .branch-info {
+    #mainScreen .status-content {
         padding: 0.5rem !important;
-    }
-    
-    #mainScreen .permission-tag {
-        font-size: 0.7rem !important;
-        padding: 0.2rem 0.4rem !important;
-    }
-    
-    #mainScreen .action-buttons {
-        margin-top: 1rem !important;
     }
     
     #mainScreen .btn {
-        max-width: 250px !important;
-        padding: 0.5rem 1rem !important;
-        font-size: 0.8rem !important;
+        padding: 0.45rem 0.875rem !important;
+        font-size: 0.775rem !important;
+    }
+    
+    #mainScreen .btn i {
+        font-size: 0.75rem !important;
+    }
+    
+    #mainScreen .password-input-wrapper .password-field,
+    #mainScreen .password-input-wrapper input.password-field {
+        padding: 8px 36px 8px 10px;
+        font-size: 0.775rem;
+    }
+    
+    #mainScreen .toggle-password {
+        font-size: 13px !important;
+        right: 10px !important;
+    }
+    
+    #mainScreen .change-password-actions {
+        margin-top: 12px !important;
+        padding-top: 10px !important;
     }
 }
 
-/* Mobile View - Enhanced Responsiveness */
+
+
+/* Mobile: 320px - 480px - Stack labels below */
 @media (max-width: 480px) {
     #mainScreen .account-content {
-        padding: 0.5rem !important;
-        padding-top: 55px !important; /* Added a bit more space for mobile */
+        padding: 0.5rem 0 !important;
+        padding-top: 50px !important; /* Added space before Account Settings container on mobile */
     }
     
     #mainScreen .account-header {
-        margin: 0.75rem 12px 0.75rem 12px !important;
+        margin: 1rem 12px 0.75rem 12px !important;
         padding: 0.625rem !important;
     }
     
     #mainScreen .account-header h1 {
-        font-size: 0.9rem !important;
-        margin-bottom: 0.375rem !important;
+        font-size: 0.85rem !important;
+        margin-bottom: 0.35rem !important;
     }
     
     #mainScreen .account-header p {
-        font-size: 0.7rem !important;
+        font-size: 0.675rem !important;
         line-height: 1.3 !important;
     }
     
     #mainScreen .account-grid {
+        grid-template-columns: 1fr !important;
         margin: 0 12px 0.75rem 12px !important;
         gap: 0.625rem !important;
     }
     
     #mainScreen .account-section {
         padding: 0.75rem !important;
-    }
-    
-    #mainScreen .account-section h2 {
-        font-size: 0.85rem !important;
-        margin-bottom: 0.625rem !important;
-    }
-    
-    #mainScreen .account-section h2 i {
-        font-size: 0.85rem !important;
+        border-radius: 6px !important;
     }
     
     #mainScreen .section-header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
         gap: 0.5rem !important;
-        margin-bottom: 0.625rem !important;
+        margin-top: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
     }
     
+    #mainScreen .account-section h2 {
+        font-size: 0.8rem !important;
+        margin-top: 0.5rem !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+        flex: 0 1 auto !important;
+    }
+    
+    #mainScreen .account-section h2 i {
+        font-size: 0.8rem !important;
+    }
+    
+    #mainScreen .section-actions {
+        flex: 0 0 auto !important;
+        justify-content: flex-end !important;
+    }
+    
+    /* Keep labels BESIDE fields on mobile */
     #mainScreen .form-group {
-        margin-bottom: 0.375rem !important;
-        padding: 0.25rem 0 !important;
+        padding: 0.3rem 0 !important;
+        margin-bottom: 0.3rem !important;
+        gap: 0.5rem !important; /* Add space between label and field */
     }
     
+    /* Uniform text sizes for ALL sections */
     #mainScreen .form-group label {
-        font-size: 0.75rem !important;
-        margin-bottom: 0.125rem !important;
-    }
-    
-    #mainScreen .form-group .info-value {
-        font-size: 0.75rem !important;
-    }
-    
-    #mainScreen .edit-btn {
-        padding: 0.2rem 0.4rem !important;
+        width: 100px !important;
         font-size: 0.7rem !important;
+        margin-right: 0 !important; /* Remove any margin, use gap instead */
+    }
+    
+    #mainScreen .form-group .info-value,
+    #mainScreen .form-group span,
+    #mainScreen .form-group .edit-input {
+        font-size: 0.725rem !important;
+    }
+    
+    #mainScreen .form-group .edit-input {
+        padding: 6px 9px !important;
+    }
+    
+    #mainScreen .btn-edit,
+    #mainScreen .btn-cancel {
+        padding: 6px 10px !important; /* Made Edit button a bit higher on mobile */
+        font-size: 11px !important;
+    }
+    
+    #mainScreen .btn-edit i,
+    #mainScreen .btn-cancel i {
+        font-size: 10.5px !important;
     }
     
     #mainScreen .personal-content,
-    #mainScreen .status-content,
-    #mainScreen .role-info,
-    #mainScreen .branch-info {
+    #mainScreen .status-content {
         padding: 0.4rem !important;
+        margin-top: 0.4rem !important;
+        padding-top: 0.75rem !important; /* Added space before fields on mobile */
+    }
+    
+    /* Add space before Change Password fields on mobile */
+    #mainScreen .status-section .status-content .form-group:first-child {
         margin-top: 0.5rem !important;
-    }
-    
-    #mainScreen .permission-tags {
-        gap: 0.375rem !important;
-        margin-top: 0.5rem !important;
-    }
-    
-    #mainScreen .permission-tag {
-        font-size: 0.65rem !important;
-        padding: 0.15rem 0.3rem !important;
-    }
-    
-    #mainScreen .action-buttons {
-        margin-top: 0.75rem !important;
-        padding-top: 0.75rem !important;
-        flex-direction: row !important;
-        justify-content: center !important;
-        gap: 0.75rem !important;
     }
     
     #mainScreen .btn {
-        max-width: 130px !important;
-        padding: 0.45rem 0.875rem !important;
-        font-size: 0.75rem !important;
-        flex: 0 1 auto !important;
+        padding: 0.4rem 0.75rem !important;
+        font-size: 0.725rem !important;
+    }
+    
+    #mainScreen .btn i {
+        font-size: 0.7rem !important;
+    }
+    
+    #mainScreen .password-input-wrapper .password-field,
+    #mainScreen .password-input-wrapper input.password-field {
+        padding: 7px 34px 7px 9px;
+        font-size: 0.725rem;
+    }
+    
+    #mainScreen .toggle-password {
+        font-size: 12px !important;
+        right: 9px !important;
+    }
+    
+    #mainScreen .change-password-actions {
+        margin-top: 10px !important;
+        padding-top: 8px !important;
     }
 }
 
-/* Extra Small Mobile View */
-@media (max-width: 360px) {
+/* Extra Small Mobile: Below 360px */
+@media (max-width: 359px) {
     #mainScreen .account-content {
-        padding: 0.375rem !important;
-        padding-top: 60px !important; /* Added a bit more space for very small screens */
+        padding: 0.375rem 0 !important;
+        padding-top: 20px !important;
     }
     
     #mainScreen .account-header {
-        margin: 0.5rem 8px 0.5rem 8px !important;
+        margin: 0.75rem 8px 0.625rem 8px !important;
         padding: 0.5rem !important;
     }
     
     #mainScreen .account-header h1 {
-        font-size: 0.85rem !important;
+        font-size: 0.775rem !important;
+        margin-bottom: 0.3rem !important;
     }
     
     #mainScreen .account-header p {
-        font-size: 0.65rem !important;
+        font-size: 0.625rem !important;
+        line-height: 1.25 !important;
     }
     
     #mainScreen .account-grid {
-        margin: 0 8px 0.5rem 8px !important;
+        margin: 0 8px 0.625rem 8px !important;
         gap: 0.5rem !important;
     }
     
     #mainScreen .account-section {
         padding: 0.625rem !important;
+        border-radius: 5px !important;
+    }
+    
+    #mainScreen .section-header {
+        margin-top: 0.4rem !important;
     }
     
     #mainScreen .account-section h2 {
-        font-size: 0.8rem !important;
+        font-size: 0.75rem !important;
+        margin-top: 0.4rem !important;
+        padding-bottom: 0.3rem !important;
     }
     
     #mainScreen .account-section h2 i {
-        font-size: 0.8rem !important;
+        font-size: 0.75rem !important;
     }
     
+    /* Uniform text sizes for ALL sections - labels BESIDE */
     #mainScreen .form-group label {
-        font-size: 0.7rem !important;
-    }
-    
-    #mainScreen .form-group .info-value {
-        font-size: 0.7rem !important;
-    }
-    
-    #mainScreen .edit-btn {
+        width: 90px !important;
         font-size: 0.65rem !important;
     }
     
-    #mainScreen .permission-tag {
-        font-size: 0.6rem !important;
+    #mainScreen .form-group .info-value,
+    #mainScreen .form-group span,
+    #mainScreen .form-group .edit-input {
+        font-size: 0.675rem !important;
     }
     
-    #mainScreen .action-buttons {
-        flex-direction: row !important;
-        justify-content: center !important;
-        gap: 0.5rem !important;
+    #mainScreen .form-group .edit-input {
+        padding: 5px 8px !important;
+    }
+    
+    #mainScreen .btn-edit,
+    #mainScreen .btn-cancel {
+        padding: 3px 7px !important;
+        font-size: 10px !important;
+    }
+    
+    #mainScreen .btn-edit i,
+    #mainScreen .btn-cancel i {
+        font-size: 9px !important;
+    }
+    
+    #mainScreen .personal-content,
+    #mainScreen .status-content {
+        padding: 0.35rem !important;
+        margin-top: 0.35rem !important;
     }
     
     #mainScreen .btn {
-        font-size: 0.7rem !important;
-        max-width: 120px !important;
-        flex: 0 1 auto !important;
+        padding: 0.35rem 0.625rem !important;
+        font-size: 0.675rem !important;
+    }
+    
+    #mainScreen .btn i {
+        font-size: 0.65rem !important;
+    }
+    
+    #mainScreen .password-input-wrapper .password-field,
+    #mainScreen .password-input-wrapper input.password-field {
+        padding: 6px 32px 6px 8px;
+        font-size: 0.675rem;
+    }
+    
+    #mainScreen .toggle-password {
+        font-size: 11px !important;
+        right: 8px !important;
     }
 }
-
-
-
-
-
-
-
-/* Personal Information spacing tweaks to match IT Head */
-#mainScreen .personal-section .personal-content {
-    padding: 0.5rem !important;
-    margin-top: 0.5rem !important;
-}
-
-#mainScreen .personal-section .form-group {
-    margin-bottom: 0.5rem !important;
-    padding: 0.25rem 0 !important;
-    border-bottom: 1px solid #f3f4f6 !important;
-}
-
-#mainScreen .personal-section .form-group:last-child {
-    margin-bottom: 0 !important;
-    border-bottom: none !important;
-}
-
 
 
 

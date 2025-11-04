@@ -203,6 +203,7 @@
 
     <script src="../js/main.js"></script>
     <script src="../js/shared-utils.js"></script>
+    <script src="../js/topbar.js"></script>
     <script>
         // Format branch display to match IT Head
         function formatBranchDisplay({ isMain, name, location, number, id }) {
@@ -491,6 +492,7 @@
             updateDateTime();
             setInterval(updateDateTime, 1000);
             loadUserInfo();
+            initializeTopBar(); // Initialize topbar dropdown for mobile
         });
 
         // Expose handlers
