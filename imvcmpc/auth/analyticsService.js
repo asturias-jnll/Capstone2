@@ -12,9 +12,10 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Ensure dates are properly formatted for PostgreSQL with timezone handling
-            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
-            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            // This ensures queries work consistently across different server timezone settings
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
             
             if (isMainBranch) {
                 // Main branch users see data from all branches
@@ -25,7 +26,7 @@ class AnalyticsService {
                         COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_growth,
                         COUNT(DISTINCT payee) as active_members
                     FROM ibaan_transactions 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                 `;
                 params = [startDateFormatted, endDateFormatted];
             } else {
@@ -38,7 +39,7 @@ class AnalyticsService {
                         COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_growth,
                         COUNT(DISTINCT payee) as active_members
                     FROM ${branchTable} 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                 `;
                 params = [startDateFormatted, endDateFormatted];
             }
@@ -106,9 +107,9 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Ensure dates are properly formatted for PostgreSQL with timezone handling
-            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
-            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
             
             if (isMainBranch) {
                 // Main branch users see data from all branches
@@ -117,7 +118,7 @@ class AnalyticsService {
                         DATE_TRUNC('day', transaction_date) as date,
                         SUM(savings_deposits) as total_savings
                     FROM ibaan_transactions 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
@@ -130,7 +131,7 @@ class AnalyticsService {
                         DATE_TRUNC('day', transaction_date) as date,
                         SUM(savings_deposits) as total_savings
                     FROM ${branchTable} 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
@@ -151,9 +152,9 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Ensure dates are properly formatted for PostgreSQL with timezone handling
-            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
-            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
             
             if (isMainBranch) {
                 // Main branch users see data from all branches
@@ -162,7 +163,7 @@ class AnalyticsService {
                         DATE_TRUNC('day', transaction_date) as date,
                         SUM(loan_receivables) as total_disbursements
                     FROM ibaan_transactions 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
@@ -175,7 +176,7 @@ class AnalyticsService {
                         DATE_TRUNC('day', transaction_date) as date,
                         SUM(loan_receivables) as total_disbursements
                     FROM ${branchTable} 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
@@ -196,9 +197,9 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Ensure dates are properly formatted for PostgreSQL with timezone handling
-            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
-            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
             
             if (isMainBranch) {
                 // Main branch users see data from all branches
@@ -208,7 +209,7 @@ class AnalyticsService {
                         SUM(savings_deposits) as total_savings,
                         SUM(loan_receivables) as total_disbursements
                     FROM ibaan_transactions 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
@@ -222,7 +223,7 @@ class AnalyticsService {
                         SUM(savings_deposits) as total_savings,
                         SUM(loan_receivables) as total_disbursements
                     FROM ${branchTable} 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
@@ -243,9 +244,9 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Ensure dates are properly formatted for PostgreSQL with timezone handling
-            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
-            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
             
             if (isMainBranch) {
                 // Main branch users see data from all branches
@@ -254,7 +255,7 @@ class AnalyticsService {
                         payee as member_name,
                         COUNT(*) as transaction_count
                     FROM ibaan_transactions 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY payee
                     ORDER BY transaction_count DESC
                     LIMIT 5
@@ -268,7 +269,7 @@ class AnalyticsService {
                         payee as member_name,
                         COUNT(*) as transaction_count
                     FROM ${branchTable} 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY payee
                     ORDER BY transaction_count DESC
                     LIMIT 5
@@ -290,9 +291,9 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Ensure dates are properly formatted for PostgreSQL with timezone handling
-            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
-            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
             
             if (isMainBranch) {
                 // Main branch users see top members from all branches
@@ -305,7 +306,7 @@ class AnalyticsService {
                         SUM(savings_deposits - loan_receivables) as net_position,
                         COUNT(*) as transaction_count
                     FROM ibaan_transactions 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY payee
                     HAVING SUM(savings_deposits - loan_receivables) > 0
                     ORDER BY net_position DESC
@@ -324,7 +325,7 @@ class AnalyticsService {
                         SUM(savings_deposits - loan_receivables) as net_position,
                         COUNT(*) as transaction_count
                     FROM ${branchTable} 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY payee
                     HAVING SUM(savings_deposits - loan_receivables) > 0
                     ORDER BY net_position DESC
@@ -346,9 +347,9 @@ class AnalyticsService {
         try {
             const { startDate, endDate } = filters;
             
-            // Ensure dates are properly formatted for PostgreSQL with timezone handling
-            const startDateFormatted = new Date(startDate + 'T00:00:00.000Z').toISOString();
-            const endDateFormatted = new Date(endDate + 'T23:59:59.999Z').toISOString();
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
             
             // Get all branch data using UNION ALL to combine all branch tables
             const branchQueries = [];
@@ -385,7 +386,7 @@ class AnalyticsService {
                         COUNT(DISTINCT payee) as active_members,
                         COUNT(*) as total_transactions
                     FROM ${branch.table} 
-                    WHERE transaction_date >= $1::timestamp AND transaction_date <= $2::timestamp
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                 `;
                 branchQueries.push(branchQuery);
             });

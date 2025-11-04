@@ -331,36 +331,45 @@ function setCustomDateRange(type, startDate = null) {
     
     if (!startDateInput || !endDateInput) return;
     
-    let start, end;
+    let year, month, day;
     
     if (startDate) {
-        // Use provided start date
-        start = new Date(startDate);
+        // Parse provided start date
+        [year, month, day] = startDate.split('-').map(Number);
     } else {
         // Use current start date or default to today
         const currentStart = startDateInput.value;
-        start = currentStart ? new Date(currentStart) : new Date();
+        if (currentStart) {
+            [year, month, day] = currentStart.split('-').map(Number);
+        } else {
+            const today = new Date();
+            year = today.getFullYear();
+            month = today.getMonth() + 1;
+            day = today.getDate();
+        }
     }
+    
+    let startDateStr, endDateStr;
     
     switch (type) {
         case 'week':
             // Set end date to 7 days after start date
-            end = new Date(start);
-            end.setDate(end.getDate() + 6); // 7 days total (start + 6 more days)
+            const endWeek = new Date(year, month - 1, day + 6);
+            startDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            endDateStr = `${endWeek.getFullYear()}-${String(endWeek.getMonth() + 1).padStart(2, '0')}-${String(endWeek.getDate()).padStart(2, '0')}`;
             break;
             
         case 'month':
-            // Set end date to last day of the month
-            end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
             // Set start date to first day of the month
-            start = new Date(start.getFullYear(), start.getMonth(), 1);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
+            endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
             break;
             
         case 'year':
-            // Set end date to last day of the year
-            end = new Date(start.getFullYear(), 11, 31);
-            // Set start date to first day of the year
-            start = new Date(start.getFullYear(), 0, 1);
+            // Set start date to first day of year, end date to last day of year
+            startDateStr = `${year}-01-01`;
+            endDateStr = `${year}-12-31`;
             break;
             
         default:
@@ -368,8 +377,8 @@ function setCustomDateRange(type, startDate = null) {
     }
     
     // Update the input fields
-    startDateInput.value = start.toISOString().split('T')[0];
-    endDateInput.value = end.toISOString().split('T')[0];
+    startDateInput.value = startDateStr;
+    endDateInput.value = endDateStr;
     
     // Add visual feedback for auto-calculation
     endDateInput.style.backgroundColor = '#f0f9ff';
@@ -389,12 +398,17 @@ function setWeekRangeFromStart(startDate) {
     
     if (!startDateInput || !endDateInput) return;
     
-    const start = new Date(startDate);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6); // 7 days total (including start date)
+    // Parse the date string directly to avoid timezone issues
+    const [year, month, day] = startDate.split('-').map(Number);
+    const start = new Date(year, month - 1, day);
+    const end = new Date(year, month - 1, day + 6); // 7 days total (including start date)
     
-    startDateInput.value = start.toISOString().split('T')[0];
-    endDateInput.value = end.toISOString().split('T')[0];
+    // Format dates without timezone conversion
+    const startDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const endDateStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+    
+    startDateInput.value = startDateStr;
+    endDateInput.value = endDateStr;
     
     // Add visual feedback
     endDateInput.style.backgroundColor = '#f0f9ff';
@@ -412,12 +426,17 @@ function setWeekRangeFromEnd(endDate) {
     
     if (!startDateInput || !endDateInput) return;
     
-    const end = new Date(endDate);
-    const start = new Date(end);
-    start.setDate(start.getDate() - 6); // 7 days total (including end date)
+    // Parse the date string directly to avoid timezone issues
+    const [year, month, day] = endDate.split('-').map(Number);
+    const end = new Date(year, month - 1, day);
+    const start = new Date(year, month - 1, day - 6); // 7 days total (including end date)
     
-    startDateInput.value = start.toISOString().split('T')[0];
-    endDateInput.value = end.toISOString().split('T')[0];
+    // Format dates without timezone conversion
+    const startDateStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+    const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    startDateInput.value = startDateStr;
+    endDateInput.value = endDateStr;
     
     // Add visual feedback
     startDateInput.style.backgroundColor = '#f0f9ff';
@@ -437,19 +456,21 @@ function setMonthRange() {
     
     if (!monthSelect || !yearSelect || !startDateInput || !endDateInput) return;
     
-    const month = monthSelect.value;
-    const year = yearSelect.value;
+    const month = parseInt(monthSelect.value);
+    const year = parseInt(yearSelect.value);
     
     if (!month || !year) return;
     
-    // Set start date to first day of the month
-    const start = new Date(year, month - 1, 1);
+    // Set start date to first day of the month (YYYY-MM-DD format without timezone conversion)
+    const startDay = '01';
+    const startDateStr = `${year}-${String(month).padStart(2, '0')}-${startDay}`;
     
-    // Set end date to last day of the month
-    const end = new Date(year, month, 0);
+    // Calculate last day of the month
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
     
-    startDateInput.value = start.toISOString().split('T')[0];
-    endDateInput.value = end.toISOString().split('T')[0];
+    startDateInput.value = startDateStr;
+    endDateInput.value = endDateStr;
     
     // Add visual feedback
     startDateInput.style.backgroundColor = '#f0f9ff';
@@ -477,13 +498,13 @@ function setYearRange() {
     const selectedYear = parseInt(yearSelectOnly.value);
     if (!selectedYear) return;
     
-    // Set start date to January 1st of selected year
-    const startDate = new Date(selectedYear, 0, 1);
+    // Set start date to January 1st of selected year (YYYY-MM-DD format without timezone conversion)
+    const startDateStr = `${selectedYear}-01-01`;
     // Set end date to December 31st of selected year
-    const endDate = new Date(selectedYear, 11, 31);
+    const endDateStr = `${selectedYear}-12-31`;
     
-    startDateInput.value = startDate.toISOString().split('T')[0];
-    endDateInput.value = endDate.toISOString().split('T')[0];
+    startDateInput.value = startDateStr;
+    endDateInput.value = endDateStr;
     
     // Add visual feedback
     endDateInput.style.backgroundColor = '#f0f9ff';
@@ -509,16 +530,20 @@ function setWeekRangeFromSingleDate(selectedDate) {
     
     if (!selectedDate) return;
     
-    const selected = new Date(selectedDate);
-    const startOfWeek = new Date(selected);
+    // Parse the date string directly to avoid timezone issues
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const selected = new Date(year, month - 1, day);
+    const startOfWeek = new Date(year, month - 1, day);
     
     // Set end date to 7 days after start date
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // 7 days total (start + 6 more days)
+    const endOfWeek = new Date(year, month - 1, day + 6); // 7 days total (start + 6 more days)
     
-    // Update the hidden date inputs
-    startDateInput.value = startOfWeek.toISOString().split('T')[0];
-    endDateInput.value = endOfWeek.toISOString().split('T')[0];
+    // Update the hidden date inputs without timezone conversion
+    const startDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const endDateStr = `${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`;
+    
+    startDateInput.value = startDateStr;
+    endDateInput.value = endDateStr;
     
     // Update week preview
     updateWeekPreview(startOfWeek, endOfWeek, selected);
