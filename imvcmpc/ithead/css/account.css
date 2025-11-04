@@ -1,3 +1,143 @@
+/* Account Page Specific Styles */
+
+/* Section Header with Edit Button */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    color: var(--gray-700);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-edit:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.btn-edit i {
+    font-size: 12px;
+}
+
+.btn-edit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    color: var(--gray-700);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.btn-cancel i {
+    font-size: 12px;
+}
+
+/* Override shared CSS to show input fields */
+#mainScreen .personal-section .form-group {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    padding: 0.5rem 0 !important;
+    margin-bottom: 0 !important;
+}
+
+#mainScreen .personal-section .form-group:last-child {
+    border-bottom: none !important;
+}
+
+#mainScreen .personal-section .form-group label {
+    width: 160px !important;
+    flex-shrink: 0 !important;
+    color: #6b7280 !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    margin: 0 !important;
+}
+
+/* Edit Input Styles - Override shared CSS */
+#mainScreen .personal-section .edit-input {
+    display: block !important;
+    flex: 1 !important;
+    width: auto !important;
+    padding: 8px 12px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    color: #111827 !important;
+    background: white !important;
+    transition: all 0.2s ease !important;
+}
+
+#mainScreen .personal-section .edit-input:disabled {
+    background: #f9fafb !important;
+    color: #6b7280 !important;
+    cursor: not-allowed !important;
+    border-color: #e5e7eb !important;
+}
+
+#mainScreen .personal-section .edit-input:not(:disabled):focus {
+    outline: none !important;
+    border-color: #69B41E !important;
+    box-shadow: 0 0 0 3px rgba(105, 180, 30, 0.1) !important;
+}
+
+#mainScreen .personal-section .edit-input[readonly] {
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+    cursor: default !important;
+    border-color: #e5e7eb !important;
+}
+
+#mainScreen .personal-section .edit-input::placeholder {
+    color: #9ca3af !important;
+}
+
+/* Edit Actions */
+.edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray-200);
+}
+
 /* Password Input Wrapper Styles */
 .password-input-wrapper {
     position: relative;
@@ -59,6 +199,15 @@
         padding: 8px 35px 8px 10px !important;
         font-size: 0.8rem !important;
     }
+}
+
+/* Change Password actions inside the section */
+.change-password-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gray-200);
 }
 
 

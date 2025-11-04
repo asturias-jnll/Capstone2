@@ -59,6 +59,8 @@ async function login() {
             localStorage.setItem('refresh_token', data.tokens.refresh_token);
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('lastLoginTime', new Date().toISOString());
+            // Store the raw username used to log in as a reliable fallback for other pages
+            try { localStorage.setItem('login_username', username); } catch (_) {}
             
             // Store user role for logout display
             const userRole = data.user.role_display_name || data.user.role;
