@@ -2378,3 +2378,241 @@ body {
         margin: 0 1px !important;
     }
 }
+
+/* Upload Transactions Button */
+.upload-transactions-btn {
+    padding: 12px 20px;
+    background: #3B82F6;
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.upload-transactions-btn:hover {
+    background: #2563EB;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.upload-transactions-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+/* Upload Modal Styles */
+.upload-modal-content {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.upload-instructions {
+    background: #F0F9FF;
+    border: 1px solid #BAE6FD;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.upload-instructions h4 {
+    color: #0369A1;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.upload-instructions ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.upload-instructions li {
+    color: #075985;
+    font-size: 13px;
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+.upload-area {
+    border: 2px dashed #D1D5DB;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    background: #F9FAFB;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.upload-area:hover {
+    border-color: #3B82F6;
+    background: #EFF6FF;
+}
+
+.upload-area.drag-over {
+    border-color: #3B82F6;
+    background: #DBEAFE;
+}
+
+.upload-placeholder i {
+    font-size: 48px;
+    color: #9CA3AF;
+    margin-bottom: 16px;
+}
+
+.upload-placeholder p {
+    color: #4B5563;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.upload-placeholder .file-types {
+    color: #6B7280;
+    font-size: 14px;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #F0FDF4;
+    border: 1px solid #86EFAC;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.file-info i {
+    font-size: 24px;
+    color: #16A34A;
+}
+
+.file-info span {
+    flex: 1;
+    color: #166534;
+    font-weight: 500;
+}
+
+.remove-file-btn {
+    background: transparent;
+    border: none;
+    color: #DC2626;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.remove-file-btn:hover {
+    background: #FEE2E2;
+}
+
+.preview-controls {
+    margin-bottom: 16px;
+}
+
+.preview-controls h4 {
+    color: #1F2937;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.preview-stats {
+    display: flex;
+    gap: 24px;
+    font-size: 14px;
+    color: #6B7280;
+}
+
+.preview-stats strong {
+    color: #1F2937;
+    font-weight: 600;
+}
+
+.preview-table-container {
+    max-height: 400px;
+    overflow: auto;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.preview-table thead {
+    position: sticky;
+    top: 0;
+    background: #F3F4F6;
+    z-index: 1;
+}
+
+.preview-table th {
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #D1D5DB;
+    white-space: nowrap;
+}
+
+.preview-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #E5E7EB;
+    color: #1F2937;
+}
+
+.preview-table tr:hover {
+    background: #F9FAFB;
+}
+
+.preview-table tr.invalid-row {
+    background: #FEF2F2;
+}
+
+.preview-table tr.invalid-row td {
+    color: #991B1B;
+}
+
+.error-messages {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.error-messages h4 {
+    color: #991B1B;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.error-messages ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.error-messages li {
+    color: #DC2626;
+    font-size: 13px;
+    margin-bottom: 6px;
+}

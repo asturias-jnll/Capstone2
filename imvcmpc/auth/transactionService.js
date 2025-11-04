@@ -731,6 +731,109 @@ class TransactionService {
         }
     }
 
+    // Create multiple transactions in bulk
+    async createBulkTransactions(transactionsData, userId, branchId, userRole = null, isMainBranch = false) {
+        const client = await this.pool.connect();
+        const createdTransactions = [];
+        const failedTransactions = [];
+        
+        try {
+            await client.query('BEGIN');
+            
+            // Get the appropriate table name for this branch
+            const tableName = this.getTableName(branchId);
+            
+            // Process each transaction
+            for (let i = 0; i < transactionsData.length; i++) {
+                try {
+                    const transactionData = transactionsData[i];
+                    
+                    // Generate a unique UUID for this transaction
+                    const transactionId = require('crypto').randomUUID();
+                    
+                    const {
+                        transaction_date,
+                        payee,
+                        reference,
+                        cross_reference,
+                        check_number,
+                        particulars,
+                        debit_amount,
+                        credit_amount,
+                        cash_in_bank,
+                        loan_receivables,
+                        savings_deposits,
+                        interest_income,
+                        service_charge,
+                        sundries
+                    } = transactionData;
+                    
+                    const values = [
+                        transactionId,
+                        transaction_date,
+                        payee,
+                        reference || null,
+                        cross_reference || null,
+                        check_number || null,
+                        particulars,
+                        debit_amount || 0,
+                        credit_amount || 0,
+                        cash_in_bank || 0,
+                        loan_receivables || 0,
+                        savings_deposits || 0,
+                        interest_income || 0,
+                        service_charge || 0,
+                        sundries || 0,
+                        branchId,
+                        userId
+                    ];
+                    
+                    // Insert into the branch-specific table
+                    const query = `
+                        INSERT INTO ${tableName} (
+                            id, transaction_date, payee, reference, cross_reference, check_number,
+                            particulars, debit_amount, credit_amount, cash_in_bank,
+                            loan_receivables, savings_deposits, interest_income,
+                            service_charge, sundries, branch_id, created_by
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                        RETURNING *
+                    `;
+                    
+                    const result = await client.query(query, values);
+                    createdTransactions.push(result.rows[0]);
+                    
+                } catch (error) {
+                    console.error(`Error creating transaction ${i + 1}:`, error);
+                    failedTransactions.push({
+                        index: i + 1,
+                        data: transactionsData[i],
+                        error: error.message
+                    });
+                }
+            }
+            
+            // Commit only if at least one transaction was successful
+            if (createdTransactions.length > 0) {
+                await client.query('COMMIT');
+            } else {
+                await client.query('ROLLBACK');
+            }
+            
+            return {
+                created: createdTransactions.length,
+                failed: failedTransactions.length,
+                transactions: createdTransactions,
+                errors: failedTransactions
+            };
+            
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
     // Close database connection
     async close() {
         await this.pool.end();

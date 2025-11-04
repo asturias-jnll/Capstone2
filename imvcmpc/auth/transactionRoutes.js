@@ -479,4 +479,80 @@ router.get('/month/:year/:month', authenticateToken, checkPermission('transactio
     }
 });
 
+// Bulk upload transactions (Marketing Clerk only)
+router.post('/bulk', authenticateToken, checkPermission('transactions:create'), async (req, res) => {
+    try {
+        const { transactions: transactionsData, branch_id } = req.body;
+        
+        // Validate that transactions array exists and is not empty
+        if (!transactionsData || !Array.isArray(transactionsData) || transactionsData.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Transactions array is required and must not be empty'
+            });
+        }
+        
+        // Ensure user has permission and is from the correct branch
+        const userBranchId = req.user.branch_id;
+        const targetBranchId = parseInt(branch_id);
+        
+        if (userBranchId !== targetBranchId) {
+            return res.status(403).json({
+                success: false,
+                message: 'Cannot upload transactions to a different branch'
+            });
+        }
+        
+        // Validate each transaction
+        const validationErrors = [];
+        transactionsData.forEach((transaction, index) => {
+            try {
+                transactionService.validateTransactionData(transaction);
+            } catch (error) {
+                if (error instanceof InvalidTransactionDataError) {
+                    validationErrors.push({
+                        index: index + 1,
+                        errors: error.errors
+                    });
+                }
+            }
+        });
+        
+        if (validationErrors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation errors in transaction data',
+                errors: validationErrors
+            });
+        }
+        
+        // Create transactions in bulk
+        const result = await transactionService.createBulkTransactions(
+            transactionsData,
+            req.user.id,
+            userBranchId,
+            req.user.role,
+            req.user.is_main_branch
+        );
+        
+        res.status(201).json({
+            success: true,
+            message: `Successfully created ${result.created} transactions`,
+            data: {
+                created: result.created,
+                failed: result.failed,
+                transactions: result.transactions
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error creating bulk transactions:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create bulk transactions',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

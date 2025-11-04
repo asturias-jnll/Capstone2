@@ -124,6 +124,10 @@
                     Pending Requests
                     <span class="request-count" id="requestCount" style="display: none;">0</span>
                 </button>
+                <button class="upload-transactions-btn" id="uploadTransactionsBtn" onclick="openUploadModal()" style="display: none;">
+                    <i class="fas fa-file-upload"></i>
+                    Upload File
+                </button>
                 <button class="add-transaction-btn" onclick="openAddTransactionForm()">
                     <i class="fas fa-plus"></i>
                     Add Transaction
@@ -312,6 +316,82 @@
         </div>
     </div>
 
+    <!-- Upload Transactions Modal -->
+    <div id="uploadTransactionsModal" class="modal" style="display: none;">
+        <div class="modal-content upload-modal-content">
+            <div class="modal-header">
+                <h3>Upload Transactions from Excel/CSV</h3>
+                <button type="button" class="close-btn" onclick="closeUploadModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-instructions">
+                    <h4><i class="fas fa-info-circle"></i> File Requirements:</h4>
+                    <ul>
+                        <li>Excel (.xlsx, .xls) or CSV (.csv) format</li>
+                        <li>Required columns: Date, Payee, Particulars, Debit Amount, Credit Amount</li>
+                        <li>Optional columns: Reference, Cross Reference, Check Number, Cash in Bank, Loan Receivables, Savings Deposits, Interest Income, Service Charge, Sundries</li>
+                        <li>Date format: MM/DD/YYYY or YYYY-MM-DD</li>
+                    </ul>
+                </div>
+                
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleFileSelect(event)">
+                    <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click to select or drag and drop your file here</p>
+                        <span class="file-types">Excel (.xlsx, .xls) or CSV (.csv)</span>
+                    </div>
+                </div>
+                
+                <div id="filePreviewSection" style="display: none;">
+                    <div class="file-info">
+                        <i class="fas fa-file-excel"></i>
+                        <span id="fileName"></span>
+                        <button class="remove-file-btn" onclick="removeFile()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="preview-controls">
+                        <h4>Preview Data (First 10 rows)</h4>
+                        <div class="preview-stats">
+                            <span>Total rows: <strong id="totalRows">0</strong></span>
+                            <span>Valid rows: <strong id="validRows">0</strong></span>
+                            <span>Invalid rows: <strong id="invalidRows">0</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-table-container">
+                        <table class="preview-table" id="previewTable">
+                            <thead id="previewTableHead">
+                                <!-- Headers will be generated dynamically -->
+                            </thead>
+                            <tbody id="previewTableBody">
+                                <!-- Preview data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="errorMessages" class="error-messages" style="display: none;">
+                        <!-- Validation errors will be displayed here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="uploadSubmitBtn" onclick="submitUpload()" style="display: none;">
+                    <i class="fas fa-check"></i>
+                    Upload Transactions
+                </button>
+            </div>
+        </div>
+    </div>
+
             </div>
         </main>
     </div>
@@ -319,6 +399,7 @@
     <script src="../js/main.js"></script>
     <script src="../js/shared-utils.js"></script>
     <script src="../js/memberdata.js"></script>
+    <script src="../js/file-upload.js"></script>
     <script src="../js/notification-highlight.js"></script>
     <script src="../js/topbar.js"></script>
     <script>
