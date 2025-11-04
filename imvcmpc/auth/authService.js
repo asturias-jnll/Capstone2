@@ -299,20 +299,111 @@ class AuthService {
         }
     }
 
-    // Change password
-    async changePassword(userId, currentPassword, newPassword) {
+    // Update user profile (personal information)
+    async updateProfile(userId, updateData) {
         try {
-            // Get current password hash
+            // Check if user exists and get last update time
             const userResult = await db.query(`
-                SELECT password_hash FROM users WHERE id = $1
+                SELECT id, username, email, last_profile_update FROM users WHERE id = $1
             `, [userId]);
 
             if (userResult.rows.length === 0) {
                 throw new Error('User not found');
             }
 
+            const user = userResult.rows[0];
+
+            // Check if 30 days have passed since last profile update
+            if (user.last_profile_update) {
+                const lastUpdate = new Date(user.last_profile_update);
+                const now = new Date();
+                const daysSinceLastUpdate = Math.floor((now - lastUpdate) / (1000 * 60 * 60 * 24));
+
+                if (daysSinceLastUpdate < 30) {
+                    const daysRemaining = 30 - daysSinceLastUpdate;
+                    throw new Error(`You can only update your profile once every 30 days. Please wait ${daysRemaining} more day(s).`);
+                }
+            }
+
+            // Validate required fields
+            const { first_name, last_name, username, email } = updateData;
+
+            if (!first_name || !last_name || !username || !email) {
+                throw new Error('All fields are required: first_name, last_name, username, email');
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                throw new Error('Invalid email format');
+            }
+
+            // Check if username or email already exists for other users
+            const existingUser = await db.query(`
+                SELECT id, username, email FROM users 
+                WHERE (username = $1 OR email = $2) AND id != $3
+            `, [username, email, userId]);
+
+            if (existingUser.rows.length > 0) {
+                const conflicts = [];
+                if (existingUser.rows.some(row => row.username === username)) {
+                    conflicts.push('username');
+                }
+                if (existingUser.rows.some(row => row.email === email)) {
+                    conflicts.push('email');
+                }
+                throw new Error(`Already exists: ${conflicts.join(', ')}`);
+            }
+
+            // Update profile with timestamp
+            const result = await db.query(`
+                UPDATE users 
+                SET first_name = $1, last_name = $2, username = $3, email = $4, 
+                    last_profile_update = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $5
+                RETURNING id, username, email, first_name, last_name, last_profile_update, updated_at
+            `, [first_name, last_name, username, email, userId]);
+
+            return {
+                success: true,
+                message: 'Profile updated successfully',
+                user: result.rows[0]
+            };
+
+        } catch (error) {
+            console.error('Update profile error:', error);
+            throw error;
+        }
+    }
+
+    // Change password
+    async changePassword(userId, currentPassword, newPassword) {
+        try {
+            // Get current password hash and last password change time
+            const userResult = await db.query(`
+                SELECT password_hash, last_password_change FROM users WHERE id = $1
+            `, [userId]);
+
+            if (userResult.rows.length === 0) {
+                throw new Error('User not found');
+            }
+
+            const user = userResult.rows[0];
+
+            // Check if 30 days have passed since last password change
+            if (user.last_password_change) {
+                const lastChange = new Date(user.last_password_change);
+                const now = new Date();
+                const daysSinceLastChange = Math.floor((now - lastChange) / (1000 * 60 * 60 * 24));
+
+                if (daysSinceLastChange < 30) {
+                    const daysRemaining = 30 - daysSinceLastChange;
+                    throw new Error(`You can only change your password once every 30 days. Please wait ${daysRemaining} more day(s).`);
+                }
+            }
+
             // Verify current password
-            const isValidPassword = await bcrypt.compare(currentPassword, userResult.rows[0].password_hash);
+            const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
             if (!isValidPassword) {
                 throw new Error('Current password is incorrect');
             }
@@ -320,13 +411,20 @@ class AuthService {
             // Validate new password
             this.validatePassword(newPassword);
 
+            // Ensure new password is different from current
+            const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+            if (isSamePassword) {
+                throw new Error('New password must be different from current password');
+            }
+
             // Hash new password
             const newPasswordHash = await bcrypt.hash(newPassword, this.bcryptRounds);
 
-            // Update password
+            // Update password with timestamp
             await db.query(`
                 UPDATE users 
-                SET password_hash = $1, password_changed_at = CURRENT_TIMESTAMP
+                SET password_hash = $1, last_password_change = CURRENT_TIMESTAMP, 
+                    password_changed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $2
             `, [newPasswordHash, userId]);
 

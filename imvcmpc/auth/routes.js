@@ -141,8 +141,75 @@ router.get('/profile',
     }
 );
 
+// Get current user info (simplified endpoint for account page)
+router.get('/me',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const user = await authService.getUserWithDetails(req.user.id);
+            res.json({
+                success: true,
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                role: user.role_name,
+                role_display_name: user.role_display_name,
+                branch_id: user.branch_id,
+                branch_name: user.branch_name,
+                branch_location: user.branch_location,
+                is_main_branch_user: user.is_main_branch_user,
+                employee_id: user.employee_id,
+                phone_number: user.phone_number,
+                last_profile_update: user.last_profile_update,
+                last_password_change: user.last_password_change,
+                last_login: user.last_login,
+                created_at: user.created_at
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
+// Update profile (personal information)
+router.put('/update-profile',
+    authenticateToken,
+    auditLog('profile_update', 'users'),
+    async (req, res) => {
+        try {
+            const { first_name, last_name, username, email } = req.body;
+            
+            if (!first_name || !last_name || !username || !email) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'All fields are required: first_name, last_name, username, email'
+                });
+            }
+
+            const result = await authService.updateProfile(req.user.id, {
+                first_name,
+                last_name,
+                username,
+                email
+            });
+            res.json(result);
+
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
 // Change password
-router.post('/change-password',
+router.put('/change-password',
     authenticateToken,
     auditLog('password_change', 'users'),
     async (req, res) => {
