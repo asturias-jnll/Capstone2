@@ -1031,18 +1031,31 @@ div[style*="height: 260px"] h4 {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    flex-wrap: nowrap;
+}
+
+.section-title {
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 .section-controls {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
 }
 
 .report-filters {
     display: flex;
     gap: 6px;
     align-items: center;
+    flex-wrap: nowrap;
+}
+
+.refresh-btn {
+    flex-shrink: 0;
 }
 
 .filter-btn {
@@ -1056,6 +1069,9 @@ div[style*="height: 260px"] h4 {
     font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
+    height: 32px;
+    display: flex;
+    align-items: center;
 }
 
 .filter-btn:hover {
@@ -1094,8 +1110,8 @@ div[style*="height: 260px"] h4 {
 .refresh-btn {
     background: #ffffff;
     border: 1px solid #d1d5db;
-    border-radius: 8px;
-    padding: 8px 12px;
+    border-radius: 6px;
+    padding: 6px 12px;
     color: #6b7280;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -1103,6 +1119,7 @@ div[style*="height: 260px"] h4 {
     align-items: center;
     gap: 6px;
     font-size: 12px;
+    height: 32px;
 }
 
 .refresh-btn:hover {
@@ -1536,21 +1553,6 @@ div[style*="height: 260px"] h4 {
     .report-stats {
         grid-template-columns: repeat(2, 1fr);
     }
-    
-    .section-controls {
-        flex-direction: column;
-        gap: 12px;
-        align-items: center;
-    }
-    
-    .report-filters {
-        justify-content: center;
-    }
-    
-    .refresh-btn {
-        align-self: center;
-        width: auto;
-    }
 }
 
 @media (max-width: 768px) {
@@ -1561,7 +1563,7 @@ div[style*="height: 260px"] h4 {
     .reports-header {
         padding: 16px;
         flex-direction: column;
-        gap: 16px;
+        gap: 4px;
         text-align: center;
     }
     
@@ -1574,12 +1576,15 @@ div[style*="height: 260px"] h4 {
     }
     
     .reports-header h1 {
-        font-size: 18px;
+        font-size: 14px;
+        margin-bottom: 4px;
     }
     
     .reports-header p {
-        font-size: 12px;
+        font-size: 10px;
         white-space: normal;
+        margin-bottom: 0;
+        margin-top: 0;
     }
     
     .report-type-selector {
@@ -1600,21 +1605,42 @@ div[style*="height: 260px"] h4 {
     }
     
     .date-range-filter {
-        flex-wrap: wrap;
-        gap: 12px;
+        flex-wrap: nowrap;
+        gap: 4px;
         margin-top: 16px;
         margin-bottom: 16px;
+        align-items: center;
+        justify-content: center;
     }
     
     .date-input-group {
-        flex: 1 1 calc(50% - 6px);
-        min-width: 120px;
+        flex: 0 0 auto;
+        min-width: auto;
+        gap: 2px;
+    }
+    
+    .date-input-group label {
+        font-size: 9px;
+    }
+    
+    .date-input {
+        font-size: 9px;
+        padding: 5px 6px;
+        min-width: 80px;
     }
     
     .apply-date-filter-btn,
     .clear-date-filter-btn {
-        flex: 1 1 100%;
-        justify-content: center;
+        flex: 0 0 auto;
+        padding: 5px 10px;
+        font-size: 9px;
+        gap: 3px;
+        border-radius: 4px;
+    }
+    
+    .report-count {
+        font-size: 9px !important;
+        flex: 0 0 auto;
     }
     
     .branch-grid {
@@ -1684,31 +1710,24 @@ div[style*="height: 260px"] h4 {
     
     .section-header {
         flex-direction: column;
-        gap: 12px;
-        padding: 16px;
-    }
-    
-    .section-controls {
-        width: 100%;
-        flex-direction: column;
+        align-items: flex-start;
         gap: 10px;
-        align-items: center;
+        padding: 14px;
     }
     
-    .report-filters {
-        flex-wrap: wrap;
-        justify-content: center;
+    .section-header h3 {
+        font-size: 13px;
+        display: inline;
+        margin-right: 6px;
     }
     
-    .filter-btn {
-        font-size: 11px;
-        padding: 5px 10px;
+    .section-header p {
+        font-size: 10px;
+        display: inline;
+        margin: 0;
     }
     
-    .refresh-btn {
-        align-self: center;
-        width: auto;
-    }
+    
     
     .sent-report-item {
         flex-direction: column;
@@ -1787,20 +1806,72 @@ div[style*="height: 260px"] h4 {
 
 @media (max-width: 480px) {
     .reports-content {
-        padding: 75px 12px 12px;
+        padding: 75px 10px 80px 10px;
     }
     
     .reports-header {
-        padding: 12px;
-        gap: 12px;
+        padding: 10px;
+        gap: 4px;
+        text-align: center;
     }
     
     .reports-header h1 {
-        font-size: 16px;
+        font-size: 13px;
+        margin-bottom: 4px;
     }
     
     .reports-header p {
-        font-size: 11px;
+        font-size: 9px;
+        margin-bottom: 0;
+        margin-top: 0;
+    }
+    
+    .date-range-filter {
+        gap: 4px;
+    }
+    
+    .date-input-group {
+        gap: 1px;
+    }
+    
+    .date-input-group label {
+        font-size: 8px;
+    }
+    
+    .date-input {
+        font-size: 8px;
+        padding: 3px 4px;
+        min-width: 60px;
+        max-width: 65px;
+        width: 60px;
+    }
+    
+    .apply-date-filter-btn,
+    .clear-date-filter-btn {
+        padding: 3px 5px;
+        font-size: 8px;
+        min-width: auto;
+        border-radius: 4px !important;
+        white-space: nowrap;
+    }
+    
+    .apply-date-filter-btn {
+        margin-left: 6px;
+    }
+    
+    .report-count {
+        font-size: 8px !important;
+        white-space: nowrap;
+    }
+    
+    /* Fix date picker calendar size on mobile */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        font-size: 10px;
+        padding: 2px;
+    }
+    
+    input[type="date"]::-webkit-datetime-edit {
+        font-size: 8px;
     }
     
     .branch-grid {
@@ -1842,10 +1913,6 @@ div[style*="height: 260px"] h4 {
         font-size: 12px;
     }
     
-    .date-input-group {
-        flex: 1 1 100%;
-    }
-    
     .filter-btn {
         font-size: 10px;
         padding: 4px 8px;
@@ -1861,16 +1928,19 @@ div[style*="height: 260px"] h4 {
     }
     
     .section-header {
-        padding: 12px;
+        padding: 10px;
+        gap: 6px;
     }
     
     .section-header h3 {
-        font-size: 14px;
+        font-size: 11px;
     }
     
     .section-header p {
-        font-size: 11px;
+        font-size: 9px;
     }
+    
+    
 }
 
 /* Branch Indicator for Non-Main Branch Users */
@@ -2177,5 +2247,183 @@ div[style*="height: 260px"] h4 {
     .generate-ai-btn {
         padding: 10px 16px;
         font-size: 13px;
+    }
+}
+
+/* Authoritative small-screen overrides to make filter buttons stretch */
+@media (max-width: 768px) {
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px;
+    }
+    
+    .section-header h3 {
+        font-size: 13px;
+        display: inline;
+        margin-right: 6px;
+    }
+    
+    .section-header p {
+        font-size: 10px;
+        display: inline;
+        margin: 0;
+    }
+    
+    .section-controls {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto; /* filters stretch, refresh fixed */
+        gap: 6px;
+        align-items: center;
+        overflow-x: hidden;
+    }
+    
+    .report-filters {
+        display: flex;
+        width: 100%;
+        justify-content: flex-start; /* allow buttons to grow proportionally via JS */
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+    }
+    
+    .filter-btn {
+        font-size: 10px;
+        padding: 4px 8px;
+        height: 26px;
+        white-space: nowrap;
+        width: auto; /* size to content */
+        flex: 1 1 auto; /* allow growth; JS sets flex-grow proportionally */
+        min-width: max-content; /* keep intrinsic content width */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    
+    .refresh-btn {
+        font-size: 10px;
+        padding: 4px 8px;
+        height: 26px;
+    }
+    
+    /* Responsive styles for sent reports list items */
+    .history-item {
+        padding: 10px 12px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .history-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .history-title {
+        font-size: 13px;
+    }
+    
+    .history-details {
+        font-size: 10px;
+    }
+    
+    .history-status-time {
+        flex-shrink: 0;
+    }
+    
+    .history-status {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+    
+    .history-timestamp {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .section-header {
+        padding: 10px;
+        gap: 6px;
+    }
+    
+    .section-header h3 {
+        font-size: 11px;
+    }
+    
+    .section-header p {
+        font-size: 9px;
+    }
+    
+    .section-controls {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px;
+        align-items: center;
+        overflow-x: hidden;
+    }
+    
+    .report-filters {
+        display: flex;
+        width: 100%;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+    }
+    
+    .filter-btn {
+        font-size: 9px;
+        padding: 3px 6px;
+        height: 24px;
+        width: auto;
+        flex: 1 1 auto;
+        min-width: max-content;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    
+    .refresh-btn {
+        font-size: 9px;
+        padding: 3px 6px;
+        height: 24px;
+        gap: 3px;
+    }
+    
+    /* Responsive styles for sent reports list items */
+    .history-item {
+        padding: 8px 10px;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    
+    .history-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .history-title {
+        font-size: 11px;
+    }
+    
+    .history-details {
+        font-size: 9px;
+    }
+    
+    .history-status-time {
+        flex-shrink: 0;
+    }
+    
+    .history-status {
+        font-size: 9px;
+        padding: 2px 5px;
+    }
+    
+    .history-timestamp {
+        font-size: 9px;
     }
 }

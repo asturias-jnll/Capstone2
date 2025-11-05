@@ -39,6 +39,9 @@ class SharedUtils {
         setTimeout(() => {
             this.setActiveNavigation();
         }, 50);
+
+        // Initialize proportional filter button stretch on load and resize
+        this.initializeProportionalFilterStretch();
     }
 
     // Update date and time display
@@ -68,6 +71,39 @@ class SharedUtils {
         if (timeElement) {
             timeElement.textContent = now.toLocaleTimeString('en-US', timeOptions);
         }
+    }
+
+    // Proportionally stretch filter buttons based on text length
+    initializeProportionalFilterStretch() {
+        const apply = () => {
+            const containers = document.querySelectorAll('.section-controls .report-filters');
+            containers.forEach(container => {
+                const buttons = Array.from(container.querySelectorAll('.filter-btn'));
+                if (!buttons.length) return;
+
+                // Calculate flex-grow based on text length
+                buttons.forEach(btn => {
+                    const text = (btn.textContent || '').trim();
+                    const len = Math.max(1, text.length);
+                    // Use length as flex-grow so longer labels get proportionally more space
+                    btn.style.flexGrow = String(len);
+                });
+            });
+        };
+
+        // Run once after DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', apply);
+        } else {
+            apply();
+        }
+
+        // Re-apply on resize (debounced)
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(apply, 120);
+        });
     }
 
     // Load navigation based on current role
