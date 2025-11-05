@@ -2154,56 +2154,11 @@ function showCenteredSuccessMessage(payeeName) {
     modal.className = 'simple-message-modal';
     modal.innerHTML = `
         <div class="simple-message-content">
-            <div class="success-icon"><i class="fas fa-check-circle" style="font-size: 24px;"></i></div>
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
             <div class="message-text">Transaction for <span class="payee-name">${payeeName}</span> has been saved successfully</div>
         </div>
     `;
     
-    // Add simple styles
-    const style = document.createElement('style');
-    style.textContent = `
-        .simple-message-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-        }
-        
-        .simple-message-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
-        }
-        
-        .success-icon {
-            color: #0B5E1C;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px auto;
-        }
-        
-        .message-text {
-            font-size: 14px;
-            color: #374151;
-            font-weight: 500;
-            line-height: 1.4;
-        }
-        
-        .payee-name {
-            font-weight: bold;
-            color: #0B5E1C;
-        }
-    `;
-    document.head.appendChild(style);
     document.body.appendChild(modal);
     
     // Auto close after 2 seconds

@@ -109,6 +109,8 @@ body {
     display: flex;
     gap: 12px;
     align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
 .search-section {
@@ -156,7 +158,7 @@ body {
 }
 
 .add-transaction-btn {
-    padding: 12px 20px;
+    padding: 10px 20px;
     background: var(--dark-green);
     color: var(--white);
     border: none;
@@ -164,12 +166,14 @@ body {
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     font-size: 14px;
     font-weight: 500;
     transition: all 0.3s ease;
     white-space: nowrap;
     box-shadow: 0 2px 4px rgba(11, 94, 28, 0.1);
+    height: 38px;
 }
 
 /* Hide Add Transaction button for Finance Officers by default to prevent flash on page load */
@@ -190,7 +194,7 @@ body {
 
 /* Pending Requests Button */
 .pending-requests-btn {
-    padding: 12px 20px;
+    padding: 10px 20px;
     background: var(--orange);
     color: var(--white);
     border: none;
@@ -198,6 +202,7 @@ body {
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     font-size: 14px;
     font-weight: 500;
@@ -205,6 +210,7 @@ body {
     white-space: nowrap;
     box-shadow: 0 2px 4px rgba(255, 167, 38, 0.1);
     position: relative;
+    height: 38px;
 }
 
 .pending-requests-btn:hover {
@@ -244,6 +250,37 @@ body {
     100% {
         transform: scale(1);
     }
+}
+
+/* Upload Transactions Button */
+.upload-transactions-btn {
+    padding: 10px 20px;
+    background: var(--light-green);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(105, 180, 30, 0.1);
+    height: 38px;
+}
+
+.upload-transactions-btn:hover {
+    background: #4f9b14;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 155, 20, 0.25);
+}
+
+.upload-transactions-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(105, 180, 30, 0.1);
 }
 
 /* Transaction Table Wrapper */
@@ -970,7 +1007,7 @@ body {
 
 /* Modal Footer Styles */
 .modal-footer {
-    display: flex;
+    display: flex !important;
     gap: 12px;
     justify-content: flex-end;
     margin-top: 24px;
@@ -979,6 +1016,11 @@ body {
     background: var(--gray-50);
 }
 
+/* Hide upload button when no file is selected */
+.upload-modal-content .btn-primary.hidden,
+.upload-modal-content .btn-primary[style*="display: none"] {
+    display: none !important;
+}
 
 /* Button Base Styles */
 .btn {
@@ -1157,16 +1199,21 @@ body {
     }
     
     .action-buttons {
-        flex-direction: column;
+        display: flex;
+        flex-direction: row;
         gap: 8px;
+        flex-wrap: nowrap;
+        width: 100%;
     }
     
     .add-transaction-btn,
-    .pending-requests-btn {
-        width: 100%;
-        justify-content: center;
-        padding: 10px 16px;
-        font-size: 13px;
+    .pending-requests-btn,
+    .upload-transactions-btn {
+        flex: 1 1 auto;
+        padding: 10px 12px;
+        font-size: 12px;
+        height: 40px;
+        min-width: 0;
     }
     
     .transaction-table-wrapper {
@@ -1262,20 +1309,38 @@ body {
     }
     
     .search-box input {
-        font-size: 13px;
+        font-size: 11px;
+    }
+    
+    .search-box i {
+        font-size: 11px;
     }
     
     .action-buttons {
-        flex-direction: column;
-        gap: 8px;
+        display: flex;
+        flex-direction: row;
+        gap: 6px;
+        flex-wrap: nowrap;
+        width: 100%;
     }
     
     .add-transaction-btn,
-    .pending-requests-btn {
-        width: 100%;
-        justify-content: center;
-        padding: 8px 14px;
-        font-size: 12px;
+    .pending-requests-btn,
+    .upload-transactions-btn {
+        flex: 1 1 auto;
+        padding: 8px 8px;
+        font-size: 9px;
+        height: 36px;
+        min-width: 0;
+        border-radius: 6px;
+    }
+    
+    .request-count {
+        font-size: 8px;
+        padding: 1px 4px;
+        min-width: 14px;
+        height: 14px;
+        margin-left: 3px;
     }
     
     .transaction-table-wrapper {
@@ -1357,6 +1422,41 @@ body {
         font-size: 0.65rem;
     }
     
+    .search-box input {
+        font-size: 10px;
+    }
+    
+    .search-box i {
+        font-size: 10px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        flex-direction: row;
+        gap: 4px;
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+    
+    .add-transaction-btn,
+    .pending-requests-btn,
+    .upload-transactions-btn {
+        flex: 1 1 auto;
+        padding: 6px 6px;
+        font-size: 8px;
+        height: 32px;
+        min-width: 0;
+        border-radius: 5px;
+    }
+    
+    .request-count {
+        font-size: 7px;
+        padding: 1px 3px;
+        min-width: 12px;
+        height: 12px;
+        margin-left: 2px;
+    }
+    
     .transaction-table-wrapper {
         padding: 8px;
         border-radius: 8px;
@@ -1414,6 +1514,41 @@ body {
         padding: 80px 8px 80px;
     }
     
+    .search-box input {
+        font-size: 9px;
+    }
+    
+    .search-box i {
+        font-size: 9px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        flex-direction: row;
+        gap: 3px;
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+    
+    .add-transaction-btn,
+    .pending-requests-btn,
+    .upload-transactions-btn {
+        flex: 1 1 auto;
+        padding: 5px 4px;
+        font-size: 7px;
+        height: 28px;
+        min-width: 0;
+        border-radius: 4px;
+    }
+    
+    .request-count {
+        font-size: 6px;
+        padding: 1px 2px;
+        min-width: 10px;
+        height: 10px;
+        margin-left: 2px;
+    }
+    
     .transaction-table {
         font-size: 7px;
         width: 700px;
@@ -1464,11 +1599,40 @@ body {
 @media (max-width: 1200px) {
     .modal-content,
     .transaction-details-modal,
-    .transaction-preview-modal {
+    .transaction-preview-modal,
+    .upload-modal-content {
         max-width: 90% !important;
         width: 90% !important;
         margin: 20px auto !important;
         border-radius: 14px !important;
+    }
+    
+    .upload-instructions {
+        padding: 14px !important;
+    }
+    
+    .upload-instructions h4 {
+        font-size: 13px !important;
+    }
+    
+    .upload-instructions li {
+        font-size: 12px !important;
+    }
+    
+    .upload-area {
+        padding: 35px !important;
+    }
+    
+    .upload-placeholder p {
+        font-size: 15px !important;
+    }
+    
+    .upload-placeholder .file-types {
+        font-size: 13px !important;
+    }
+    
+    .preview-table {
+        font-size: 12px !important;
     }
     
     .modal-header {
@@ -1514,11 +1678,40 @@ body {
 @media (max-width: 1024px) {
     .modal-content,
     .transaction-details-modal,
-    .transaction-preview-modal {
+    .transaction-preview-modal,
+    .upload-modal-content {
         max-width: 85% !important;
         width: 85% !important;
         margin: 15px auto !important;
         border-radius: 12px !important;
+    }
+    
+    .upload-instructions {
+        padding: 12px !important;
+    }
+    
+    .upload-instructions h4 {
+        font-size: 12px !important;
+    }
+    
+    .upload-instructions li {
+        font-size: 11px !important;
+    }
+    
+    .upload-area {
+        padding: 30px !important;
+    }
+    
+    .upload-placeholder p {
+        font-size: 14px !important;
+    }
+    
+    .upload-placeholder .file-types {
+        font-size: 12px !important;
+    }
+    
+    .preview-table {
+        font-size: 11px !important;
     }
     
     .modal-header {
@@ -1564,11 +1757,57 @@ body {
 @media (max-width: 768px) {
     .modal-content,
     .transaction-details-modal,
-    .transaction-preview-modal {
+    .transaction-preview-modal,
+    .upload-modal-content {
         max-width: 85% !important;
         width: 85% !important;
         margin: 15px auto !important;
         border-radius: 10px !important;
+    }
+    
+    .upload-instructions {
+        padding: 10px !important;
+    }
+    
+    .upload-instructions h4 {
+        font-size: 11px !important;
+    }
+    
+    .upload-instructions li {
+        font-size: 10px !important;
+    }
+    
+    .upload-area {
+        padding: 25px !important;
+    }
+    
+    .upload-placeholder i {
+        font-size: 36px !important;
+    }
+    
+    .upload-placeholder p {
+        font-size: 13px !important;
+    }
+    
+    .upload-placeholder .file-types {
+        font-size: 11px !important;
+    }
+    
+    .preview-controls h4 {
+        font-size: 14px !important;
+    }
+    
+    .preview-stats {
+        font-size: 12px !important;
+    }
+    
+    .preview-table {
+        font-size: 10px !important;
+    }
+    
+    .preview-table th,
+    .preview-table td {
+        padding: 8px 6px !important;
     }
     
     .modal-header {
@@ -1622,11 +1861,77 @@ body {
 @media (max-width: 480px) {
     .modal-content,
     .transaction-details-modal,
-    .transaction-preview-modal {
+    .transaction-preview-modal,
+    .upload-modal-content {
         max-width: 75% !important;
         width: 75% !important;
         margin: 20px auto !important;
         border-radius: 8px !important;
+    }
+    
+    .upload-instructions {
+        padding: 8px !important;
+    }
+    
+    .upload-instructions h4 {
+        font-size: 10px !important;
+    }
+    
+    .upload-instructions li {
+        font-size: 9px !important;
+    }
+    
+    .upload-area {
+        padding: 20px !important;
+    }
+    
+    .upload-placeholder i {
+        font-size: 32px !important;
+    }
+    
+    .upload-placeholder p {
+        font-size: 12px !important;
+    }
+    
+    .upload-placeholder .file-types {
+        font-size: 10px !important;
+    }
+    
+    .file-info {
+        padding: 12px !important;
+    }
+    
+    .file-info i {
+        font-size: 20px !important;
+    }
+    
+    .preview-controls h4 {
+        font-size: 13px !important;
+    }
+    
+    .preview-stats {
+        font-size: 11px !important;
+    }
+    
+    .preview-table {
+        font-size: 9px !important;
+    }
+    
+    .preview-table th,
+    .preview-table td {
+        padding: 6px 4px !important;
+    }
+    
+    .error-messages {
+        padding: 12px !important;
+    }
+    
+    .error-messages h4 {
+        font-size: 11px !important;
+    }
+    
+    .error-messages li {
+        font-size: 10px !important;
     }
     
     .modal-header {
@@ -1676,11 +1981,77 @@ body {
 @media (max-width: 360px) {
     .modal-content,
     .transaction-details-modal,
-    .transaction-preview-modal {
+    .transaction-preview-modal,
+    .upload-modal-content {
         max-width: 70% !important;
         width: 70% !important;
         margin: 25px auto !important;
         border-radius: 6px !important;
+    }
+    
+    .upload-instructions {
+        padding: 6px !important;
+    }
+    
+    .upload-instructions h4 {
+        font-size: 9px !important;
+    }
+    
+    .upload-instructions li {
+        font-size: 8px !important;
+    }
+    
+    .upload-area {
+        padding: 15px !important;
+    }
+    
+    .upload-placeholder i {
+        font-size: 28px !important;
+    }
+    
+    .upload-placeholder p {
+        font-size: 11px !important;
+    }
+    
+    .upload-placeholder .file-types {
+        font-size: 9px !important;
+    }
+    
+    .file-info {
+        padding: 10px !important;
+    }
+    
+    .file-info i {
+        font-size: 18px !important;
+    }
+    
+    .preview-controls h4 {
+        font-size: 12px !important;
+    }
+    
+    .preview-stats {
+        font-size: 10px !important;
+    }
+    
+    .preview-table {
+        font-size: 8px !important;
+    }
+    
+    .preview-table th,
+    .preview-table td {
+        padding: 4px 3px !important;
+    }
+    
+    .error-messages {
+        padding: 10px !important;
+    }
+    
+    .error-messages h4 {
+        font-size: 10px !important;
+    }
+    
+    .error-messages li {
+        font-size: 9px !important;
     }
     
     .modal-header {
@@ -2379,40 +2750,23 @@ body {
     }
 }
 
-/* Upload Transactions Button */
-.upload-transactions-btn {
-    padding: 12px 20px;
-    background: #3B82F6;
-    color: var(--white);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-}
-
-.upload-transactions-btn:hover {
-    background: #2563EB;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-}
-
-.upload-transactions-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-}
-
 /* Upload Modal Styles */
 .upload-modal-content {
-    max-width: 900px;
+    max-width: 1100px;
     max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    background: var(--white);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--gray-100);
+}
+
+.upload-modal-content .modal-body {
     overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(90vh - 200px);
 }
 
 .upload-instructions {
@@ -2509,15 +2863,21 @@ body {
 .remove-file-btn {
     background: transparent;
     border: none;
-    color: #DC2626;
+    color: #6B7280;
     cursor: pointer;
     padding: 8px;
-    border-radius: 6px;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
 }
 
 .remove-file-btn:hover {
-    background: #FEE2E2;
+    background: #E5E7EB;
+    color: #374151;
 }
 
 .preview-controls {
@@ -2615,4 +2975,188 @@ body {
     color: #DC2626;
     font-size: 13px;
     margin-bottom: 6px;
+}
+
+/* Minimalist Message Dialogs */
+.simple-message-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.simple-message-content {
+    background: var(--white);
+    border-radius: 24px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.simple-message-content .success-icon {
+    margin-bottom: 20px;
+}
+
+.simple-message-content .success-icon i {
+    font-size: 24px;
+    color: var(--dark-green);
+}
+
+.simple-message-content .message-text {
+    color: var(--gray-600);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+.simple-message-content .payee-name {
+    font-weight: 700;
+    color: var(--dark-green);
+}
+
+/* Confirmation Actions */
+.simple-message-content .confirmation-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+}
+
+.simple-message-content .btn-cancel,
+.simple-message-content .btn-confirm {
+    padding: 12px 28px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.simple-message-content .btn-cancel {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.simple-message-content .btn-cancel:hover {
+    background: var(--gray-200);
+}
+
+.simple-message-content .btn-confirm {
+    background: var(--dark-green);
+    color: var(--white);
+}
+
+.simple-message-content .btn-confirm:hover {
+    background: #0A4F18;
+}
+
+/* Responsive Message Dialogs */
+@media (max-width: 768px) {
+    .simple-message-content {
+        padding: 20px;
+        max-width: 90%;
+        border-radius: 20px;
+    }
+
+    .simple-message-content .success-icon i {
+        font-size: 20px;
+    }
+
+    .simple-message-content .message-text {
+        font-size: 14px;
+    }
+
+    .simple-message-content .btn-cancel,
+    .simple-message-content .btn-confirm {
+        padding: 10px 20px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+
+    .simple-message-content .confirmation-actions {
+        margin-top: 20px;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .simple-message-content {
+        padding: 18px;
+        max-width: 92%;
+        border-radius: 18px;
+    }
+
+    .simple-message-content .success-icon {
+        margin-bottom: 16px;
+    }
+
+    .simple-message-content .success-icon i {
+        font-size: 18px;
+    }
+
+    .simple-message-content .message-text {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .simple-message-content .btn-cancel,
+    .simple-message-content .btn-confirm {
+        padding: 9px 18px;
+        font-size: 12px;
+        border-radius: 9px;
+    }
+
+    .simple-message-content .confirmation-actions {
+        margin-top: 18px;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 360px) {
+    .simple-message-content {
+        padding: 16px;
+        max-width: 94%;
+        border-radius: 16px;
+    }
+
+    .simple-message-content .success-icon {
+        margin-bottom: 14px;
+    }
+
+    .simple-message-content .success-icon i {
+        font-size: 16px;
+    }
+
+    .simple-message-content .message-text {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    .simple-message-content .btn-cancel,
+    .simple-message-content .btn-confirm {
+        padding: 8px 16px;
+        font-size: 11px;
+        border-radius: 8px;
+    }
+
+    .simple-message-content .confirmation-actions {
+        margin-top: 16px;
+        gap: 8px;
+        flex-direction: column;
+    }
+
+    .simple-message-content .btn-cancel,
+    .simple-message-content .btn-confirm {
+        width: 100%;
+    }
 }

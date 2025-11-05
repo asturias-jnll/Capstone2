@@ -728,10 +728,38 @@ async function submitUpload() {
         return;
     }
     
-    // Confirm before uploading
-    const confirmUpload = confirm(`You are about to upload ${validTransactions.length} transaction(s). Continue?`);
-    if (!confirmUpload) return;
-    
+    // Show custom confirmation dialog
+    showUploadConfirmation(validTransactions.length);
+}
+
+// Show upload confirmation dialog
+function showUploadConfirmation(count) {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.id = 'uploadConfirmModal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="message-text">You are about to upload <span class="payee-name">${count}</span> transaction(s)</div>
+            <div class="confirmation-actions">
+                <button class="btn-cancel" onclick="closeUploadConfirmation()">Cancel</button>
+                <button class="btn-confirm" onclick="proceedWithUpload()">Continue</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Close upload confirmation
+function closeUploadConfirmation() {
+    const modal = document.getElementById('uploadConfirmModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Proceed with upload after confirmation
+async function proceedWithUpload() {
+    closeUploadConfirmation();
     showLoadingState();
     
     try {
@@ -767,7 +795,7 @@ async function submitUpload() {
         if (response.success) {
             hideLoadingState();
             closeUploadModal();
-            showSuccess(`Successfully uploaded ${response.data.created} transaction(s)`);
+            showUploadSuccess(response.data.created);
             
             // Reload transactions
             await loadTransactionsFromDatabase();
@@ -780,4 +808,25 @@ async function submitUpload() {
         console.error('Error uploading transactions:', error);
         showError('Failed to upload transactions: ' + error.message);
     }
+}
+
+// Show upload success message
+function showUploadSuccess(count) {
+    const modal = document.createElement('div');
+    modal.className = 'simple-message-modal';
+    modal.innerHTML = `
+        <div class="simple-message-content">
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="message-text">Successfully uploaded <span class="payee-name">${count}</span> transaction(s)</div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Auto close after 2 seconds
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    }, 2000);
 }
