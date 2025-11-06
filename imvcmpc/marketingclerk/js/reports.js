@@ -1705,6 +1705,7 @@ function showAIRecommendationControls() {
 // Generate AI recommendations via backend
 async function generateAIRecommendation() {
     try {
+        console.log('🤖 [Frontend] Starting AI recommendation generation...');
         const token = localStorage.getItem('access_token');
         if (!token) {
             showMessage('You are not authenticated.', 'error');
@@ -1722,6 +1723,10 @@ async function generateAIRecommendation() {
             reportData: window.currentReportData
         };
 
+        console.log('🤖 [Frontend] Report Type:', body.reportType);
+        console.log('🤖 [Frontend] Sending request to backend...');
+        const startTime = Date.now();
+
         const res = await fetch('/api/auth/reports/generate-ai-recommendations', {
             method: 'POST',
             headers: {
@@ -1731,8 +1736,12 @@ async function generateAIRecommendation() {
             body: JSON.stringify(body)
         });
 
+        const duration = Date.now() - startTime;
+        console.log('🤖 [Frontend] Response received in', duration, 'ms');
+
         if (!res.ok) {
             const text = await res.text();
+            console.error('❌ [Frontend] API error:', text);
             throw new Error(text || 'Failed to generate AI recommendations');
         }
 
@@ -1740,11 +1749,30 @@ async function generateAIRecommendation() {
         const data = json && json.data ? json.data : null;
         if (!data) throw new Error('Invalid AI response');
 
+        // Log AI usage details
+        console.log('✅ [Frontend] AI Response received');
+        console.log('✅ [Frontend] Source:', data.ai?.source);
+        console.log('✅ [Frontend] Provider:', data.ai?.metadata?.provider || 'N/A');
+        console.log('✅ [Frontend] Model:', data.ai?.metadata?.model || 'N/A');
+        console.log('✅ [Frontend] API Duration:', data.ai?.metadata?.apiDuration || 'N/A', 'ms');
+        
+        if (data.ai?.source === 'ai') {
+            console.log('🎉 [Frontend] AI API KEY WAS USED! ✅');
+            console.log('🎉 [Frontend] Recommendations are AI-generated from', data.ai.metadata.provider);
+        } else if (data.ai?.source === 'rule-based-fallback') {
+            console.warn('⚠️ [Frontend] AI API was NOT used - Fallback to rule-based');
+            console.warn('⚠️ [Frontend] Fallback reason:', data.ai?.metadata?.fallbackReason);
+            console.warn('⚠️ [Frontend] Error:', data.ai?.error);
+        } else {
+            console.info('ℹ️ [Frontend] Using rule-based recommendations (AI disabled)');
+        }
+
         renderAIRecommendations(data);
         window.aiRecommendationsGenerated = true;
     } catch (e) {
-        console.error('AI generation failed:', e);
-        showMessage('AI recommendation failed.', 'error');
+        console.error('❌ [Frontend] AI generation failed:', e.message);
+        console.error('❌ [Frontend] Stack:', e.stack);
+        showMessage('AI recommendation failed: ' + e.message, 'error');
     } finally {
         const btn = document.getElementById('generateAIButton');
         if (btn) {

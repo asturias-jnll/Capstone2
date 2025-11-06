@@ -11,12 +11,59 @@ const aiService = new AIRecommendationService({
   AI_ENABLED: process.env.AI_ENABLED,
   AI_PROVIDER: process.env.AI_PROVIDER,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   AI_API_KEY: process.env.AI_API_KEY,
   AI_MODEL: process.env.AI_MODEL,
   AI_MAX_TOKENS: process.env.AI_MAX_TOKENS,
   AI_TEMPERATURE: process.env.AI_TEMPERATURE
 });
 const pdfService = new PDFService();
+
+// Test AI connectivity and configuration
+router.get('/test-ai',
+  authenticateToken,
+  checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
+  async (req, res) => {
+    try {
+      console.log('🔍 [AI-TEST] Testing AI connectivity...');
+      const testResult = await aiService.testAIConnectivity();
+      
+      console.log('🔍 [AI-TEST] Results:', {
+        enabled: testResult.config?.enabled,
+        provider: testResult.config?.provider,
+        model: testResult.config?.model,
+        hasApiKey: !!testResult.config?.apiKey,
+        apiKeyPreview: testResult.config?.apiKey ? `${testResult.config.apiKey.substring(0, 10)}...` : 'None',
+        clientInitialized: testResult.config?.clientInitialized
+      });
+
+      return res.json({
+        success: testResult.success,
+        message: testResult.message,
+        configuration: {
+          enabled: testResult.config?.enabled,
+          provider: testResult.config?.provider,
+          model: testResult.config?.model,
+          hasApiKey: !!testResult.config?.apiKey,
+          apiKeyPreview: testResult.config?.apiKey ? `${testResult.config.apiKey.substring(0, 10)}...` : 'None',
+          clientInitialized: testResult.config?.clientInitialized,
+          maxTokens: testResult.config?.maxTokens,
+          temperature: testResult.config?.temperature
+        },
+        response: testResult.response,
+        error: testResult.error,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ [AI-TEST] Error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+);
 
 // Generate AI recommendations (MCDA + optional LLM)
 router.post('/reports/generate-ai-recommendations',
@@ -25,10 +72,20 @@ router.post('/reports/generate-ai-recommendations',
   auditLog('generate_ai_recommendations', 'reports'),
   async (req, res) => {
     try {
+      console.log('🤖 [AI-RECO] Starting AI recommendation generation...');
       const { reportType, reportData } = req.body || {};
       if (!reportType || !reportData) {
+        console.warn('⚠️ [AI-RECO] Missing required parameters');
         return res.status(400).json({ success: false, error: 'reportType and reportData are required' });
       }
+
+      console.log('🤖 [AI-RECO] Report Type:', reportType);
+      console.log('🤖 [AI-RECO] AI Config:', {
+        enabled: aiService.config.enabled,
+        provider: aiService.config.provider,
+        model: aiService.config.model,
+        hasApiKey: !!aiService.config.apiKey
+      });
 
       // For branch reports, expect rows; for others, construct minimal dataset
       let branchesData = [];
@@ -58,14 +115,30 @@ router.post('/reports/generate-ai-recommendations',
       }
 
       // Run MCDA (TOPSIS)
+      console.log('📊 [AI-RECO] Running MCDA analysis...');
       const mcdaResults = mcdaService.analyzeBranchPerformance(branchesData);
+      console.log('📊 [AI-RECO] MCDA completed. Branches analyzed:', mcdaResults.rankedBranches?.length);
 
       // Generate AI (or fallback) recommendations
+      console.log('🧠 [AI-RECO] Generating recommendations...');
+      const startTime = Date.now();
       const aiResult = await aiService.generateRecommendations(mcdaResults, reportData, reportType);
+      const duration = Date.now() - startTime;
+      
+      console.log('✅ [AI-RECO] Recommendations generated successfully');
+      console.log('✅ [AI-RECO] Source:', aiResult.source);
+      console.log('✅ [AI-RECO] Provider:', aiResult.metadata?.provider || 'N/A');
+      console.log('✅ [AI-RECO] Model:', aiResult.metadata?.model || 'N/A');
+      console.log('✅ [AI-RECO] Duration:', duration, 'ms');
+      if (aiResult.error) {
+        console.warn('⚠️ [AI-RECO] Fallback reason:', aiResult.metadata?.fallbackReason);
+        console.warn('⚠️ [AI-RECO] Error:', aiResult.error);
+      }
 
       return res.json({ success: true, data: { mcda: mcdaResults, ai: aiResult } });
     } catch (error) {
-      console.error('AI recommendations error:', error);
+      console.error('❌ [AI-RECO] Error:', error.message);
+      console.error('❌ [AI-RECO] Stack:', error.stack);
       return res.status(500).json({ success: false, error: error.message });
     }
   }

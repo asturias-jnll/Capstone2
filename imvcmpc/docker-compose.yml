@@ -9,22 +9,30 @@ services:
     environment:
       NODE_ENV: local
       PORT: 3001
-      DB_HOST: host.docker.internal
-      DB_PORT: 5432
-      DB_NAME: imvcmpc_fms
-      DB_USER: postgres
-      DB_PASSWORD: imvcmpc12
-      JWT_SECRET: your-production-jwt-secret-change-this
-      JWT_EXPIRES_IN: 24h
-      JWT_REFRESH_EXPIRES_IN: 7d
-      BCRYPT_ROUNDS: 12
-      MAX_LOGIN_ATTEMPTS: 5
-      LOCKOUT_DURATION: 15
-      SESSION_TIMEOUT: 30
-      ALLOWED_ORIGINS: http://localhost:8080,http://localhost:3000
-      RATE_LIMIT_WINDOW_MS: 900000
-      RATE_LIMIT_MAX_REQUESTS: 100
-      LOG_LEVEL: info
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS}
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS}
+      LOCKOUT_DURATION: ${LOCKOUT_DURATION}
+      SESSION_TIMEOUT: ${SESSION_TIMEOUT}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS}
+      LOG_LEVEL: ${LOG_LEVEL}
+      # AI Configuration
+      AI_ENABLED: ${AI_ENABLED}
+      AI_PROVIDER: ${AI_PROVIDER}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      AI_MODEL: ${AI_MODEL}
+      AI_MAX_TOKENS: ${AI_MAX_TOKENS}
+      AI_TEMPERATURE: ${AI_TEMPERATURE}
+      AI_TIMEOUT: ${AI_TIMEOUT}
     ports:
       - "3001:3001"
     volumes:
@@ -52,6 +60,7 @@ services:
     image: nginx:alpine
     container_name: imvcmpc-web
     restart: unless-stopped
+    command: ["/bin/sh", "-c", "rm -f /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
     ports:
       - "8080:80"
     volumes:
@@ -67,10 +76,11 @@ services:
     networks:
       - imvcmpc-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:80/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
 
 networks:
   imvcmpc-network:

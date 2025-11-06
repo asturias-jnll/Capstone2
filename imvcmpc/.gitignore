@@ -83,7 +83,7 @@ README.md
 README
 *.md
 
-#env files
+# Environment files with sensitive data - NEVER commit!
 .env
 .env.local
 .env.development
@@ -92,11 +92,13 @@ README
 .env.development.local
 .env.production.local
 .env.test.local
-.env.development.local.example
-.env.production.local.example
-.env.test.local.example
+.env.docker
 
-#example
-env.example
+# Keep example files (these are safe to commit)
+!.env.example
+!.env.*.example
+!.env.docker.example
 
-.sql
+# SQL dumps that might contain sensitive data
+*.sql
+!database.sql

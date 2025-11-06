@@ -1,18 +1,20 @@
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 
 class AIRecommendationService {
     constructor(config = {}) {
         this.config = {
             enabled: config.AI_ENABLED === 'true' || config.AI_ENABLED === true,
             provider: config.AI_PROVIDER || 'openai',
-            apiKey: config.OPENAI_API_KEY || config.AI_API_KEY,
+            apiKey: config.OPENAI_API_KEY || config.ANTHROPIC_API_KEY || config.AI_API_KEY,
             model: config.AI_MODEL || 'gpt-4-turbo-preview',
-            maxTokens: config.AI_MAX_TOKENS || 2000,
-            temperature: config.AI_TEMPERATURE || 0.7,
-            timeout: config.AI_TIMEOUT || 30000
+            maxTokens: parseInt(config.AI_MAX_TOKENS) || 2000,
+            temperature: parseFloat(config.AI_TEMPERATURE) || 0.7,
+            timeout: parseInt(config.AI_TIMEOUT) || 30000
         };
         
         this.openai = null;
+        this.anthropic = null;
         
         // Initialize AI client if enabled
         if (this.config.enabled && this.config.apiKey) {
@@ -25,17 +27,33 @@ class AIRecommendationService {
      */
     initializeAIClient() {
         try {
+            console.log('🔧 [AI-SERVICE] Initializing AI client...');
+            console.log('🔧 [AI-SERVICE] Provider:', this.config.provider);
+            console.log('🔧 [AI-SERVICE] Model:', this.config.model);
+            console.log('🔧 [AI-SERVICE] Max Tokens:', this.config.maxTokens, '(type:', typeof this.config.maxTokens + ')');
+            console.log('🔧 [AI-SERVICE] Temperature:', this.config.temperature, '(type:', typeof this.config.temperature + ')');
+            console.log('🔧 [AI-SERVICE] Has API Key:', !!this.config.apiKey);
+            console.log('🔧 [AI-SERVICE] API Key prefix:', this.config.apiKey ? this.config.apiKey.substring(0, 10) + '...' : 'None');
+            
             if (this.config.provider === 'openai') {
                 this.openai = new OpenAI({
                     apiKey: this.config.apiKey,
                     timeout: this.config.timeout
                 });
+                console.log('✅ [AI-SERVICE] OpenAI client initialized successfully');
+            } else if (this.config.provider === 'anthropic') {
+                this.anthropic = new Anthropic({
+                    apiKey: this.config.apiKey,
+                    timeout: this.config.timeout
+                });
+                console.log('✅ [AI-SERVICE] Anthropic client initialized successfully');
             } else {
-                console.warn(`Unsupported AI provider: ${this.config.provider}. Falling back to rule-based recommendations.`);
+                console.warn(`⚠️ [AI-SERVICE] Unsupported AI provider: ${this.config.provider}. Falling back to rule-based recommendations.`);
                 this.config.enabled = false;
             }
         } catch (error) {
-            console.error('Failed to initialize AI client:', error);
+            console.error('❌ [AI-SERVICE] Failed to initialize AI client:', error.message);
+            console.error('❌ [AI-SERVICE] Stack:', error.stack);
             this.config.enabled = false;
         }
     }
@@ -50,18 +68,34 @@ class AIRecommendationService {
     async generateRecommendations(mcdaResults, reportData, reportType = 'branch') {
         try {
             // If AI is disabled or not available, use rule-based recommendations
-            if (!this.config.enabled || !this.openai) {
+            if (!this.config.enabled || (!this.openai && !this.anthropic)) {
+                console.log('ℹ️ [AI-SERVICE] AI disabled or not configured, using rule-based recommendations');
+                console.log('ℹ️ [AI-SERVICE] Config:', {
+                    enabled: this.config.enabled,
+                    hasOpenAI: !!this.openai,
+                    hasAnthropic: !!this.anthropic,
+                    provider: this.config.provider
+                });
                 return this.generateRuleBasedRecommendations(mcdaResults, reportData, reportType);
             }
 
+            console.log('🚀 [AI-SERVICE] AI is enabled, generating recommendations with', this.config.provider);
+            
             // Prepare prompt for AI
             const prompt = this.buildAIPrompt(mcdaResults, reportData, reportType);
+            console.log('📝 [AI-SERVICE] Prompt prepared, length:', prompt.length, 'characters');
             
             // Call AI API
+            console.log('📡 [AI-SERVICE] Calling', this.config.provider, 'API with model', this.config.model);
+            const startTime = Date.now();
             const aiResponse = await this.callAIAPI(prompt);
+            const apiDuration = Date.now() - startTime;
+            console.log('✅ [AI-SERVICE] API call completed in', apiDuration, 'ms');
+            console.log('✅ [AI-SERVICE] Response length:', aiResponse?.length || 0, 'characters');
             
             // Parse and structure AI response
             const recommendations = this.parseAIResponse(aiResponse, mcdaResults);
+            console.log('✅ [AI-SERVICE] Response parsed successfully');
             
             return {
                 success: true,
@@ -70,14 +104,19 @@ class AIRecommendationService {
                 metadata: {
                     model: this.config.model,
                     provider: this.config.provider,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    apiDuration: apiDuration,
+                    responseLength: aiResponse?.length || 0
                 }
             };
 
         } catch (error) {
-            console.error('AI recommendation generation failed:', error);
+            console.error('❌ [AI-SERVICE] AI recommendation generation failed:', error.message);
+            console.error('❌ [AI-SERVICE] Error type:', error.constructor.name);
+            console.error('❌ [AI-SERVICE] Stack:', error.stack);
             
             // Fallback to rule-based recommendations
+            console.log('🔄 [AI-SERVICE] Falling back to rule-based recommendations');
             return {
                 success: false,
                 source: 'rule-based-fallback',
@@ -85,6 +124,7 @@ class AIRecommendationService {
                 recommendations: this.generateRuleBasedRecommendations(mcdaResults, reportData, reportType),
                 metadata: {
                     fallbackReason: 'AI API error',
+                    errorType: error.constructor.name,
                     timestamp: new Date().toISOString()
                 }
             };
@@ -172,28 +212,68 @@ Ensure recommendations are:
      * @returns {String} AI response
      */
     async callAIAPI(prompt) {
-        if (!this.openai) {
-            throw new Error('AI client not initialized');
+        if (this.config.provider === 'anthropic' && this.anthropic) {
+            // Call Claude API
+            console.log('🤖 [AI-SERVICE] Calling Anthropic Claude API...');
+            try {
+                const response = await this.anthropic.messages.create({
+                    model: this.config.model,
+                    max_tokens: this.config.maxTokens,
+                    temperature: this.config.temperature,
+                    system: 'You are a financial analyst specializing in cooperative performance analysis. Provide clear, actionable recommendations based on data analysis.',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ]
+                });
+
+                console.log('✅ [AI-SERVICE] Claude API response received');
+                console.log('✅ [AI-SERVICE] Usage:', response.usage);
+                return response.content[0]?.text || '';
+            } catch (error) {
+                console.error('❌ [AI-SERVICE] Anthropic API error:', error.message);
+                if (error.status) console.error('❌ [AI-SERVICE] Status code:', error.status);
+                throw error;
+            }
+        } else if (this.config.provider === 'openai' && this.openai) {
+            // Call OpenAI API
+            console.log('🤖 [AI-SERVICE] Calling OpenAI API...');
+            try {
+                const response = await this.openai.chat.completions.create({
+                    model: this.config.model,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a financial analyst specializing in cooperative performance analysis. Provide clear, actionable recommendations based on data analysis.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: this.config.maxTokens,
+                    temperature: this.config.temperature,
+                    timeout: this.config.timeout
+                });
+
+                console.log('✅ [AI-SERVICE] OpenAI API response received');
+                console.log('✅ [AI-SERVICE] Usage:', response.usage);
+                return response.choices[0]?.message?.content || '';
+            } catch (error) {
+                console.error('❌ [AI-SERVICE] OpenAI API error:', error.message);
+                if (error.status) console.error('❌ [AI-SERVICE] Status code:', error.status);
+                throw error;
+            }
+        } else {
+            const errorMsg = 'AI client not initialized';
+            console.error('❌ [AI-SERVICE]', errorMsg);
+            console.error('❌ [AI-SERVICE] Provider:', this.config.provider);
+            console.error('❌ [AI-SERVICE] Has Anthropic client:', !!this.anthropic);
+            console.error('❌ [AI-SERVICE] Has OpenAI client:', !!this.openai);
+            throw new Error(errorMsg);
         }
-
-        const response = await this.openai.chat.completions.create({
-            model: this.config.model,
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are a financial analyst specializing in cooperative performance analysis. Provide clear, actionable recommendations based on data analysis.'
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            max_tokens: this.config.maxTokens,
-            temperature: this.config.temperature,
-            timeout: this.config.timeout
-        });
-
-        return response.choices[0]?.message?.content || '';
     }
 
     /**
@@ -315,7 +395,7 @@ Ensure recommendations are:
             };
         }
 
-        if (!this.openai) {
+        if (!this.openai && !this.anthropic) {
             return {
                 success: false,
                 message: 'AI client not initialized',
@@ -325,19 +405,36 @@ Ensure recommendations are:
 
         try {
             const testPrompt = "Respond with 'AI service is working' if you can read this message.";
-            const response = await this.openai.chat.completions.create({
-                model: this.config.model,
-                messages: [{ role: 'user', content: testPrompt }],
-                max_tokens: 50,
-                temperature: 0
-            });
+            let response;
 
-            return {
-                success: true,
-                message: 'AI service is working',
-                response: response.choices[0]?.message?.content,
-                config: this.config
-            };
+            if (this.config.provider === 'anthropic' && this.anthropic) {
+                response = await this.anthropic.messages.create({
+                    model: this.config.model,
+                    max_tokens: 50,
+                    messages: [{ role: 'user', content: testPrompt }]
+                });
+                
+                return {
+                    success: true,
+                    message: 'AI service is working',
+                    response: response.content[0]?.text,
+                    config: this.config
+                };
+            } else if (this.config.provider === 'openai' && this.openai) {
+                response = await this.openai.chat.completions.create({
+                    model: this.config.model,
+                    messages: [{ role: 'user', content: testPrompt }],
+                    max_tokens: 50,
+                    temperature: 0
+                });
+
+                return {
+                    success: true,
+                    message: 'AI service is working',
+                    response: response.choices[0]?.message?.content,
+                    config: this.config
+                };
+            }
         } catch (error) {
             return {
                 success: false,
@@ -355,7 +452,7 @@ Ensure recommendations are:
     getConfiguration() {
         return {
             ...this.config,
-            clientInitialized: !!this.openai
+            clientInitialized: !!(this.openai || this.anthropic)
         };
     }
 
