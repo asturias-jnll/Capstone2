@@ -578,7 +578,7 @@ class SharedUtils {
             <div class="logout-loading-spinner">
                 <img src="../../assets/logo.png" alt="IMVCMPC Logo" class="logout-spinning-logo">
             </div>
-            <p class="logout-loading-text">Logging out as ${roleName}...</p>
+            <p class="logout-loading-text">Logging out as ${roleName}</p>
         `;
 
         loadingOverlay.appendChild(loadingContent);

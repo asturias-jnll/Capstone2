@@ -9,6 +9,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Intro Logo Animation -->
+    <div id="introLogo" class="intro-logo">
+        <img src="../assets/logo.png" alt="IMVCMPC Logo">
+    </div>
+    
     <!-- Login Screen -->
     <div id="loginScreen" class="screen active">
         <div class="login-container">
@@ -74,7 +79,7 @@
     </div>
 
     <!-- Loading Dialog -->
-    <div id="loadingDialog" class="modal" style="display: none;">
+    <div id="loadingDialog" class="modal fullscreen loading-screen" style="display: none;">
         <div class="modal-content">
             <div class="loading-spinner">
                 <img src="../assets/logo.png" alt="IMVCMPC Logo" class="spinning-logo">
@@ -84,10 +89,10 @@
     </div>
 
     <!-- Success Dialog -->
-    <div id="successDialog" class="modal" style="display: none;">
+    <div id="successDialog" class="modal fullscreen welcome-screen" style="display: none;">
         <div class="modal-content">
             <div class="success-icon">
-                <i class="fas fa-check-circle"></i>
+                <i class="fas fa-user-circle"></i>
             </div>
             <h3 id="successMessage">Success!</h3>
         </div>

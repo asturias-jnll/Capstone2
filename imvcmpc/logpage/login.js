@@ -1,3 +1,13 @@
+// Remove intro logo after animation completes
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const introLogo = document.getElementById('introLogo');
+        if (introLogo) {
+            introLogo.classList.add('hidden');
+        }
+    }, 2300);
+});
+
 // Login functionality
 async function login() {
     const username = document.getElementById('username').value;
@@ -38,7 +48,7 @@ async function login() {
             roleGuess = 'IT Head';
         }
         
-        loadingText.textContent = `Logging in as ${roleGuess}...`;
+        loadingText.textContent = `Logging in as ${roleGuess}`;
     }
 
     try {
@@ -77,12 +87,12 @@ async function login() {
 
             // Update loading dialog text with actual role from API response
             if (loadingText) {
-                loadingText.textContent = `Logging in as ${data.user.role_display_name}...`;
+                loadingText.textContent = `Logging in as ${data.user.role_display_name}`;
             }
 
-            // Keep loading dialog visible for a moment to show the updated text
+            // Show loading for a moment then instantly switch to welcome
             setTimeout(() => {
-                // Hide loading dialog
+                // Hide loading dialog instantly (no transition)
                 document.getElementById('loadingDialog').style.display = 'none';
                 
                 // Show success dialog with role-specific message
@@ -94,13 +104,19 @@ async function login() {
                 const roleDisplayName = data.user.role_display_name || 'User';
                 successMessage.textContent = `Welcome, ${userBranchName} ${roleDisplayName}!`;
                 
-                // Show success dialog
+                // Show success dialog instantly (no transition between screens)
                 successDialog.style.display = 'flex';
                 
-                // Redirect based on user role after a short delay
+                // Show welcome for 2.5 seconds, then fade out before redirect
                 setTimeout(() => {
-                    redirectBasedOnRole(data.user.role);
-                }, 3000);
+                    // Add fade-out animation
+                    successDialog.style.animation = 'fadeOut 0.5s ease-out forwards';
+                    
+                    // Redirect early during fade-out to prevent login page flash
+                    setTimeout(() => {
+                        redirectBasedOnRole(data.user.role);
+                    }, 100);
+                }, 2500);
             }, 1000);
 
         } else {

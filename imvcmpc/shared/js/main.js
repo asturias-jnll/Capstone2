@@ -525,7 +525,7 @@ function showLogoutLoading() {
         <div class="logout-loading-spinner">
             <img src="../../assets/logo.png" alt="IMVCMPC Logo" class="logout-spinning-logo">
         </div>
-        <p class="logout-loading-text">Logging out as ${userRole}...</p>
+        <p class="logout-loading-text">Logging out as ${userRole}</p>
     `;
 
     loadingOverlay.appendChild(loadingContent);
