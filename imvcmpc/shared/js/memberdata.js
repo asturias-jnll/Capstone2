@@ -2250,10 +2250,10 @@ async function updatePendingRequestsCount() {
             if (count > 0) {
                 requestCountElement.textContent = count;
                 requestCountElement.style.display = 'inline-flex';
-                pendingRequestsBtn.style.background = '#FF9800';
+                pendingRequestsBtn.style.background = '#46664B';
             } else {
                 requestCountElement.style.display = 'none';
-                pendingRequestsBtn.style.background = 'var(--orange)';
+                pendingRequestsBtn.style.background = '#46664B';
             }
         }
     } catch (error) {
@@ -2940,11 +2940,11 @@ async function updateFinanceOfficerNotifications() {
                 if (count > 0) {
                     requestCountElement.textContent = count;
                     requestCountElement.style.display = 'inline-flex';
-                    pendingRequestsBtn.style.background = '#FF9800';
+                    pendingRequestsBtn.style.background = '#46664B';
                     console.log('Updated button with count:', count);
                 } else {
                     requestCountElement.style.display = 'none';
-                    pendingRequestsBtn.style.background = 'var(--orange)';
+                    pendingRequestsBtn.style.background = '#46664B';
                     console.log('No requests, hiding count');
                 }
             } else {
@@ -2957,11 +2957,11 @@ async function updateFinanceOfficerNotifications() {
                         if (count > 0) {
                             retryRequestCountElement.textContent = count;
                             retryRequestCountElement.style.display = 'inline-flex';
-                            retryPendingRequestsBtn.style.background = '#FF9800';
+                            retryPendingRequestsBtn.style.background = '#46664B';
                             console.log('Retry successful - Updated button with count:', count);
                         } else {
                             retryRequestCountElement.style.display = 'none';
-                            retryPendingRequestsBtn.style.background = 'var(--orange)';
+                            retryPendingRequestsBtn.style.background = '#46664B';
                             console.log('Retry successful - No requests, hiding count');
                         }
                     } else {
@@ -3020,13 +3020,13 @@ function showFinanceOfficerNotification(count) {
         const style = document.createElement('style');
         style.textContent = `
             .finance-officer-notification {
-                background: linear-gradient(135deg, #FF6B35, #F7931E);
+                background: linear-gradient(135deg, #0B5E1C, #69B41E);
                 color: white;
                 padding: 16px 20px;
                 margin-top: -30px;
                 margin-bottom: 30px;
                 border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+                box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
                 animation: slideDown 0.5s ease;
             }
             
