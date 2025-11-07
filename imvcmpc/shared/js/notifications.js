@@ -584,6 +584,7 @@ async function handleTakeAction() {
         const notificationId = currentNotification.id;
         const requestId = currentNotification.reference_id;
         const metadata = currentNotification.metadata || {};
+        const userRole = localStorage.getItem('user_role');
 
         // Close modal
         closeNotificationModal();
@@ -591,17 +592,24 @@ async function handleTakeAction() {
         // Mark as read
         await markAsRead(notificationId, false);
 
-        // Prefer server-provided redirect; otherwise build fallback URL
-        const redirectUrl = (metadata && metadata.redirect)
-            ? metadata.redirect
-            : `/marketingclerk/html/reports.html?from=report_request&requestId=${encodeURIComponent(requestId)}`;
+        // Determine redirect URL based on user role
+        // Finance Officer receives report requests from Marketing Clerk
+        let redirectUrl;
+        if (metadata && metadata.redirect_url) {
+            redirectUrl = metadata.redirect_url;
+        } else if (userRole === 'Finance Officer') {
+            redirectUrl = `/financeofficer/html/reports.html?from=report_request&requestId=${encodeURIComponent(requestId)}`;
+        } else {
+            // Fallback for Marketing Clerk (shouldn't happen, but just in case)
+            redirectUrl = `/marketingclerk/html/reports.html?from=report_request&requestId=${encodeURIComponent(requestId)}`;
+        }
 
         // Persist minimal prefill so Reports can hydrate if metadata lacks details
         try {
             sessionStorage.setItem('report_request_prefill', JSON.stringify({ requestId, metadata }));
         } catch (_) {}
 
-        // Redirect to MC reports page
+        // Redirect to appropriate reports page
         window.location.href = redirectUrl;
     }
 }
@@ -642,8 +650,21 @@ async function handleViewReport() {
         await markAsRead(notificationId, false);
         await markAsCompleted(notificationId);
         
-        // Redirect to FO reports page with report ID
-        const redirectUrl = metadata.redirect_url || `../../financeofficer/html/reports.html?reportId=${reportId}`;
+        // Redirect to reports page with report ID (role-specific)
+        const userRole = localStorage.getItem('user_role');
+        let redirectUrl = metadata.redirect_url;
+        
+        // If no redirect URL in metadata, determine based on role
+        if (!redirectUrl) {
+            if (userRole === 'Marketing Clerk') {
+                redirectUrl = `../../marketingclerk/html/reports.html?reportId=${reportId}`;
+            } else if (userRole === 'Finance Officer') {
+                redirectUrl = `../../financeofficer/html/reports.html?reportId=${reportId}`;
+            } else {
+                redirectUrl = `../../financeofficer/html/reports.html?reportId=${reportId}`;
+            }
+        }
+        
         console.log('🔗 Redirecting to:', redirectUrl);
         
         // Redirect to reports page

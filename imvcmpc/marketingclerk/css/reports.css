@@ -192,6 +192,11 @@
 }
 
 /* Report Type Selector */
+/* Report Type Filter - Custom Dropdown Design */
+.report-type-filter {
+    position: relative;
+}
+
 .report-type-selector {
     display: flex;
     gap: 8px;
@@ -202,39 +207,70 @@
 .report-type-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border: 1px solid #e2e8f0;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
     border-radius: 8px;
-    background: #ffffff;
-    color: #4a5568;
+    background: white;
     font-size: 14px;
-    font-weight: 600;
+    color: #374151;
+    min-width: 180px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    min-height: 44px;
-    justify-content: center;
-    white-space: nowrap;
+    transition: all 0.2s ease;
 }
 
 .report-type-btn:hover {
     border-color: #69B41E;
-    color: #187C19;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(105, 180, 30, 0.12);
-}
-
-.report-type-btn.active {
-    border-color: #0D5B11;
-    background: linear-gradient(135deg, #0D5B11, #187C19);
-    color: #ffffff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(13, 91, 17, 0.2);
 }
 
 .report-type-btn i {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.report-type-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 200px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: none;
+    z-index: 1000;
+}
+
+.report-type-menu.show {
+    display: block;
+}
+
+.menu-section {
+    padding: 8px 0;
+}
+
+.menu-option {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-option:hover {
+    background: #f9fafb;
+}
+
+.menu-option span {
     font-size: 14px;
+    color: #111827;
+}
+
+.menu-option .check-icon {
+    font-size: 14px;
+    color: #111827;
 }
 
 /* Report Configuration */
@@ -289,14 +325,14 @@
 
 .history-item {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     padding: 12px 16px;
     background: var(--white);
     border: 1px solid var(--gray-200);
     border-radius: 8px;
     margin-bottom: 8px;
     transition: all 0.3s ease;
+    gap: 12px;
 }
 
 .history-item:hover {
@@ -308,8 +344,16 @@
     margin-bottom: 0;
 }
 
+.history-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
 .history-info {
     flex: 1;
+    min-width: 0;
 }
 
 .history-title {
@@ -352,6 +396,11 @@
 
 .history-status.sent {
     background: var(--green);
+    color: var(--white);
+}
+
+.history-status.received {
+    background: #0D5B11;
     color: var(--white);
 }
 
@@ -1130,6 +1179,42 @@ div[style*="height: 260px"] h4 {
 
 .sent-reports-container {
     padding: 24px;
+}
+
+.report-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+.btn-view,
+.btn-download {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.btn-view:hover {
+    background: #f0f9ff;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+.btn-download:hover {
+    background: #f0fdf4;
+    border-color: #0D5B11;
+    color: #0D5B11;
 }
 
 .empty-state {
@@ -2313,6 +2398,16 @@ div[style*="height: 260px"] h4 {
     .history-item {
         padding: 10px 12px;
         gap: 8px;
+    }
+    
+    .report-actions {
+        width: 100%;
+        order: -1;
+        gap: 6px;
+    }
+    
+    .history-item-content {
+        width: 100%;
         flex-wrap: wrap;
     }
     
@@ -2398,6 +2493,16 @@ div[style*="height: 260px"] h4 {
     .history-item {
         padding: 8px 10px;
         gap: 6px;
+    }
+    
+    .report-actions {
+        width: 100%;
+        order: -1;
+        gap: 4px;
+    }
+    
+    .history-item-content {
+        width: 100%;
         flex-wrap: wrap;
     }
     
@@ -2426,4 +2531,91 @@ div[style*="height: 260px"] h4 {
     .history-timestamp {
         font-size: 9px;
     }
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    overflow: hidden;
+    padding: 20px 0;
+}
+
+.modal-content {
+    background-color: #ffffff;
+    margin: 0 auto;
+    padding: 0;
+    border-radius: 16px;
+    width: 95%;
+    max-width: 1400px;
+    max-height: calc(100vh - 40px);
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    padding: 10px 20px;
+    border-bottom: 1px solid #e5e7e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #0D5B11;
+    margin: 0;
+    text-transform: capitalize;
+}
+
+.close {
+    color: #9ca3af;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close:hover {
+    color: #6b7280;
+}
+
+.modal-body {
+    padding: 16px;
+    max-height: calc(100vh - 120px);
+    overflow: hidden;
+}
+
+.modal-footer {
+    background: #f9fafb;
+    padding: 12px 24px;
+    border-top: 1px solid #e5e7e5;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-close {
+    background: #6b7280;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.btn-close:hover {
+    background: #4b5563;
 }

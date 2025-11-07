@@ -97,67 +97,73 @@ class GeneratedReportService {
                 console.log('⚠️ No report_request_id provided, skipping notification update');
             }
 
-            // Find Finance Officer in the same branch
-            const foQuery = `
-                SELECT u.id, u.first_name, u.last_name
-                FROM users u
-                JOIN roles r ON u.role_id = r.id
-                WHERE u.branch_id = $1 AND r.name = 'finance_officer' AND u.is_active = true
-                ORDER BY u.created_at
-                LIMIT 1
-            `;
-            const foResult = await client.query(foQuery, [branchId]);
-            const financeOfficer = foResult.rows[0];
-
-            console.log('🔍 Finance Officer Query Result:', {
-                branchId,
-                query: foQuery,
-                resultCount: foResult.rows.length,
-                financeOfficer: financeOfficer ? { id: financeOfficer.id, name: `${financeOfficer.first_name} ${financeOfficer.last_name}` } : null,
-                rawFinanceOfficer: financeOfficer
-            });
-
-            // Create notification for Finance Officer
+            // Only create notification for Marketing Clerk if this report was generated from a request
+            // Independent reports (without reportRequestId) should NOT notify MC
             let notification = null;
-            if (financeOfficer) {
-                console.log('🔔 Creating notification for Finance Officer:', {
-                    userId: financeOfficer.id,
-                    branchId: branchId,
-                    title: `New ${reportType} Report Available`
+            if (reportRequestId) {
+                // Find Marketing Clerk in the same branch
+                const mcQuery = `
+                    SELECT u.id, u.first_name, u.last_name
+                    FROM users u
+                    JOIN roles r ON u.role_id = r.id
+                    WHERE u.branch_id = $1 AND r.name = 'marketing_clerk' AND u.is_active = true
+                    ORDER BY u.created_at
+                    LIMIT 1
+                `;
+                const mcResult = await client.query(mcQuery, [branchId]);
+                const marketingClerk = mcResult.rows[0];
+
+                console.log('🔍 Marketing Clerk Query Result:', {
+                    branchId,
+                    query: mcQuery,
+                    resultCount: mcResult.rows.length,
+                    marketingClerk: marketingClerk ? { id: marketingClerk.id, name: `${marketingClerk.first_name} ${marketingClerk.last_name}` } : null,
+                    rawMarketingClerk: marketingClerk
                 });
-                
-                try {
-                    console.log('🔔 About to create notification with userId:', financeOfficer.id);
-                    console.log('🔔 financeOfficer object keys:', Object.keys(financeOfficer));
-                    console.log('🔔 financeOfficer.id type:', typeof financeOfficer.id);
-                    
-                    notification = await this.notificationService.createNotification({
-                        user_id: financeOfficer.id,
-                        branch_id: branchId,
-                        title: `New ${reportType} Report Available`,
-                        content: `Marketing Clerk has generated a ${reportType} report for your review.`,
-                        category: 'important',
-                        type: 'warning',
-                        status: 'pending',
-                        reference_type: 'generated_report',
-                        reference_id: report.id,
-                        is_highlighted: true,
-                        priority: 'important',
-                        metadata: {
-                            report_type: reportType,
-                            generated_by: generatedBy,
-                            report_id: report.id,
-                            file_name: fileName,
-                            file_size: fileSize,
-                            redirect_url: `../../financeofficer/html/reports.html?reportId=${report.id}`
-                        }
+
+                // Create notification for Marketing Clerk only when report is from a request
+                if (marketingClerk) {
+                    console.log('🔔 Creating notification for Marketing Clerk (report from request):', {
+                        userId: marketingClerk.id,
+                        branchId: branchId,
+                        title: `New ${reportType} Report Available`
                     });
-                    console.log('✅ Notification created successfully:', notification ? notification.id : 'null');
-                } catch (error) {
-                    console.error('❌ Notification creation failed:', error);
+                    
+                    try {
+                        console.log('🔔 About to create notification with userId:', marketingClerk.id);
+                        console.log('🔔 marketingClerk object keys:', Object.keys(marketingClerk));
+                        console.log('🔔 marketingClerk.id type:', typeof marketingClerk.id);
+                        
+                        notification = await this.notificationService.createNotification({
+                            user_id: marketingClerk.id,
+                            branch_id: branchId,
+                            title: `New ${reportType} Report Available`,
+                            content: `Finance Officer has generated a ${reportType} report for your review.`,
+                            category: 'important',
+                            type: 'warning',
+                            status: 'pending',
+                            reference_type: 'generated_report',
+                            reference_id: report.id,
+                            is_highlighted: true,
+                            priority: 'important',
+                            metadata: {
+                                report_type: reportType,
+                                generated_by: generatedBy,
+                                report_id: report.id,
+                                file_name: fileName,
+                                file_size: fileSize,
+                                redirect_url: `../../marketingclerk/html/reports.html?reportId=${report.id}`
+                            }
+                        });
+                        console.log('✅ Notification created successfully:', notification ? notification.id : 'null');
+                    } catch (error) {
+                        console.error('❌ Notification creation failed:', error);
+                    }
+                } else {
+                    console.log('⚠️ No Marketing Clerk found for branch:', branchId);
                 }
             } else {
-                console.log('⚠️ No Finance Officer found for branch:', branchId);
+                console.log('ℹ️ Independent report (no report_request_id) - skipping MC notification');
             }
 
             await client.query('COMMIT');
@@ -193,13 +199,13 @@ class GeneratedReportService {
             `;
             const params = [reportId];
 
-            // Add access control based on role
-            // Marketing Clerk: can only view reports they generated from their branch
-            // Finance Officer: can only view reports from their branch
-            if (userRole === 'marketing_clerk') {
+            // Add access control based on role (swapped functionality)
+            // Finance Officer: can only view reports they generated from their branch
+            // Marketing Clerk: can only view reports from their branch (sent to them)
+            if (userRole === 'finance_officer') {
                 query += ' AND gr.generated_by = $2 AND gr.branch_id = $3';
                 params.push(userId, userBranchId);
-            } else if (userRole === 'finance_officer') {
+            } else if (userRole === 'marketing_clerk') {
                 query += ' AND gr.branch_id = $2';
                 params.push(userBranchId);
             }
@@ -261,14 +267,14 @@ class GeneratedReportService {
             const params = [];
             let paramCount = 0;
 
-            // Build WHERE clause based on role
-            // Marketing Clerk: only see reports they generated AND from their branch
-            // Finance Officer: only see reports from their branch
-            if (userRole === 'marketing_clerk') {
+            // Build WHERE clause based on role (swapped functionality)
+            // Finance Officer: only see reports they generated AND from their branch
+            // Marketing Clerk: only see reports from their branch (sent to them)
+            if (userRole === 'finance_officer') {
                 whereClause = 'WHERE gr.generated_by = $1 AND gr.branch_id = $2';
                 params.push(userId, userBranchId);
                 paramCount = 2;
-            } else if (userRole === 'finance_officer') {
+            } else if (userRole === 'marketing_clerk') {
                 whereClause = 'WHERE gr.branch_id = $1';
                 params.push(userBranchId);
                 paramCount = 1;
@@ -315,6 +321,7 @@ class GeneratedReportService {
             // Data query
             const dataQuery = `
                 SELECT gr.id,
+                       gr.report_request_id,
                        gr.report_type,
                        gr.config,
                        gr.status,
@@ -373,13 +380,13 @@ class GeneratedReportService {
             let query = 'SELECT file_url FROM generated_reports WHERE id = $1';
             const params = [reportId];
 
-            // Add access control
-            // Marketing Clerk: can only download reports they generated from their branch
-            // Finance Officer: can only download reports from their branch
-            if (userRole === 'marketing_clerk') {
+            // Add access control (swapped functionality)
+            // Finance Officer: can only download reports they generated from their branch
+            // Marketing Clerk: can only download reports from their branch (sent to them)
+            if (userRole === 'finance_officer') {
                 query += ' AND generated_by = $2 AND branch_id = $3';
                 params.push(userId, userBranchId);
-            } else if (userRole === 'finance_officer') {
+            } else if (userRole === 'marketing_clerk') {
                 query += ' AND branch_id = $2';
                 params.push(userBranchId);
             }
@@ -404,7 +411,7 @@ class GeneratedReportService {
     }
 
     /**
-     * Mark report as viewed by Finance Officer
+     * Mark report as viewed by Marketing Clerk (swapped functionality)
      * @param {string} reportId - Report ID
      * @param {string} userId - User ID
      * @returns {Object|null} Updated report

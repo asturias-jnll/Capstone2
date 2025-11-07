@@ -5,9 +5,8 @@ class SharedUtils {
             'marketing-clerk': {
                 name: 'Marketing Clerk',
                 navItems: [
-                    { href: 'main.html', icon: 'fas fa-home', text: 'Dashboard' },
+                    // Dashboard and Analytics removed for Marketing Clerk
                     { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
-                    { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
                     { href: '/marketingclerk/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
                     { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
                 ]
@@ -15,7 +14,8 @@ class SharedUtils {
             'finance-officer': {
                 name: 'Finance Officer',
                 navItems: [
-                    // Dashboard is hidden for Finance Officer
+                    // Dashboard is now available for Finance Officer
+                    { href: 'dashboard.html', icon: 'fas fa-home', text: 'Dashboard' },
                     { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
                     { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
                     { href: '/financeofficer/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
@@ -130,16 +130,17 @@ class SharedUtils {
         });
     }
 
-    // Hide dashboard navigation for Finance Officer
+    // Hide dashboard navigation for Marketing Clerk (dashboard is now for Finance Officer only)
     hideDashboardForFinanceOfficer() {
         const userRole = localStorage.getItem('user_role');
         const dashboardNavItems = document.querySelectorAll('a[href="dashboard.html"], a[href="main.html"]');
         
-        if (userRole === 'Finance Officer' && dashboardNavItems.length > 0) {
+        // Hide dashboard for Marketing Clerk (not Finance Officer)
+        if (userRole === 'Marketing Clerk' && dashboardNavItems.length > 0) {
             dashboardNavItems.forEach(item => {
                 item.style.display = 'none';
             });
-            console.log('Dashboard hidden for Finance Officer');
+            console.log('Dashboard hidden for Marketing Clerk');
         }
     }
 

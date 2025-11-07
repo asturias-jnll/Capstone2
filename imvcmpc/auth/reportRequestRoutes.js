@@ -5,10 +5,10 @@ const ReportRequestService = require('./reportRequestService');
 const router = express.Router();
 const service = new ReportRequestService();
 
-// Create a report request (Finance Officer)
+// Create a report request (Marketing Clerk - swapped functionality)
 router.post('/report-requests',
     authenticateToken,
-    checkRole(['finance_officer']),
+    checkRole(['marketing_clerk']),
     auditLog('report_request_creation', 'report_requests'),
     async (req, res) => {
         try {
@@ -38,7 +38,7 @@ router.post('/report-requests',
     }
 );
 
-// Update report request status (MC marks in_progress/completed)
+// Update report request status (FO marks in_progress/completed - swapped functionality)
 router.patch('/report-requests/:id/status',
     authenticateToken,
     checkRole(['marketing_clerk', 'finance_officer']),

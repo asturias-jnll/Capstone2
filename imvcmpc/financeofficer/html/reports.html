@@ -15,8 +15,29 @@
             if (isExpanded) {
                 document.documentElement.classList.add('nav-expanded');
             }
+            
+            // Check for report request and add class to body to prevent any flashes
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlRequestId = urlParams.get('requestId');
+            const raw = sessionStorage.getItem('report_request_prefill');
+            
+            if (urlRequestId || raw) {
+                document.body.classList.add('report-request-mode');
+            }
         })();
     </script>
+    <style>
+        /* Prevent any flash when arriving from report request */
+        body.report-request-mode .report-config {
+            display: none !important;
+        }
+        body.report-request-mode .sent-reports-section {
+            display: none !important;
+        }
+        body.report-request-mode #initialState {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Main Dashboard -->
@@ -96,13 +117,13 @@
                         <!-- Report Type Filter -->
                         <div class="report-type-filter">
                             <button class="report-type-btn" onclick="toggleReportTypeMenu()" id="reportTypeBtn">
-                                <span id="reportTypeText">Request Report</span>
+                                <span id="reportTypeText">Generate Report</span>
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                             <div class="report-type-menu" id="reportTypeMenu">
                                 <div class="menu-section">
                                     <div class="menu-option" data-type="" onclick="selectReportType('')">
-                                        <span>Request Report</span>
+                                        <span>Generate Report</span>
                                         <i class="fas fa-check check-icon" style="display: none;"></i>
                                     </div>
                                     <div class="menu-option" data-type="savings" onclick="selectReportType('savings')">
@@ -123,6 +144,13 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <!-- Back to History Button (Hidden by default) -->
+                        <div class="back-to-history-container" id="backToHistoryContainer" style="display: none;">
+                            <button class="back-to-history-btn" onclick="hideReportConfiguration()">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Back to Report History</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -148,9 +176,63 @@
                     <div class="report-count" id="reportCount" style="margin-left:auto; color:#6B7280; font-weight:500; font-size:13px; visibility:hidden;"></div>
                 </div>
 
-                <!-- Report Configuration -->
-                <div class="report-config">
+                <!-- Reports Section - Main Reports Page -->
+                <div class="sent-reports-section">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <h3><i class="fas fa-file-alt"></i> Reports</h3>
+                            <p>Your generated reports history</p>
+                        </div>
+                        <div class="section-controls">
+                            <div class="report-filters">
+                                <button class="filter-btn active" data-filter="all" onclick="filterSentReports('all')">All</button>
+                                <button class="filter-btn" data-filter="savings" onclick="filterSentReports('savings')">Savings</button>
+                                <button class="filter-btn" data-filter="disbursement" onclick="filterSentReports('disbursement')">Disbursement</button>
+                                <button class="filter-btn" data-filter="member" onclick="filterSentReports('member')">Member</button>
+                                <button class="filter-btn" data-filter="branch" onclick="filterSentReports('branch')">Branch</button>
+                            </div>
+                            <button onclick="initializeReportHistories()" class="refresh-btn" title="Refresh reports">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="sentReportsContainer" class="sent-reports-container">
+                        <!-- Sent reports will be displayed here -->
+                    </div>
+                </div>
 
+                <!-- Report Configuration (Hidden by default) -->
+                <div class="report-config" style="display: none;">
+                    <!-- Report Type Selection (Hidden - using dropdown in header instead) -->
+                    <div class="report-type-selector" style="display: none;">
+                        <button class="report-type-btn" data-type="savings">
+                            <i class="fas fa-piggy-bank"></i>
+                            <span>Savings Reports</span>
+                        </button>
+                        <button class="report-type-btn" data-type="disbursement">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Disbursement Reports</span>
+                        </button>
+                        <button class="report-type-btn" data-type="member">
+                            <i class="fas fa-user"></i>
+                            <span>Member Reports</span>
+                        </button>
+                        <button class="report-type-btn" data-type="branch" id="branchReportsBtn" style="display: none;">
+                            <i class="fas fa-store"></i>
+                            <span>Branch Reports</span>
+                        </button>
+                    </div>
+
+                    <!-- Initial State -->
+                    <div id="initialState" class="initial-state">
+                        <div class="initial-message">
+                            <i class="fas fa-file-alt"></i>
+                            <h4>Choose a Report Type</h4>
+                            <p>Select one of the report types above to configure and generate your report.</p>
+                        </div>
+                    </div>
+
+                    <!-- Savings/Disbursement Configuration -->
                     <!-- Savings Configuration -->
                     <div id="savingsConfig" class="config-section">
                         <div class="config-header">
@@ -453,39 +535,81 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
 
-                <!-- Request-only flow: no direct send button for finance officer -->
+                <!-- Send to Marketing Clerk Section -->
+                <div id="aiRecommendationControls" style="display:none; gap: 8px; margin-top: 12px;">
+                    <button class="generate-ai-btn" id="generateAIButton" onclick="generateAIRecommendation()">
+                        <i class="fas fa-brain"></i>
+                        <span>Generate AI Recommendation</span>
+                    </button>
+                </div>
 
-                <!-- Received Reports Section - Main Reports Page Only -->
-                <div class="received-reports-section">
-                    <div class="section-header">
-                        <div class="section-title">
-                            <h3><i class="fas fa-inbox"></i> Received Reports</h3>
-                            <p>Reports generated by Marketing Clerk for your review</p>
-                        </div>
-                        <div class="section-controls">
-                            <div class="report-filters">
-                                <button class="filter-btn active" data-filter="all" onclick="filterReceivedReports('all')">All</button>
-                                <button class="filter-btn" data-filter="savings" onclick="filterReceivedReports('savings')">Savings</button>
-                                <button class="filter-btn" data-filter="disbursement" onclick="filterReceivedReports('disbursement')">Disbursement</button>
-                                <button class="filter-btn" data-filter="member" onclick="filterReceivedReports('member')">Member</button>
-                                <button class="filter-btn" data-filter="branch" onclick="filterReceivedReports('branch')">Branch</button>
-                            </div>
-                            <button onclick="loadReceivedReports()" class="refresh-btn" title="Refresh reports">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                        </div>
+                <div id="aiRecommendationSection" class="ai-recommendation-section" style="display:none;">
+                    <div class="ai-recommendation-header">
+                        <i class="fas fa-brain"></i>
+                        <h3 style="margin:0">AI-Powered Prescriptive Recommendations</h3>
+                        <span class="beta-badge">BETA</span>
                     </div>
-                    <div id="receivedReportsContainer" class="received-reports-container">
-                        <!-- Received reports will be displayed here -->
+                    <div class="strategic-recommendations">
+                        <h4 style="margin:8px 0">Strategic Insights</h4>
+                        <p id="aiStrategicText" style="margin:0;color:#111827"></p>
+                    </div>
+                    <div class="branch-recommendations" style="margin-top:12px">
+                        <h4 style="margin:8px 0">Branch-Level Recommendations</h4>
+                        <div id="aiBranchList"></div>
+                    </div>
+                    <div class="mcda-rankings" style="margin-top:12px">
+                        <h4 style="margin:8px 0">Performance Rankings (TOPSIS Score)</h4>
+                        <table id="aiRankingTable"><thead><tr><th>Rank</th><th>Branch</th><th>Score</th><th>Category</th></tr></thead><tbody></tbody></table>
                     </div>
                 </div>
+
+                <button class="send-finance-btn" id="sendFinanceSection" onclick="sendToMarketingClerk()" style="display: none;">
+                    <i class="fas fa-paper-plane"></i>
+                    <span id="sendButtonText">SEND TO MARKETING CLERK</span>
+                </button>
+
             </div>
         </main>
     </div>
 
+    <script>
+        // Hide history section and initial state immediately if arriving from report request notification
+        // This prevents the flash of history and "Choose a Report Type" before configuration appears
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlRequestId = urlParams.get('requestId');
+            const raw = sessionStorage.getItem('report_request_prefill');
+            
+            if (urlRequestId || raw) {
+                // Hide sent reports section immediately
+                const sentReportsSection = document.querySelector('.sent-reports-section');
+                if (sentReportsSection) {
+                    sentReportsSection.style.display = 'none';
+                }
+                const sentReportsContainer = document.getElementById('sentReportsContainer');
+                if (sentReportsContainer) {
+                    sentReportsContainer.style.display = 'none';
+                }
+                
+                // Hide initial state immediately to prevent "Choose a Report Type" flash
+                const initialState = document.getElementById('initialState');
+                if (initialState) {
+                    initialState.style.display = 'none';
+                }
+                
+                // Keep report-config hidden until prefill is ready
+                const reportConfig = document.querySelector('.report-config');
+                if (reportConfig) {
+                    reportConfig.style.display = 'none';
+                }
+            }
+        })();
+    </script>
     <script src="../../shared/js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../../shared/js/shared-utils.js"></script>
     <script src="../js/reports.js"></script>
     <script src="../../shared/js/topbar.js"></script>
@@ -539,28 +663,34 @@
             localStorage.setItem('user_branch_name', userBranchName);
             localStorage.setItem('is_main_branch_user', isMainBranchUser.toString());
 
-            // Show/hide branch reports option in dropdown
-            const branchReportOption = document.getElementById('branchReportOption');
+            // Show/hide branch reports button and configuration
+            const branchReportsBtn = document.getElementById('branchReportsBtn');
+            const branchConfig = document.getElementById('branchConfig');
             
-            // Find and show/hide the Branch filter button
+            // Find and hide the Branch filter button for non-main branch users
             const branchFilterBtn = document.querySelector('.report-filters button[data-filter="branch"]');
 
             if (isMainBranchUser) {
-                // Show branch reports option for main branch users
-                if (branchReportOption) {
-                    branchReportOption.style.display = 'flex';
-                    console.log('Showing branch reports option for main branch user');
+                // Show branch reports button for main branch users
+                if (branchReportsBtn) {
+                    branchReportsBtn.style.display = 'block';
+                    console.log('Showing branch reports button for main branch user');
                 }
                 // Show Branch filter button for main branch users
                 if (branchFilterBtn) {
                     branchFilterBtn.style.display = 'flex';
                     console.log('Showing branch filter for main branch user');
                 }
+                // Branch configuration will be shown/hidden by the reports.js when button is clicked
             } else {
                 // Hide branch reports for non-main branch users
-                if (branchReportOption) {
-                    branchReportOption.style.display = 'none';
-                    console.log('Hiding branch reports option for non-main branch user');
+                if (branchReportsBtn) {
+                    branchReportsBtn.style.display = 'none';
+                    console.log('Hiding branch reports for non-main branch user');
+                }
+                if (branchConfig) {
+                    branchConfig.style.display = 'none';
+                    console.log('Hiding branch configuration for non-main branch user');
                 }
                 // Hide Branch filter button for non-main branch users
                 if (branchFilterBtn) {

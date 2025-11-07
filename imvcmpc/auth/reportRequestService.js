@@ -9,14 +9,14 @@ class ReportRequestService {
         this._reportRequestsCols = null;
     }
 
-    async findSingleActiveMarketingClerk(branchId) {
+    async findSingleActiveFinanceOfficer(branchId) {
         const client = await this.pool.connect();
         try {
             const query = `
                 SELECT u.id
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
-                WHERE u.branch_id = $1 AND r.name = 'marketing_clerk' AND u.is_active = true
+                WHERE u.branch_id = $1 AND r.name = 'finance_officer' AND u.is_active = true
                 ORDER BY u.created_at
                 LIMIT 1
             `;
@@ -32,8 +32,8 @@ class ReportRequestService {
         try {
             await client.query('BEGIN');
 
-            // Auto-assign single active MC in branch
-            const assignedTo = await this.findSingleActiveMarketingClerk(branchId);
+            // Auto-assign single active Finance Officer in branch (MC requests from FO now)
+            const assignedTo = await this.findSingleActiveFinanceOfficer(branchId);
 
             // Build insert dynamically to avoid failing when optional columns are missing
             const cols = ['requested_by','assigned_to','branch_id','report_type','report_config','status'];

@@ -126,19 +126,18 @@ function initializeRoleBasedNavigation() {
     let navItems = [];
     
     if (userRole === 'Finance Officer') {
-        // Finance Officer: No Dashboard, starts with Member Data
+        // Finance Officer: Include Dashboard
         navItems = [
+            { href: 'dashboard.html', icon: 'fas fa-home', text: 'Dashboard' },
             { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
             { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
             { href: '/financeofficer/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
             { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
         ];
     } else {
-        // Marketing Clerk and other roles: Include Dashboard
+        // Marketing Clerk and other roles: No Dashboard, No Analytics, starts with Member Data
         navItems = [
-            { href: 'dashboard.html', icon: 'fas fa-home', text: 'Dashboard' },
             { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
-            { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
             { href: '/marketingclerk/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
             { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
         ];

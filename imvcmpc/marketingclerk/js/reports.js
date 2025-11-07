@@ -1,7 +1,4 @@
-// Reports System - Marketing Clerk (Shared Implementation)
-// Global lock flag to prevent editing when prefilled from FO
-window.isPrefillLocked = false;
-window.inConfigurationMode = false;
+// Marketing Clerk Reports System (Swapped - now uses Finance Officer functionality)
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize shared utilities (includes user header)
     if (typeof SharedUtils !== 'undefined') {
@@ -9,48 +6,15 @@ document.addEventListener('DOMContentLoaded', function() {
         sharedUtils.init();
     }
     
-    initializeReports();
-    prefillFromReportRequest();
+    initializeFOReports();
+    initializeMemberSearchAutocomplete();
 });
 
-// Normalize and set a <select> value, tolerating zero-padded and numeric forms
-function setSelectValueByNormalized(select, value) {
-    try {
-        if (!select || value == null) return;
-        const options = Array.from(select.options || []);
-        const valStr = String(value);
-
-        // 1) Exact match
-        if (options.some(o => o.value === valStr)) {
-            select.value = valStr;
-            return;
-        }
-
-        // 2) Zero-padded 2-digit
-        const pad2 = valStr.padStart(2, '0');
-        if (options.some(o => o.value === pad2)) {
-            select.value = pad2;
-            return;
-        }
-
-        // 3) Numeric compare (e.g., "1" == 1, matches option with value "1" or "01")
-        const num = parseInt(valStr, 10);
-        if (!Number.isNaN(num)) {
-            const byNum = options.find(o => parseInt(o.value, 10) === num);
-            if (byNum) {
-                select.value = byNum.value;
-                return;
-            }
-        }
-    } catch (_) {}
-}
-
-// Initialize reports system
-async function initializeReports() {
-    setupReportTypeSelector();
+// Initialize Marketing Clerk reports system
+function initializeFOReports() {
+    setupReportTypeDropdown();
     setupBranchSelection();
     setupTransactionTypeButtons();
-    setupDateRangeFilter();
     updateCurrentDateTime();
     setInterval(updateCurrentDateTime, 1000);
     
@@ -58,143 +22,221 @@ async function initializeReports() {
     initializeBranchSpecificReports();
     
     // Initialize report histories
-    try {
-        await initializeReportHistories();
-    } catch (error) {
-        console.error('Error initializing report histories:', error);
-    }
+    initializeReportHistories();
     
-    // Keep history view by default; generation UI is hidden until configuring a report
-    hideGenerateReportSection();
+    // Load received reports from Finance Officer
+    loadReceivedReports();
+    
+    // Show received reports section by default (main page)
+    showReceivedReportsSection();
+    
+    // Check for report highlighting from notification
+    checkForReportHighlight();
+    
+    // Initialize date range filter
+    setupDateRangeFilter();
+    
+    // Clear any saved selection on initial load to ensure no auto-check
+    localStorage.removeItem('currentReportType');
 }
 
-// Prefill the UI when arriving from a report_request notification
-function prefillFromReportRequest() {
-    try {
-        // Accept either sessionStorage or URL param as the entry point
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlRequestId = urlParams.get('requestId');
-        const raw = sessionStorage.getItem('report_request_prefill');
-        let requestId = null;
-        let metadata = null;
-        if (raw) {
-            try {
-                const parsed = JSON.parse(raw);
-                requestId = parsed.requestId || urlRequestId;
-                metadata = parsed.metadata || null;
-            } catch (_) {
-                requestId = urlRequestId;
-            }
-            sessionStorage.removeItem('report_request_prefill');
-        } else {
-            requestId = urlRequestId;
+// Member Search Autocomplete Functionality
+let memberSearchInitialized = false;
+let isProgrammaticSelection = false; // Flag to track programmatic value setting
+function initializeMemberSearchAutocomplete() {
+    if (memberSearchInitialized) return; // Prevent duplicate initialization
+    memberSearchInitialized = true;
+    
+    const memberSearchInput = document.getElementById('memberSearch');
+    if (!memberSearchInput) return;
+    
+    // Create autocomplete container
+    const autocompleteContainer = document.createElement('div');
+    autocompleteContainer.id = 'memberAutocompleteContainer';
+    autocompleteContainer.className = 'member-autocomplete-container';
+    memberSearchInput.parentNode.appendChild(autocompleteContainer);
+    
+    // Debounced search function
+    const debouncedSearch = debounce(async (searchTerm) => {
+        // Don't show suggestions if we just programmatically selected a member
+        if (isProgrammaticSelection) {
+            isProgrammaticSelection = false;
+            return;
         }
 
-        // If we don't have anything to prefill, stop
-        if (!requestId && !metadata) return;
-
-        // Always hydrate from API when we have a requestId; merge with any metadata
-        const token = localStorage.getItem('access_token');
-        const hydrate = async () => {
-            const shouldFetch = !!requestId && !!token;
-            if (shouldFetch) {
-                try {
-                    const res = await fetch(`/api/auth/report-requests/${requestId}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data && data.success && data.data) {
-                        metadata = metadata || {};
-                        // API is source of truth; metadata values provide fallbacks only
-                        metadata.report_type = data.data.report_type || metadata.report_type;
-                        metadata.config = data.data.report_config || metadata.config || {};
-                        }
-                    }
-                } catch (_) {}
+        if (!searchTerm || searchTerm.trim().length < 2) {
+            hideMemberSuggestions();
+                return;
+        }
+        
+        try {
+            const members = await searchMembers(searchTerm);
+            // Check if there's an exact match with the current input value
+            const inputValue = memberSearchInput.value.trim().toLowerCase();
+            const exactMatch = members.find(m => m.toLowerCase() === inputValue);
+            
+            // If there's only one result and it exactly matches what's in the input field, don't show suggestions
+            // This prevents showing dropdown when user has already selected/typed the exact member name
+            if (exactMatch && members.length === 1 && inputValue === exactMatch.toLowerCase()) {
+                hideMemberSuggestions();
+                return;
             }
+            
+            showMemberSuggestions(members);
+    } catch (error) {
+            console.error('Error searching members:', error);
+            hideMemberSuggestions();
+        }
+    }, 300);
+    
+    // Handle input changes
+    memberSearchInput.addEventListener('input', function(e) {
+        // Skip if this was a programmatic selection
+        if (isProgrammaticSelection) {
+            isProgrammaticSelection = false;
+            return;
+        }
+        const searchTerm = e.target.value.trim();
+        debouncedSearch(searchTerm);
+    });
+    
+    // Handle focus - show recent suggestions if any
+    memberSearchInput.addEventListener('focus', function(e) {
+        // Don't show suggestions if we just programmatically selected a member
+        if (isProgrammaticSelection) {
+            isProgrammaticSelection = false;
+            return;
+        }
+        const searchTerm = e.target.value.trim();
+        if (searchTerm.length >= 2) {
+            debouncedSearch(searchTerm);
+        }
+    });
+    
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!memberSearchInput.contains(e.target) && 
+            !autocompleteContainer.contains(e.target)) {
+            hideMemberSuggestions();
+        }
+    });
+    
+    // Handle escape key to close suggestions
+    memberSearchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideMemberSuggestions();
+        }
+    });
+}
+
+// Debounce function for search optimization
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
         };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
-        // Hydrate metadata if necessary before applying
-        // Note: using async IIFE to keep function signature unchanged
-        (async () => {
-            await hydrate();
-
-            if (!metadata || !metadata.report_type) return;
-
-            const reportType = metadata.report_type;
-
-            // Show the report configuration section and hide history
-            showReportConfiguration();
-
-            // Activate report type UI
-            const btn = document.querySelector(`.report-type-btn[data-type="${reportType}"]`);
-            if (btn) btn.click();
-
-            const cfg = metadata.config || {};
-            switch (reportType) {
-                case 'savings':
-                case 'disbursement': {
-                    const yearEl = document.getElementById(reportType + 'Year');
-                    const monthEl = document.getElementById(reportType + 'Month');
-                    if (yearEl && cfg.year != null) setSelectValueByNormalized(yearEl, cfg.year);
-                    if (monthEl && cfg.month != null) setSelectValueByNormalized(monthEl, cfg.month);
-                    break;
-                }
-                case 'member': {
-                    if (document.getElementById('memberSearch')) document.getElementById('memberSearch').value = cfg.member || '';
-                    // Member reports always include both transaction types (savings and disbursement)
-                    // No need to set transaction type buttons since they're always both active
-                    // Prefill year and month for member reports
-                    const yearEl = document.getElementById('memberYear');
-                    const monthEl = document.getElementById('memberMonth');
-                    if (yearEl && cfg.year != null) setSelectValueByNormalized(yearEl, cfg.year);
-                    if (monthEl && cfg.month != null) setSelectValueByNormalized(monthEl, cfg.month);
-                    break;
-                }
-                case 'branch': {
-                    if (Array.isArray(cfg.branches)) {
-                        cfg.branches.forEach(val => {
-                            const cb = document.querySelector(`input[name="branchSelection"][value="${val}"]`);
-                            if (cb) cb.checked = true;
-                        });
-                    }
-                    const byEl = document.getElementById('branchYear');
-                    const bmEl = document.getElementById('branchMonth');
-                    if (byEl && cfg.year != null) setSelectValueByNormalized(byEl, cfg.year);
-                    if (bmEl && cfg.month != null) setSelectValueByNormalized(bmEl, cfg.month);
-                    if (Array.isArray(cfg.transactionTypes)) {
-                        cfg.transactionTypes.forEach(t => {
-                            const tbtn = document.querySelector(`#branchConfig .type-btn[data-type="${t}"]`);
-                            if (tbtn) tbtn.classList.add('active');
-                        });
-                    }
-                    break;
-                }
+// Fetch member suggestions from API
+async function searchMembers(searchTerm) {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        throw new Error('Authentication required');
+    }
+    
+    try {
+        const response = await fetch(`/api/auth/transactions/search/payee/${encodeURIComponent(searchTerm)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to search members');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            // Extract unique member names from transactions
+            const uniqueMembers = [...new Set(result.data.map(t => t.payee))];
+            return uniqueMembers.slice(0, 10); // Limit to 10 suggestions
+        }
+        
+        return [];
+    } catch (error) {
+        console.error('Error fetching member suggestions:', error);
+        return [];
+    }
+}
 
-            // Lock the prefilled configuration so MC cannot change it
-            lockPrefilledConfiguration(reportType);
+// Display autocomplete dropdown
+function showMemberSuggestions(members) {
+    const container = document.getElementById('memberAutocompleteContainer');
+    if (!container) return;
+    
+    if (members.length === 0) {
+        container.innerHTML = `
+            <div class="autocomplete-suggestion no-results">
+                <i class="fas fa-search"></i>
+                <span>No members found</span>
+            </div>
+        `;
+        container.style.display = 'block';
+        return;
+    }
+    
+    container.innerHTML = members.map(member => `
+        <div class="autocomplete-suggestion" onclick="selectMember('${member.replace(/'/g, "\\'")}')">
+            <i class="fas fa-user"></i>
+            <span>${member}</span>
+        </div>
+    `).join('');
+    
+    container.style.display = 'block';
+}
 
-            // Optionally mark the request as in_progress
-            if (token && requestId) {
-                fetch(`/api/auth/report-requests/${requestId}/status`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ status: 'in_progress' })
-                }).catch(() => {});
-            }
+// Hide autocomplete suggestions
+function hideMemberSuggestions() {
+    const container = document.getElementById('memberAutocompleteContainer');
+    if (container) {
+        container.style.display = 'none';
+    }
+}
 
-            // Ensure generation UI is visible after taking action from notification
-            showGenerateReportSection();
-            // Scroll to configuration area (top)
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        })();
-    } catch (e) {
-        console.error('Prefill from report request failed:', e);
+// Handle member selection
+function selectMember(memberName) {
+    const memberSearchInput = document.getElementById('memberSearch');
+    if (memberSearchInput) {
+        // Set flag to prevent showing suggestions after programmatic selection
+        isProgrammaticSelection = true;
+        memberSearchInput.value = memberName;
+        hideMemberSuggestions();
+        // Trigger input event to validate (but suggestions won't show due to flag)
+        memberSearchInput.dispatchEvent(new Event('input'));
+    }
+}
+
+// Validate member exists before report request
+async function validateMemberExists(memberName) {
+    if (!memberName || memberName.trim().length < 2) {
+        return false;
+    }
+    
+    try {
+        const members = await searchMembers(memberName.trim());
+        // Check if exact match exists
+        return members.some(member => 
+            member.toLowerCase() === memberName.trim().toLowerCase()
+        );
+    } catch (error) {
+        console.error('Error validating member:', error);
+        return false;
     }
 }
 
@@ -202,13 +244,8 @@ function prefillFromReportRequest() {
 function initializeBranchSpecificReports() {
     const userBranchId = localStorage.getItem('user_branch_id');
     const userBranchName = localStorage.getItem('user_branch_name');
+    const userBranchLocation = localStorage.getItem('user_branch_location');
     const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-    
-    console.log('🔍 Branch-specific reports initialization:', {
-        userBranchId,
-        userBranchName,
-        isMainBranchUser
-    });
     
     // Update reports header based on branch
     updateReportsHeader(userBranchName, isMainBranchUser);
@@ -218,21 +255,14 @@ function initializeBranchSpecificReports() {
     
     // For non-main branch users, hide branch-related options
     if (!isMainBranchUser && userBranchName) {
-        console.log('🔍 Hiding branch-related options for non-main branch user');
-        
         // Hide branch selection for branch-specific users
         hideBranchSelection();
         
         // Hide branch reports option for non-main branch users
-        // Add a small delay to ensure DOM elements are loaded
-        setTimeout(() => {
             hideBranchReportsOption();
-        }, 100);
         
         // Filter reports data based on user's branch
         filterReportsForBranch(userBranchId, userBranchName);
-    } else {
-        console.log('🔍 User is main branch user or no branch name, not hiding branch options');
     }
 }
 
@@ -240,15 +270,12 @@ function initializeBranchSpecificReports() {
 function updateReportsHeader(branchName, isMainBranch) {
     const headerTitle = document.querySelector('.reports-header h1');
     if (headerTitle) {
-        // Always show "Financial Reports" regardless of branch
         headerTitle.textContent = 'Financial Reports';
     }
 }
 
 // Filter reports for specific branch
 function filterReportsForBranch(branchId, branchName) {
-    // For non-main branch users, we just hide the branch selection
-    // The branch is already determined by their user data
     console.log(`Filtering reports for ${branchName} (Branch ${branchId})`);
 }
 
@@ -303,165 +330,120 @@ function showBranchIndicators() {
 
 // Hide branch reports option for non-main branch users
 function hideBranchReportsOption() {
-    console.log('🔍 Hiding branch reports for non-main branch user');
-    
-    // Hide the branch reports button
-    const branchReportsBtn = document.querySelector('.report-type-btn[data-type="branch"]');
-    if (branchReportsBtn) {
-        branchReportsBtn.style.display = 'none';
-        console.log('✅ Hidden branch reports button');
-    } else {
-        console.log('❌ Branch reports button not found');
-    }
-    
     // Hide the branch reports option from dropdown
-    const branchOption = document.querySelector('#reportHistoryFilter option[value="branch"]');
+    const branchOption = document.querySelector('#reportTypeDropdown option[value="branch"]');
     if (branchOption) {
         branchOption.style.display = 'none';
-        console.log('✅ Hidden branch option from dropdown');
-    } else {
-        console.log('❌ Branch option not found in dropdown');
     }
     
-    // Hide the branch report history section
-    const branchReportHistory = document.getElementById('branchReportHistory');
-    if (branchReportHistory) {
-        branchReportHistory.style.display = 'none';
-        console.log('✅ Hidden branch report history section');
-    } else {
-        console.log('❌ Branch report history section not found');
-    }
-    
-    // Hide the branch configuration section
-    const branchConfig = document.getElementById('branchConfig');
-    if (branchConfig) {
-        branchConfig.style.display = 'none';
-        console.log('✅ Hidden branch configuration section');
-    } else {
-        console.log('❌ Branch configuration section not found');
+    // Hide the branch filter button in received reports section
+    const branchFilterBtn = document.querySelector('.filter-btn[data-filter="branch"]');
+    if (branchFilterBtn) {
+        branchFilterBtn.style.display = 'none';
     }
 }
 
+// Setup report type dropdown selector
+function setupReportTypeDropdown() {
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+        const menu = document.getElementById('reportTypeMenu');
+        const btn = document.getElementById('reportTypeBtn');
+        
+        if (menu && btn && !menu.contains(event.target) && !btn.contains(event.target)) {
+            menu.classList.remove('show');
+        }
+    });
+}
 
-// Setup report type selector
-function setupReportTypeSelector() {
-    const reportTypeBtns = document.querySelectorAll('.report-type-btn');
+// Toggle report type menu
+function toggleReportTypeMenu() {
+    const menu = document.getElementById('reportTypeMenu');
+    if (menu) {
+        menu.classList.toggle('show');
+    }
+}
+
+// Select report type
+function selectReportType(type) {
+    const menu = document.getElementById('reportTypeMenu');
+    const btnText = document.getElementById('reportTypeText');
     
-    reportTypeBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            if (window.isPrefillLocked) return; // prevent switching types when locked
-            
-            // Clear all configurations before switching
-            clearAllConfigurations();
-            
-            // Remove active class from all buttons
-            reportTypeBtns.forEach(b => b.classList.remove('active'));
-            
-            // Add active class to clicked button
-            this.classList.add('active');
-            
-            // Show corresponding configuration section
-            showConfigurationSection(this.getAttribute('data-type'));
-            
-            // Show corresponding history section
-            showReportHistory(this.getAttribute('data-type'));
-            
-            // Clear report canvas
-            clearReportCanvas();
-            
-            // Hide send finance section
+    if (menu) menu.classList.remove('show');
+    
+    // Save selection to localStorage
+    localStorage.setItem('currentReportType', type);
+    
+    // Hide all checkmarks first
+    const allOptions = document.querySelectorAll('.menu-option');
+    allOptions.forEach(option => {
+        const checkIcon = option.querySelector('.check-icon');
+        if (checkIcon) checkIcon.style.display = 'none';
+    });
+    
+    // Show checkmark only if it's NOT Request Report (empty type)
+    if (type !== '') {
+        const selectedOption = document.querySelector(`[data-type="${type}"]`);
+        if (selectedOption) {
+            const checkIcon = selectedOption.querySelector('.check-icon');
+            if (checkIcon) checkIcon.style.display = 'block';
+        }
+    }
+    
+    // Update button text
+    const types = {
+        '': 'Request Report',
+        'savings': 'Savings Report',
+        'disbursement': 'Disbursement Report',
+        'member': 'Member Report',
+        'branch': 'Branch Report'
+    };
+    
+    if (btnText) btnText.textContent = types[type] || 'Request Report';
+    
+    if (type === '') {
+        // Show initial state
+        showInitialState();
+        hideAllConfigurations();
+        hideAllReportHistories();
             hideSendFinanceSection();
-        });
+        
+        // Show received reports section when on main page
+        showReceivedReportsSection();
+    } else {
+        // Show corresponding configuration section
+        showConfigurationSection(type);
+        
+        // Hide send finance section (not applicable for MC request flow)
+        hideSendFinanceSection();
+    }
+}
+
+// Make functions globally available
+window.toggleReportTypeMenu = toggleReportTypeMenu;
+window.selectReportType = selectReportType;
+
+// Show initial state
+function showInitialState() {
+    const initialState = document.getElementById('initialState');
+    if (initialState) {
+        initialState.style.display = 'flex';
+    }
+    
+    // Show date range picker on main page
+    showDateRangeFilter();
+}
+
+// Hide all configuration sections
+function hideAllConfigurations() {
+    const configSections = document.querySelectorAll('.config-section');
+    configSections.forEach(section => {
+        section.classList.remove('active');
     });
-}
-
-// Store all sent reports for filtering
-let allSentReports = [];
-let currentSentFilterType = 'all';
-let currentSentDateRange = { start: null, end: null };
-
-// Filter sent reports by type
-function filterSentReports(filterType) {
-    currentSentFilterType = filterType;
     
-    // Update active filter button
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    const filterButton = document.querySelector(`[data-filter="${filterType}"]`);
-    if (filterButton) {
-        filterButton.classList.add('active');
-    }
-    
-    // Apply filter
-    applySentReportsFilter();
-    // Also refresh count from backend for accuracy on Branch filter
-    updateSentCountFromBackend();
-}
-
-// Apply filter to sent reports (type filter only)
-function applySentReportsFilter() {
-    // Apply all filters (type + date)
-    applyAllSentFilters();
-}
-
-// Display sent reports in unified container
-function displaySentReports(reports) {
-    const container = document.getElementById('sentReportsContainer');
-    if (!container) {
-        console.error('sentReportsContainer not found');
-        return;
-    }
-    
-    if (!reports || reports.length === 0) {
-        container.innerHTML = '<div class="empty-state">No reports sent yet</div>';
-        return;
-    }
-    
-    container.innerHTML = reports.map(report => `
-        <div class="history-item" data-report-id="${report.id}" data-report-date="${report.date}">
-            <div class="history-info">
-                <div class="history-title">${report.title}</div>
-                <div class="history-details">${report.details}</div>
-            </div>
-            <div class="history-status-time">
-                <div class="history-status sent">SENT</div>
-                <div class="history-timestamp">${formatSmartTimestamp(report.date)}</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Clear all report configurations
-function clearAllConfigurations() {
-    // Savings
-    const savingsYear = document.getElementById('savingsYear');
-    const savingsMonth = document.getElementById('savingsMonth');
-    if (savingsYear) savingsYear.value = '2025';
-    if (savingsMonth) savingsMonth.value = '1';
-    
-    // Disbursement
-    const disbursementYear = document.getElementById('disbursementYear');
-    const disbursementMonth = document.getElementById('disbursementMonth');
-    if (disbursementYear) disbursementYear.value = '2025';
-    if (disbursementMonth) disbursementMonth.value = '1';
-    
-    // Member
-    const memberSearch = document.getElementById('memberSearch');
-    const memberYear = document.getElementById('memberYear');
-    const memberMonth = document.getElementById('memberMonth');
-    if (memberSearch) memberSearch.value = '';
-    if (memberYear) memberYear.value = '2025';
-    if (memberMonth) memberMonth.value = '1';
-    document.querySelectorAll('#memberConfig .type-btn').forEach(btn => btn.classList.remove('active'));
-    
-    // Branch
-    document.querySelectorAll('input[name="branchSelection"]').forEach(cb => cb.checked = false);
-    const branchYear = document.getElementById('branchYear');
-    const branchMonth = document.getElementById('branchMonth');
-    if (branchYear) branchYear.value = '2025';
-    if (branchMonth) branchMonth.value = '1';
-    document.querySelectorAll('#branchConfig .type-btn').forEach(btn => btn.classList.remove('active'));
+    // Also remove any existing generate sections
+    const existingSections = document.querySelectorAll('.generate-section');
+    existingSections.forEach(section => section.remove());
 }
 
 // Show configuration section based on report type
@@ -473,92 +455,46 @@ function showConfigurationSection(reportType) {
     }
     
     // Hide all configuration sections
-    const configSections = document.querySelectorAll('.config-section');
-    configSections.forEach(section => section.classList.remove('active'));
-    
-    // Don't hide all histories - let each report type show its own history
+    hideAllConfigurations();
     
     // Show selected configuration section
     const selectedSection = document.getElementById(reportType + 'Config');
     if (selectedSection) {
         selectedSection.classList.add('active');
         
-        // Add report canvas and generate button after the configuration
+        // Add request button after the configuration (only if not already exists)
         addReportCanvas();
     }
-}
-
-// Add report canvas and generate button
-function addReportCanvas() {
-    const reportConfig = document.querySelector('.report-config');
-    const sendFinanceSection = document.getElementById('sendFinanceSection');
     
-    // Check if report canvas already exists
-    const existingCanvas = document.getElementById('reportCanvas');
-    if (!existingCanvas) {
-        // Create report canvas
-        const reportCanvas = document.createElement('div');
-        reportCanvas.className = 'report-canvas';
-        reportCanvas.id = 'reportCanvas';
-        reportCanvas.innerHTML = `
-            <div class="canvas-placeholder">
-                <i class="fas fa-chart-bar"></i>
-                <h3>Report Canvas</h3>
-                <p>Configure your report settings above and click "Generate Report" to display data here.</p>
-            </div>
-        `;
-        
-        // Create generate section
-        let generateSection = document.querySelector('.generate-section');
-        if (!generateSection) {
-            generateSection = document.createElement('div');
-            generateSection.className = 'generate-section';
-            generateSection.innerHTML = `
-                <button class="generate-btn" onclick="generateReport()">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Generate Report</span>
-                </button>
-            `;
-        }
-        
-        // Insert before send finance section
-        if (sendFinanceSection && sendFinanceSection.parentNode) {
-            sendFinanceSection.parentNode.insertBefore(generateSection, sendFinanceSection);
-            sendFinanceSection.parentNode.insertBefore(reportCanvas, sendFinanceSection);
-        } else if (reportConfig && reportConfig.parentNode) {
-            // Fallback: insert after config if sendFinanceSection is not present yet
-            reportConfig.parentNode.insertBefore(generateSection, reportConfig.nextSibling);
-            reportConfig.parentNode.insertBefore(reportCanvas, reportConfig.nextSibling);
-        }
-        // Ensure send button stays hidden until a report is generated
-        if (sendFinanceSection) sendFinanceSection.style.display = 'none';
-    } else {
-        // Ensure existing canvas and generate section are visible
-        existingCanvas.style.display = 'block';
-        const existingGenerate = document.querySelector('.generate-section');
-        if (existingGenerate) existingGenerate.style.display = 'block';
-    }
+    // Hide date range picker when in configuration mode
+    hideDateRangeFilter();
+    
+    // Hide received reports section when in configuration mode
+    hideReceivedReportsSection();
 }
 
-// Show generate button
-function showGenerateButton() {
-    const generateSection = document.querySelector('.generate-section');
-    if (!generateSection) {
-        // Create generate section if it doesn't exist
+// Add request button (no canvas)
+function addReportCanvas() {
+    // Remove any existing generate sections first
+    const existingSections = document.querySelectorAll('.generate-section');
+    existingSections.forEach(section => section.remove());
+    
         const reportConfig = document.querySelector('.report-config');
-        const generateSectionHTML = `
-            <div class="generate-section">
-                <button class="generate-btn" onclick="generateReport()">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Generate Report</span>
+    if (reportConfig) {
+        // Create request section
+        const requestSection = document.createElement('div');
+        requestSection.className = 'generate-section';
+        requestSection.innerHTML = `
+            <button class="generate-btn" onclick="requestReport()">
+                <i class="fas fa-paper-plane"></i>
+                <span>Request Report from Finance Officer</span>
                 </button>
-            </div>
         `;
-        if (reportConfig) {
-            reportConfig.insertAdjacentHTML('afterend', generateSectionHTML);
+
+        // Append after configuration block
+        if (reportConfig.parentNode) {
+            reportConfig.parentNode.insertBefore(requestSection, reportConfig.nextSibling);
         }
-    } else {
-        generateSection.style.display = 'block';
     }
 }
 
@@ -583,7 +519,6 @@ function setupTransactionTypeButtons() {
     
     typeButtons.forEach(btn => {
         btn.addEventListener('click', function() {
-            if (window.isPrefillLocked) return; // prevent changing transaction types when locked
             const configSection = this.closest('.config-section');
             const configId = configSection.id;
             
@@ -600,540 +535,50 @@ function setupTransactionTypeButtons() {
     });
 }
 
-// Setup date range filter
-function setupDateRangeFilter() {
-    // Set default date range (last 30 days) but don't apply filter automatically
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    const startDateInput = document.getElementById('startDate');
-    const endDateInput = document.getElementById('endDate');
-    
-    if (startDateInput && endDateInput) {
-        startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
-        endDateInput.value = today.toISOString().split('T')[0];
-    }
-}
-
-// Apply date range filter
-function applyDateFilter() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    
-    if (!startDate || !endDate) {
-        // Clear date filter
-        currentSentDateRange = { start: null, end: null };
-        applyAllSentFilters();
-        return;
-    }
-    
-    if (new Date(startDate) > new Date(endDate)) {
-        // Invalid date range - swap dates silently
-        document.getElementById('startDate').value = endDate;
-        document.getElementById('endDate').value = startDate;
-        currentSentDateRange = { start: endDate, end: startDate };
-    } else {
-        currentSentDateRange = { start: startDate, end: endDate };
-    }
-    
-    // Apply all filters (type + date)
-    applyAllSentFilters();
-}
-
-// Apply all active filters (type + date) for sent reports
-function applyAllSentFilters() {
-    const container = document.getElementById('sentReportsContainer');
-    if (!container) return;
-    
-    let filteredReports = [...allSentReports];
-    
-    // Apply type filter
-    if (currentSentFilterType !== 'all') {
-        filteredReports = filteredReports.filter(report => 
-            report.type && report.type.toLowerCase() === currentSentFilterType.toLowerCase()
-        );
-    }
-    
-    // Apply date filter
-    if (currentSentDateRange.start && currentSentDateRange.end) {
-        const startDate = new Date(currentSentDateRange.start);
-        const endDate = new Date(currentSentDateRange.end);
-        
-        filteredReports = filteredReports.filter(report => {
-            // Parse report date properly to avoid timezone shift
-            let localDateString = report.date;
-            if (report.date.includes('T')) {
-                localDateString = report.date.split('T')[0];
-            }
-            const [year, month, day] = localDateString.split('-').map(Number);
-            const reportDate = new Date(year, month - 1, day);
-            return reportDate >= startDate && reportDate <= endDate;
-        });
-    }
-    
-    // Update count to match what is displayed
-    const countEl = document.getElementById('reportCount');
-    if (countEl) {
-        const count = filteredReports.length;
-        countEl.textContent = `${count} ${count === 1 ? 'Report' : 'Reports'}`;
-        countEl.style.visibility = 'visible';
-    }
-
-    // Display filtered results
-    if (filteredReports.length === 0) {
-        let emptyMessage = 'No reports found';
-        if (currentSentFilterType !== 'all') {
-            emptyMessage = `No ${currentSentFilterType} reports found`;
-        }
-        if (currentSentDateRange.start && currentSentDateRange.end) {
-            emptyMessage += ' in the selected date range';
-        }
-        container.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
-    } else {
-        displaySentReports(filteredReports);
-    }
-    // No backend fetch for count; count equals displayed items
-}
-
-// Update count using backend totals for current filters (accurate for Branch and others)
-async function updateSentCountFromBackend() {
+// Generate report based on current configuration
+function generateReport() {
     try {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
-        const params = new URLSearchParams();
-        params.set('limit', '1');
-        if (currentSentFilterType && currentSentFilterType !== 'all') {
-            params.set('report_type', currentSentFilterType);
-        }
-        if (currentSentDateRange.start && currentSentDateRange.end) {
-            params.set('start_date', currentSentDateRange.start);
-            params.set('end_date', currentSentDateRange.end);
-        }
-        const res = await fetch(`/api/auth/generated-reports?${params.toString()}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const total = data && data.data && typeof data.data.total === 'number' ? data.data.total : null;
-        const countEl = document.getElementById('reportCount');
-        if (countEl && total !== null) {
-            countEl.textContent = `${total} ${total === 1 ? 'Report' : 'Reports'}`;
-            countEl.style.visibility = 'visible';
-        }
-    } catch (_) {}
-}
-
-// Clear date range filter
-function clearDateFilter() {
-    document.getElementById('startDate').value = '';
-    document.getElementById('endDate').value = '';
-    
-    // Clear date filter and apply all filters
-    currentSentDateRange = { start: null, end: null };
-    applyAllSentFilters();
-}
-
-// Generate report based on current configuration (fetch from backend and render chart when applicable)
-async function generateReport() {
-    try {
-        const activeReportType = document.querySelector('.report-type-btn.active');
-        if (!activeReportType) {
-            showMessage('Please select a report type first.', 'error');
+        const reportTypeDropdown = document.getElementById('reportTypeDropdown');
+        if (!reportTypeDropdown || !reportTypeDropdown.value) {
+            showReportTypeDialog();
             return;
         }
 
-        const reportType = activeReportType.getAttribute('data-type');
-        if (!reportType) {
-            showMessage('Invalid report type selected.', 'error');
-            return;
-        }
+        const reportType = reportTypeDropdown.value;
 
         // Validate configuration
         if (!validateConfiguration(reportType)) {
             return;
         }
 
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            showMessage('You are not authenticated.', 'error');
-            return;
-        }
-
-        // Build common params
-        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
-        const userBranchId = localStorage.getItem('user_branch_id') || '1';
-
-        // Compute date range from year/month selectors
-        const { startDate, endDate, periodLabel } = computeDateRangeForReport(reportType);
-
-        let reportData = null;
-        if (reportType === 'savings' || reportType === 'disbursement') {
-            const endpoint = reportType === 'savings' ? '/api/auth/analytics/savings-trend' : '/api/auth/analytics/disbursement-trend';
-            // Always scope to the logged-in user's branch for Savings/Disbursement
-            const url = `${endpoint}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&branchId=${encodeURIComponent(userBranchId)}&isMainBranch=false`;
-
-            // Loading state
-            const reportCanvas = document.getElementById('reportCanvas');
-            if (reportCanvas) {
-                reportCanvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-spinner fa-spin"></i><h3>Generating report...</h3></div>';
-            }
-
-            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || 'Failed to fetch analytics data');
-            }
-            const payload = await res.json();
-            const rows = (payload && payload.data) || [];
-
-            // Create analytics-like custom-by-month weekly labels and aligned values
-            const monthNum = parseInt(periodLabel.split(' ')[0], 10);
-            const yearNum = parseInt(periodLabel.split(' ')[1], 10);
-            const labels = generateCustomMonthWeeklyLabels(yearNum, monthNum);
-            const values = alignDataWithCustomMonthWeekly(rows, reportType === 'savings' ? 'total_savings' : 'total_disbursements', yearNum, monthNum);
-            const total = values.reduce((a, b) => a + (parseFloat(b) || 0), 0);
-
-            // Also fetch active members via analytics summary for the same scope
-            let activeMembers = 0;
-            try {
-                const summaryUrl = `/api/auth/analytics/summary?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&branchId=${encodeURIComponent(userBranchId)}&isMainBranch=false`;
-                const sres = await fetch(summaryUrl, { headers: { 'Authorization': `Bearer ${token}` } });
-                if (sres.ok) {
-                    const sjson = await sres.json();
-                    activeMembers = (sjson && sjson.data && (parseInt(sjson.data.active_members, 10) || 0)) || 0;
-                }
-            } catch (_) {}
-
-            reportData = {
-                type: reportType === 'savings' ? 'Savings Report' : 'Disbursement Report',
-                period: periodLabel,
-                total,
-                activeMembers,
-                chartType: 'bar',
-                chart: {
-                    labels,
-                    datasets: [
-                        {
-                            label: reportType === 'savings' ? 'Monthly Savings (Bar)' : 'Monthly Disbursements (Bar)',
-                            data: values,
-                            backgroundColor: reportType === 'savings' ? 'rgba(0, 117, 66, 0.7)' : 'rgba(88, 187, 67, 0.6)',
-                            borderColor: reportType === 'savings' ? '#007542' : '#58BB43',
-                            borderWidth: 2,
-                            type: 'bar'
-                        },
-                        {
-                            label: reportType === 'savings' ? 'Savings Trend (Line)' : 'Disbursement Trend (Line)',
-                            data: values,
-                            borderColor: reportType === 'savings' ? '#58BB43' : '#1E8C45',
-                            backgroundColor: 'transparent',
-                            borderWidth: 3,
-                            fill: false,
-                            tension: 0.4,
-                            type: 'line',
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
-                            pointBackgroundColor: reportType === 'savings' ? '#007542' : '#58BB43',
-                            pointBorderColor: reportType === 'savings' ? '#58BB43' : '#1E8C45'
-                        }
-                    ]
-                }
-            };
-        } else if (reportType === 'member') {
-            // Fetch member transactions data
-            const memberName = document.getElementById('memberSearch').value.trim();
-            const year = document.getElementById('memberYear').value;
-            const month = document.getElementById('memberMonth').value;
-            
-            // Compute date range for the selected month
-            const { startDate, endDate } = computeDateRangeForReport('member');
-            
-            // Fetch all transactions for this member in the date range
-            // Note: Using date_from and date_to parameters as expected by the backend
-            const transactionsEndpoint = `/api/auth/transactions?payee=${encodeURIComponent(memberName)}&date_from=${encodeURIComponent(startDate)}&date_to=${encodeURIComponent(endDate)}`;
-            
-            console.log('Fetching member transactions:', {
-                member: memberName,
-                startDate,
-                endDate,
-                endpoint: transactionsEndpoint
-            });
-            
-            const loading = document.getElementById('reportCanvas');
-            if (loading) loading.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-spinner fa-spin"></i><h3>Generating member report...</h3></div>';
-            
-            const res = await fetch(transactionsEndpoint, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || 'Failed to fetch member transactions');
-            }
-            const payload = await res.json();
-            let transactions = (payload && payload.data) || [];
-            
-            console.log('Fetched transactions:', transactions);
-            
-            // Client-side filtering to ensure only transactions within the selected month are included
-            // This is an extra safeguard in case the API returns transactions outside the date range
-            transactions = transactions.filter(transaction => {
-                const transactionDate = new Date(transaction.transaction_date);
-                const transactionYear = transactionDate.getFullYear();
-                const transactionMonth = transactionDate.getMonth() + 1;
-                
-                return transactionYear === parseInt(year, 10) && transactionMonth === parseInt(month, 10);
-            });
-            
-            console.log('Filtered transactions (client-side):', transactions);
-            
-            // Generate report data with fetched transactions
-            reportData = {
-                type: 'Member Report',
-                member: memberName,
-                year: year,
-                month: month,
-                transactionTypes: ['savings', 'disbursement'],
-                data: transactions
-            };
-        } else if (reportType === 'branch') {
-            // Fetch all branches performance, then filter/shape rows
-            const { startDate: s, endDate: e } = computeDateRangeForReport('branch');
-            const endpoint = `/api/auth/analytics/all-branches-performance?startDate=${encodeURIComponent(s)}&endDate=${encodeURIComponent(e)}`;
-
-            const loading = document.getElementById('reportCanvas');
-            if (loading) loading.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-spinner fa-spin"></i><h3>Generating report...</h3></div>';
-
-            const res = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || 'Failed to fetch branch performance');
-            }
-            const payload = await res.json();
-            const allRows = (payload && payload.data) || [];
-
-            // Determine branch filter
-            let allowedIds = [];
-            const isMain = isMainBranchUser;
-            if (isMain) {
-                const selected = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => String(cb.value).replace('branch', ''));
-                allowedIds = selected.length ? selected : [];
-            } else {
-                allowedIds = [String(userBranchId || '1')];
-            }
-
-            const filtered = allRows.filter(r => (allowedIds.length ? allowedIds.includes(String(r.branch_id)) : true));
-
-            // Build rows and chart series
-            const rows = filtered.map(r => {
-                const totalSavings = parseFloat(r.total_savings || 0) || 0;
-                const totalDisb = parseFloat(r.total_disbursements || 0) || 0;
-                const net = parseFloat(r.net_position || (totalSavings - totalDisb)) || 0;
-                const perfPct = (totalDisb !== 0) ? (net / Math.abs(totalDisb)) * 100 : (net >= 0 ? 100 : -100);
-                return {
-                    branch_name: r.branch_name || r.branch_location || `Branch ${r.branch_id}`,
-                    active_members: parseInt(r.active_members || 0, 10) || 0,
-                    total_savings: totalSavings,
-                    total_disbursements: totalDisb,
-                    performancePct: perfPct,
-                    net_position: net
-                };
-            });
-
-            // If user selected none and is main, show all
-            const finalRows = rows;
-
-            // Determine which transaction types are selected for branch report
-            const activeTypeBtns = Array.from(document.querySelectorAll('#branchConfig .type-btn.active'));
-            const showSavings = activeTypeBtns.length === 0 || activeTypeBtns.some(b => b.getAttribute('data-type') === 'savings');
-            const showDisb = activeTypeBtns.length === 0 || activeTypeBtns.some(b => b.getAttribute('data-type') === 'disbursement');
-
-            reportData = {
-                type: 'Branch Performance Report',
-                period: `${document.getElementById('branchMonth').value} ${document.getElementById('branchYear').value}`,
-                rows: finalRows,
-                charts: {
-                    savings: showSavings ? {
-                        labels: finalRows.map(x => x.branch_name),
-                        datasets: [
-                            {
-                                label: 'Total Savings (Bar)',
-                                data: finalRows.map(x => x.total_savings),
-                                backgroundColor: 'rgba(0, 117, 66, 0.7)',
-                                borderColor: '#007542',
-                                borderWidth: 2,
-                                type: 'bar'
-                            },
-                            {
-                                label: 'Savings Trend (Line)',
-                                data: finalRows.map(x => x.total_savings),
-                                borderColor: '#58BB43',
-                                backgroundColor: 'transparent',
-                                borderWidth: 3,
-                                fill: false,
-                                tension: 0.4,
-                                type: 'line',
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                                pointBackgroundColor: '#007542',
-                                pointBorderColor: '#58BB43'
-                            }
-                        ]
-                    } : null,
-                    disbursement: showDisb ? {
-                        labels: finalRows.map(x => x.branch_name),
-                        datasets: [
-                            {
-                                label: 'Total Disbursements (Bar)',
-                                data: finalRows.map(x => x.total_disbursements),
-                                backgroundColor: 'rgba(88, 187, 67, 0.6)',
-                                borderColor: '#58BB43',
-                                borderWidth: 2,
-                                type: 'bar'
-                            },
-                            {
-                                label: 'Disbursement Trend (Line)',
-                                data: finalRows.map(x => x.total_disbursements),
-                                borderColor: '#1E8C45',
-                                backgroundColor: 'transparent',
-                                borderWidth: 3,
-                                fill: false,
-                                tension: 0.4,
-                                type: 'line',
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                                pointBackgroundColor: '#58BB43',
-                                pointBorderColor: '#1E8C45'
-                            }
-                        ]
-                    } : null
-                }
-            };
-        }
-
+        // Generate report data
+        const reportData = generateReportData(reportType);
         if (!reportData) {
             showMessage('Failed to generate report data.', 'error');
             return;
         }
 
-        // Display report (will render chart if present)
+        // Display report
         displayReport(reportData);
-
-        // Expose current report data/type for AI generation
-        window.currentReportData = reportData;
-        window.currentReportType = reportType;
-
-        // Show AI controls (optional step by user)
-        showAIRecommendationControls();
-
-        // Optionally mark the linked report request as completed
-        tryMarkRequestCompleted();
 
         // Show send to finance section
         showSendFinanceSection();
+        
+        showSuccessDialog('Report generated successfully!');
     } catch (error) {
         console.error('Error generating report:', error);
         showMessage('An error occurred while generating the report.', 'error');
     }
 }
 
-function computeDateRangeForReport(reportType) {
-    let year = '2025';
-    let month = '1';
-    if (reportType === 'savings') {
-        const y = document.getElementById('savingsYear');
-        const m = document.getElementById('savingsMonth');
-        if (y) year = y.value || year;
-        if (m) month = m.value || month;
-    } else if (reportType === 'disbursement') {
-        const y = document.getElementById('disbursementYear');
-        const m = document.getElementById('disbursementMonth');
-        if (y) year = y.value || year;
-        if (m) month = m.value || month;
-    } else if (reportType === 'member') {
-        const y = document.getElementById('memberYear');
-        const m = document.getElementById('memberMonth');
-        if (y) year = y.value || year;
-        if (m) month = m.value || month;
-    } else if (reportType === 'branch') {
-        const y = document.getElementById('branchYear');
-        const m = document.getElementById('branchMonth');
-        if (y) year = y.value || year;
-        if (m) month = m.value || month;
-    }
-    const start = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
-    const end = new Date(parseInt(year, 10), parseInt(month, 10), 0); // Last day of the selected month
-    
-    // Format dates properly
-    const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
-    const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
-    
-    // Debug: Log to verify date calculation
-    console.log(`Date range for ${month}/${year}:`, startDate, 'to', endDate);
-    
-    return { startDate, endDate, periodLabel: `${month} ${year}` };
-}
-
-function tryMarkRequestCompleted() {
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const requestId = urlParams.get('requestId');
-        const token = localStorage.getItem('access_token');
-        if (requestId && token) {
-            fetch(`/api/auth/report-requests/${requestId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status: 'completed' })
-            }).catch(() => {});
-        }
-    } catch (_) {}
-}
-
-// --- Chart helpers to mimic Analytics custom-by-month ---
-function generateCustomMonthWeeklyLabels(year, month) {
-    // month: 1-12
-    const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 0);
-    // Build 4 weekly buckets: 1-7, 8-15, 16-23, 24-end
-    const weekStarts = [1, 8, 16, 24];
-    const weekEnds = [7, 15, 23, end.getDate()];
-    const labelFor = (s, e) => {
-        const sd = new Date(year, month - 1, s);
-        const ed = new Date(year, month - 1, e);
-        const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        return `${fmt(sd)} - ${fmt(ed)}, ${year}`;
-    };
-    return weekStarts.map((s, i) => labelFor(s, weekEnds[i]));
-}
-
-function alignDataWithCustomMonthWeekly(rows, valueKey, year, month) {
-    const buckets = [0, 0, 0, 0];
-    const toBucketIndex = (day) => {
-        if (day <= 7) return 0;
-        if (day <= 15) return 1;
-        if (day <= 23) return 2;
-        return 3;
-    };
-    (rows || []).forEach(r => {
-        const d = new Date(r.date);
-        if (d.getFullYear() === year && (d.getMonth() + 1) === month) {
-            const idx = toBucketIndex(d.getDate());
-            const raw = r[valueKey];
-            const val = typeof raw === 'string' ? parseFloat(raw) : (raw || 0);
-            buckets[idx] += (parseFloat(val) || 0);
-        }
-    });
-    return buckets;
-}
-
 // Validate configuration based on report type
-function validateConfiguration(reportType) {
+async function validateConfiguration(reportType) {
     switch (reportType) {
         case 'savings':
         case 'disbursement':
             return validateSavingsDisbursementConfig(reportType);
         case 'member':
-            return validateMemberConfig();
+            return await validateMemberConfig();
         case 'branch':
             return validateBranchConfig();
         default:
@@ -1156,10 +601,17 @@ function validateSavingsDisbursementConfig(reportType) {
 }
 
 // Validate member configuration
-function validateMemberConfig() {
+async function validateMemberConfig() {
     const memberSearch = document.getElementById('memberSearch').value.trim();
     if (!memberSearch) {
-        showMessage('Please enter a member name or ID.', 'error');
+        showValidationDialog('Please enter a member name or ID.');
+        return false;
+    }
+    
+    // Validate that member exists in the database
+    const memberExists = await validateMemberExists(memberSearch);
+    if (!memberExists) {
+        showValidationDialog('The member name you entered does not exist. Please search for a valid member name.');
         return false;
     }
     
@@ -1180,13 +632,13 @@ function validateMemberConfig() {
 function validateBranchConfig() {
     const selectedBranches = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked'));
     if (selectedBranches.length === 0) {
-        showMessage('Please select at least one branch.', 'error');
+        showValidationDialog('Please select at least one branch.');
         return false;
     }
     
     const activeTypeBtns = document.querySelectorAll('#branchConfig .type-btn.active');
     if (activeTypeBtns.length === 0) {
-        showMessage('Please select at least one transaction type (Savings or Disbursement).', 'error');
+        showValidationDialog('Please select at least one transaction type (Savings or Disbursement).');
         return false;
     }
     
@@ -1260,13 +712,13 @@ function generateDisbursementReportData() {
 // Generate member report data
 function generateMemberReportData() {
     const memberSearch = document.getElementById('memberSearch').value.trim();
-    // Member reports always include both transaction types
-    const transactionTypes = ['savings', 'disbursement'];
+    const activeTypeBtn = document.querySelector('#memberConfig .type-btn.active');
+    const transactionType = activeTypeBtn ? activeTypeBtn.getAttribute('data-type') : 'savings';
     
     return {
         type: 'Member Report',
         member: memberSearch,
-        transactionTypes: transactionTypes,
+        transactionType: transactionType,
         data: []
     };
 }
@@ -1284,9 +736,6 @@ function generateBranchReportData() {
         data: {}
     };
 }
-
-
-
 
 // Display report in canvas
 function displayReport(reportData) {
@@ -1323,118 +772,6 @@ function displayReport(reportData) {
         if (html) {
             reportCanvas.innerHTML = html;
         }
-
-        // Render charts
-        // 1) Single chart path (savings/disbursement)
-        if (reportData.chart && Array.isArray(reportData.chart.labels)) {
-            // Inject chart container if not present
-            const chartContainerId = 'reportChartContainer';
-            const chartCanvasId = 'reportChart';
-            const container = document.createElement('div');
-            container.id = chartContainerId;
-            container.style.marginTop = '16px';
-            container.style.width = '100%';
-            container.style.boxSizing = 'border-box';
-            container.innerHTML = `<canvas id="${chartCanvasId}" width="400" height="200"></canvas>`;
-            reportCanvas.appendChild(container);
-
-            if (window.Chart) {
-                // Destroy previous instance if exists
-                if (window.__currentReportChart) {
-                    try { window.__currentReportChart.destroy(); } catch (_) {}
-                }
-                const ctx = document.getElementById(chartCanvasId).getContext('2d');
-                window.__currentReportChart = new Chart(ctx, {
-                    type: reportData.chartType || 'bar',
-                    data: {
-                        labels: reportData.chart.labels,
-                        datasets: reportData.chart.datasets
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: true } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
-            } else {
-                // Fallback note if Chart.js not loaded
-                const note = document.createElement('div');
-                note.style.color = '#6b7280';
-                note.style.marginTop = '8px';
-                note.textContent = 'Chart preview unavailable (Chart.js not loaded).';
-                reportCanvas.appendChild(note);
-            }
-        }
-
-        // 2) Two chart path for branch report
-        if (reportData.type === 'Branch Performance Report' && reportData.charts && window.Chart) {
-            // Savings chart
-            const activeTypeBtns = Array.from(document.querySelectorAll('#branchConfig .type-btn.active'));
-            const showSavings = reportData.charts.savings && (activeTypeBtns.length === 0 || activeTypeBtns.some(b => b.getAttribute('data-type') === 'savings'));
-            const showDisb = reportData.charts.disbursement && (activeTypeBtns.length === 0 || activeTypeBtns.some(b => b.getAttribute('data-type') === 'disbursement'));
-
-            if (showSavings) {
-                const savingsWrap = document.createElement('div');
-                savingsWrap.style.marginTop = '16px';
-                savingsWrap.style.width = '100%';
-                savingsWrap.style.boxSizing = 'border-box';
-                savingsWrap.style.minHeight = '260px';
-                savingsWrap.innerHTML = `<h4>Savings by Branch</h4><canvas id=\"branchSavingsChart\" width=\"400\" height=\"200\"></canvas>`;
-                reportCanvas.appendChild(savingsWrap);
-            }
-
-            if (showDisb) {
-                const disbWrap = document.createElement('div');
-                disbWrap.style.marginTop = '20px';
-                disbWrap.style.width = '100%';
-                disbWrap.style.boxSizing = 'border-box';
-                disbWrap.style.minHeight = '260px';
-                disbWrap.innerHTML = `<h4>Disbursements by Branch</h4><canvas id=\"branchDisbChart\" width=\"400\" height=\"200\"></canvas>`;
-                reportCanvas.appendChild(disbWrap);
-            }
-
-            try {
-                if (window.__branchSavingsChart) { try { window.__branchSavingsChart.destroy(); } catch(_){} }
-                if (window.__branchDisbChart) { try { window.__branchDisbChart.destroy(); } catch(_){} }
-
-                if (showSavings) {
-                    const sctx = document.getElementById('branchSavingsChart').getContext('2d');
-                    window.__branchSavingsChart = new Chart(sctx, {
-                        type: 'bar',
-                        data: {
-                            labels: reportData.charts.savings.labels,
-                            datasets: reportData.charts.savings.datasets
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: true } },
-                            scales: { y: { beginAtZero: true } }
-                        }
-                    });
-                }
-
-                if (showDisb) {
-                    const dctx = document.getElementById('branchDisbChart').getContext('2d');
-                    window.__branchDisbChart = new Chart(dctx, {
-                        type: 'bar',
-                        data: {
-                            labels: reportData.charts.disbursement.labels,
-                            datasets: reportData.charts.disbursement.datasets
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: true } },
-                            scales: { y: { beginAtZero: true } }
-                        }
-                    });
-                }
-            } catch (e) {
-                console.error('Failed to render branch charts', e);
-            }
-        }
     } catch (error) {
         console.error('Error displaying report:', error);
         const reportCanvas = document.getElementById('reportCanvas');
@@ -1457,7 +794,7 @@ function generateSavingsDisbursementHTML(reportData) {
         <div class="report-content">
             <div class="report-stats">
                 <div class="stat-card">
-                    <div class="stat-value">${(reportData.chart && reportData.chart.labels ? 1 : 0)}</div>
+                    <div class="stat-value">0</div>
                     <div class="stat-label">Branches</div>
                 </div>
                 <div class="stat-card">
@@ -1465,7 +802,7 @@ function generateSavingsDisbursementHTML(reportData) {
                     <div class="stat-label">Month</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱${Number(reportData.total || 0).toLocaleString('en-PH')}</div>
+                    <div class="stat-value">₱0</div>
                     <div class="stat-label">Total ${isSavings ? 'Savings' : 'Disbursements'}</div>
                 </div>
                 <div class="stat-card">
@@ -1487,16 +824,13 @@ function generateSavingsDisbursementHTML(reportData) {
                     <tbody>
         `;
         
-    // Minimal single-row summary using the logged-in user's branch only
-    const userBranchName = localStorage.getItem('user_branch_name');
-    const userBranchLocation = localStorage.getItem('user_branch_location');
-    const branchDisplay = (userBranchName && userBranchLocation) ? `${userBranchName} - ${userBranchLocation}` : (userBranchName || 'Branch');
+    // Show empty data since no database is connected
     html += `
                 <tr>
-                    <td>${branchDisplay}</td>
-                    <td>₱${Number(reportData.total || 0).toLocaleString('en-PH')}</td>
-                    <td>${Number(reportData.activeMembers || 0).toLocaleString('en-PH')}</td>
-                    <td>${reportData.period.split(' ')[1]}</td>
+                    <td colspan="4" style="text-align: center; padding: 40px; color: #9ca3af;">
+                        <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+                        No data available - Database not connected
+                    </td>
                 </tr>
             `;
         
@@ -1518,15 +852,6 @@ function generateMemberReportHTML(reportData) {
         day: 'numeric' 
     });
     
-    // Calculate totals from fetched transactions
-    const transactions = reportData.data || [];
-    const totalTransactions = transactions.length;
-    const totalAmount = transactions.reduce((sum, t) => {
-        const debit = parseFloat(t.debit_amount || 0);
-        const credit = parseFloat(t.credit_amount || 0);
-        return sum + Math.max(debit, credit);
-    }, 0);
-    
     let html = `
         <div class="report-content">
             <div class="report-stats">
@@ -1535,15 +860,15 @@ function generateMemberReportHTML(reportData) {
                     <div class="stat-label">Member</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${totalTransactions}</div>
+                    <div class="stat-value">0</div>
                     <div class="stat-label">Total Transactions</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">₱${totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div class="stat-value">₱0</div>
                     <div class="stat-label">Total Amount</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${Array.isArray(reportData.transactionTypes) ? reportData.transactionTypes.join(', ').replace(/\b\w/g, l => l.toUpperCase()) : 'Both'}</div>
+                    <div class="stat-value">${reportData.transactionType}</div>
                     <div class="stat-label">Transaction Type</div>
                 </div>
                 <div class="stat-card">
@@ -1556,45 +881,23 @@ function generateMemberReportHTML(reportData) {
                 <table>
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Payee</th>
-                            <th>Particulars</th>
                             <th>Reference</th>
-                            <th>Debit</th>
-                            <th>Credit</th>
+                            <th>Amount</th>
+                            <th>Date</th>
                         </tr>
                     </thead>
                     <tbody>
         `;
         
-    // Display transactions or show "no data" message
-    if (totalTransactions === 0) {
+    // Show empty data since no database is connected
         html += `
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+                    <td colspan="3" style="text-align: center; padding: 40px; color: #9ca3af;">
                         <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
-                        No transactions found for this member in ${new Date(reportData.year || new Date().getFullYear(), (reportData.month || 1) - 1).toLocaleString('default', { month: 'long' })} ${reportData.year || new Date().getFullYear()}
+                        No data available - Database not connected
                     </td>
                 </tr>
             `;
-    } else {
-        transactions.forEach(transaction => {
-            const date = new Date(transaction.transaction_date).toLocaleDateString('en-US');
-            const debit = parseFloat(transaction.debit_amount || 0);
-            const credit = parseFloat(transaction.credit_amount || 0);
-            
-            html += `
-                <tr>
-                    <td>${date}</td>
-                    <td>${transaction.payee || ''}</td>
-                    <td>${transaction.particulars || ''}</td>
-                    <td>${transaction.reference || ''}</td>
-                    <td>${debit > 0 ? '₱' + debit.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
-                    <td>${credit > 0 ? '₱' + credit.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
-                </tr>
-            `;
-        });
-    }
         
         html += `
                     </tbody>
@@ -1620,8 +923,8 @@ function generateBranchReportHTML(reportData) {
         <div class="report-content">
             <div class="report-stats">
                 <div class="stat-card">
-                    <div class="stat-value">${(reportData.rows && reportData.rows.length) || 0}</div>
-                    <div class="stat-label">Branches</div>
+                    <div class="stat-value">${reportData.branch}</div>
+                    <div class="stat-label">Branch</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${getMonthName(month)}</div>
@@ -1649,22 +952,12 @@ function generateBranchReportHTML(reportData) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${Array.isArray(reportData.rows) && reportData.rows.length ? reportData.rows.map(r => `
-                            <tr>
-                                <td>${r.branch_name}</td>
-                                <td>${r.active_members}</td>
-                                <td>₱${Number(r.total_savings || 0).toLocaleString('en-PH')}</td>
-                                <td>₱${Number(r.total_disbursements || 0).toLocaleString('en-PH')}</td>
-                                <td>${(r.performancePct || 0).toFixed(2)}%</td>
-                            </tr>
-                        `).join('') : `
                             <tr>
                                 <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">
                                     <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
-                                    No data available for selected filters
+                                No data available - Database not connected
                                 </td>
                             </tr>
-                        `}
                     </tbody>
                 </table>
             </div>
@@ -1675,159 +968,92 @@ function generateBranchReportHTML(reportData) {
 }
 
 // Clear report canvas
-function clearReportCanvas() {
-    const reportCanvas = document.getElementById('reportCanvas');
-    if (reportCanvas) {
-        reportCanvas.innerHTML = `
-            <div class="canvas-placeholder">
-                <i class="fas fa-chart-bar"></i>
-                <h3>Report Canvas</h3>
-                <p>"Generate Report" to display data here.</p>
-            </div>
-        `;
-    }
-}
+// No report canvas for Finance Officer page
 
 // Show send finance section
-function showSendFinanceSection() {
-    const sendFinanceSection = document.getElementById('sendFinanceSection');
-    if (sendFinanceSection) {
-        sendFinanceSection.style.display = 'block';
+// No-op placeholders retained for compatibility
+function showSendFinanceSection() {}
+function hideSendFinanceSection() {}
+
+// New: Request report handler
+async function requestReport() {
+    const reportType = localStorage.getItem('currentReportType');
+    
+    if (!reportType || reportType === '') {
+        showReportTypeDialog();
+        return;
     }
-}
 
-// Show AI controls when a report is generated
-function showAIRecommendationControls() {
-    const ctrl = document.getElementById('aiRecommendationControls');
-    if (ctrl) ctrl.style.display = 'flex';
-}
+    if (!(await validateConfiguration(reportType))) {
+        return;
+    }
 
-// Generate AI recommendations via backend
-async function generateAIRecommendation() {
-    try {
-        console.log('🤖 [Frontend] Starting AI recommendation generation...');
+    // Build request payload
+    const branchId = localStorage.getItem('user_branch_id');
+    const payload = {
+        report_type: reportType,
+        report_config: collectReportConfig(reportType),
+        fo_notes: null,
+        priority: 'normal',
+        due_at: null
+    };
+
         const token = localStorage.getItem('access_token');
         if (!token) {
             showMessage('You are not authenticated.', 'error');
             return;
         }
 
-        const btn = document.getElementById('generateAIButton');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading...</span>';
-        }
-
-        const body = {
-            reportType: window.currentReportType,
-            reportData: window.currentReportData
-        };
-
-        console.log('🤖 [Frontend] Report Type:', body.reportType);
-        console.log('🤖 [Frontend] Sending request to backend...');
-        const startTime = Date.now();
-
-        const res = await fetch('/api/auth/reports/generate-ai-recommendations', {
+    fetch('/api/auth/report-requests', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(body)
-        });
-
-        const duration = Date.now() - startTime;
-        console.log('🤖 [Frontend] Response received in', duration, 'ms');
-
+        body: JSON.stringify(payload)
+    }).then(async (res) => {
         if (!res.ok) {
             const text = await res.text();
-            console.error('❌ [Frontend] API error:', text);
-            throw new Error(text || 'Failed to generate AI recommendations');
+            throw new Error(text || 'Failed to send report request');
         }
-
-        const json = await res.json();
-        const data = json && json.data ? json.data : null;
-        if (!data) throw new Error('Invalid AI response');
-
-        // Log AI usage details
-        console.log('✅ [Frontend] AI Response received');
-        console.log('✅ [Frontend] Source:', data.ai?.source);
-        console.log('✅ [Frontend] Provider:', data.ai?.metadata?.provider || 'N/A');
-        console.log('✅ [Frontend] Model:', data.ai?.metadata?.model || 'N/A');
-        console.log('✅ [Frontend] API Duration:', data.ai?.metadata?.apiDuration || 'N/A', 'ms');
-        
-        if (data.ai?.source === 'ai') {
-            console.log('🎉 [Frontend] AI API KEY WAS USED! ✅');
-            console.log('🎉 [Frontend] Recommendations are AI-generated from', data.ai.metadata.provider);
-        } else if (data.ai?.source === 'rule-based-fallback') {
-            console.warn('⚠️ [Frontend] AI API was NOT used - Fallback to rule-based');
-            console.warn('⚠️ [Frontend] Fallback reason:', data.ai?.metadata?.fallbackReason);
-            console.warn('⚠️ [Frontend] Error:', data.ai?.error);
-        } else {
-            console.info('ℹ️ [Frontend] Using rule-based recommendations (AI disabled)');
-        }
-
-        renderAIRecommendations(data);
-        window.aiRecommendationsGenerated = true;
-    } catch (e) {
-        console.error('❌ [Frontend] AI generation failed:', e.message);
-        console.error('❌ [Frontend] Stack:', e.stack);
-        showMessage('AI recommendation failed: ' + e.message, 'error');
-    } finally {
-        const btn = document.getElementById('generateAIButton');
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-brain"></i><span>Generate AI Recommendation</span>';
-        }
-    }
+        return res.json();
+    }).then(() => {
+        showSuccessDialog('Report request sent to Finance Officer!');
+    }).catch((err) => {
+        console.error('Report request error:', err);
+        showMessage('Failed to send report request.', 'error');
+    });
 }
 
-function renderAIRecommendations(payload) {
-    const section = document.getElementById('aiRecommendationSection');
-    if (!section) return;
-    section.style.display = 'block';
-
-    // Strategic text
-    const strategicEl = document.getElementById('aiStrategicText');
-    const strategic = (payload.ai && payload.ai.recommendations && payload.ai.recommendations.strategic) ||
-                      (payload.mcda && payload.mcda.recommendations && payload.mcda.recommendations.strategic) ||
-                      'No strategic recommendations available.';
-    if (strategicEl) strategicEl.textContent = strategic;
-
-    // Branch list
-    const branchList = document.getElementById('aiBranchList');
-    const branchRecs = (payload.ai && payload.ai.recommendations && payload.ai.recommendations.branchLevel) || [];
-    if (branchList) {
-        branchList.innerHTML = branchRecs.map(item => `
-            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin-bottom:8px;background:#fff">
-                <div style="font-weight:600;color:#111827">${item.branchName || 'Branch'}</div>
-                <div style="font-size:12px;color:#374151;margin:4px 0">Priority: ${item.priority || 'Medium'}</div>
-                <ul style="margin:0;padding-left:18px">${(item.recommendations || []).map(r => `<li>${r}</li>`).join('')}</ul>
-                ${item.rationale ? `<div style="font-size:12px;color:#6b7280;margin-top:6px">Reason: ${item.rationale}</div>` : ''}
-            </div>
-        `).join('');
-    }
-
-    // Ranking table
-    const tbody = document.querySelector('#aiRankingTable tbody');
-    const ranked = (payload.mcda && payload.mcda.rankedBranches) || [];
-    if (tbody) {
-        tbody.innerHTML = ranked.map(r => `
-            <tr>
-                <td>${r.rank}</td>
-                <td>${r.branch_name || 'Branch'}</td>
-                <td>${(r.topsisScore * 100).toFixed(1)}%</td>
-                <td>${r.category}</td>
-            </tr>
-        `).join('');
-    }
-}
-
-// Hide send finance section
-function hideSendFinanceSection() {
-    const sendFinanceSection = document.getElementById('sendFinanceSection');
-    if (sendFinanceSection) {
-        sendFinanceSection.style.display = 'none';
+// Collect the current configuration for selected report type
+function collectReportConfig(reportType) {
+    try {
+        switch (reportType) {
+            case 'savings':
+            case 'disbursement': {
+                const year = document.getElementById(reportType + 'Year')?.value;
+                const month = document.getElementById(reportType + 'Month')?.value;
+                return { year, month };
+            }
+            case 'member': {
+                const member = document.getElementById('memberSearch')?.value?.trim();
+                // Member reports always include both savings and disbursement
+                const year = document.getElementById('memberYear')?.value;
+                const month = document.getElementById('memberMonth')?.value;
+                return { member, transactionTypes: ['savings', 'disbursement'], year, month };
+            }
+            case 'branch': {
+                const selected = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => cb.value);
+                const year = document.getElementById('branchYear')?.value;
+                const month = document.getElementById('branchMonth')?.value;
+                const types = Array.from(document.querySelectorAll('#branchConfig .type-btn.active')).map(b => b.getAttribute('data-type'));
+                return { branches: selected, year, month, transactionTypes: types };
+            }
+            default:
+                return {};
+        }
+    } catch (_) {
+        return {};
     }
 }
 
@@ -1836,10 +1062,6 @@ function clearConfiguration(reportType) {
     try {
         if (!reportType) {
             showMessage('Invalid report type for clearing.', 'error');
-            return;
-        }
-        if (window.isPrefillLocked) {
-            showMessage('Configuration is locked by Finance Officer.', 'warning');
             return;
         }
         
@@ -1861,109 +1083,13 @@ function clearConfiguration(reportType) {
                 return;
         }
         
-    // Hide send finance section
+        // Clear report canvas and hide send finance section
+        clearReportCanvas();
     hideSendFinanceSection();
         
-        showMessage('Configuration cleared successfully!', 'success');
+        showSuccessDialog('Configuration cleared successfully!');
     } catch (error) {
         console.error('Error clearing configuration:', error);
-        showMessage('An error occurred while clearing the configuration.', 'error');
-    }
-}
-
-// Disable editing for prefilled configuration
-function lockPrefilledConfiguration(reportType) {
-    try {
-        window.isPrefillLocked = true;
-
-        // Disable report type buttons
-        document.querySelectorAll('.report-type-btn').forEach(b => {
-            b.disabled = true;
-            b.style.opacity = '0.6';
-            b.style.cursor = 'not-allowed';
-        });
-
-        // Helper to disable all buttons inside a config section
-        const disableButtons = (section) => {
-            if (!section) return;
-            section.querySelectorAll('button').forEach(btn => {
-                if (btn.classList.contains('generate-btn')) return; // keep generate active elsewhere
-                btn.disabled = true;
-                btn.style.opacity = '0.6';
-                btn.style.cursor = 'not-allowed';
-            });
-        };
-
-        // Disable clear button only for the active locked section
-        const activeSection = document.getElementById(reportType + 'Config');
-        if (activeSection) {
-            const clearBtn = activeSection.querySelector('.clear-config-btn');
-            if (clearBtn) {
-                clearBtn.disabled = true;
-                clearBtn.style.opacity = '0.6';
-                clearBtn.style.cursor = 'not-allowed';
-            }
-        }
-
-        // Disable inputs per report type
-        switch (reportType) {
-            case 'savings':
-            case 'disbursement': {
-                const yearEl = document.getElementById(reportType + 'Year');
-                const monthEl = document.getElementById(reportType + 'Month');
-                if (yearEl) yearEl.disabled = true;
-                if (monthEl) monthEl.disabled = true;
-                break;
-            }
-            case 'member': {
-                const memberSearch = document.getElementById('memberSearch');
-                const yearEl = document.getElementById('memberYear');
-                const monthEl = document.getElementById('memberMonth');
-                if (memberSearch) memberSearch.disabled = true;
-                if (yearEl) yearEl.disabled = true;
-                if (monthEl) monthEl.disabled = true;
-                // Disable any type buttons within member config
-                document.querySelectorAll('#memberConfig .type-btn').forEach(b => {
-                    b.disabled = true;
-                    b.style.opacity = '0.6';
-                    b.style.cursor = 'not-allowed';
-                });
-                break;
-            }
-            case 'branch': {
-                document.querySelectorAll('input[name="branchSelection"]').forEach(cb => cb.disabled = true);
-                const byEl = document.getElementById('branchYear');
-                const bmEl = document.getElementById('branchMonth');
-                if (byEl) byEl.disabled = true;
-                if (bmEl) bmEl.disabled = true;
-                document.querySelectorAll('#branchConfig .type-btn').forEach(b => {
-                    b.disabled = true;
-                    b.style.opacity = '0.6';
-                    b.style.cursor = 'not-allowed';
-                });
-                break;
-            }
-        }
-
-        // Add a subtle note to ALL configuration headers
-        const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
-        reportTypes.forEach(type => {
-            const configSection = document.getElementById(type + 'Config');
-            if (configSection) {
-                const header = configSection.querySelector('.config-header h3');
-                if (header && !header.querySelector('.locked-note')) {
-                    const note = document.createElement('small');
-                    note.className = 'locked-note';
-                    note.textContent = ' (Locked by Finance Officer request)';
-                    header.appendChild(note);
-                }
-            }
-        });
-
-        // Also dim and disable type buttons within the active section
-        disableButtons(activeSection);
-    } catch (_) {
-        // no-op
     }
 }
 
@@ -2034,703 +1160,24 @@ function clearBranchConfig() {
 }
 
 // Send to Finance Officer
-async function sendToFinanceOfficer() {
-    const activeReportType = document.querySelector('.report-type-btn.active');
-    if (!activeReportType) {
+function sendToFinanceOfficer() {
+    const reportTypeDropdown = document.getElementById('reportTypeDropdown');
+    if (!reportTypeDropdown || !reportTypeDropdown.value) {
         showMessage('Please generate a report first.', 'error');
         return;
     }
     
-    const reportType = activeReportType.getAttribute('data-type');
-    const reportData = window.currentReportData;
+    const reportType = reportTypeDropdown.value;
+    const reportData = generateReportData(reportType);
     
     if (!reportData) {
         showMessage('No report data available to send.', 'error');
         return;
     }
     
-    try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            showMessage('Authentication required.', 'error');
-            return;
-        }
-        
-        // Show loading state
-        showLoadingDialog('Sending report to Finance Officer...');
-        
-        // Generate PDF from canvas + AI section
-        const canvas = document.getElementById('reportCanvas');
-        const aiSection = document.getElementById('aiRecommendationSection');
-        const wrapper = document.createElement('div');
-        if (canvas) wrapper.appendChild(canvas.cloneNode(true));
-        if (aiSection && aiSection.style.display !== 'none') {
-            wrapper.appendChild(aiSection.cloneNode(true));
-        }
-        
-        // Add Chart.js library and chart initialization scripts to the HTML
-        let fullHTML = wrapper.innerHTML;
-        
-        // Get all computed styles for the canvas content
-        const styleSheets = Array.from(document.styleSheets)
-            .map(sheet => {
-                try {
-                    return Array.from(sheet.cssRules)
-                        .map(rule => rule.cssText)
-                        .join('\n');
-                } catch (e) {
-                    return '';
-                }
-            })
-            .join('\n');
-        
-        // Get report type for header
-        const reportTypeMap = {
-            'Savings Report': 'Savings Report',
-            'Disbursement Report': 'Disbursement Report',
-            'Member Report': 'Member Report',
-            'Branch Performance Report': 'Branch Performance Report'
-        };
-        const reportTypeForHeader = reportTypeMap[reportData.type] || 'Financial Report';
-        
-        // Get branch information
-        const branchName = localStorage.getItem('user_branch_name') || 'Unknown Branch';
-        
-        // Get current date and time
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
-        
-        // Safely serialize chart data
-        let chartDataJSON = 'null';
-        let chartTypeStr = 'bar';
-        let chartsJSON = 'null';
-        
-        try {
-            if (reportData && reportData.chart) {
-                chartDataJSON = JSON.stringify(reportData.chart);
-            }
-            if (reportData && reportData.chartType) {
-                chartTypeStr = reportData.chartType;
-            }
-            if (reportData && reportData.charts) {
-                chartsJSON = JSON.stringify(reportData.charts);
-            }
-        } catch (e) {
-            console.error('Error serializing chart data:', e);
-        }
-        
-        // Resolve logo (embed as data URL so it renders reliably inside the generated PDF)
-        let logoSrc = '/assets/logo.png';
-        try {
-            const logoRes = await fetch('/assets/logo.png');
-            if (logoRes.ok) {
-                const logoBlob = await logoRes.blob();
-                const logoBase64 = await blobToBase64(logoBlob);
-                logoSrc = `data:image/png;base64,${logoBase64}`;
-            }
-        } catch (_) { /* fallback to path */ }
-
-        // Compute branch display with location (e.g., "Branch 7 LIPA CITY")
-        let branchDisplay = branchName;
-        try {
-            const branchLocation = localStorage.getItem('user_branch_location') || '';
-            if (branchLocation) branchDisplay = `${branchName} ${branchLocation}`;
-        } catch (_) {}
-
-        // Wrap with Chart.js library and initialization, including all styles
-        fullHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        ${styleSheets}
-        
-        /* Additional styles for PDF rendering - Smaller text and better spacing */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            padding: 15px;
-            background: white;
-            color: #333;
-            font-size: 11px;
-        }
-        
-        /* Report Header Styling */
-        .report-header-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #ffffff;
-            border-radius: 8px;
-            border: 1px solid #cbd5e1;
-            position: relative; /* allow absolute-positioned logo */
-        }
-        .report-logo {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            max-height: 84px;
-            width: auto;
-            display: block;
-        }
-        .report-main-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #0D5B11;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .report-type {
-            font-size: 14px;
-            font-weight: 600;
-            color: #187C19;
-            margin-bottom: 10px;
-            padding-left: 0;
-        }
-        .report-meta {
-            font-size: 12px;
-            color: #374151;
-            margin-bottom: 4px;
-            padding-left: 0;
-        }
-        .report-meta strong {
-            color: #0D5B11;
-            font-weight: 600;
-        }
-        .report-timestamp {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #cbd5e1;
-            font-size: 10px;
-            color: #6b7280;
-            padding-left: 0;
-        }
-        
-        .report-content {
-            max-width: 100%;
-            margin: 0 auto;
-        }
-        canvas { 
-            max-width: 100%;
-            height: 200px !important;
-        }
-        
-        /* Smaller text for tables */
-        table { 
-            width: 100%; 
-            border-collapse: collapse;
-            page-break-inside: auto;
-            font-size: 9px;
-        }
-        th, td {
-            padding: 6px 8px;
-            font-size: 9px;
-        }
-        th {
-            font-size: 10px !important;
-            font-weight: 600;
-        }
-        
-        tr { 
-            page-break-inside: avoid;
-            page-break-after: auto;
-        }
-        
-        /* Smaller stat cards */
-        .report-stats { 
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .stat-card {
-            padding: 8px;
-        }
-        .stat-card .stat-value {
-            font-size: 14px !important;
-        }
-        .stat-card .stat-label {
-            font-size: 8px !important;
-        }
-        
-        /* Smaller headings */
-        h4 {
-            font-size: 11px !important;
-            margin-bottom: 8px !important;
-        }
-        
-        /* Better chart container sizing */
-        #reportChartContainer,
-        div[style*="height: 260px"],
-        div[style*="height: 300px"] {
-            width: 100%;
-            margin: 10px 0;
-        }
-        
-        /* Chart wrapper adjustments - more compact */
-        div[style*="height: 260px"] canvas,
-        div[style*="height: 300px"] canvas,
-        #reportChart {
-            height: 200px !important;
-            width: 100% !important;
-        }
-        
-        @media print {
-            body { padding: 0; font-size: 9px; }
-            .report-content { padding: 8px; }
-            .report-header-section {
-                padding: 12px;
-                margin-bottom: 15px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="report-header-section">
-        <img class="report-logo" src="${logoSrc}" alt="IMVCMPC Logo" />
-        <div class="report-main-title">IMVCMPC Finance Management System Report</div>
-        <div class="report-type">${reportTypeForHeader}</div>
-        <div class="report-meta"><strong>Generated by:</strong> Marketing Clerk - ${branchDisplay}</div>
-        <div class="report-meta"><strong>Submitted to:</strong> Finance Officer - ${branchDisplay}</div>
-        <div class="report-timestamp">Downloaded on: ${dateStr} at ${timeStr}</div>
-    </div>
-    ${fullHTML}
-    <script>
-        // Initialize charts after DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            // Wait for Chart.js to load
-            if (typeof Chart !== 'undefined') {
-                // Get the chart data from the reportData
-                const chartData = ${chartDataJSON};
-                const chartType = '${chartTypeStr}';
-                const charts = ${chartsJSON};
-                
-                // Initialize single chart (savings/disbursement)
-                if (chartData && Array.isArray(chartData.labels)) {
-                    const canvas = document.getElementById('reportChart');
-                    if (canvas) {
-                        const ctx = canvas.getContext('2d');
-                        new Chart(ctx, {
-                            type: chartType,
-                            data: chartData,
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: true,
-                                aspectRatio: 3,
-                                scales: { 
-                                    y: { 
-                                        beginAtZero: true,
-                                        ticks: { font: { size: 8 } }
-                                    },
-                                    x: {
-                                        ticks: { font: { size: 8 } }
-                                    }
-                                },
-                                plugins: {
-                                    legend: { 
-                                        display: true,
-                                        position: 'top',
-                                        labels: {
-                                            font: { size: 8 },
-                                            padding: 6,
-                                            boxWidth: 10,
-                                            usePointStyle: false
-                                        }
-                                    },
-                                    title: { display: false }
-                                }
-                            }
-                        });
-                    }
-                }
-                
-                // Initialize branch report charts
-                if (charts) {
-                    const savingsCanvas = document.getElementById('branchSavingsChart');
-                    if (savingsCanvas && charts.savings) {
-                        const ctx = savingsCanvas.getContext('2d');
-                        new Chart(ctx, {
-                            type: 'bar',
-                            data: charts.savings,
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: true,
-                                aspectRatio: 3,
-                                scales: { 
-                                    y: { 
-                                        beginAtZero: true,
-                                        ticks: { font: { size: 8 } }
-                                    },
-                                    x: {
-                                        ticks: { font: { size: 8 } }
-                                    }
-                                },
-                                plugins: {
-                                    legend: { 
-                                        display: true,
-                                        position: 'top',
-                                        labels: {
-                                            font: { size: 8 },
-                                            padding: 6,
-                                            boxWidth: 10,
-                                            usePointStyle: false
-                                        }
-                                    },
-                                    title: { display: false }
-                                }
-                            }
-                        });
-                    }
-                    
-                    const disbursementCanvas = document.getElementById('branchDisbChart');
-                    if (disbursementCanvas && charts.disbursement) {
-                        const ctx = disbursementCanvas.getContext('2d');
-                        new Chart(ctx, {
-                            type: 'bar',
-                            data: charts.disbursement,
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: true,
-                                aspectRatio: 3,
-                                scales: { 
-                                    y: { 
-                                        beginAtZero: true,
-                                        ticks: { font: { size: 8 } }
-                                    },
-                                    x: {
-                                        ticks: { font: { size: 8 } }
-                                    }
-                                },
-                                plugins: {
-                                    legend: { 
-                                        display: true,
-                                        position: 'top',
-                                        labels: {
-                                            font: { size: 8 },
-                                            padding: 6,
-                                            boxWidth: 10,
-                                            usePointStyle: false
-                                        }
-                                    },
-                                    title: { display: false }
-                                }
-                            }
-                        });
-                    }
-                }
-            }
-        });
-    </script>
-</body>
-</html>`;
-        
-        // Generate PDF
-        const pdfRes = await fetch('/api/auth/reports/generate-pdf', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                reportHTML: fullHTML,
-                title: `${reportType} Report`
-            })
-        });
-        
-        if (!pdfRes.ok) {
-            throw new Error('PDF generation failed');
-        }
-        
-        const pdfBlob = await pdfRes.blob();
-        const pdfBase64 = await blobToBase64(pdfBlob);
-        
-        // Get report_request_id from URL if present
-        const urlParams = new URLSearchParams(window.location.search);
-        const reportRequestId = urlParams.get('requestId') || null;
-        
-        // Collect configuration
-        const reportConfig = collectReportConfig(reportType);
-        
-        // Get user info for debugging
-        const userRole = localStorage.getItem('user_role');
-        const userBranchId = localStorage.getItem('user_branch_id');
-        const userBranchName = localStorage.getItem('user_branch_name');
-        
-        
-        // Save to database
-        const saveRes = await fetch('/api/auth/generated-reports', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                report_request_id: reportRequestId,
-                report_type: reportType,
-                config: reportConfig,
-                data: reportData,
-                pdf_data: pdfBase64,
-                file_name: `${reportType}_report_${new Date().getTime()}.pdf`
-            })
-        });
-        
-        if (!saveRes.ok) {
-            const errorText = await saveRes.text();
-            throw new Error(errorText || 'Failed to save report');
-        }
-        
-        const result = await saveRes.json();
-        
-        // Reload reports from database to show the new report
-        await loadReportHistories();
-        
-        // Hide loading dialog and show success
-        hideLoadingDialog();
-        const reportDetails = getReportDetailsForMessage(reportType, reportData);
-        showSuccessDialog(`${reportDetails} was sent successfully`);
-        
-    } catch (error) {
-        console.error('Error sending report:', error);
-        hideLoadingDialog();
-        showMessage('Failed to send report. Please try again.', 'error');
-    }
-}
-
-// Get report details for success message
-function getReportDetailsForMessage(reportType, reportData) {
-    try {
-        const reportTypeCapitalized = reportType.charAt(0).toUpperCase() + reportType.slice(1);
-        const details = [];
-        
-        switch (reportType) {
-            case 'savings':
-            case 'disbursement': {
-                const year = reportData.year || new Date().getFullYear();
-                const month = reportData.month || new Date().getMonth() + 1;
-                const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-                details.push(`${reportTypeCapitalized} Report for ${monthName} ${year}`);
-                break;
-            }
-            case 'member': {
-                const memberName = reportData.memberName || 'Member';
-                const year = reportData.year || new Date().getFullYear();
-                const month = reportData.month || new Date().getMonth() + 1;
-                const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-                details.push(`${reportTypeCapitalized} Report for ${memberName} (${monthName} ${year})`);
-                break;
-            }
-            case 'branch': {
-                const selectedBranches = reportData.selectedBranches || [];
-                if (selectedBranches.length > 0) {
-                    const branchNames = selectedBranches.map(branch => branch.name || branch).join(', ');
-                    details.push(`${reportTypeCapitalized} Report for ${branchNames}`);
-                } else {
-                    details.push(`${reportTypeCapitalized} Report`);
-                }
-                break;
-            }
-            default:
-                details.push(`${reportTypeCapitalized} Report`);
-        }
-        
-        return details.join(' ');
-    } catch (error) {
-        console.error('Error generating report details message:', error);
-        return `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
-    }
-}
-
-// Show loading dialog
-function showLoadingDialog(message) {
-    // Remove existing dialogs
-    hideLoadingDialog();
-    hideSuccessDialog();
-    
-    // Create dialog overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'loadingDialog';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.4);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        animation: fadeIn 0.2s ease;
-    `;
-    
-    // Create dialog content
-    const dialog = document.createElement('div');
-    dialog.style.cssText = `
-        background: white;
-        border-radius: 8px;
-        padding: 24px;
-        max-width: 300px;
-        width: 90%;
-        text-align: center;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        opacity: 0;
-        transform: scale(0.95);
-        transition: all 0.2s ease;
-    `;
-    
-    // Trigger animation after element is added to DOM
-    setTimeout(() => {
-        dialog.style.opacity = '1';
-        dialog.style.transform = 'scale(1)';
-    }, 10);
-    
-    // Create loading spinner
-    const spinner = document.createElement('div');
-    spinner.style.cssText = `
-        width: 32px;
-        height: 32px;
-        border: 3px solid #f3f4f6;
-        border-top: 3px solid #0D5B11;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 16px;
-    `;
-    
-    // Create message
-    const messageEl = document.createElement('p');
-    messageEl.style.cssText = `
-        color: #374151;
-        font-size: 14px;
-        font-weight: 500;
-        margin: 0;
-        line-height: 1.4;
-    `;
-    messageEl.textContent = message;
-    
-    // Assemble dialog
-    dialog.appendChild(spinner);
-    dialog.appendChild(messageEl);
-    overlay.appendChild(dialog);
-    document.body.appendChild(overlay);
-}
-
-// Hide loading dialog
-function hideLoadingDialog() {
-    const existingDialog = document.getElementById('loadingDialog');
-    if (existingDialog) {
-        existingDialog.remove();
-    }
-}
-
-// Hide success dialog
-function hideSuccessDialog() {
-    const existingDialog = document.getElementById('successDialog');
-    if (existingDialog) {
-        existingDialog.remove();
-    }
-}
-
-// Show minimalist success dialog
-function showSuccessDialog(message) {
-    // Remove existing dialogs
-    hideLoadingDialog();
-    hideSuccessDialog();
-    
-    // Create dialog overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'successDialog';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.4);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        animation: fadeIn 0.2s ease;
-    `;
-    
-    // Create dialog content
-    const dialog = document.createElement('div');
-    dialog.style.cssText = `
-        background: white;
-        border-radius: 8px;
-        padding: 24px;
-        max-width: 400px;
-        width: 90%;
-        text-align: center;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        opacity: 0;
-        transform: scale(0.95);
-        transition: all 0.2s ease;
-    `;
-    
-    // Trigger animation after element is added to DOM
-    setTimeout(() => {
-        dialog.style.opacity = '1';
-        dialog.style.transform = 'scale(1)';
-    }, 10);
-    
-    // Create success icon
-    const icon = document.createElement('div');
-    icon.style.cssText = `
-        width: 32px;
-        height: 32px;
-        background: #0D5B11;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 16px;
-        font-size: 14px;
-        color: white;
-    `;
-    icon.innerHTML = '<i class="fas fa-check"></i>';
-    
-    // Create message
-    const messageEl = document.createElement('p');
-    messageEl.style.cssText = `
-        color: #374151;
-        font-size: 14px;
-        font-weight: 500;
-        margin: 0;
-        line-height: 1.4;
-    `;
-    messageEl.textContent = message;
-    
-    // Add click outside to close
-    overlay.onclick = (e) => {
-        if (e.target === overlay) overlay.remove();
-    };
-    
-    // Add escape key to close
-    const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-            overlay.remove();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    };
-    document.addEventListener('keydown', handleEscape);
-    
-    // Assemble dialog
-    dialog.appendChild(icon);
-    dialog.appendChild(messageEl);
-    overlay.appendChild(dialog);
-    document.body.appendChild(overlay);
-    
-    // Auto-close after 2.5 seconds
-    setTimeout(() => {
-        if (document.getElementById('successDialog')) {
-            overlay.remove();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    }, 2500);
+    // MC uses request flow, not send flow - this function should not be called
+    // Keeping for compatibility but it does nothing
+    console.warn('sendToFinanceOfficer called but MC uses request flow');
 }
 
 // Create sent report entry
@@ -2786,51 +1233,6 @@ function getBranchInfoForReport(reportData) {
     }
 }
 
-// Helper: Convert blob to base64
-function blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-}
-
-// Helper: Collect report configuration
-function collectReportConfig(reportType) {
-    try {
-        switch (reportType) {
-            case 'savings':
-            case 'disbursement': {
-                const year = document.getElementById(reportType + 'Year')?.value;
-                const month = document.getElementById(reportType + 'Month')?.value;
-                return { year, month };
-            }
-            case 'member': {
-                const member = document.getElementById('memberSearch')?.value?.trim();
-                // Member reports always include both savings and disbursement
-                const year = document.getElementById('memberYear')?.value;
-                const month = document.getElementById('memberMonth')?.value;
-                return { member, transactionTypes: ['savings', 'disbursement'], year, month };
-            }
-            case 'branch': {
-                const selected = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked')).map(cb => cb.value);
-                const year = document.getElementById('branchYear')?.value;
-                const month = document.getElementById('branchMonth')?.value;
-                const types = Array.from(document.querySelectorAll('#branchConfig .type-btn.active')).map(b => b.getAttribute('data-type'));
-                return { branches: selected, year, month, transactionTypes: types };
-            }
-            default:
-                return {};
-        }
-    } catch (_) {
-        return {};
-    }
-}
-
-
-
-
 // Get report type display name
 function getReportTypeDisplayName(reportType) {
     switch (reportType) {
@@ -2841,7 +1243,6 @@ function getReportTypeDisplayName(reportType) {
         default: return 'Report';
     }
 }
-
 
 // Show message
 function showMessage(message, type = 'info') {
@@ -2924,201 +1325,87 @@ function getMonthName(monthNumber) {
     return months[monthNumber - 1] || 'Unknown';
 }
 
-// Update current date and time
-function updateCurrentDateTime() {
-    const now = new Date();
-    
-    const currentDate = document.getElementById('currentDate');
-    if (currentDate) {
-        currentDate.textContent = now.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
+// Format smart timestamp - shows time if same day, date if different day
+function formatSmartTimestamp(dateString) {
+    // Parse date string and handle timezone properly
+    // Replace 'Z' or timezone info to treat as local time
+    let localDateString = dateString.replace('Z', '').split('+')[0].split('-').slice(0, 3).join('-');
+    if (dateString.includes('T')) {
+        localDateString = dateString.split('T')[0];
     }
     
-    const currentTime = document.getElementById('currentTime');
-    if (currentTime) {
-        currentTime.textContent = now.toLocaleTimeString('en-US', { 
-            hour12: true, 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit' 
-        });
-    }
-}
-
-// Initialize report histories
-async function initializeReportHistories() {
-    // Load existing report histories from database (with localStorage fallback)
-    await loadReportHistories();
-}
-
-// Load report histories for all report types
-let backendSentTotal = null;
-async function loadReportHistories() {
-    try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            console.error('No access token found');
-            return;
-        }
-
-        // Load reports from database
-        const response = await fetch('/api/auth/generated-reports?limit=1000', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!response.ok) {
-            console.error('Failed to load reports from database:', response.status);
-            // Fallback to localStorage if database fails
-            loadReportHistoriesFromLocalStorage();
-            return;
-        }
-
-        const result = await response.json();
-        // Track backend total for accurate count in All view (include Branch-only when filtered)
-        if (result && result.data && typeof result.data.total === 'number') {
-            backendSentTotal = result.data.total;
-        } else {
-            backendSentTotal = null;
-        }
-        const reports = result.data?.reports || [];
-
-        // Process all reports into unified format
-        const allReports = reports.map(report => {
-            return {
-                id: report.id,
-                title: generateReportTitle(report.report_type, report.config, report.created_at),
-                details: generateReportDetails(report.report_type, report.config),
-                date: report.created_at,
-                status: 'sent',
-                type: report.report_type,
-                branch_id: report.branch_id,
-                branch_name: report.branch_name,
-                config: report.config || {}
-            };
-        });
-
-        // Store all reports for filtering
-        allSentReports = allReports;
-
-        // Display all reports and update count via filters pipeline
-        applyAllSentFilters();
-
-    } catch (error) {
-        console.error('Error loading reports from database:', error);
-        // Fallback to localStorage if database fails
-        loadReportHistoriesFromLocalStorage();
-    }
-}
-
-// Make function globally available for manual refresh
-window.displaySentReports = displaySentReports;
-
-// Fallback function to load from localStorage
-function loadReportHistoriesFromLocalStorage() {
-    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
-    const allReports = [];
+    // Create date from YYYY-MM-DD format to avoid timezone issues
+    const [year, month, day] = localDateString.split('-').map(Number);
+    const reportDate = new Date(year, month - 1, day);
+    const today = new Date();
     
-    reportTypes.forEach(type => {
-        const history = getReportHistory(type);
-        // Filter reports by user's branch
-        const filteredHistory = filterReportsByBranch(history);
+    // Check if same day
+    const isSameDay = reportDate.getDate() === today.getDate() &&
+                     reportDate.getMonth() === today.getMonth() &&
+                     reportDate.getFullYear() === today.getFullYear();
+    
+    if (isSameDay) {
+        // For same day, parse the timestamp
+        // The database stores UTC, but we want to display it as if it's local time
+        const fullDate = new Date(dateString);
         
-        // Add type to each report
-        filteredHistory.forEach(report => {
-            allReports.push({
-                ...report,
-                type: type
-            });
+        // Get the UTC time components
+        const hours = fullDate.getUTCHours();
+        const minutes = fullDate.getUTCMinutes();
+        
+        // Convert to 12-hour format
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const displayMinutes = String(minutes).padStart(2, '0');
+        
+        return `${String(displayHours).padStart(2, '0')}:${displayMinutes} ${period}`;
+        } else {
+        // Show date for different day
+        return reportDate.toLocaleDateString('en-US', {
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric'
         });
-    });
-    
-    // Store and render through filters to update count
-    allSentReports = allReports;
-    applyAllSentFilters();
+    }
 }
 
-// Get report history for a specific type
-function getReportHistory(reportType) {
-    const key = `reportHistory_${reportType}`;
-    const history = localStorage.getItem(key);
-    return history ? JSON.parse(history) : [];
-}
-
-// Filter reports by user's branch
-function filterReportsByBranch(history) {
-    const userBranchId = localStorage.getItem('user_branch_id');
-    if (!userBranchId) return history;
-    
-    return history.filter(report => {
-        // If report doesn't have branch_id, include it (backward compatibility)
-        if (!report.branch_id) return true;
-        return report.branch_id === userBranchId;
-    });
-}
-
-// Save report history for a specific type
-function saveReportHistory(reportType, reportData) {
-    const key = `reportHistory_${reportType}`;
-    const history = getReportHistory(reportType);
-    
-    const userBranchId = localStorage.getItem('user_branch_id');
-    const userBranchName = localStorage.getItem('user_branch_name');
-    
-    const newReport = {
-        id: Date.now(),
-        title: generateReportTitle(reportType, reportData),
-        details: generateReportDetails(reportType, reportData),
-        date: new Date().toISOString(),
-        status: 'sent',
-        type: reportType,
-        branch_id: userBranchId,
-        branch_name: userBranchName,
-        config: reportData.config || {}
-    };
-    
-    history.unshift(newReport); // Add to beginning
-    
-    // Keep only last 10 reports
-    if (history.length > 10) {
-        history.splice(10);
+// Generate report details in format "Month: January • Year: 2025"
+function generateReportDetails(reportType, config) {
+    // Parse config if it's a string, default to empty object if null/undefined
+    let parsedConfig = {};
+    try {
+        if (config) {
+            if (typeof config === 'string') {
+                parsedConfig = JSON.parse(config);
+            } else if (typeof config === 'object' && config !== null) {
+                parsedConfig = config;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to parse config:', e);
+        parsedConfig = {};
     }
     
-    localStorage.setItem(key, JSON.stringify(history));
-    displayReportHistory(reportType, history);
-}
-
-// Display report history for a specific type
-function displayReportHistory(reportType, history) {
-    const historySection = document.getElementById(`${reportType}ReportHistory`);
-    const historyList = document.getElementById(`${reportType}HistoryList`);
+    // Ensure parsedConfig is always an object
+    if (!parsedConfig || typeof parsedConfig !== 'object') {
+        parsedConfig = {};
+    }
     
-    if (!historySection || !historyList) return;
-    
-    if (history.length === 0) {
-        historyList.innerHTML = `
-            <div class="empty-history">
-                <i class="fas fa-history"></i>
-                <h5>No Reports Sent</h5>
-                <p>No ${reportType} reports have been sent yet.</p>
-            </div>
-        `;
-    } else {
-        historyList.innerHTML = history.map(report => `
-            <div class="history-item">
-                <div class="history-info">
-                    <div class="history-title">${report.title}</div>
-                    <div class="history-details">${report.details}</div>
-                </div>
-                <div class="history-meta">
-                    <div class="history-status ${report.status}">SENT</div>
-                    <div class="history-timestamp">${formatSmartTimestamp(report.date)}</div>
-                </div>
-            </div>
-        `).join('');
+    switch (reportType) {
+        case 'savings':
+        case 'disbursement':
+        case 'member':
+        case 'branch': {
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            return `Month: ${monthName} • Year: ${year}`;
+        }
+        default:
+            const currentDate = new Date();
+            const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+            const currentYear = currentDate.getFullYear();
+            return `Month: ${currentMonth} • Year: ${currentYear}`;
     }
 }
 
@@ -3140,7 +1427,7 @@ function generateReportTitle(reportType, config, createdAt) {
         year: 'numeric'
     });
     
-    // Parse config if it's a string
+    // Parse config if it's a string, default to empty object if null/undefined
     let parsedConfig = {};
     try {
         if (config) {
@@ -3159,6 +1446,7 @@ function generateReportTitle(reportType, config, createdAt) {
     if (!parsedConfig || typeof parsedConfig !== 'object') {
         parsedConfig = {};
     }
+    
     
     switch (reportType) {
         case 'savings': {
@@ -3203,6 +1491,7 @@ function generateReportTitle(reportType, config, createdAt) {
             if (parsedConfig && parsedConfig.branches) {
                 branchCount = parsedConfig.branches.length;
             } else if (parsedConfig && parsedConfig.transactionTypes) {
+                // Fallback to transaction types count
                 branchCount = parsedConfig.transactionTypes.length;
             } else {
                 branchCount = 1; // Default to 1 if no config
@@ -3215,44 +1504,147 @@ function generateReportTitle(reportType, config, createdAt) {
     }
 }
 
-// Generate report details based on type and config
-function generateReportDetails(reportType, config) {
-    // Parse config if it's a string, default to empty object if null/undefined
-    let parsedConfig = {};
-    try {
-        if (config) {
-            if (typeof config === 'string') {
-                parsedConfig = JSON.parse(config);
-            } else if (typeof config === 'object' && config !== null) {
-                parsedConfig = config;
-            }
-        }
-    } catch (e) {
-        console.warn('Failed to parse config:', e);
-        parsedConfig = {};
+// Update current date and time
+function updateCurrentDateTime() {
+    const now = new Date();
+    
+    const currentDate = document.getElementById('currentDate');
+    if (currentDate) {
+        currentDate.textContent = now.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
     }
     
-    // Ensure parsedConfig is always an object
-    if (!parsedConfig || typeof parsedConfig !== 'object') {
-        parsedConfig = {};
+    const currentTime = document.getElementById('currentTime');
+    if (currentTime) {
+        currentTime.textContent = now.toLocaleTimeString('en-US', { 
+            hour12: true, 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        });
     }
+}
+
+// Initialize report histories
+function initializeReportHistories() {
+    // Load existing report histories from localStorage
+    loadReportHistories();
+}
+
+// Load report histories for all report types
+function loadReportHistories() {
+    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    
+    reportTypes.forEach(type => {
+        const history = getReportHistory(type);
+        displayReportHistory(type, history);
+    });
+}
+
+// Get report history for a specific type
+function getReportHistory(reportType) {
+    const key = `reportHistory_${reportType}`;
+    const history = localStorage.getItem(key);
+    return history ? JSON.parse(history) : [];
+}
+
+// Save report history for a specific type
+function saveReportHistory(reportType, reportData) {
+    const key = `reportHistory_${reportType}`;
+    const history = getReportHistory(reportType);
+    
+    const newReport = {
+        id: Date.now(),
+        title: generateReportTitle(reportType, reportData),
+        details: generateReportDetails(reportType, reportData),
+        date: new Date().toISOString(),
+        status: 'sent',
+        type: reportType
+    };
+    
+    history.unshift(newReport); // Add to beginning
+    
+    // Keep only last 10 reports
+    if (history.length > 10) {
+        history.splice(10);
+    }
+    
+    localStorage.setItem(key, JSON.stringify(history));
+    displayReportHistory(reportType, history);
+}
+
+// Display report history for a specific type
+function displayReportHistory(reportType, history) {
+    const historySection = document.getElementById(`${reportType}ReportHistory`);
+    const historyList = document.getElementById(`${reportType}HistoryList`);
+    
+    if (!historySection || !historyList) return;
+    
+    if (history.length === 0) {
+        historyList.innerHTML = `
+            <div class="empty-history">
+                <i class="fas fa-history"></i>
+                <h5>No Reports Sent</h5>
+                <p>No ${reportType} reports have been sent yet.</p>
+            </div>
+        `;
+    } else {
+        historyList.innerHTML = history.map(report => `
+            <div class="history-item">
+                <div class="history-info">
+                    <div class="history-title">${report.title}</div>
+                    <div class="history-details">${report.details}</div>
+                </div>
+                <div class="history-meta">
+                    <div class="history-date">${formatReportDate(report.date)}</div>
+                    <div class="history-status ${report.status}">${report.status}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+
+// Generate report details based on type and data
+function generateReportDetails(reportType, data) {
+    const details = [];
     
     switch (reportType) {
         case 'savings':
         case 'disbursement':
+            if (data.branches && data.branches.length > 0) {
+                details.push(`${data.branches.length} branch(es) selected`);
+            }
+            if (data.month) {
+                details.push(`Month: ${getMonthName(data.month)}`);
+            }
+            if (data.year) {
+                details.push(`Year: ${data.year}`);
+            }
+            break;
         case 'member':
-        case 'branch': {
-            const month = parsedConfig.month || new Date().getMonth() + 1;
-            const year = parsedConfig.year || new Date().getFullYear();
-            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-            return `Month: ${monthName} • Year: ${year}`;
-        }
-        default:
-            const currentDate = new Date();
-            const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
-            const currentYear = currentDate.getFullYear();
-            return `Month: ${currentMonth} • Year: ${currentYear}`;
+            if (data.transactionType) {
+                details.push(`Transaction Type: ${data.transactionType}`);
+            }
+            if (data.memberName) {
+                details.push(`Member: ${data.memberName}`);
+            }
+            break;
+        case 'branch':
+            if (data.branchName) {
+                details.push(`Branch: ${data.branchName}`);
+            }
+            if (data.transactionTypes && data.transactionTypes.length > 0) {
+                details.push(`Types: ${data.transactionTypes.join(', ')}`);
+            }
+            break;
     }
+    
+    return details.join(' • ') || 'Report generated';
 }
 
 // Format report date for display
@@ -3267,62 +1659,15 @@ function formatReportDate(dateString) {
     });
 }
 
-// Format smart timestamp (time for same day, date for older)
-function formatSmartTimestamp(dateString) {
-    // Parse date string and handle timezone properly
-    // Replace 'Z' or timezone info to treat as local time
-    let localDateString = dateString.replace('Z', '').split('+')[0].split('-').slice(0, 3).join('-');
-    if (dateString.includes('T')) {
-        localDateString = dateString.split('T')[0];
-    }
-    
-    // Create date from YYYY-MM-DD format to avoid timezone issues
-    const [year, month, day] = localDateString.split('-').map(Number);
-    const reportDate = new Date(year, month - 1, day);
-    const today = new Date();
-    
-    // Check if same day
-    const isSameDay = reportDate.getDate() === today.getDate() &&
-                     reportDate.getMonth() === today.getMonth() &&
-                     reportDate.getFullYear() === today.getFullYear();
-    
-    if (isSameDay) {
-        // For same day, parse the timestamp
-        // The database stores UTC, but we want to display it as if it's local time
-        const fullDate = new Date(dateString);
-        
-        // Get the UTC time components
-        const hours = fullDate.getUTCHours();
-        const minutes = fullDate.getUTCMinutes();
-        
-        // Convert to 12-hour format
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
-        const displayMinutes = String(minutes).padStart(2, '0');
-        
-        return `${String(displayHours).padStart(2, '0')}:${displayMinutes} ${period}`;
-    } else {
-        // Show date for different day
-        return reportDate.toLocaleDateString('en-US', {
-            month: '2-digit',
-            day: '2-digit',
-            year: 'numeric'
-        });
-    }
-}
-
-// Show report history for a specific type
+// Show report history for a specific type (not used in MC request flow, but kept for compatibility)
 function showReportHistory(reportType) {
-    console.log('Showing report history for:', reportType);
-    
-    // Update the filter dropdown to show the selected type
-    const filterSelect = document.getElementById('reportHistoryFilter');
-    if (filterSelect) {
-        filterSelect.value = reportType;
+    // MC's page doesn't have report history sections (it uses request flow, not send flow)
+    // This function is kept for compatibility but does nothing
+    const historySection = document.getElementById(`${reportType}ReportHistory`);
+    if (historySection) {
+        historySection.style.display = 'block';
     }
-    
-    // Filter the history sections
-    filterReportHistory(reportType);
+    // Silently ignore if not found (expected for MC's request-based page)
 }
 
 // Hide report history for a specific type
@@ -3335,168 +1680,810 @@ function hideReportHistory(reportType) {
 
 // Hide all report histories
 function hideAllReportHistories() {
-    // Since all histories are now visible by default, this function is no longer needed
-    // but kept for compatibility with existing code
-    console.log('All report histories remain visible by default');
+    const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
+    console.log('Hiding all report histories');
+    reportTypes.forEach(type => {
+        console.log('Hiding history for:', type);
+        hideReportHistory(type);
+    });
 }
 
-// Show report configuration section (called when "Take Action" is clicked)
-function showReportConfiguration() {
-    window.inConfigurationMode = true;
-    // Hide sent reports section
-    const sentReportsSection = document.querySelector('.sent-reports-section');
-    if (sentReportsSection) {
-        sentReportsSection.style.display = 'none';
+// Show received reports section
+function showReceivedReportsSection() {
+    const receivedReportsSection = document.querySelector('.received-reports-section');
+    if (receivedReportsSection) {
+        receivedReportsSection.style.display = 'block';
+        console.log('Showing received reports section');
     }
-    
-    // Hide date range filter
-    const dateRangeFilter = document.getElementById('dateRangeFilter');
-    if (dateRangeFilter) {
-        dateRangeFilter.style.display = 'none';
-    }
-    
-    // Show back button
-    const backContainer = document.getElementById('backToHistoryContainer');
-    if (backContainer) backContainer.style.display = 'block';
-    
-    // Show report configuration section
-    const reportConfig = document.querySelector('.report-config');
-    if (reportConfig) {
-        reportConfig.style.display = 'block';
-        // Scroll to the top of the page
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // Show generation UI when entering configuration
-    showGenerateReportSection();
 }
 
-// Hide report configuration and show history (for returning to history view)
-function hideReportConfiguration() {
-    window.inConfigurationMode = false;
-    // Show sent reports section
-    const sentReportsSection = document.querySelector('.sent-reports-section');
-    if (sentReportsSection) {
-        sentReportsSection.style.display = 'block';
+// Hide received reports section
+function hideReceivedReportsSection() {
+    const receivedReportsSection = document.querySelector('.received-reports-section');
+    if (receivedReportsSection) {
+        receivedReportsSection.style.display = 'none';
+        console.log('Hiding received reports section');
     }
-    
-    // Show date range filter
+}
+
+// Show date range filter
+function showDateRangeFilter() {
     const dateRangeFilter = document.getElementById('dateRangeFilter');
     if (dateRangeFilter) {
         dateRangeFilter.style.display = 'flex';
+        console.log('Showing date range filter');
+    }
     }
     
-    // Hide back button
-    const backContainer = document.getElementById('backToHistoryContainer');
-    if (backContainer) backContainer.style.display = 'none';
-    
-    // Hide report configuration section
-    const reportConfig = document.querySelector('.report-config');
-    if (reportConfig) {
-        reportConfig.style.display = 'none';
+    // Hide date range filter
+function hideDateRangeFilter() {
+    const dateRangeFilter = document.getElementById('dateRangeFilter');
+    if (dateRangeFilter) {
+        dateRangeFilter.style.display = 'none';
+        console.log('Hiding date range filter');
     }
-    
-    // Hide generate report button and canvas
-    hideGenerateReportSection();
-    
-    // Unlock configuration and remove locked notes
-    unlockConfiguration();
-    
-    // Reset filter to show all reports
-    filterSentReports('all');
 }
 
-// Unlock configuration and remove locked notes
-function unlockConfiguration() {
+// Show minimalist dialog for report type selection
+function showReportTypeDialog() {
+    // Remove existing dialog if any
+    const existingDialog = document.getElementById('reportTypeDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+
+    // Create dialog
+    const dialog = document.createElement('div');
+    dialog.id = 'reportTypeDialog';
+    dialog.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    `;
+
+    dialog.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 320px;
+            width: 90%;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: #fef3c7;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 12px;
+            ">
+                <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 16px;"></i>
+            </div>
+            <h3 style="
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 8px 0;
+            ">Select Report Type</h3>
+            <p style="
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0 0 20px 0;
+                line-height: 1.4;
+            ">Please select a report type first.</p>
+            <button onclick="closeReportTypeDialog()" style="
+                background: #0D5B11;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#0a4a0e'" onmouseout="this.style.background='#0D5B11'">
+                OK
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    // Animate in
+    setTimeout(() => {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(1)';
+        content.style.opacity = '1';
+    }, 10);
+}
+
+// Close report type dialog
+function closeReportTypeDialog() {
+    const dialog = document.getElementById('reportTypeDialog');
+    if (dialog) {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(0.95)';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            dialog.remove();
+        }, 300);
+    }
+}
+
+// Show minimalist validation dialog
+function showValidationDialog(message) {
+    // Remove existing dialog if any
+    const existingDialog = document.getElementById('validationDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+
+    // Create dialog
+    const dialog = document.createElement('div');
+    dialog.id = 'validationDialog';
+    dialog.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    `;
+
+    dialog.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 320px;
+            width: 90%;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: #fef2f2;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 12px;
+            ">
+                <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 16px;"></i>
+            </div>
+            <h3 style="
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 8px 0;
+            ">Validation Required</h3>
+            <p style="
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0 0 20px 0;
+                line-height: 1.4;
+            ">${message}</p>
+            <button onclick="closeValidationDialog()" style="
+                background: #0D5B11;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#0a4a0e'" onmouseout="this.style.background='#0D5B11'">
+                OK
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    // Animate in
+    setTimeout(() => {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(1)';
+        content.style.opacity = '1';
+    }, 10);
+}
+
+// Close validation dialog
+function closeValidationDialog() {
+    const dialog = document.getElementById('validationDialog');
+    if (dialog) {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(0.95)';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            dialog.remove();
+        }, 300);
+    }
+}
+
+// Show minimalist success dialog
+function showSuccessDialog(message) {
+    // Remove existing dialog if any
+    const existingDialog = document.getElementById('successDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+
+    // Create dialog
+    const dialog = document.createElement('div');
+    dialog.id = 'successDialog';
+    dialog.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    `;
+
+    dialog.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 320px;
+            width: 90%;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: #f0fdf4;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 12px;
+            ">
+                <i class="fas fa-check-circle" style="color: #0D5B11; font-size: 16px;"></i>
+            </div>
+            <h3 style="
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 8px 0;
+            ">Success</h3>
+            <p style="
+                font-size: 13px;
+                color: #6b7280;
+                margin: 0 0 20px 0;
+                line-height: 1.4;
+            ">${message}</p>
+            <button onclick="closeSuccessDialog()" style="
+                background: #0D5B11;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            " onmouseover="this.style.background='#0a4a0e'" onmouseout="this.style.background='#0D5B11'">
+                OK
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    // Animate in
+    setTimeout(() => {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(1)';
+        content.style.opacity = '1';
+    }, 10);
+}
+
+// Close success dialog
+function closeSuccessDialog() {
+    const dialog = document.getElementById('successDialog');
+    if (dialog) {
+        const content = dialog.querySelector('div');
+        content.style.transform = 'scale(0.95)';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            dialog.remove();
+        }, 300);
+    }
+}
+
+// Load received reports from backend
+async function loadReceivedReports() {
     try {
-        // Reset locked state
-        window.isPrefillLocked = false;
+        const token = localStorage.getItem('access_token');
         
-        // Remove locked notes from all configuration headers
-        const reportTypes = ['savings', 'disbursement', 'member', 'branch'];
-        reportTypes.forEach(type => {
-            const configSection = document.getElementById(type + 'Config');
-            if (configSection) {
-                const header = configSection.querySelector('.config-header h3');
-                if (header) {
-                    const lockedNote = header.querySelector('.locked-note');
-                    if (lockedNote) {
-                        lockedNote.remove();
-                    }
-                }
-            }
-        });
+    const response = await fetch('/api/auth/generated-reports?limit=1000', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to load reports: ${response.status} - ${errorText}`);
+    }
+    
+    const result = await response.json();
         
-        // Re-enable all form elements
-        const allInputs = document.querySelectorAll('input, select, button');
-        allInputs.forEach(input => {
-            input.disabled = false;
-            input.style.opacity = '';
-            input.style.cursor = '';
-        });
-        
-        // Re-enable report type buttons
-        document.querySelectorAll('.report-type-btn').forEach(btn => {
-            btn.disabled = false;
-            btn.style.opacity = '';
-            btn.style.cursor = '';
-        });
-        
+        if (result.data && result.data.reports) {
+        displayReceivedReports(result.data.reports);
+        } else {
+            console.log('⚠️ No reports data in response');
+            displayReceivedReports([]);
+        }
     } catch (error) {
-        console.error('Error unlocking configuration:', error);
+        console.error('Error loading reports:', error);
+        showMessage('Failed to load reports: ' + error.message, 'error');
     }
 }
 
-// Hide generate report section (button and canvas)
-function hideGenerateReportSection() {
-    // Do not hide generation UI while in configuration mode (e.g., from notification action)
-    if (window.inConfigurationMode) {
+// Store all reports for filtering
+let allReceivedReports = [];
+
+// Display list of reports
+function displayReceivedReports(reports) {
+    const container = document.getElementById('receivedReportsContainer');
+    if (!container) return;
+    
+    // Store all reports for filtering
+    allReceivedReports = reports;
+    
+    // Always run through filter pipeline to ensure count updates before paint
+    filterReceivedReports('all');
+}
+
+// Store current filter state
+let currentFilterType = 'all';
+let currentDateRange = { start: null, end: null };
+
+// Filter received reports by type
+function filterReceivedReports(filterType) {
+    currentFilterType = filterType;
+    
+    // Update active filter button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const filterButton = document.querySelector(`[data-filter="${filterType}"]`);
+    if (filterButton) {
+        filterButton.classList.add('active');
+    }
+    
+    // Apply both type and date filters
+    applyAllFilters();
+}
+
+// Apply all active filters (type + date)
+function applyAllFilters() {
+    const container = document.getElementById('receivedReportsContainer');
+    if (!container) return;
+    
+    let filteredReports = [...allReceivedReports];
+    
+    // Apply type filter
+    if (currentFilterType !== 'all') {
+        filteredReports = filteredReports.filter(report => 
+            report.report_type.toLowerCase() === currentFilterType.toLowerCase()
+        );
+    }
+    
+    // Apply date filter
+    if (currentDateRange.start && currentDateRange.end) {
+        const startDate = new Date(currentDateRange.start);
+        const endDate = new Date(currentDateRange.end);
+        
+        filteredReports = filteredReports.filter(report => {
+            // Parse report date properly to avoid timezone shift
+            let localDateString = report.created_at;
+            if (report.created_at.includes('T')) {
+                localDateString = report.created_at.split('T')[0];
+            }
+            const [year, month, day] = localDateString.split('-').map(Number);
+            const reportDate = new Date(year, month - 1, day);
+            return reportDate >= startDate && reportDate <= endDate;
+        });
+    }
+    
+    // Display filtered results
+    displayFilteredReports(filteredReports);
+}
+
+// Display filtered reports
+function displayFilteredReports(reports) {
+    const container = document.getElementById('receivedReportsContainer');
+    if (!container) return;
+    
+    // Update count to match what is displayed
+    const countEl = document.getElementById('reportCount');
+    if (countEl) {
+        const count = Array.isArray(reports) ? reports.length : 0;
+        countEl.textContent = `${count} ${count === 1 ? 'Report' : 'Reports'}`;
+        countEl.style.visibility = 'visible';
+    }
+    
+    if (reports.length === 0) {
+        let emptyMessage = 'No reports found';
+        if (currentFilterType !== 'all') {
+            emptyMessage = `No ${currentFilterType} reports found`;
+        }
+        if (currentDateRange.start && currentDateRange.end) {
+            emptyMessage += ' in the selected date range';
+        }
+        
+        container.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
         return;
     }
-    // Hide generate button
-    const generateSection = document.querySelector('.generate-section');
-    if (generateSection) {
-        generateSection.style.display = 'none';
-    }
     
-    // Hide report canvas
-    const reportCanvas = document.getElementById('reportCanvas');
-    if (reportCanvas) {
-        reportCanvas.style.display = 'none';
+    container.innerHTML = reports.map(report => {
+        // Debug logging with detailed config inspection
+        console.log('Generating title for report:', {
+            id: report.id,
+            type: report.report_type,
+            configType: typeof report.config,
+            configString: JSON.stringify(report.config),
+            configKeys: report.config ? Object.keys(report.config) : []
+        });
+        
+        // Generate dynamic report title
+        const reportTitle = generateReportTitle(report.report_type, report.config, report.created_at);
+        
+        // Generate report details in format "Month: January • Year: 2025"
+        const reportDetails = generateReportDetails(report.report_type, report.config);
+        
+        // Format smart timestamp
+        const smartTimestamp = formatSmartTimestamp(report.created_at);
+        
+        return `
+        <div class="history-item" data-report-id="${report.id}" data-report-date="${report.created_at}">
+            <div class="report-actions">
+                <button onclick="viewGeneratedReport('${report.id}')" class="btn-view">
+                    <i class="fas fa-eye"></i> View
+                </button>
+                <button onclick="downloadReportPDF('${report.id}')" class="btn-download">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+            </div>
+            <div class="history-item-content">
+                <div class="history-info">
+                    <div class="history-title">${reportTitle}</div>
+                    <div class="history-details">${reportDetails}</div>
+                </div>
+                <div class="history-status-time">
+                    <div class="history-status received">RECEIVED</div>
+                    <div class="history-timestamp">${smartTimestamp}</div>
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+// (Backend count fetch removed) Count now strictly reflects displayed items
+
+// View specific report - make globally accessible
+window.viewGeneratedReport = async function viewGeneratedReport(reportId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/auth/generated-reports/${reportId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load report');
+        
+        const result = await response.json();
+        const report = result.data;
+        
+        // Display report data
+        displayReportContent(report);
+        
+        // Mark as viewed
+        markReportAsViewed(reportId);
+    } catch (error) {
+        console.error('Error viewing report:', error);
+        showMessage('Failed to load report', 'error');
     }
-    
-    // Hide send finance section
-    const sendFinanceSection = document.getElementById('sendFinanceSection');
-    if (sendFinanceSection) {
-        sendFinanceSection.style.display = 'none';
+};
+
+// Display report content in a modal (render PDF inline)
+// Requirement: Must be in PDF format when viewed
+let currentPdfObjectUrl = null;
+async function displayReportContent(report) {
+    // Create or update a modal to display the report PDF
+    let modal = document.getElementById('reportViewModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'reportViewModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="reportModalTitle">Report</h2>
+                    <span class="close" onclick="closeReportModal()">&times;</span>
+                </div>
+                <div class="modal-body" id="reportModalBody">
+                    <iframe id="reportPdfFrame" title="Report PDF" style="width: 100%; height: calc(100vh - 200px); border: none;" src="about:blank"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button id="openPdfNewTabBtn" class="btn-download">
+                        <i class="fas fa-external-link-alt"></i> Open in New Tab
+                    </button>
+                    <button id="downloadPdfBtn" class="btn-download">
+                        <i class="fas fa-download"></i> Download PDF
+                    </button>
+                    <button onclick="closeReportModal()" class="btn-close">Close</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
-    
-    // Hide AI recommendation section
-    const aiRecommendationSection = document.getElementById('aiRecommendationSection');
-    if (aiRecommendationSection) {
-        aiRecommendationSection.style.display = 'none';
+
+    // Update title
+    const titleEl = document.getElementById('reportModalTitle');
+    if (titleEl) {
+        titleEl.textContent = `${report.report_type} Report`;
     }
-    
-    // Hide AI recommendation controls
-    const aiRecommendationControls = document.getElementById('aiRecommendationControls');
-    if (aiRecommendationControls) {
-        aiRecommendationControls.style.display = 'none';
+
+    // Fetch PDF blob and display in iframe regardless of Content-Disposition
+    try {
+        const token = localStorage.getItem('access_token');
+        const pdfRes = await fetch(`/api/auth/generated-reports/${report.id}/pdf`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!pdfRes.ok) throw new Error('Failed to load PDF');
+
+        const pdfBlob = await pdfRes.blob();
+        // Revoke prior object URL if any
+        if (currentPdfObjectUrl) {
+            try { URL.revokeObjectURL(currentPdfObjectUrl); } catch (_) {}
+            currentPdfObjectUrl = null;
+        }
+        currentPdfObjectUrl = URL.createObjectURL(pdfBlob);
+        const iframe = document.getElementById('reportPdfFrame');
+        if (iframe) iframe.src = currentPdfObjectUrl;
+
+        // Wire "Open in New Tab"
+        const openBtn = document.getElementById('openPdfNewTabBtn');
+        if (openBtn) {
+            openBtn.onclick = () => {
+                if (currentPdfObjectUrl) {
+                    window.open(currentPdfObjectUrl, '_blank');
+                }
+            };
+        }
+        
+        // Wire "Download PDF" button
+        const downloadBtn = document.getElementById('downloadPdfBtn');
+        if (downloadBtn) {
+            downloadBtn.onclick = () => {
+                if (window.downloadReportPDF) {
+                    window.downloadReportPDF(report.id);
+                } else {
+                    downloadReportPDF(report.id);
+                }
+            };
+        }
+    } catch (err) {
+        console.error('Error loading PDF for inline view:', err);
+        const modalBody = document.getElementById('reportModalBody');
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <div style="padding: 16px;">
+                    <p style="color: #b91c1c; font-weight: 600;">Failed to load PDF preview.</p>
+                    <p>You can try downloading the report instead.</p>
+                </div>
+            `;
+        }
+    }
+
+    modal.style.display = 'block';
+}
+
+// Close report modal - make globally accessible
+window.closeReportModal = function closeReportModal() {
+    const modal = document.getElementById('reportViewModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    // Revoke object URL to avoid memory leaks
+    if (currentPdfObjectUrl) {
+        try { URL.revokeObjectURL(currentPdfObjectUrl); } catch (_) {}
+        currentPdfObjectUrl = null;
+    }
+};
+
+// Download PDF - make globally accessible
+window.downloadReportPDF = async function downloadReportPDF(reportId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/auth/generated-reports/${reportId}/pdf`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to download PDF');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `report_${reportId}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        showMessage('Failed to download PDF', 'error');
+    }
+};
+
+// Mark report as viewed
+async function markReportAsViewed(reportId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        await fetch(`/api/auth/generated-reports/${reportId}/viewed`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+    } catch (error) {
+        console.error('Error marking report as viewed:', error);
     }
 }
 
-// Show generate report section (button and canvas)
-function showGenerateReportSection() {
-    addReportCanvas();
-    // Make sure only one generate section is visible
-    const gen = document.querySelector('.generate-section');
-    if (gen) gen.style.display = 'block';
-    const sendFinanceSection = document.getElementById('sendFinanceSection');
-    // Keep send button hidden until a report is actually generated
-    if (sendFinanceSection) sendFinanceSection.style.display = 'none';
-    const reportCanvas = document.getElementById('reportCanvas');
-    if (reportCanvas) reportCanvas.style.display = 'block';
+// Check for report highlighting from notification
+function checkForReportHighlight() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('reportId');
+    
+    if (reportId) {
+        console.log('📌 Highlighting report:', reportId);
+        
+        // Wait for reports to load, then highlight
+        setTimeout(() => {
+            highlightReport(reportId);
+            
+            // Clear the URL parameter to prevent re-highlighting on refresh
+            window.history.replaceState({}, document.title, 'reports.html');
+        }, 1000);
+    }
 }
 
-// Make function globally available
-window.showReportConfiguration = showReportConfiguration;
+// Highlight a specific report in the received reports list
+function highlightReport(reportId) {
+    const reportItem = document.querySelector(`[data-report-id="${reportId}"]`);
+    
+    if (reportItem) {
+        console.log('🎯 Found report item, highlighting...');
+        
+        // Scroll to the report item
+        reportItem.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Add highlight effect
+        reportItem.style.transition = 'all 0.3s ease';
+        reportItem.style.backgroundColor = '#FEF3C7'; // Light yellow
+        reportItem.style.border = '2px solid #F59E0B'; // Orange border
+        reportItem.style.borderRadius = '8px';
+        reportItem.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.3)';
+        
+        // Remove highlight after 5 seconds
+        setTimeout(() => {
+            reportItem.style.backgroundColor = '';
+            reportItem.style.border = '';
+            reportItem.style.borderRadius = '';
+            reportItem.style.boxShadow = '';
+        }, 5000);
+        
+        // Add a subtle pulse animation
+        reportItem.style.animation = 'pulse 1s ease-in-out 3';
+        
+        // Add CSS for pulse animation if not already present
+        if (!document.getElementById('highlight-animation-styles')) {
+            const style = document.createElement('style');
+            style.id = 'highlight-animation-styles';
+            style.textContent = `
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.02); }
+                    100% { transform: scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    } else {
+        console.log('⚠️ Report item not found for ID:', reportId);
+    }
+}
 
+// Date Range Filter Functions
+function setupDateRangeFilter() {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (startDateInput && endDateInput) {
+        // Set default date range (last 30 days) but don't apply filter automatically
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+        endDateInput.value = today.toISOString().split('T')[0];
+        
+        // Don't apply initial filter - let all reports show by default
+        // applyDateFilter();
+    }
+}
+
+function applyDateFilter() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        // Clear date filter
+        currentDateRange = { start: null, end: null };
+        applyAllFilters();
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        // Invalid date range - swap dates silently
+        document.getElementById('startDate').value = endDate;
+        document.getElementById('endDate').value = startDate;
+        currentDateRange = { start: endDate, end: startDate };
+    } else {
+        currentDateRange = { start: startDate, end: endDate };
+    }
+    
+    // Apply all filters (type + date)
+    applyAllFilters();
+}
+
+function clearDateFilter() {
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    
+    // Clear date filter and apply all filters
+    currentDateRange = { start: null, end: null };
+    applyAllFilters();
+}
+
+// Old date filtering functions removed - now using integrated filtering system
+
+// Old empty state functions removed - now handled in displayFilteredReports function

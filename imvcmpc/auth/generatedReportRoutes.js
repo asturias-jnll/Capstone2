@@ -5,10 +5,10 @@ const GeneratedReportService = require('./generatedReportService');
 const router = express.Router();
 const service = new GeneratedReportService();
 
-// Create new generated report (Marketing Clerk)
+// Create new generated report (Finance Officer - swapped functionality)
 router.post('/generated-reports',
     authenticateToken,
-    checkRole(['marketing_clerk']),
+    checkRole(['finance_officer']),
     auditLog('create_generated_report', 'generated_reports'),
     async (req, res) => {
         try {
@@ -170,10 +170,10 @@ router.get('/generated-reports/:id/pdf',
     }
 );
 
-// Mark report as viewed (Finance Officer only)
+// Mark report as viewed (Marketing Clerk only - swapped functionality)
 router.patch('/generated-reports/:id/viewed',
     authenticateToken,
-    checkRole(['finance_officer']),
+    checkRole(['marketing_clerk']),
     auditLog('mark_report_viewed', 'generated_reports'),
     async (req, res) => {
         try {
@@ -206,10 +206,10 @@ router.patch('/generated-reports/:id/viewed',
     }
 );
 
-// Update report status (Marketing Clerk only)
+// Update report status (Finance Officer only - swapped functionality)
 router.patch('/generated-reports/:id/status',
     authenticateToken,
-    checkRole(['marketing_clerk']),
+    checkRole(['finance_officer']),
     auditLog('update_report_status', 'generated_reports'),
     async (req, res) => {
         try {
