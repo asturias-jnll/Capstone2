@@ -1019,6 +1019,52 @@ async function requestReport() {
         return res.json();
     }).then(() => {
         showSuccessDialog('Report request sent to Finance Officer!');
+        
+        // Clear report configuration and return to history view
+        // 1. Clear the specific report type configuration
+        try {
+            switch (reportType) {
+                case 'savings':
+                    clearSavingsConfig();
+                    break;
+                case 'disbursement':
+                    clearDisbursementConfig();
+                    break;
+                case 'member':
+                    clearMemberConfig();
+                    break;
+                case 'branch':
+                    clearBranchConfig();
+                    break;
+            }
+        } catch (error) {
+            console.error('Error clearing configuration:', error);
+        }
+        
+        // 2. Hide all configuration sections
+        hideAllConfigurations();
+        
+        // 3. Reset report type selection to default (Request Report)
+        localStorage.setItem('currentReportType', '');
+        const btnText = document.getElementById('reportTypeText');
+        if (btnText) btnText.textContent = 'Request Report';
+        
+        // Hide all checkmarks
+        const allOptions = document.querySelectorAll('.menu-option');
+        allOptions.forEach(option => {
+            const checkIcon = option.querySelector('.check-icon');
+            if (checkIcon) checkIcon.style.display = 'none';
+        });
+        
+        // 4. Show initial state
+        showInitialState();
+        
+        // 5. Show received reports section (history view)
+        showReceivedReportsSection();
+        
+        // 6. Reload received reports to show updated history
+        loadReceivedReports();
+        
     }).catch((err) => {
         console.error('Report request error:', err);
         showMessage('Failed to send report request.', 'error');
