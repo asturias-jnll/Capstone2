@@ -63,7 +63,7 @@ body {
 
 /* Title Section - Minimalist */
 .title-section {
-    margin: -20px 0 1.5rem 0;
+    margin: -20px 0 0.5rem 0;
     padding: 0.1rem 0;
     text-align: left; /* Keep on left side */
 }
@@ -96,12 +96,17 @@ body {
     max-width: calc(100% - 12px); /* Limit to description length */
 }
 
+/* Branch Status - Reduced spacing */
+.branch-status {
+    margin-top: 4px !important;
+}
+
 /* Transaction Controls - Minimalist */
 .transaction-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
     gap: 16px;
 }
 

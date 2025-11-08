@@ -662,13 +662,22 @@ function hideBranchReportsOption() {
         console.log('❌ Branch reports button not found');
     }
     
-    // Hide the branch reports option from dropdown
+    // Hide the branch reports option from generate report dropdown
+    const branchReportOption = document.getElementById('branchReportOption');
+    if (branchReportOption) {
+        branchReportOption.style.display = 'none';
+        console.log('✅ Hidden branch option from generate report dropdown');
+    } else {
+        console.log('❌ Branch option not found in generate report dropdown');
+    }
+    
+    // Hide the branch reports option from history filter dropdown
     const branchOption = document.querySelector('#reportHistoryFilter option[value="branch"]');
     if (branchOption) {
         branchOption.style.display = 'none';
-        console.log('✅ Hidden branch option from dropdown');
+        console.log('✅ Hidden branch option from history filter dropdown');
     } else {
-        console.log('❌ Branch option not found in dropdown');
+        console.log('❌ Branch option not found in history filter dropdown');
     }
     
     // Hide the branch report history section
@@ -1814,6 +1823,7 @@ function displayReport(reportData) {
             if (!container) {
                 container = document.createElement('div');
                 container.id = chartContainerId;
+                container.className = 'chart-with-title';
                 container.style.marginTop = '16px';
                 container.style.width = '100%';
                 container.style.boxSizing = 'border-box';
@@ -1909,6 +1919,7 @@ function displayReport(reportData) {
 
             if (showSavings) {
                 const savingsWrap = document.createElement('div');
+                savingsWrap.className = 'chart-with-title';
                 savingsWrap.style.marginTop = '16px';
                 savingsWrap.style.width = '100%';
                 savingsWrap.style.boxSizing = 'border-box';
@@ -1924,6 +1935,7 @@ function displayReport(reportData) {
 
             if (showDisb) {
                 const disbWrap = document.createElement('div');
+                disbWrap.className = 'chart-with-title';
                 disbWrap.style.marginTop = '4px';
                 disbWrap.style.width = '100%';
                 disbWrap.style.boxSizing = 'border-box';
@@ -2315,19 +2327,19 @@ function clearReportCanvas() {
 function showSendFinanceSection() {
     const sendFinanceSection = document.getElementById('sendFinanceSection');
     if (sendFinanceSection) {
-        // Check if this is from a report request or independent generation
-        const urlParams = new URLSearchParams(window.location.search);
-        const reportRequestId = urlParams.get('requestId');
-        const hasRequestId = !!reportRequestId || !!window.currentReportRequestId;
+        // Check if configuration is locked by marketing clerk (requested by MC)
+        const configLocked = window.isPrefillLocked === true;
         
-        // Update button text based on whether it's from a request
+        // Update button text based on whether it's locked by marketing clerk
         const buttonText = document.getElementById('sendButtonText');
         if (buttonText) {
-            if (hasRequestId) {
+            if (configLocked) {
+                // Configuration is locked by marketing clerk, so it's requested
                 buttonText.textContent = 'SEND TO MARKETING CLERK';
                 sendFinanceSection.querySelector('i').className = 'fas fa-paper-plane';
             } else {
-                buttonText.textContent = 'SAVE REPORT';
+                // Not locked, configured by finance officer independently
+                buttonText.textContent = 'SAVE';
                 sendFinanceSection.querySelector('i').className = 'fas fa-save';
             }
         }
@@ -2792,8 +2804,12 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
         const urlParams = new URLSearchParams(window.location.search);
         const reportRequestId = urlParams.get('requestId') || window.currentReportRequestId || null;
         
+        // Check if configuration is locked by marketing clerk (requested by MC)
+        // This determines if the report was requested by marketing clerk or configured independently by FO
+        const configLocked = window.isPrefillLocked === true;
+        
         // Show loading state with appropriate message
-        if (reportRequestId) {
+        if (configLocked) {
             showLoadingDialog('Sending report to Marketing Clerk...');
         } else {
             showLoadingDialog('Saving report...');
@@ -3021,6 +3037,24 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
                 padding: 12px;
                 margin-bottom: 15px;
             }
+            .chart-with-title {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: auto !important;
+                orphans: 3;
+                widows: 3;
+            }
+            .chart-with-title h4 {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                margin-bottom: 8px !important;
+            }
+            .chart-with-title canvas {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-before: avoid !important;
+                break-before: avoid !important;
+            }
         }
     </style>
 </head>
@@ -3223,8 +3257,9 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
         hideLoadingDialog();
         const reportDetails = getReportDetailsForMessage(reportType, reportData);
         
-        // Update success message based on whether it was from a request or independent
-        if (reportRequestId) {
+        // Update success message based on whether it was requested by marketing clerk
+        // Use the same configLocked variable declared earlier in this function
+        if (configLocked) {
             showSuccessDialog(`${reportDetails} was sent successfully`);
         } else {
             showSuccessDialog(`${reportDetails} was saved successfully`);
@@ -3918,12 +3953,20 @@ async function loadReportHistories() {
             // Ensure report_request_id is properly handled (could be null, undefined, or a valid UUID)
             const reportRequestId = report.report_request_id || null;
             
+            // Determine status: "sent" if from request, "saved" if independent
+            // Check explicitly for null, undefined, empty string, or falsy values
+            const hasRequestId = reportRequestId !== null && 
+                                reportRequestId !== undefined && 
+                                reportRequestId !== '' &&
+                                reportRequestId !== 0;
+            const status = hasRequestId ? 'sent' : 'saved';
+            
             return {
                 id: report.id,
                 title: generateReportTitle(report.report_type, report.config, report.created_at),
                 details: generateReportDetails(report.report_type, report.config),
                 date: report.created_at,
-                status: 'sent',
+                status: status,
                 type: report.report_type,
                 branch_id: report.branch_id,
                 branch_name: report.branch_name,
@@ -4004,11 +4047,12 @@ function saveReportHistory(reportType, reportData) {
         title: generateReportTitle(reportType, reportData),
         details: generateReportDetails(reportType, reportData),
         date: new Date().toISOString(),
-        status: 'sent',
+        status: 'saved', // Default to 'saved' for localStorage fallback (independent reports)
         type: reportType,
         branch_id: userBranchId,
         branch_name: userBranchName,
-        config: reportData.config || {}
+        config: reportData.config || {},
+        report_request_id: null // No request ID for localStorage fallback
     };
     
     history.unshift(newReport); // Add to beginning
@@ -4038,18 +4082,24 @@ function displayReportHistory(reportType, history) {
             </div>
         `;
     } else {
-        historyList.innerHTML = history.map(report => `
+        historyList.innerHTML = history.map(report => {
+            // Determine status text based on report status
+            const statusText = report.status === 'saved' ? 'SAVED' : 'SENT';
+            const statusClass = report.status || 'sent';
+            
+            return `
             <div class="history-item">
                 <div class="history-info">
                     <div class="history-title">${report.title}</div>
                     <div class="history-details">${report.details}</div>
                 </div>
                 <div class="history-meta">
-                    <div class="history-status ${report.status}">SENT</div>
+                    <div class="history-status ${statusClass}">${statusText}</div>
                     <div class="history-timestamp">${formatSmartTimestamp(report.date)}</div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 }
 
@@ -4626,7 +4676,8 @@ function setupReportTypeDropdown() {
     const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     const branchReportOption = document.getElementById('branchReportOption');
     if (branchReportOption) {
-        branchReportOption.style.display = isMainBranchUser ? 'block' : 'none';
+        // Use flex for main branch users, none for non-main branch users
+        branchReportOption.style.display = isMainBranchUser ? 'flex' : 'none';
     }
     
     // Close dropdown when clicking outside

@@ -240,9 +240,7 @@
     color: #111827;
 }
 
-.menu-option#branchReportOption {
-    display: flex !important;
-}
+/* Branch report option visibility is controlled by JavaScript based on user role */
 
 
 /* Report Configuration */
@@ -886,6 +884,49 @@
     flex-direction: column;
     align-items: center;
     padding: 0 20px 20px 20px;
+}
+
+/* Chart with title wrapper - prevent page breaks in PDF */
+.chart-with-title {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: auto;
+    margin-bottom: 20px;
+}
+
+.chart-with-title h4 {
+    margin-bottom: 12px;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+.chart-with-title canvas {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+/* PDF print styles - keep title and chart together */
+@media print {
+    .chart-with-title {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: auto !important;
+        orphans: 3;
+        widows: 3;
+    }
+    
+    .chart-with-title h4 {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .chart-with-title canvas {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+    }
 }
 
 /* Chart canvas - maintain fixed height, no stretching */
