@@ -353,6 +353,24 @@ body {
     margin-bottom: 2rem;
 }
 
+/* Top Members and Top Patrons Row - Side by Side */
+.insights-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Branch Rankings Full Width */
+.insights-full-width {
+    width: 100%;
+}
+
+.insights-full-width .insight-card {
+    width: 100%;
+}
+
+/* Legacy grid support (if needed elsewhere) */
 .insights-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -417,22 +435,33 @@ body {
     min-height: 150px;
 }
 
-/* Enhanced Mobile Responsive */
-@media (max-width: 1200px) {
-    .dashboard-content {
-        padding: 120px 16px 40px;
-    }
-    
+/* Desktop View - Keep cards in one line (4 columns) */
+@media (min-width: 1025px) {
     .summary-cards {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.8rem;
     }
     
-    .insights-grid {
-        grid-template-columns: 1fr;
+    /* Top Members and Top Patrons side by side on desktop */
+    .insights-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+    
+    /* Branch Rankings full width on desktop */
+    .insights-full-width {
+        width: 100%;
+    }
+    
+    /* Branch Rankings - 2 columns grid on desktop */
+    .branches-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem;
     }
 }
 
+/* Tablet and Mobile Responsive */
 @media (max-width: 1024px) {
     .dashboard-content {
         padding: 120px 16px 40px;
@@ -459,6 +488,19 @@ body {
     
     .card-value {
         font-size: 1rem;
+    }
+    
+    /* Top Members and Top Patrons still side by side on tablet */
+    .insights-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.2rem;
+    }
+    
+    /* Branch Rankings back to single column on tablet */
+    .branches-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
     }
     
     .insights-grid {
@@ -569,6 +611,18 @@ body {
         justify-content: center;
         padding: 0.7rem 1.2rem;
         font-size: 0.8rem;
+    }
+    
+    .insights-row {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .insights-full-width {
+        width: 100%;
+        box-sizing: border-box;
     }
     
     .insights-grid {
@@ -1108,6 +1162,19 @@ body {
     }
     
     /* Ensure insights fit */
+    .insights-row {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        grid-template-columns: 1fr !important;
+    }
+    
+    .insights-full-width {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
     .insights-grid {
         width: 100% !important;
         max-width: 100% !important;
@@ -1156,11 +1223,17 @@ body {
     .summary-cards,
     .summary-card,
     .action-btn,
+    .insights-row,
+    .insights-full-width,
     .insights-grid,
     .insight-card {
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
+    }
+    
+    .insights-row {
+        grid-template-columns: 1fr !important;
     }
 }
 
@@ -1199,11 +1272,17 @@ body {
     .summary-cards,
     .summary-card,
     .action-btn,
+    .insights-row,
+    .insights-full-width,
     .insights-grid,
     .insight-card {
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
+    }
+    
+    .insights-row {
+        grid-template-columns: 1fr !important;
     }
     
     /* Quick Insights section header responsiveness */
@@ -1338,6 +1417,16 @@ body {
 
 .member-net-position.neutral .net-position-value {
     color: #6b7280;
+}
+
+/* Top Patrons Styling - Red circle and red total loans value */
+#topPatronsCard .member-rank {
+    background: #ef4444;
+    color: white;
+}
+
+#topPatronsCard .member-net-position .net-position-value {
+    color: #ef4444;
 }
 
 /* Branch List Styling */

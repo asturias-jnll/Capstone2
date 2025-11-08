@@ -494,6 +494,9 @@ function updateBranchRankingsInsight(data) {
     const isFinanceOfficer = userRole === 'Finance Officer';
     
     const branchesList = data.slice(0, 5).map((branch, index) => {
+        // Determine branch display name - Main Branch for Ibaan (branch_id '1'), otherwise Branch [number]
+        const branchDisplayName = branch.branch_id === '1' ? 'Main Branch' : `Branch ${branch.branch_id || (index + 1)}`;
+        
         if (isFinanceOfficer) {
             // For Finance Officer: Display Net Interest Income
             const netInterestIncome = parseFloat(branch.net_interest_income) || 0;
@@ -503,7 +506,7 @@ function updateBranchRankingsInsight(data) {
                 <div class="branch-item">
                     <div class="branch-rank">${index + 1}</div>
                     <div class="branch-info">
-                        <div class="branch-name">${branch.branch_name}</div>
+                        <div class="branch-name">${branchDisplayName}</div>
                         <div class="branch-location">${branch.branch_location}</div>
                         <div class="branch-details">
                             <span class="branch-savings">Savings: ${formatCurrency(branch.total_savings || 0)}</span>
@@ -526,7 +529,7 @@ function updateBranchRankingsInsight(data) {
                 <div class="branch-item">
                     <div class="branch-rank">${index + 1}</div>
                     <div class="branch-info">
-                        <div class="branch-name">${branch.branch_name}</div>
+                        <div class="branch-name">${branchDisplayName}</div>
                         <div class="branch-location">${branch.branch_location}</div>
                         <div class="branch-details">
                             <span class="branch-savings">Savings: ${formatCurrency(branch.total_savings || 0)}</span>
