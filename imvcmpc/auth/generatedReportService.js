@@ -201,12 +201,12 @@ class GeneratedReportService {
 
             // Add access control based on role (swapped functionality)
             // Finance Officer: can only view reports they generated from their branch
-            // Marketing Clerk: can only view reports from their branch (sent to them)
+            // Marketing Clerk: can only view reports from their branch that were sent to them (have report_request_id)
             if (userRole === 'finance_officer') {
                 query += ' AND gr.generated_by = $2 AND gr.branch_id = $3';
                 params.push(userId, userBranchId);
             } else if (userRole === 'marketing_clerk') {
-                query += ' AND gr.branch_id = $2';
+                query += ' AND gr.branch_id = $2 AND gr.report_request_id IS NOT NULL';
                 params.push(userBranchId);
             }
 
@@ -269,13 +269,13 @@ class GeneratedReportService {
 
             // Build WHERE clause based on role (swapped functionality)
             // Finance Officer: only see reports they generated AND from their branch
-            // Marketing Clerk: only see reports from their branch (sent to them)
+            // Marketing Clerk: only see reports from their branch that were sent to them (have report_request_id)
             if (userRole === 'finance_officer') {
                 whereClause = 'WHERE gr.generated_by = $1 AND gr.branch_id = $2';
                 params.push(userId, userBranchId);
                 paramCount = 2;
             } else if (userRole === 'marketing_clerk') {
-                whereClause = 'WHERE gr.branch_id = $1';
+                whereClause = 'WHERE gr.branch_id = $1 AND gr.report_request_id IS NOT NULL';
                 params.push(userBranchId);
                 paramCount = 1;
             }
@@ -382,12 +382,12 @@ class GeneratedReportService {
 
             // Add access control (swapped functionality)
             // Finance Officer: can only download reports they generated from their branch
-            // Marketing Clerk: can only download reports from their branch (sent to them)
+            // Marketing Clerk: can only download reports from their branch that were sent to them (have report_request_id)
             if (userRole === 'finance_officer') {
                 query += ' AND generated_by = $2 AND branch_id = $3';
                 params.push(userId, userBranchId);
             } else if (userRole === 'marketing_clerk') {
-                query += ' AND branch_id = $2';
+                query += ' AND branch_id = $2 AND report_request_id IS NOT NULL';
                 params.push(userBranchId);
             }
 

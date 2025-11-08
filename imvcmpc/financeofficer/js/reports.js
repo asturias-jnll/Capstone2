@@ -2565,7 +2565,7 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
     const reportData = window.currentReportData;
     
     if (!reportData) {
-        showMessage('No report data available to send.', 'error');
+        showMessage('No report data available. Please generate a report first.', 'error');
         return;
     }
     
@@ -2576,8 +2576,16 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
             return;
         }
         
-        // Show loading state
-        showLoadingDialog('Sending report to Marketing Clerk...');
+        // Check if this is from a report request or independent generation
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportRequestId = urlParams.get('requestId') || window.currentReportRequestId || null;
+        
+        // Show loading state with appropriate message
+        if (reportRequestId) {
+            showLoadingDialog('Sending report to Marketing Clerk...');
+        } else {
+            showLoadingDialog('Saving report...');
+        }
         
         // Generate PDF from canvas + AI section
         const canvas = document.getElementById('reportCanvas');
@@ -2967,10 +2975,6 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
         const pdfBlob = await pdfRes.blob();
         const pdfBase64 = await blobToBase64(pdfBlob);
         
-        // Get report_request_id from URL if present, or from window variable
-        const urlParams = new URLSearchParams(window.location.search);
-        const reportRequestId = urlParams.get('requestId') || window.currentReportRequestId || null;
-        
         // Collect configuration
         const reportConfig = collectReportConfig(reportType);
         
@@ -2979,8 +2983,8 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
         const userBranchId = localStorage.getItem('user_branch_id');
         const userBranchName = localStorage.getItem('user_branch_name');
         
-        
         // Save to database
+        // Note: reportRequestId was already retrieved earlier (line 2581)
         const saveRes = await fetch('/api/auth/generated-reports', {
             method: 'POST',
             headers: {
@@ -3018,10 +3022,55 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
             showSuccessDialog(`${reportDetails} was saved successfully`);
         }
         
+        // Clear report configuration and return to history view
+        // 1. Clear the report canvas
+        clearReportCanvas();
+        
+        // 2. Clear global report data
+        window.currentReportData = null;
+        window.currentReportType = null;
+        
+        // 3. Deactivate all report type buttons
+        document.querySelectorAll('.report-type-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // 4. Clear the specific report type configuration (without showing message)
+        try {
+            switch (reportType) {
+                case 'savings':
+                    clearSavingsConfig();
+                    break;
+                case 'disbursement':
+                    clearDisbursementConfig();
+                    break;
+                case 'member':
+                    clearMemberConfig();
+                    break;
+                case 'branch':
+                    clearBranchConfig();
+                    break;
+            }
+        } catch (error) {
+            console.error('Error clearing configuration:', error);
+        }
+        
+        // 5. Return to history view
+        hideReportConfiguration();
+        
     } catch (error) {
-        console.error('Error sending report:', error);
+        console.error('Error processing report:', error);
         hideLoadingDialog();
-        showMessage('Failed to send report. Please try again.', 'error');
+        
+        // Show appropriate error message based on context
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportRequestId = urlParams.get('requestId') || window.currentReportRequestId || null;
+        
+        if (reportRequestId) {
+            showMessage('Failed to send report. Please try again.', 'error');
+        } else {
+            showMessage('Failed to save report. Please try again.', 'error');
+        }
     }
 };
 
@@ -3920,6 +3969,18 @@ function hideReportConfiguration() {
     const sentReportsSection = document.querySelector('.sent-reports-section');
     if (sentReportsSection) {
         sentReportsSection.style.display = 'block';
+    }
+    
+    // Show sent reports container (important: this gets hidden in configuration mode)
+    const sentReportsContainer = document.getElementById('sentReportsContainer');
+    if (sentReportsContainer) {
+        sentReportsContainer.style.display = 'block';
+    }
+    
+    // Hide initial state to prevent "Choose a Report Type" message
+    const initialState = document.getElementById('initialState');
+    if (initialState) {
+        initialState.style.display = 'none';
     }
     
     // Show date range filter
