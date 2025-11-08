@@ -14,7 +14,7 @@ router.get('/summary',
             
             // Extract parameters from query
             const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
-            const userRole = req.user?.role;
+            const userRole = req.user?.role_display_name;
             const isMainBranchUser = isMainBranch === 'true';
             const userBranchId = branchId || '1';
             
@@ -50,7 +50,7 @@ router.get('/savings-trend',
             
             // Extract parameters from query
             const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
-            const userRole = req.user?.role;
+            const userRole = req.user?.role_display_name;
             const isMainBranchUser = isMainBranch === 'true';
             const userBranchId = branchId || '1';
             
@@ -86,7 +86,7 @@ router.get('/disbursement-trend',
             
             // Extract parameters from query
             const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
-            const userRole = req.user?.role;
+            const userRole = req.user?.role_display_name;
             const isMainBranchUser = isMainBranch === 'true';
             const userBranchId = branchId || '1';
             
@@ -112,6 +112,42 @@ router.get('/disbursement-trend',
     }
 );
 
+// Get interest income trend data
+router.get('/interest-income-trend',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role_display_name;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getInterestIncomeTrend(filters, userRole, isMainBranchUser, userBranchId);
+            
+            res.json({
+                success: true,
+                data: data
+            });
+        } catch (error) {
+            console.error('Interest income trend error:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
 // Get branch performance data
 router.get('/branch-performance',
     authenticateToken,
@@ -122,7 +158,7 @@ router.get('/branch-performance',
             
             // Extract parameters from query
             const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
-            const userRole = req.user?.role;
+            const userRole = req.user?.role_display_name;
             const isMainBranchUser = isMainBranch === 'true';
             const userBranchId = branchId || '1';
             
@@ -158,7 +194,7 @@ router.get('/member-activity',
             
             // Extract parameters from query
             const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
-            const userRole = req.user?.role;
+            const userRole = req.user?.role_display_name;
             const isMainBranchUser = isMainBranch === 'true';
             const userBranchId = branchId || '1';
             
@@ -194,7 +230,7 @@ router.get('/top-members',
             
             // Extract parameters from query
             const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
-            const userRole = req.user?.role;
+            const userRole = req.user?.role_display_name;
             const isMainBranchUser = isMainBranch === 'true';
             const userBranchId = branchId || '1';
             
@@ -220,6 +256,42 @@ router.get('/top-members',
     }
 );
 
+// Get top patrons data
+router.get('/top-patrons',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch, limit } = req.query;
+            const userRole = req.user?.role_display_name;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getTopPatrons(filters, userRole, isMainBranchUser, userBranchId, limit);
+            
+            res.json({
+                success: true,
+                data: data
+            });
+        } catch (error) {
+            console.error('Top patrons error:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
 // Get all branches performance data for IMVCMPC Branches Performance section
 router.get('/all-branches-performance',
     authenticateToken,
@@ -230,6 +302,7 @@ router.get('/all-branches-performance',
             
             // Extract parameters from query
             const { filter, startDate, endDate } = req.query;
+            const userRole = req.user?.role_display_name;
             
             // Prepare filters
             const filters = {
@@ -237,7 +310,7 @@ router.get('/all-branches-performance',
                 endDate: endDate || new Date().toISOString().split('T')[0]
             };
             
-            const data = await service.getAllBranchesPerformance(filters);
+            const data = await service.getAllBranchesPerformance(filters, userRole);
             
             res.json({
                 success: true,

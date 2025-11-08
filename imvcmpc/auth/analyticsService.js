@@ -17,48 +17,89 @@ class AnalyticsService {
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
             
+            // Check if user is Finance Officer to calculate net_interest_income instead of net_growth
+            const isFinanceOfficer = userRole === 'Finance Officer';
+            
             if (isMainBranch) {
                 // Main branch users see data from all branches
-                query = `
-                    SELECT 
-                        COALESCE(SUM(savings_deposits), 0) as total_savings,
-                        COALESCE(SUM(loan_receivables), 0) as total_disbursements,
-                        COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_growth,
-                        COUNT(DISTINCT payee) as active_members
-                    FROM ibaan_transactions 
-                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
-                `;
+                if (isFinanceOfficer) {
+                    query = `
+                        SELECT 
+                            COALESCE(SUM(savings_deposits), 0) as total_savings,
+                            COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                            COALESCE(SUM(interest_income), 0) as net_interest_income,
+                            COUNT(DISTINCT payee) as active_members
+                        FROM ibaan_transactions 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    `;
+                } else {
+                    query = `
+                        SELECT 
+                            COALESCE(SUM(savings_deposits), 0) as total_savings,
+                            COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                            COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_growth,
+                            COUNT(DISTINCT payee) as active_members
+                        FROM ibaan_transactions 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    `;
+                }
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
                 const branchTable = this.getBranchTableName(branchId);
-                query = `
-                    SELECT 
-                        COALESCE(SUM(savings_deposits), 0) as total_savings,
-                        COALESCE(SUM(loan_receivables), 0) as total_disbursements,
-                        COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_growth,
-                        COUNT(DISTINCT payee) as active_members
-                    FROM ${branchTable} 
-                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
-                `;
+                if (isFinanceOfficer) {
+                    query = `
+                        SELECT 
+                            COALESCE(SUM(savings_deposits), 0) as total_savings,
+                            COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                            COALESCE(SUM(interest_income), 0) as net_interest_income,
+                            COUNT(DISTINCT payee) as active_members
+                        FROM ${branchTable} 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    `;
+                } else {
+                    query = `
+                        SELECT 
+                            COALESCE(SUM(savings_deposits), 0) as total_savings,
+                            COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                            COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_growth,
+                            COUNT(DISTINCT payee) as active_members
+                        FROM ${branchTable} 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    `;
+                }
                 params = [startDateFormatted, endDateFormatted];
             }
             
             const result = await this.pool.query(query, params);
-            return result.rows[0] || {
+            const defaultResult = {
                 total_savings: 0,
                 total_disbursements: 0,
-                net_growth: 0,
                 active_members: 0
             };
+            
+            if (isFinanceOfficer) {
+                defaultResult.net_interest_income = 0;
+            } else {
+                defaultResult.net_growth = 0;
+            }
+            
+            return result.rows[0] || defaultResult;
         } catch (error) {
             console.error('Error fetching analytics summary:', error);
-            return {
+            const errorResult = {
                 total_savings: 0,
                 total_disbursements: 0,
-                net_growth: 0,
                 active_members: 0
             };
+            
+            if (userRole === 'Finance Officer') {
+                errorResult.net_interest_income = 0;
+            } else {
+                errorResult.net_growth = 0;
+            }
+            
+            return errorResult;
         }
     }
 
@@ -191,8 +232,8 @@ class AnalyticsService {
         }
     }
 
-    // Get branch performance data - time series for charts
-    async getBranchPerformance(filters = {}, userRole = null, isMainBranch = false, branchId = '1') {
+    // Get interest income trend data for charts
+    async getInterestIncomeTrend(filters = {}, userRole = null, isMainBranch = false, branchId = '1') {
         try {
             const { startDate, endDate } = filters;
             let query, params;
@@ -206,8 +247,7 @@ class AnalyticsService {
                 query = `
                     SELECT 
                         DATE_TRUNC('day', transaction_date) as date,
-                        SUM(savings_deposits) as total_savings,
-                        SUM(loan_receivables) as total_disbursements
+                        SUM(interest_income) as interest_income
                     FROM ibaan_transactions 
                     WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY DATE_TRUNC('day', transaction_date)
@@ -220,13 +260,90 @@ class AnalyticsService {
                 query = `
                     SELECT 
                         DATE_TRUNC('day', transaction_date) as date,
-                        SUM(savings_deposits) as total_savings,
-                        SUM(loan_receivables) as total_disbursements
+                        SUM(interest_income) as interest_income
                     FROM ${branchTable} 
                     WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                     GROUP BY DATE_TRUNC('day', transaction_date)
                     ORDER BY date
                 `;
+                params = [startDateFormatted, endDateFormatted];
+            }
+            
+            const result = await this.pool.query(query, params);
+            return result.rows;
+        } catch (error) {
+            console.error('Error fetching interest income trend:', error);
+            return [];
+        }
+    }
+
+    // Get branch performance data - time series for charts
+    async getBranchPerformance(filters = {}, userRole = null, isMainBranch = false, branchId = '1') {
+        try {
+            const { startDate, endDate } = filters;
+            let query, params;
+            
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
+            
+            // Check if user is Finance Officer to include interest_income
+            const isFinanceOfficer = userRole === 'Finance Officer';
+            
+            if (isMainBranch) {
+                // Main branch users see data from all branches
+                if (isFinanceOfficer) {
+                    query = `
+                        SELECT 
+                            DATE_TRUNC('day', transaction_date) as date,
+                            SUM(savings_deposits) as total_savings,
+                            SUM(loan_receivables) as total_disbursements,
+                            SUM(interest_income) as interest_income
+                        FROM ibaan_transactions 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        GROUP BY DATE_TRUNC('day', transaction_date)
+                        ORDER BY date
+                    `;
+                } else {
+                    query = `
+                        SELECT 
+                            DATE_TRUNC('day', transaction_date) as date,
+                            SUM(savings_deposits) as total_savings,
+                            SUM(loan_receivables) as total_disbursements
+                        FROM ibaan_transactions 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        GROUP BY DATE_TRUNC('day', transaction_date)
+                        ORDER BY date
+                    `;
+                }
+                params = [startDateFormatted, endDateFormatted];
+            } else {
+                // Non-main branch users see data from their specific branch
+                const branchTable = this.getBranchTableName(branchId);
+                if (isFinanceOfficer) {
+                    query = `
+                        SELECT 
+                            DATE_TRUNC('day', transaction_date) as date,
+                            SUM(savings_deposits) as total_savings,
+                            SUM(loan_receivables) as total_disbursements,
+                            SUM(interest_income) as interest_income
+                        FROM ${branchTable} 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        GROUP BY DATE_TRUNC('day', transaction_date)
+                        ORDER BY date
+                    `;
+                } else {
+                    query = `
+                        SELECT 
+                            DATE_TRUNC('day', transaction_date) as date,
+                            SUM(savings_deposits) as total_savings,
+                            SUM(loan_receivables) as total_disbursements
+                        FROM ${branchTable} 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        GROUP BY DATE_TRUNC('day', transaction_date)
+                        ORDER BY date
+                    `;
+                }
                 params = [startDateFormatted, endDateFormatted];
             }
             
@@ -295,42 +412,79 @@ class AnalyticsService {
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
             
+            // Check if user is Finance Officer to order by total_savings instead of net_position
+            const isFinanceOfficer = userRole === 'Finance Officer';
+            
             if (isMainBranch) {
                 // Main branch users see top members from all branches
-                query = `
-                    SELECT 
-                        payee as member_name,
-                        payee as member_id,
-                        SUM(savings_deposits) as total_savings,
-                        SUM(loan_receivables) as total_disbursements,
-                        SUM(savings_deposits - loan_receivables) as net_position,
-                        COUNT(*) as transaction_count
-                    FROM ibaan_transactions 
-                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
-                    GROUP BY payee
-                    HAVING SUM(savings_deposits - loan_receivables) > 0
-                    ORDER BY net_position DESC
-                    LIMIT 10
-                `;
+                if (isFinanceOfficer) {
+                    query = `
+                        SELECT 
+                            payee as member_name,
+                            payee as member_id,
+                            SUM(savings_deposits) as total_savings,
+                            SUM(loan_receivables) as total_disbursements,
+                            SUM(savings_deposits - loan_receivables) as net_position,
+                            COUNT(*) as transaction_count
+                        FROM ibaan_transactions 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        GROUP BY payee
+                        ORDER BY total_savings DESC
+                        LIMIT 10
+                    `;
+                } else {
+                    query = `
+                        SELECT 
+                            payee as member_name,
+                            payee as member_id,
+                            SUM(savings_deposits) as total_savings,
+                            SUM(loan_receivables) as total_disbursements,
+                            SUM(savings_deposits - loan_receivables) as net_position,
+                            COUNT(*) as transaction_count
+                        FROM ibaan_transactions 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        GROUP BY payee
+                        HAVING SUM(savings_deposits - loan_receivables) > 0
+                        ORDER BY net_position DESC
+                        LIMIT 10
+                    `;
+                }
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see top members from their specific branch
                 const branchTable = this.getBranchTableName(branchId);
-                query = `
-                    SELECT 
-                        payee as member_name,
-                        payee as member_id,
-                        SUM(savings_deposits) as total_savings,
-                        SUM(loan_receivables) as total_disbursements,
-                        SUM(savings_deposits - loan_receivables) as net_position,
-                        COUNT(*) as transaction_count
-                    FROM ${branchTable} 
-                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
-                    GROUP BY payee
-                    HAVING SUM(savings_deposits - loan_receivables) > 0
-                    ORDER BY net_position DESC
-                    LIMIT 10
-                `;
+                if (isFinanceOfficer) {
+                    query = `
+                        SELECT 
+                            payee as member_name,
+                            payee as member_id,
+                            SUM(savings_deposits) as total_savings,
+                            SUM(loan_receivables) as total_disbursements,
+                            SUM(savings_deposits - loan_receivables) as net_position,
+                            COUNT(*) as transaction_count
+                        FROM ${branchTable} 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        GROUP BY payee
+                        ORDER BY total_savings DESC
+                        LIMIT 10
+                    `;
+                } else {
+                    query = `
+                        SELECT 
+                            payee as member_name,
+                            payee as member_id,
+                            SUM(savings_deposits) as total_savings,
+                            SUM(loan_receivables) as total_disbursements,
+                            SUM(savings_deposits - loan_receivables) as net_position,
+                            COUNT(*) as transaction_count
+                        FROM ${branchTable} 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        GROUP BY payee
+                        HAVING SUM(savings_deposits - loan_receivables) > 0
+                        ORDER BY net_position DESC
+                        LIMIT 10
+                    `;
+                }
                 params = [startDateFormatted, endDateFormatted];
             }
             
@@ -342,14 +496,67 @@ class AnalyticsService {
         }
     }
 
+    // Get top patrons by total loan receivables
+    async getTopPatrons(filters = {}, userRole = null, isMainBranch = false, branchId = '1', limit = 5) {
+        try {
+            const { startDate, endDate } = filters;
+            let query, params;
+            
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
+            const limitValue = parseInt(limit) || 5; // Default to 5 if not provided
+            
+            if (isMainBranch) {
+                // Main branch users see top patrons from all branches
+                query = `
+                    SELECT 
+                        payee as member_name,
+                        SUM(loan_receivables) as total_disbursements
+                    FROM ibaan_transactions 
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    GROUP BY payee
+                    HAVING SUM(loan_receivables) > 0
+                    ORDER BY total_disbursements DESC
+                    LIMIT ${limitValue}
+                `;
+                params = [startDateFormatted, endDateFormatted];
+            } else {
+                // Non-main branch users see top patrons from their specific branch
+                const branchTable = this.getBranchTableName(branchId);
+                query = `
+                    SELECT 
+                        payee as member_name,
+                        SUM(loan_receivables) as total_disbursements
+                    FROM ${branchTable} 
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    GROUP BY payee
+                    HAVING SUM(loan_receivables) > 0
+                    ORDER BY total_disbursements DESC
+                    LIMIT ${limitValue}
+                `;
+                params = [startDateFormatted, endDateFormatted];
+            }
+            
+            const result = await this.pool.query(query, params);
+            return result.rows;
+        } catch (error) {
+            console.error('Error fetching top patrons:', error);
+            return [];
+        }
+    }
+
     // Get all branches performance data for IMVCMPC Branches Performance section
-    async getAllBranchesPerformance(filters = {}) {
+    async getAllBranchesPerformance(filters = {}, userRole = null) {
         try {
             const { startDate, endDate } = filters;
             
             // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
+            
+            // Check if user is Finance Officer to calculate net_interest_income instead of net_position
+            const isFinanceOfficer = userRole === 'Finance Officer';
             
             // Get all branch data using UNION ALL to combine all branch tables
             const branchQueries = [];
@@ -375,19 +582,36 @@ class AnalyticsService {
             
             // Build UNION query for all branches
             branches.forEach((branch, index) => {
-                const branchQuery = `
-                    SELECT 
-                        '${branch.id}' as branch_id,
-                        '${branch.name}' as branch_name,
-                        '${branch.location}' as branch_location,
-                        COALESCE(SUM(savings_deposits), 0) as total_savings,
-                        COALESCE(SUM(loan_receivables), 0) as total_disbursements,
-                        COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_position,
-                        COUNT(DISTINCT payee) as active_members,
-                        COUNT(*) as total_transactions
-                    FROM ${branch.table} 
-                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
-                `;
+                let branchQuery;
+                if (isFinanceOfficer) {
+                    branchQuery = `
+                        SELECT 
+                            '${branch.id}' as branch_id,
+                            '${branch.name}' as branch_name,
+                            '${branch.location}' as branch_location,
+                            COALESCE(SUM(savings_deposits), 0) as total_savings,
+                            COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                            COALESCE(SUM(interest_income), 0) as net_interest_income,
+                            COUNT(DISTINCT payee) as active_members,
+                            COUNT(*) as total_transactions
+                        FROM ${branch.table} 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    `;
+                } else {
+                    branchQuery = `
+                        SELECT 
+                            '${branch.id}' as branch_id,
+                            '${branch.name}' as branch_name,
+                            '${branch.location}' as branch_location,
+                            COALESCE(SUM(savings_deposits), 0) as total_savings,
+                            COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                            COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_position,
+                            COUNT(DISTINCT payee) as active_members,
+                            COUNT(*) as total_transactions
+                        FROM ${branch.table} 
+                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    `;
+                }
                 branchQueries.push(branchQuery);
             });
             
@@ -396,11 +620,17 @@ class AnalyticsService {
             
             const result = await this.pool.query(finalQuery, allParams);
             
-            // Sort branches by net position (highest first)
+            // Sort branches by net position or net_interest_income (highest first)
             const sortedBranches = result.rows.sort((a, b) => {
-                const netA = parseFloat(a.net_position) || 0;
-                const netB = parseFloat(b.net_position) || 0;
-                return netB - netA;
+                if (isFinanceOfficer) {
+                    const netA = parseFloat(a.net_interest_income) || 0;
+                    const netB = parseFloat(b.net_interest_income) || 0;
+                    return netB - netA;
+                } else {
+                    const netA = parseFloat(a.net_position) || 0;
+                    const netB = parseFloat(b.net_position) || 0;
+                    return netB - netA;
+                }
             });
             
             return sortedBranches;

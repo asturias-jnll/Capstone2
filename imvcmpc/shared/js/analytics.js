@@ -3,6 +3,10 @@ let currentFilter = 'yesterday'; // Default filter set to yesterday
 let customType = 'week'; // Default custom type set to week
 let chartInstances = {};
 let authToken = null;
+let filtersInitialized = false; // Flag to prevent duplicate event listener registration
+let loadRequestId = 0; // Counter to track the latest load request and prevent race conditions
+let abortController = null; // AbortController to cancel in-flight requests
+let debounceTimer = null; // Timer for debouncing filter changes
 
 // Initialize Analytics Dashboard
 function initializeAnalytics() {
@@ -32,6 +36,7 @@ function initializeAnalyticsContent() {
     setupFilterButtons();
     setupCustomTypeButtons();
     setupDateInputs();
+    filtersInitialized = true; // Mark filters as initialized to prevent duplicate listeners
     updateFilterDisplay();
     
     // Check if user is from Ibaan branch and show/hide branches performance section
@@ -121,6 +126,12 @@ const API_BASE_URL = '/api/auth';
 
 // Setup filter button event listeners
 function setupFilterButtons() {
+    // Prevent duplicate event listener registration
+    if (filtersInitialized) {
+        console.log('⚠️ Filters already initialized, skipping duplicate setup');
+        return;
+    }
+    
     const filterButtons = document.querySelectorAll('.filter-btn');
     
     filterButtons.forEach(button => {
@@ -163,6 +174,11 @@ function setupFilterButtons() {
 
 // Setup custom type button event listeners
 function setupCustomTypeButtons() {
+    // Prevent duplicate event listener registration
+    if (filtersInitialized) {
+        return;
+    }
+    
     const customTypeButtons = document.querySelectorAll('.custom-type-btn');
     
     customTypeButtons.forEach(button => {
@@ -208,6 +224,13 @@ function toggleCustomInputs(type) {
         weekPicker.style.display = 'flex';
         monthYearSelector.style.display = 'none';
         yearSelector.style.display = 'none';
+        // Set default date to today if not already set
+        const weekDate = document.getElementById('weekDate');
+        if (weekDate && !weekDate.value) {
+            weekDate.value = new Date().toISOString().split('T')[0];
+            // Trigger week range calculation
+            setTimeout(() => setWeekRangeFromSingleDate(weekDate.value), 10);
+        }
     } else if (type === 'month') {
         dateInputs.style.display = 'none';
         weekPicker.style.display = 'none';
@@ -215,6 +238,12 @@ function toggleCustomInputs(type) {
         yearSelector.style.display = 'none';
         // Populate year options if not already done
         populateYearOptions();
+        // Set default month to current month if not already set
+        const monthSelect = document.getElementById('monthSelect');
+        if (monthSelect && !monthSelect.value) {
+            const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+            monthSelect.value = currentMonth;
+        }
     } else if (type === 'year') {
         dateInputs.style.display = 'none';
         weekPicker.style.display = 'none';
@@ -222,6 +251,11 @@ function toggleCustomInputs(type) {
         yearSelector.style.display = 'flex';
         // Populate year options for year selector
         populateYearOptions('yearSelectOnly');
+        // Trigger year range calculation if year is selected
+        const yearSelectOnly = document.getElementById('yearSelectOnly');
+        if (yearSelectOnly && yearSelectOnly.value) {
+            setTimeout(() => setYearRange(), 10);
+        }
     } else {
         dateInputs.style.display = 'flex';
         weekPicker.style.display = 'none';
@@ -252,6 +286,11 @@ function populateYearOptions(selectorId = 'yearSelect') {
 
 // Setup date input event listeners
 function setupDateInputs() {
+    // Prevent duplicate event listener registration
+    if (filtersInitialized) {
+        return;
+    }
+    
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
     const monthSelect = document.getElementById('monthSelect');
@@ -681,6 +720,19 @@ function formatDate(dateString) {
 function applyFilters() {
     console.log('🔄 Applying filters:', currentFilter);
     
+    // Cancel any pending debounce timer
+    if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+    }
+    
+    // Cancel any in-flight API requests
+    if (abortController) {
+        abortController.abort();
+        abortController = null;
+        console.log('⚠️ Cancelled previous request due to new filter selection');
+    }
+    
     // Log date range for debugging
     if (currentFilter !== 'custom') {
         const dateRange = getDateRange(currentFilter);
@@ -696,16 +748,38 @@ function applyFilters() {
         console.log('📅 Custom date range:', { startDate, endDate, customType });
     }
     
-    // Load fresh data with current filters
-    loadAnalyticsData();
+    // Debounce: Wait 300ms before loading data to prevent rapid-fire requests
+    debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        loadAnalyticsData();
+    }, 300);
 }
 
 // Load all analytics data
 async function loadAnalyticsData() {
-    try {
-        console.log('🔄 Starting to load analytics data...');
-        console.log('🔍 Current filter:', currentFilter);
+    // Cancel any previous in-flight request
+    if (abortController) {
+        abortController.abort();
+    }
+    
+    // Create new AbortController for this request
+    abortController = new AbortController();
+    const signal = abortController.signal;
+    
+    // Increment request ID to track the latest request
+    // Allow concurrent requests but only the latest will update the UI
+    loadRequestId++;
+    const thisRequestId = loadRequestId; // Capture current request ID
+    
+    console.log('🔄 Starting to load analytics data... (Request #' + thisRequestId + ')');
+    console.log('🔍 Current filter:', currentFilter);
+    
+    // Only show loading state if this is the latest request
+    if (thisRequestId === loadRequestId) {
         showLoadingState();
+    }
+    
+    try {
         
         // Get user branch information for branch-specific data access
         const userBranchId = localStorage.getItem('user_branch_id') || '1';
@@ -713,35 +787,74 @@ async function loadAnalyticsData() {
         const userBranchLocation = localStorage.getItem('user_branch_location') || 'IBAAN';
         const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
         
+        // Check user role
+        const userRole = localStorage.getItem('user_role');
+        const isFinanceOfficer = userRole === 'Finance Officer';
+        
+        // Show/hide Interest Income Trend chart based on role
+        const interestIncomeChartContainer = document.getElementById('interestIncomeTrendChartContainer');
+        if (interestIncomeChartContainer) {
+            interestIncomeChartContainer.style.display = isFinanceOfficer ? 'block' : 'none';
+        }
+        
         console.log('🏢 User branch info:', {
             userBranchId,
             userBranchName,
             userBranchLocation,
-            isMainBranchUser
+            isMainBranchUser,
+            isFinanceOfficer
         });
         
         // Try to load real data first
         try {
             console.log('📡 Fetching analytics data from API...');
-            const [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers, allBranchesPerformance] = await Promise.all([
-                fetchAnalyticsSummary(userBranchId, isMainBranchUser),
-                fetchSavingsTrend(userBranchId, isMainBranchUser),
-                fetchDisbursementTrend(userBranchId, isMainBranchUser),
-                fetchBranchPerformance(userBranchId, isMainBranchUser),
-                fetchMemberActivity(userBranchId, isMainBranchUser),
-                fetchTopMembers(userBranchId, isMainBranchUser),
-                fetchAllBranchesPerformance()
-            ]);
+            
+            // Build fetch promises based on user role (pass abort signal to all)
+            const fetchPromises = [
+                fetchAnalyticsSummary(userBranchId, isMainBranchUser, signal),
+                fetchSavingsTrend(userBranchId, isMainBranchUser, signal),
+                fetchDisbursementTrend(userBranchId, isMainBranchUser, signal),
+                fetchBranchPerformance(userBranchId, isMainBranchUser, signal),
+                fetchMemberActivity(userBranchId, isMainBranchUser, signal),
+                fetchTopMembers(userBranchId, isMainBranchUser, signal),
+                fetchTopPatrons(userBranchId, isMainBranchUser, signal),
+                fetchAllBranchesPerformance(signal)
+            ];
+            
+            // Add interest income trend fetch for Finance Officers (insert before branchPerformance)
+            if (isFinanceOfficer) {
+                fetchPromises.splice(3, 0, fetchInterestIncomeTrend(userBranchId, isMainBranchUser, signal));
+            }
+            
+            const results = await Promise.all(fetchPromises);
+            
+            // Extract results based on role
+            let summaryData, savingsTrend, disbursementTrend, interestIncomeTrend, branchPerformance, memberActivity, topMembers, topPatrons, allBranchesPerformance;
+            
+            if (isFinanceOfficer) {
+                [summaryData, savingsTrend, disbursementTrend, interestIncomeTrend, branchPerformance, memberActivity, topMembers, topPatrons, allBranchesPerformance] = results;
+            } else {
+                [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers, topPatrons, allBranchesPerformance] = results;
+                interestIncomeTrend = null;
+            }
             
             console.log('📊 Fetched data:', {
                 summaryData,
                 savingsTrend: savingsTrend?.length || 0,
                 disbursementTrend: disbursementTrend?.length || 0,
+                interestIncomeTrend: interestIncomeTrend?.length || 0,
                 branchPerformance: branchPerformance?.length || 0,
                 memberActivity: memberActivity?.length || 0,
                 topMembers: topMembers?.length || 0,
+                topPatrons: topPatrons?.length || 0,
                 allBranchesPerformance: allBranchesPerformance?.length || 0
             });
+            
+            // Check if this is still the latest request before updating UI
+            if (thisRequestId !== loadRequestId) {
+                console.log('⚠️ Newer request exists (Request #' + loadRequestId + '), ignoring this response (Request #' + thisRequestId + ')');
+                return;
+            }
             
             // Check if we have real data
             const hasData = summaryData && (
@@ -753,8 +866,8 @@ async function loadAnalyticsData() {
             if (hasData) {
                 console.log('📊 Real data available, updating charts...');
                 updateSummaryCards(summaryData);
-                updateCharts(savingsTrend, disbursementTrend, branchPerformance, memberActivity);
-                updateTables(topMembers, branchPerformance);
+                updateCharts(savingsTrend, disbursementTrend, interestIncomeTrend, branchPerformance, memberActivity);
+                updateTables(topMembers, topPatrons, branchPerformance);
                 
                 // Only show branches performance for Ibaan branch users
                 const userBranchId = localStorage.getItem('user_branch_id');
@@ -772,23 +885,40 @@ async function loadAnalyticsData() {
             }
             
             hideLoadingState();
-            console.log('✅ Analytics data loading completed');
+            console.log('✅ Analytics data loading completed (Request #' + thisRequestId + ')');
             
         } catch (apiError) {
             console.log('API not available, showing empty state');
-            showEmptyState();
-            hideLoadingState();
+            // Only update UI if this is still the latest request
+            if (thisRequestId === loadRequestId) {
+                showEmptyState();
+                hideLoadingState();
+            }
         }
         
     } catch (error) {
+        // Check if request was aborted
+        if (error.name === 'AbortError' || (signal && signal.aborted)) {
+            console.log('⚠️ Request aborted (Request #' + thisRequestId + ')');
+            return; // Silently return, don't update UI
+        }
+        
         console.error('❌ Error loading analytics data:', error);
-        hideLoadingState();
-        showEmptyState();
+        // Only update UI if this is still the latest request
+        if (thisRequestId === loadRequestId) {
+            hideLoadingState();
+            showEmptyState();
+        }
+    } finally {
+        // Clear abort controller if this was the latest request
+        if (thisRequestId === loadRequestId) {
+            abortController = null;
+        }
     }
 }
 
 // Fetch analytics summary data
-async function fetchAnalyticsSummary(userBranchId = '1', isMainBranchUser = true) {
+async function fetchAnalyticsSummary(userBranchId = '1', isMainBranchUser = true, signal = null) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
@@ -818,7 +948,8 @@ async function fetchAnalyticsSummary(userBranchId = '1', isMainBranchUser = true
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-        }
+        },
+        signal: signal
     });
     
     console.log('📊 Analytics summary response status:', response.status);
@@ -835,7 +966,7 @@ async function fetchAnalyticsSummary(userBranchId = '1', isMainBranchUser = true
 }
 
 // Fetch savings trend data
-async function fetchSavingsTrend(userBranchId = '1', isMainBranchUser = true) {
+async function fetchSavingsTrend(userBranchId = '1', isMainBranchUser = true, signal = null) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
@@ -865,7 +996,8 @@ async function fetchSavingsTrend(userBranchId = '1', isMainBranchUser = true) {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-        }
+        },
+        signal: signal
     });
     
     if (!response.ok) {
@@ -877,7 +1009,7 @@ async function fetchSavingsTrend(userBranchId = '1', isMainBranchUser = true) {
 }
 
 // Fetch disbursement trend data
-async function fetchDisbursementTrend(userBranchId = '1', isMainBranchUser = true) {
+async function fetchDisbursementTrend(userBranchId = '1', isMainBranchUser = true, signal = null) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
@@ -905,7 +1037,51 @@ async function fetchDisbursementTrend(userBranchId = '1', isMainBranchUser = tru
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-        }
+        },
+        signal: signal
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch interest income trend data
+async function fetchInterestIncomeTrend(userBranchId = '1', isMainBranchUser = true, signal = null) {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter,
+        branchId: userBranchId,
+        isMainBranch: isMainBranchUser.toString()
+    });
+    
+    // Add date range parameters for all filters
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
+    }
+    
+    console.log('📈 Fetching interest income trend with params:', params.toString());
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/interest-income-trend?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        signal: signal
     });
     
     if (!response.ok) {
@@ -917,7 +1093,7 @@ async function fetchDisbursementTrend(userBranchId = '1', isMainBranchUser = tru
 }
 
 // Fetch branch performance data
-async function fetchBranchPerformance(userBranchId = '1', isMainBranchUser = true) {
+async function fetchBranchPerformance(userBranchId = '1', isMainBranchUser = true, signal = null) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
@@ -945,7 +1121,8 @@ async function fetchBranchPerformance(userBranchId = '1', isMainBranchUser = tru
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-        }
+        },
+        signal: signal
     });
     
     if (!response.ok) {
@@ -957,7 +1134,7 @@ async function fetchBranchPerformance(userBranchId = '1', isMainBranchUser = tru
 }
 
 // Fetch member activity data
-async function fetchMemberActivity(userBranchId = '1', isMainBranchUser = true) {
+async function fetchMemberActivity(userBranchId = '1', isMainBranchUser = true, signal = null) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
@@ -985,7 +1162,8 @@ async function fetchMemberActivity(userBranchId = '1', isMainBranchUser = true) 
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-        }
+        },
+        signal: signal
     });
     
     if (!response.ok) {
@@ -997,13 +1175,14 @@ async function fetchMemberActivity(userBranchId = '1', isMainBranchUser = true) 
 }
 
 // Fetch top members data
-async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
+async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true, signal = null) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
         filter: currentFilter,
         branchId: userBranchId,
-        isMainBranch: isMainBranchUser.toString()
+        isMainBranch: isMainBranchUser.toString(),
+        limit: '10' // Request top 10 members for analytics page
     });
     
     // Add date range parameters for all filters
@@ -1025,7 +1204,50 @@ async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-        }
+        },
+        signal: signal
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
+// Fetch top patrons data
+async function fetchTopPatrons(userBranchId = '1', isMainBranchUser = true, signal = null) {
+    const token = await ensureAuthToken();
+    
+    const params = new URLSearchParams({
+        filter: currentFilter,
+        branchId: userBranchId,
+        isMainBranch: isMainBranchUser.toString(),
+        limit: '10' // Request top 10 patrons for analytics page
+    });
+    
+    // Add date range parameters for all filters
+    if (currentFilter === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        params.append('customType', customType);
+    } else {
+        // For non-custom filters, calculate and add date range
+        const dateRange = getDateRange(currentFilter);
+        // Format dates as YYYY-MM-DD for consistent timezone handling
+        params.append('startDate', dateRange.start.toISOString().split('T')[0]);
+        params.append('endDate', dateRange.end.toISOString().split('T')[0]);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/top-patrons?${params}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        signal: signal
     });
     
     if (!response.ok) {
@@ -1037,7 +1259,7 @@ async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
 }
 
 // Fetch all branches performance data
-async function fetchAllBranchesPerformance() {
+async function fetchAllBranchesPerformance(signal = null) {
     const token = await ensureAuthToken();
     
     const params = new URLSearchParams({
@@ -1065,7 +1287,8 @@ async function fetchAllBranchesPerformance() {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-        }
+        },
+        signal: signal
     });
     
     if (!response.ok) {
@@ -1103,23 +1326,44 @@ function updateSummaryCards(data) {
         totalDisbursementsChange.textContent = data.total_disbursements > 0 ? 'Data available' : 'No data available';
     }
     
-    // Update Net Growth card
-    const netGrowthElement = document.querySelector('.summary-card:nth-child(3) .card-value');
-    const netGrowthChange = document.querySelector('.summary-card:nth-child(3) .change-text');
-    if (netGrowthElement) {
-        netGrowthElement.textContent = formatCurrency(data.net_growth || 0);
-    }
-    if (netGrowthChange) {
-        const changeIndicator = document.querySelector('.summary-card:nth-child(3) .change-indicator');
-        if (data.net_growth > 0) {
-            netGrowthChange.textContent = 'Positive growth';
-            if (changeIndicator) changeIndicator.textContent = '+';
-        } else if (data.net_growth < 0) {
-            netGrowthChange.textContent = 'Negative growth';
-            if (changeIndicator) changeIndicator.textContent = '-';
+    // Update Net Growth / Net Interest Income card
+    const growthCard = document.querySelector('.summary-card:nth-child(3) .card-value');
+    const growthChange = document.querySelector('.summary-card:nth-child(3) .card-change');
+    const growthCardTitle = document.getElementById('netGrowthCardTitle');
+    
+    // Check user role
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
+    if (growthCard) {
+        if (isFinanceOfficer) {
+            // For Finance Officer: Display Net Interest Income
+            const netInterestIncome = data.net_interest_income || 0;
+            growthCard.textContent = formatCurrency(netInterestIncome);
+            const indicator = netInterestIncome >= 0 ? 'positive' : 'negative';
+            const symbol = netInterestIncome >= 0 ? '+' : '';
+            growthChange.innerHTML = `
+                <span class="change-indicator ${indicator}">${symbol}</span>
+                <span class="change-text">All-time total</span>
+            `;
+            // Update card title
+            if (growthCardTitle) {
+                growthCardTitle.textContent = 'Net Interest Income';
+            }
         } else {
-            netGrowthChange.textContent = 'No change';
-            if (changeIndicator) changeIndicator.textContent = '--';
+            // For other roles: Display Net Growth
+            const netGrowth = data.net_growth || 0;
+            growthCard.textContent = formatCurrency(netGrowth);
+            const indicator = netGrowth >= 0 ? 'positive' : 'negative';
+            const symbol = netGrowth >= 0 ? '+' : '';
+            growthChange.innerHTML = `
+                <span class="change-indicator ${indicator}">${symbol}</span>
+                <span class="change-text">All-time position</span>
+            `;
+            // Update card title
+            if (growthCardTitle) {
+                growthCardTitle.textContent = 'Net Growth';
+            }
         }
     }
     
@@ -1152,9 +1396,9 @@ function initializeCharts() {
             title: 'Disbursement Trend',
             data: { labels: [], datasets: [] }
         },
-        branchPerformanceChart: {
+        interestIncomeTrendChart: {
             type: 'bar',
-            title: 'Branch Performance',
+            title: 'Interest Income Trend',
             data: { labels: [], datasets: [] }
         },
         memberActivityChart: {
@@ -1778,7 +2022,7 @@ function alignDataWithPast12Months(data, valueKey) {
 }
 
 // Update charts with real data
-function updateCharts(savingsTrend, disbursementTrend, branchPerformance, memberActivity) {
+function updateCharts(savingsTrend, disbursementTrend, interestIncomeTrend, branchPerformance, memberActivity) {
     console.log('🔄 Updating all charts with real data...');
     
     // Destroy existing charts to ensure proper recreation with new options
@@ -1786,7 +2030,14 @@ function updateCharts(savingsTrend, disbursementTrend, branchPerformance, member
     
     updateSavingsTrendChart(savingsTrend);
     updateDisbursementTrendChart(disbursementTrend);
-    updateBranchPerformanceChart(branchPerformance);
+    
+    // Update interest income trend chart for Finance Officers
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    if (isFinanceOfficer && interestIncomeTrend !== null && interestIncomeTrend !== undefined) {
+        updateInterestIncomeTrendChart(interestIncomeTrend);
+    }
+    
     updateMemberActivityChart(memberActivity);
     console.log('✅ All charts updated with real data');
 }
@@ -1975,122 +2226,91 @@ function updateDisbursementTrendChart(data) {
     }
 }
 
-// Update branch performance chart - time series with three lines
-function updateBranchPerformanceChart(data) {
-    console.log('📊 Updating branch performance chart with time series data:', data);
-    const canvas = document.getElementById('branchPerformanceChart');
+// Update interest income trend chart
+function updateInterestIncomeTrendChart(data) {
+    console.log('🔄 Updating interest income trend chart with data:', data);
+    const canvas = document.getElementById('interestIncomeTrendChart');
     
     if (!canvas) {
-        console.error('❌ Branch performance chart canvas not found!');
+        console.error('❌ Interest income trend chart canvas not found!');
         return;
     }
     
     const noDataMessage = canvas.parentElement.querySelector('.no-data-message');
     
     if (!data || data.length === 0) {
-        console.log('⚠️ No branch performance data available, showing no-data message');
+        console.log('⚠️ No interest income data available, showing no-data message');
         if (noDataMessage) noDataMessage.style.display = 'flex';
         if (canvas) canvas.style.display = 'none';
         return;
     }
     
-    console.log('✅ Branch performance data available, showing time series chart');
+    console.log('✅ Interest income data available, showing chart');
     if (noDataMessage) noDataMessage.style.display = 'none';
     if (canvas) canvas.style.display = 'block';
     
-    // Generate labels based on current filter
     const labels = generateChartLabels(data, currentFilter);
-    
-    // Align data based on current filter
-    let savingsData, disbursementData;
+    let values;
     if (currentFilter === 'last-7-days') {
-        savingsData = alignDataWithLast7Days(data, 'total_savings');
-        disbursementData = alignDataWithLast7Days(data, 'total_disbursements');
+        values = alignDataWithLast7Days(data, 'interest_income');
     } else if (currentFilter === 'last-30-days') {
-        savingsData = alignDataWithLast30DaysWeekly(data, 'total_savings');
-        disbursementData = alignDataWithLast30DaysWeekly(data, 'total_disbursements');
+        values = alignDataWithLast30DaysWeekly(data, 'interest_income');
     } else if (currentFilter === 'custom' && customType === 'week') {
-        savingsData = alignDataWithCustomWeek(data, 'total_savings');
-        disbursementData = alignDataWithCustomWeek(data, 'total_disbursements');
+        values = alignDataWithCustomWeek(data, 'interest_income');
     } else if (currentFilter === 'custom' && customType === 'month') {
-        savingsData = alignDataWithCustomMonthWeekly(data, 'total_savings');
-        disbursementData = alignDataWithCustomMonthWeekly(data, 'total_disbursements');
+        values = alignDataWithCustomMonthWeekly(data, 'interest_income');
     } else if (currentFilter === 'custom' && customType === 'year') {
-        savingsData = alignDataWithCustomYearMonthly(data, 'total_savings');
-        disbursementData = alignDataWithCustomYearMonthly(data, 'total_disbursements');
+        values = alignDataWithCustomYearMonthly(data, 'interest_income');
     } else {
-        savingsData = data.map(item => parseFloat(item.total_savings) || 0);
-        disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
+        values = data.map(item => parseFloat(item.interest_income) || 0);
     }
     
-    // Calculate net difference (savings - disbursements)
-    const netDifferenceData = savingsData.map((savings, index) => {
-        const disbursements = disbursementData[index] || 0;
-        return savings - disbursements;
-    });
-    
     // Validate data
-    if (labels.length === 0 || savingsData.length === 0 || disbursementData.length === 0) {
-        console.error('❌ Invalid branch chart data: empty labels or values');
+    if (labels.length === 0 || values.length === 0) {
+        console.error('❌ Invalid interest income chart data: empty labels or values');
         return;
     }
     
-    if (chartInstances.branchPerformanceChart) {
-        chartInstances.branchPerformanceChart.destroy();
+    if (chartInstances.interestIncomeTrendChart) {
+        chartInstances.interestIncomeTrendChart.destroy();
     }
     
     try {
-        // Create line chart with three trend lines
-        chartInstances.branchPerformanceChart = new Chart(canvas, {
-            type: 'line',
+        // Create combination chart (bar + line) similar to savings and disbursement trends
+        chartInstances.interestIncomeTrendChart = new Chart(canvas, {
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Savings Trend',
-                    data: savingsData,
-                    borderColor: '#007542', // Theme green for savings
-                    backgroundColor: 'rgba(0, 117, 66, 0.1)',
-                    borderWidth: 3,
-                    fill: false,
-                    tension: 0.4,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    pointBackgroundColor: '#007542',
-                    pointBorderColor: '#007542'
+                    label: 'Monthly Interest Income (Bar)',
+                    data: values,
+                    backgroundColor: 'rgba(245, 158, 11, 0.7)', // Orange with transparency
+                    borderColor: '#F59E0B', // Orange border
+                    borderWidth: 2,
+                    type: 'bar'
                 }, {
-                    label: 'Disbursement Trend',
-                    data: disbursementData,
-                    borderColor: '#58BB43', // Theme green variant for disbursements
-                    backgroundColor: 'rgba(88, 187, 67, 0.1)',
+                    label: 'Interest Income Trend (Line)',
+                    data: values,
+                    borderColor: '#FB923C', // Lighter orange for line
+                    backgroundColor: 'transparent',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.4,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    pointBackgroundColor: '#58BB43',
-                    pointBorderColor: '#58BB43'
-                }, {
-                    label: 'Net Difference',
-                    data: netDifferenceData,
-                    borderColor: '#F59E0B', // Orange for net difference
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    borderWidth: 3,
-                    fill: false,
-                    tension: 0.4,
+                    type: 'line',
                     pointRadius: 5,
                     pointHoverRadius: 7,
                     pointBackgroundColor: '#F59E0B',
-                    pointBorderColor: '#F59E0B'
+                    pointBorderColor: '#FB923C'
                 }]
             },
-            options: getChartOptions('line', true)
+            options: getChartOptions('bar', true)
         });
         
-        console.log('✅ Branch performance time series chart created successfully');
-        chartInstances.branchPerformanceChart.update();
+        console.log('✅ Interest income trend chart created successfully');
+        chartInstances.interestIncomeTrendChart.update();
         
     } catch (error) {
-        console.error('❌ Error creating branch performance chart:', error);
+        console.error('❌ Error creating interest income trend chart:', error);
     }
 }
 
@@ -2215,8 +2435,9 @@ function updateMemberActivityChart(data) {
 }
 
 // Update tables with real data
-function updateTables(topMembers, branchPerformance) {
+function updateTables(topMembers, topPatrons, branchPerformance) {
     updateTopMembersTable(topMembers);
+    updateTopPatronsTable(topPatrons);
     updateBranchPerformanceTable(branchPerformance);
     console.log('Tables updated with real data');
 }
@@ -2262,8 +2483,23 @@ function createBranchCard(branch, rank) {
     const card = document.createElement('div');
     card.className = 'branch-card';
     
-    const netPosition = parseFloat(branch.net_position) || 0;
-    const netPositionClass = netPosition > 0 ? 'positive' : netPosition < 0 ? 'negative' : 'neutral';
+    // Check user role
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
+    let netValue, netLabel, netClass;
+    
+    if (isFinanceOfficer) {
+        // For Finance Officer: Display Net Interest Income
+        netValue = parseFloat(branch.net_interest_income) || 0;
+        netLabel = 'Net Interest Income';
+    } else {
+        // For other roles: Display Net Position
+        netValue = parseFloat(branch.net_position) || 0;
+        netLabel = 'Net Position';
+    }
+    
+    netClass = netValue > 0 ? 'positive' : netValue < 0 ? 'negative' : 'neutral';
     
     card.innerHTML = `
         <div class="branch-card-header">
@@ -2285,9 +2521,9 @@ function createBranchCard(branch, rank) {
                     </div>
                 </div>
         
-        <div class="branch-net-position ${netPositionClass}">
-            <div class="branch-net-label">Net Position</div>
-            <div class="branch-net-value ${netPositionClass}">${formatCurrency(netPosition)}</div>
+        <div class="branch-net-position ${netClass}">
+            <div class="branch-net-label">${netLabel}</div>
+            <div class="branch-net-value ${netClass}">${formatCurrency(netValue)}</div>
         </div>
         
         <div class="branch-stats">
@@ -2316,7 +2552,7 @@ function updateTopMembersTable(data) {
     if (!data || data.length === 0) {
         tbody.innerHTML = `
             <tr class="no-data-row">
-                <td colspan="5">
+                <td colspan="3">
                     <div class="no-data-message">
                         <i class="fas fa-users"></i>
                         <p>No member data available</p>
@@ -2328,20 +2564,87 @@ function updateTopMembersTable(data) {
         return;
     }
     
-    data.forEach((member, index) => {
+    // Check user role
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
+    // Limit to top 10 members
+    const topMembers = data.slice(0, 10);
+    
+    topMembers.forEach((member, index) => {
         const row = document.createElement('tr');
         
-        // Determine color for net position
-        const netPosition = parseFloat(member.net_position) || 0;
-        const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+        if (isFinanceOfficer) {
+            // For Finance Officer: Show only Rank, Member Name, and Total Savings
+            const totalSavings = parseFloat(member.total_savings) || 0;
+            const totalSavingsColor = totalSavings > 0 ? '#007542' : '#6b7280'; // Green for positive, gray for zero
+            
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${member.member_name}</td>
+                <td style="color: ${totalSavingsColor}; font-weight: 600;">${formatCurrency(totalSavings)}</td>
+            `;
+        } else {
+            // For other roles: Show Rank, Member Name, Total Savings, Total Disbursement, Net Position
+            const netPosition = parseFloat(member.net_position) || 0;
+            const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+            
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${member.member_name}</td>
+                <td>${formatCurrency(member.total_savings)}</td>
+                <td>${formatCurrency(member.total_disbursements)}</td>
+                <td style="color: ${netPositionColor}; font-weight: 600;">${formatCurrency(member.net_position)}</td>
+            `;
+        }
+        
+        tbody.appendChild(row);
+    });
+}
+
+// Update top patrons table
+function updateTopPatronsTable(data) {
+    // Find the second table container (Top Patrons table)
+    const tableContainers = document.querySelectorAll('.table-container');
+    const topPatronsTable = tableContainers[1]; // Second table is Top Patrons
+    if (!topPatronsTable) return;
+    
+    const tbody = topPatronsTable.querySelector('.data-table tbody');
+    if (!tbody) return;
+    
+    // Clear existing rows
+    tbody.innerHTML = '';
+    
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `
+            <tr class="no-data-row">
+                <td colspan="3">
+                    <div class="no-data-message">
+                        <i class="fas fa-hand-holding-usd"></i>
+                        <p>No patron data available</p>
+                        <small>Top patrons will appear here once loan data is available</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Limit to top 10 patrons
+    const topPatrons = data.slice(0, 10);
+    
+    topPatrons.forEach((patron, index) => {
+        const row = document.createElement('tr');
+        
+        const totalLoans = parseFloat(patron.total_disbursements) || 0;
+        const totalLoansColor = totalLoans > 0 ? '#007542' : '#6b7280'; // Green for positive, gray for zero
         
         row.innerHTML = `
             <td>${index + 1}</td>
-            <td>${member.member_name}</td>
-            <td>${formatCurrency(member.total_savings)}</td>
-            <td>${formatCurrency(member.total_disbursements)}</td>
-            <td style="color: ${netPositionColor}; font-weight: 600;">${formatCurrency(member.net_position)}</td>
+            <td>${patron.member_name}</td>
+            <td style="color: ${totalLoansColor}; font-weight: 600;">${formatCurrency(totalLoans)}</td>
         `;
+        
         tbody.appendChild(row);
     });
 }
@@ -2350,6 +2653,16 @@ function updateTopMembersTable(data) {
 function updateBranchPerformanceTable(data) {
     const tbody = document.querySelector('.table-container:last-child .data-table tbody');
     if (!tbody) return;
+    
+    // Check user role
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
+    // Update column header based on role
+    const columnHeader = document.getElementById('branchPerformanceColumnHeader');
+    if (columnHeader) {
+        columnHeader.textContent = isFinanceOfficer ? 'Net Interest Income' : 'Growth Rate';
+    }
     
     // Update the date header based on current filter
     updateBranchPerformanceDateHeader();
@@ -2374,26 +2687,44 @@ function updateBranchPerformanceTable(data) {
     
     // Generate labels and align data based on current filter
     const labels = generateChartLabels(data, currentFilter);
-    let savingsData, disbursementData;
+    let savingsData, disbursementData, interestIncomeData;
     
     if (currentFilter === 'last-7-days') {
         savingsData = alignDataWithLast7Days(data, 'total_savings');
         disbursementData = alignDataWithLast7Days(data, 'total_disbursements');
+        if (isFinanceOfficer) {
+            interestIncomeData = alignDataWithLast7Days(data, 'interest_income');
+        }
     } else if (currentFilter === 'last-30-days') {
         savingsData = alignDataWithLast30DaysWeekly(data, 'total_savings');
         disbursementData = alignDataWithLast30DaysWeekly(data, 'total_disbursements');
+        if (isFinanceOfficer) {
+            interestIncomeData = alignDataWithLast30DaysWeekly(data, 'interest_income');
+        }
     } else if (currentFilter === 'custom' && customType === 'week') {
         savingsData = alignDataWithCustomWeek(data, 'total_savings');
         disbursementData = alignDataWithCustomWeek(data, 'total_disbursements');
+        if (isFinanceOfficer) {
+            interestIncomeData = alignDataWithCustomWeek(data, 'interest_income');
+        }
     } else if (currentFilter === 'custom' && customType === 'month') {
         savingsData = alignDataWithCustomMonthWeekly(data, 'total_savings');
         disbursementData = alignDataWithCustomMonthWeekly(data, 'total_disbursements');
+        if (isFinanceOfficer) {
+            interestIncomeData = alignDataWithCustomMonthWeekly(data, 'interest_income');
+        }
     } else if (currentFilter === 'custom' && customType === 'year') {
         savingsData = alignDataWithCustomYearMonthly(data, 'total_savings');
         disbursementData = alignDataWithCustomYearMonthly(data, 'total_disbursements');
+        if (isFinanceOfficer) {
+            interestIncomeData = alignDataWithCustomYearMonthly(data, 'interest_income');
+        }
     } else {
         savingsData = data.map(item => parseFloat(item.total_savings) || 0);
         disbursementData = data.map(item => parseFloat(item.total_disbursements) || 0);
+        if (isFinanceOfficer) {
+            interestIncomeData = data.map(item => parseFloat(item.interest_income) || 0);
+        }
     }
     
     // Create table rows for each data point
@@ -2402,16 +2733,23 @@ function updateBranchPerformanceTable(data) {
         const dateLabel = labels[i];
         const savings = savingsData[i] || 0;
         const disbursements = disbursementData[i] || 0;
-        const net = savings - disbursements;
         
-        // Color only for net difference: Green for positive, Red for negative
-        const netColor = net >= 0 ? '#007542' : '#EF4444';
+        let value, valueColor;
+        if (isFinanceOfficer) {
+            // For Finance Officer: Display Net Interest Income
+            value = interestIncomeData[i] || 0;
+            valueColor = value >= 0 ? '#007542' : '#EF4444';
+        } else {
+            // For other roles: Display Growth Rate (savings - disbursements)
+            value = savings - disbursements;
+            valueColor = value >= 0 ? '#007542' : '#EF4444';
+        }
         
         row.innerHTML = `
             <td style="color: #1f2937;">${dateLabel}</td>
             <td>${formatCurrency(savings)}</td>
             <td>${formatCurrency(disbursements)}</td>
-            <td style="color: ${netColor}; font-size: 1.05em; font-weight: bold;">${formatCurrency(net)}</td>
+            <td style="color: ${valueColor}; font-size: 1.05em; font-weight: bold;">${formatCurrency(value)}</td>
         `;
         tbody.appendChild(row);
     }
@@ -2419,8 +2757,18 @@ function updateBranchPerformanceTable(data) {
     // Add total summary row at the bottom
     const totalSavings = savingsData.reduce((sum, val) => sum + val, 0);
     const totalDisbursements = disbursementData.reduce((sum, val) => sum + val, 0);
-    const totalNet = totalSavings - totalDisbursements;
-    const totalNetColor = totalNet >= 0 ? '#007542' : '#EF4444';
+    
+    let totalValue, totalValueColor;
+    if (isFinanceOfficer) {
+        // For Finance Officer: Total Net Interest Income
+        const totalInterestIncome = interestIncomeData.reduce((sum, val) => sum + val, 0);
+        totalValue = totalInterestIncome;
+        totalValueColor = totalValue >= 0 ? '#007542' : '#EF4444';
+    } else {
+        // For other roles: Total Growth Rate
+        totalValue = totalSavings - totalDisbursements;
+        totalValueColor = totalValue >= 0 ? '#007542' : '#EF4444';
+    }
     
     const totalRow = document.createElement('tr');
     totalRow.style.cssText = 'background-color: #f8fafc; border-top: 2px solid #e5e7eb; font-weight: bold;';
@@ -2428,7 +2776,7 @@ function updateBranchPerformanceTable(data) {
         <td style="color: #1f2937; font-size: 1.1em; font-weight: bold;">Total</td>
         <td style="font-size: 1.1em; font-weight: bold;">${formatCurrency(totalSavings)}</td>
         <td style="font-size: 1.1em; font-weight: bold;">${formatCurrency(totalDisbursements)}</td>
-        <td style="color: ${totalNetColor}; font-size: 1.15em; font-weight: bold;">${formatCurrency(totalNet)}</td>
+        <td style="color: ${totalValueColor}; font-size: 1.15em; font-weight: bold;">${formatCurrency(totalValue)}</td>
     `;
     tbody.appendChild(totalRow);
 }
@@ -2469,8 +2817,8 @@ function refreshChart(chartType) {
     // Map chart types to proper names
     const chartTypeMap = {
         'savings': 'savingsTrend',
-        'disbursement': 'disbursementTrend', 
-        'branch': 'branchPerformance',
+        'disbursement': 'disbursementTrend',
+        'interestIncome': 'interestIncomeTrend',
         'member': 'memberActivity'
     };
     
@@ -2494,6 +2842,7 @@ function refreshTable(tableType) {
     // Map table types to proper names
     const tableTypeMap = {
         'members': 'topMembers',
+        'patrons': 'topPatrons',
         'branches': 'branchPerformance'
     };
     
@@ -2545,7 +2894,7 @@ function showEmptyState() {
     });
     
     // Show no-data messages for all charts
-    const chartIds = ['savingsTrendChart', 'disbursementTrendChart', 'branchPerformanceChart', 'memberActivityChart'];
+    const chartIds = ['savingsTrendChart', 'disbursementTrendChart', 'interestIncomeTrendChart', 'memberActivityChart'];
     chartIds.forEach(chartId => {
         const canvas = document.getElementById(chartId);
         if (canvas) {
@@ -2558,7 +2907,7 @@ function showEmptyState() {
     });
     
     // Clear all tables
-    updateTables([], []);
+    updateTables([], [], []);
     
     // Clear branches performance section (only for Ibaan branch users)
     const userBranchId = localStorage.getItem('user_branch_id');
@@ -2668,11 +3017,11 @@ function getDateRange(filter) {
         },
         'last-7-days': {
             start: getStartOfDay(new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000)),
-            end: getEndOfDay(new Date(today.getTime() - 24 * 60 * 60 * 1000))
+            end: getEndOfDay(today)  // Changed from yesterday to today to include today's data
         },
         'last-30-days': {
-            start: getStartOfDay(new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)),
-            end: getEndOfDay(new Date(today.getTime() - 24 * 60 * 60 * 1000))
+            start: getStartOfDay(new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000)),  // Changed from 30 to 29 days
+            end: getEndOfDay(today)  // Changed from yesterday to today to include today's data
         },
         custom: {
             start: getStartOfDay(new Date(document.getElementById('startDate').value)),

@@ -121,12 +121,24 @@ async function loadDashboardData() {
             isMainBranchUser
         });
         
-        // Show/hide branch rankings card based on user type
+        // Check user role
+        const userRole = localStorage.getItem('user_role');
+        const isFinanceOfficer = userRole === 'Finance Officer';
+        
+        // Show/hide cards based on user type
         const branchRankingsCard = document.getElementById('branchRankingsCard');
+        const topPatronsCard = document.getElementById('topPatronsCard');
+        
         if (isMainBranchUser) {
             branchRankingsCard.style.display = 'block';
         } else {
             branchRankingsCard.style.display = 'none';
+        }
+        
+        if (isFinanceOfficer) {
+            topPatronsCard.style.display = 'block';
+        } else {
+            topPatronsCard.style.display = 'none';
         }
         
         // Fetch all dashboard data in parallel
@@ -135,17 +147,38 @@ async function loadDashboardData() {
             fetchTopMembers(userBranchId, isMainBranchUser)
         ];
         
+        // Add top patrons fetch for Finance Officers
+        if (isFinanceOfficer) {
+            dashboardPromises.push(fetchTopPatrons(userBranchId, isMainBranchUser));
+        }
+        
         // Add branch rankings fetch for main branch users only
         if (isMainBranchUser) {
             dashboardPromises.push(fetchBranchRankings());
         }
         
         const results = await Promise.all(dashboardPromises);
-        const [summary, topMembers, branchRankings] = results;
+        let summary, topMembers, topPatrons, branchRankings;
+        
+        // Extract results based on what was fetched
+        if (isFinanceOfficer && isMainBranchUser) {
+            [summary, topMembers, topPatrons, branchRankings] = results;
+        } else if (isFinanceOfficer) {
+            [summary, topMembers, topPatrons] = results;
+        } else if (isMainBranchUser) {
+            [summary, topMembers, branchRankings] = results;
+        } else {
+            [summary, topMembers] = results;
+        }
         
         // Update dashboard with real data
         updateSummaryCards(summary);
         updateTopMembersInsight(topMembers);
+        
+        // Update top patrons for Finance Officers
+        if (isFinanceOfficer && topPatrons) {
+            updateTopPatronsInsight(topPatrons);
+        }
         
         // Update branch rankings for main branch users
         if (isMainBranchUser && branchRankings) {
@@ -207,6 +240,28 @@ async function fetchTopMembers(userBranchId = '1', isMainBranchUser = true) {
     return result.data;
 }
 
+// Fetch top patrons data for insights (cumulative from oldest transaction to today)
+async function fetchTopPatrons(userBranchId = '1', isMainBranchUser = true) {
+    const token = await ensureAuthToken();
+    
+    // Use custom date range from oldest transaction (2024-01-15) to today
+    const startDate = '2024-01-15';
+    const endDate = new Date().toISOString().split('T')[0];
+    
+    const response = await fetch(`${API_BASE_URL}/analytics/top-patrons?filter=custom&startDate=${startDate}&endDate=${endDate}&branchId=${userBranchId}&isMainBranch=${isMainBranchUser}&limit=5`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch top patrons: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.data;
+}
+
 // Fetch branch rankings data for main branch users (cumulative from oldest transaction to today)
 async function fetchBranchRankings() {
     const token = await ensureAuthToken();
@@ -233,6 +288,10 @@ async function fetchBranchRankings() {
 function updateSummaryCards(data) {
     if (!data) return;
     
+    // Check user role
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
     // Update Total Savings (cumulative)
     const savingsCard = document.querySelector('.summary-card:nth-child(1) .card-value');
     const savingsChange = document.querySelector('.summary-card:nth-child(1) .card-change');
@@ -255,18 +314,41 @@ function updateSummaryCards(data) {
         `;
     }
     
-    // Update Net Growth (cumulative)
+    // Update Net Growth / Net Interest Income (cumulative)
     const growthCard = document.querySelector('.summary-card:nth-child(3) .card-value');
     const growthChange = document.querySelector('.summary-card:nth-child(3) .card-change');
+    const growthCardTitle = document.getElementById('netGrowthCardTitle');
+    
     if (growthCard) {
-        const netGrowth = data.net_growth || 0;
-        growthCard.textContent = formatCurrency(netGrowth);
-        const indicator = netGrowth >= 0 ? 'positive' : 'negative';
-        const symbol = netGrowth >= 0 ? '+' : '';
-        growthChange.innerHTML = `
-            <span class="change-indicator ${indicator}">${symbol}</span>
-            <span class="change-text">All-time position</span>
-        `;
+        if (isFinanceOfficer) {
+            // For Finance Officer: Display Net Interest Income
+            const netInterestIncome = data.net_interest_income || 0;
+            growthCard.textContent = formatCurrency(netInterestIncome);
+            const indicator = netInterestIncome >= 0 ? 'positive' : 'negative';
+            const symbol = netInterestIncome >= 0 ? '+' : '';
+            growthChange.innerHTML = `
+                <span class="change-indicator ${indicator}">${symbol}</span>
+                <span class="change-text">All-time total</span>
+            `;
+            // Update card title
+            if (growthCardTitle) {
+                growthCardTitle.textContent = 'Net Interest Income';
+            }
+        } else {
+            // For other roles: Display Net Growth
+            const netGrowth = data.net_growth || 0;
+            growthCard.textContent = formatCurrency(netGrowth);
+            const indicator = netGrowth >= 0 ? 'positive' : 'negative';
+            const symbol = netGrowth >= 0 ? '+' : '';
+            growthChange.innerHTML = `
+                <span class="change-indicator ${indicator}">${symbol}</span>
+                <span class="change-text">All-time position</span>
+            `;
+            // Update card title
+            if (growthCardTitle) {
+                growthCardTitle.textContent = 'Net Growth';
+            }
+        }
     }
     
     // Update Active Members (cumulative)
@@ -298,24 +380,88 @@ function updateTopMembersInsight(data) {
         return;
     }
     
+    // Check user role
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
     const membersList = data.slice(0, 5).map((member, index) => {
-        const netPosition = parseFloat(member.net_position) || 0;
-        const netPositionClass = netPosition > 0 ? 'positive' : netPosition < 0 ? 'negative' : 'neutral';
-        const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+        if (isFinanceOfficer) {
+            // For Finance Officer: Show only total savings, no loans
+            const totalSavings = parseFloat(member.total_savings) || 0;
+            const totalSavingsClass = totalSavings > 0 ? 'positive' : 'neutral';
+            
+            return `
+                <div class="member-item">
+                    <div class="member-rank">${index + 1}</div>
+                    <div class="member-info">
+                        <div class="member-name">${member.member_name}</div>
+                    </div>
+                    <div class="member-net-position ${totalSavingsClass}">
+                        <div class="net-position-label">Total Savings</div>
+                        <div class="net-position-value">${formatCurrency(totalSavings)}</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // For other roles: Show savings, loans, and net position
+            const netPosition = parseFloat(member.net_position) || 0;
+            const netPositionClass = netPosition > 0 ? 'positive' : netPosition < 0 ? 'negative' : 'neutral';
+            const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+            
+            return `
+                <div class="member-item">
+                    <div class="member-rank">${index + 1}</div>
+                    <div class="member-info">
+                        <div class="member-name">${member.member_name}</div>
+                        <div class="member-details">
+                            <span class="member-savings">Savings: ${formatCurrency(member.total_savings || 0)}</span>
+                            <span class="member-disbursements">Loans: ${formatCurrency(member.total_disbursements || 0)}</span>
+                        </div>
+                    </div>
+                    <div class="member-net-position ${netPositionClass}">
+                        <div class="net-position-label">Net Position</div>
+                        <div class="net-position-value">${formatCurrency(netPosition)}</div>
+                    </div>
+                </div>
+            `;
+        }
+    }).join('');
+    
+    insightContent.innerHTML = `
+        <div class="members-list">
+            ${membersList}
+        </div>
+    `;
+}
+
+// Update top patrons insight
+function updateTopPatronsInsight(data) {
+    const insightContent = document.querySelector('#topPatronsCard .insight-content');
+    
+    if (!data || data.length === 0) {
+        insightContent.innerHTML = `
+            <div class="no-data-message">
+                <i class="fas fa-hand-holding-usd"></i>
+                <p>No patron data available</p>
+                <small>Top patrons will appear here once loan data is available</small>
+            </div>
+        `;
+        return;
+    }
+    
+    const patronsList = data.slice(0, 5).map((patron, index) => {
+        const totalDisbursements = parseFloat(patron.total_disbursements) || 0;
+        const totalDisbursementsClass = totalDisbursements > 0 ? 'positive' : 'neutral';
         
         return `
             <div class="member-item">
                 <div class="member-rank">${index + 1}</div>
                 <div class="member-info">
-                    <div class="member-name">${member.member_name}</div>
-                    <div class="member-details">
-                        <span class="member-savings">Savings: ${formatCurrency(member.total_savings || 0)}</span>
-                        <span class="member-disbursements">Loans: ${formatCurrency(member.total_disbursements || 0)}</span>
-                    </div>
+                    <div class="member-name">${patron.member_name}</div>
                 </div>
-                <div class="member-net-position ${netPositionClass}">
-                    <div class="net-position-label">Net Position</div>
-                    <div class="net-position-value">${formatCurrency(netPosition)}</div>
+                <div class="member-net-position ${totalDisbursementsClass}">
+                    <div class="net-position-label">Total Loans</div>
+                    <div class="net-position-value">${formatCurrency(totalDisbursements)}</div>
                 </div>
             </div>
         `;
@@ -323,7 +469,7 @@ function updateTopMembersInsight(data) {
     
     insightContent.innerHTML = `
         <div class="members-list">
-            ${membersList}
+            ${patronsList}
         </div>
     `;
 }
@@ -343,28 +489,57 @@ function updateBranchRankingsInsight(data) {
         return;
     }
     
+    // Check user role
+    const userRole = localStorage.getItem('user_role');
+    const isFinanceOfficer = userRole === 'Finance Officer';
+    
     const branchesList = data.slice(0, 5).map((branch, index) => {
-        const netPosition = parseFloat(branch.net_position) || 0;
-        const netPositionClass = netPosition > 0 ? 'positive' : netPosition < 0 ? 'negative' : 'neutral';
-        const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
-        
-        return `
-            <div class="branch-item">
-                <div class="branch-rank">${index + 1}</div>
-                <div class="branch-info">
-                    <div class="branch-name">${branch.branch_name}</div>
-                    <div class="branch-location">${branch.branch_location}</div>
-                    <div class="branch-details">
-                        <span class="branch-savings">Savings: ${formatCurrency(branch.total_savings || 0)}</span>
-                        <span class="branch-disbursements">Loans: ${formatCurrency(branch.total_disbursements || 0)}</span>
+        if (isFinanceOfficer) {
+            // For Finance Officer: Display Net Interest Income
+            const netInterestIncome = parseFloat(branch.net_interest_income) || 0;
+            const netInterestIncomeClass = netInterestIncome > 0 ? 'positive' : netInterestIncome < 0 ? 'negative' : 'neutral';
+            
+            return `
+                <div class="branch-item">
+                    <div class="branch-rank">${index + 1}</div>
+                    <div class="branch-info">
+                        <div class="branch-name">${branch.branch_name}</div>
+                        <div class="branch-location">${branch.branch_location}</div>
+                        <div class="branch-details">
+                            <span class="branch-savings">Savings: ${formatCurrency(branch.total_savings || 0)}</span>
+                            <span class="branch-disbursements">Loans: ${formatCurrency(branch.total_disbursements || 0)}</span>
+                        </div>
+                    </div>
+                    <div class="branch-net-position ${netInterestIncomeClass}">
+                        <div class="net-position-label">Net Interest Income</div>
+                        <div class="net-position-value">${formatCurrency(netInterestIncome)}</div>
                     </div>
                 </div>
-                <div class="branch-net-position ${netPositionClass}">
-                    <div class="net-position-label">Net Position</div>
-                    <div class="net-position-value">${formatCurrency(netPosition)}</div>
+            `;
+        } else {
+            // For other roles: Display Net Position
+            const netPosition = parseFloat(branch.net_position) || 0;
+            const netPositionClass = netPosition > 0 ? 'positive' : netPosition < 0 ? 'negative' : 'neutral';
+            const netPositionColor = netPosition >= 0 ? '#007542' : '#ef4444'; // Green for positive, red for negative
+            
+            return `
+                <div class="branch-item">
+                    <div class="branch-rank">${index + 1}</div>
+                    <div class="branch-info">
+                        <div class="branch-name">${branch.branch_name}</div>
+                        <div class="branch-location">${branch.branch_location}</div>
+                        <div class="branch-details">
+                            <span class="branch-savings">Savings: ${formatCurrency(branch.total_savings || 0)}</span>
+                            <span class="branch-disbursements">Loans: ${formatCurrency(branch.total_disbursements || 0)}</span>
+                        </div>
+                    </div>
+                    <div class="branch-net-position ${netPositionClass}">
+                        <div class="net-position-label">Net Position</div>
+                        <div class="net-position-value">${formatCurrency(netPosition)}</div>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }).join('');
     
     insightContent.innerHTML = `
