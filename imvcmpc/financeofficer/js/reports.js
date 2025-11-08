@@ -708,17 +708,35 @@ function setupReportTypeSelector() {
             // Add active class to clicked button
             this.classList.add('active');
             
-            // Show corresponding configuration section
-            showConfigurationSection(this.getAttribute('data-type'));
+            // Get the report type
+            const reportType = this.getAttribute('data-type');
             
-            // Show corresponding history section
-            showReportHistory(this.getAttribute('data-type'));
-            
-            // Clear report canvas
+            // Clear canvas and reset data before switching
             clearReportCanvas();
-            
+            // Clear AI recommendations from canvas
+            const reportCanvas = document.getElementById('reportCanvas');
+            if (reportCanvas) {
+                const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+                if (aiContainer) {
+                    aiContainer.remove();
+                }
+            }
+            // Reset report data
+            window.currentReportData = null;
+            window.currentReportType = null;
+            // Hide AI recommendation controls
+            const aiControls = document.getElementById('aiRecommendationControls');
+            if (aiControls) {
+                aiControls.style.display = 'none';
+            }
             // Hide send finance section
             hideSendFinanceSection();
+            
+            // Show corresponding configuration section
+            showConfigurationSection(reportType);
+            
+            // Show corresponding history section
+            showReportHistory(reportType);
         });
     });
 }
@@ -835,6 +853,10 @@ function clearAllConfigurations() {
 
 // Show configuration section based on report type
 function showConfigurationSection(reportType) {
+    // Check if we're switching to a different report type
+    const previousReportType = window.currentReportType;
+    const isSwitchingType = previousReportType && previousReportType !== reportType;
+    
     // Hide initial state
     const initialState = document.getElementById('initialState');
     if (initialState) {
@@ -846,6 +868,39 @@ function showConfigurationSection(reportType) {
     configSections.forEach(section => section.classList.remove('active'));
     
     // Don't hide all histories - let each report type show its own history
+    
+    // Clear canvas and reset data when switching report types
+    if (isSwitchingType) {
+        clearReportCanvas();
+        // Clear AI recommendations from canvas
+        const reportCanvas = document.getElementById('reportCanvas');
+        if (reportCanvas) {
+            const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+            if (aiContainer) {
+                aiContainer.remove();
+            }
+        }
+        // Reset report data
+        window.currentReportData = null;
+        window.currentReportType = null;
+        // Hide AI recommendation controls
+        const aiControls = document.getElementById('aiRecommendationControls');
+        if (aiControls) {
+            aiControls.style.display = 'none';
+        }
+        // Hide send finance section
+        hideSendFinanceSection();
+    }
+    
+    // Hide AI recommendation controls for member reports
+    const aiControls = document.getElementById('aiRecommendationControls');
+    if (aiControls) {
+        if (reportType === 'member') {
+            aiControls.style.display = 'none';
+        } else if (!isSwitchingType) {
+            // For other report types, keep current state (will be shown when report is generated)
+        }
+    }
     
     // Show selected configuration section
     const selectedSection = document.getElementById(reportType + 'Config');
@@ -894,10 +949,63 @@ function addReportCanvas() {
         if (sendFinanceSection && sendFinanceSection.parentNode) {
             sendFinanceSection.parentNode.insertBefore(generateSection, sendFinanceSection);
             sendFinanceSection.parentNode.insertBefore(reportCanvas, sendFinanceSection);
+            
+            // Create button container for AI and Send buttons
+            let buttonContainer = document.querySelector('.button-container');
+            if (!buttonContainer) {
+                buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
+            }
+            
+            // Get parent node before removing elements
+            const parentNode = sendFinanceSection.parentNode;
+            const insertPosition = sendFinanceSection.nextSibling;
+            
+            // Insert AI recommendation controls and send button into container
+            const aiControls = document.getElementById('aiRecommendationControls');
+            if (aiControls && aiControls.parentNode) {
+                aiControls.parentNode.removeChild(aiControls);
+            }
+            if (sendFinanceSection && sendFinanceSection.parentNode) {
+                sendFinanceSection.parentNode.removeChild(sendFinanceSection);
+            }
+            
+            buttonContainer.appendChild(aiControls);
+            buttonContainer.appendChild(sendFinanceSection);
+            
+            // Insert container at the position where sendFinanceSection was
+            if (insertPosition) {
+                parentNode.insertBefore(buttonContainer, insertPosition);
+            } else {
+                parentNode.appendChild(buttonContainer);
+            }
         } else if (reportConfig && reportConfig.parentNode) {
             // Fallback: insert after config if sendFinanceSection is not present yet
             reportConfig.parentNode.insertBefore(generateSection, reportConfig.nextSibling);
             reportConfig.parentNode.insertBefore(reportCanvas, reportConfig.nextSibling);
+            
+            // Create button container for AI and Send buttons
+            let buttonContainer = document.querySelector('.button-container');
+            if (!buttonContainer) {
+                buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
+            }
+            
+            // Insert AI recommendation controls and send button into container
+            const aiControls = document.getElementById('aiRecommendationControls');
+            const sendFinanceSection = document.getElementById('sendFinanceSection');
+            if (aiControls && aiControls.parentNode) {
+                aiControls.parentNode.removeChild(aiControls);
+            }
+            if (sendFinanceSection && sendFinanceSection.parentNode) {
+                sendFinanceSection.parentNode.removeChild(sendFinanceSection);
+            }
+            
+            buttonContainer.appendChild(aiControls);
+            if (sendFinanceSection) {
+                buttonContainer.appendChild(sendFinanceSection);
+            }
+            reportCanvas.parentNode.insertBefore(buttonContainer, reportCanvas.nextSibling);
         }
         // Ensure send button stays hidden until a report is generated
         if (sendFinanceSection) sendFinanceSection.style.display = 'none';
@@ -1752,7 +1860,9 @@ function displayReport(reportData) {
                                 position: 'top',
                                 labels: {
                                     padding: 15,
-                                    usePointStyle: true
+                                    usePointStyle: false,
+                                    boxWidth: 12,
+                                    boxHeight: 12
                                 }
                             } 
                         },
@@ -1802,20 +1912,27 @@ function displayReport(reportData) {
                 savingsWrap.style.marginTop = '16px';
                 savingsWrap.style.width = '100%';
                 savingsWrap.style.boxSizing = 'border-box';
-                savingsWrap.style.minHeight = '300px';
                 savingsWrap.style.position = 'relative';
-                savingsWrap.innerHTML = `<h4 style="margin-bottom: 12px; font-size: 16px; font-weight: 600; color: #0D5B11;">Savings by Branch</h4><canvas id="branchSavingsChart" width="400" height="200"></canvas>`;
+                savingsWrap.style.marginBottom = '0px';
+                savingsWrap.style.paddingBottom = '0px';
+                savingsWrap.style.display = 'flex';
+                savingsWrap.style.flexDirection = 'column';
+                savingsWrap.style.alignItems = 'center';
+                savingsWrap.innerHTML = `<h4 style="margin-bottom: 12px; margin-left: 60px; font-size: 16px; font-weight: 600; color: #0D5B11; text-align: left; width: 100%;">Savings by Branch</h4><canvas id="branchSavingsChart" width="400" height="200"></canvas>`;
                 reportCanvas.appendChild(savingsWrap);
             }
 
             if (showDisb) {
                 const disbWrap = document.createElement('div');
-                disbWrap.style.marginTop = '20px';
+                disbWrap.style.marginTop = '4px';
                 disbWrap.style.width = '100%';
                 disbWrap.style.boxSizing = 'border-box';
-                disbWrap.style.minHeight = '300px';
                 disbWrap.style.position = 'relative';
-                disbWrap.innerHTML = `<h4 style="margin-bottom: 12px; font-size: 16px; font-weight: 600; color: #0D5B11;">Disbursements by Branch</h4><canvas id="branchDisbChart" width="400" height="200"></canvas>`;
+                disbWrap.style.paddingTop = '0px';
+                disbWrap.style.display = 'flex';
+                disbWrap.style.flexDirection = 'column';
+                disbWrap.style.alignItems = 'center';
+                disbWrap.innerHTML = `<h4 style="margin-top: 4px; margin-bottom: 12px; margin-left: 60px; font-size: 16px; font-weight: 600; color: #0D5B11; text-align: left; width: 100%;">Disbursements by Branch</h4><canvas id="branchDisbChart" width="400" height="200"></canvas>`;
                 reportCanvas.appendChild(disbWrap);
             }
 
@@ -1839,7 +1956,7 @@ function displayReport(reportData) {
                                     left: 10,
                                     right: 10,
                                     top: 10,
-                                    bottom: 10
+                                    bottom: 2
                                 }
                             },
                             plugins: { 
@@ -1848,7 +1965,9 @@ function displayReport(reportData) {
                                     position: 'top',
                                     labels: {
                                         padding: 15,
-                                        usePointStyle: true
+                                        usePointStyle: false,
+                                        boxWidth: 12,
+                                        boxHeight: 12
                                     }
                                 } 
                             },
@@ -1893,7 +2012,7 @@ function displayReport(reportData) {
                                 padding: {
                                     left: 10,
                                     right: 10,
-                                    top: 10,
+                                    top: 2,
                                     bottom: 10
                                 }
                             },
@@ -1903,7 +2022,9 @@ function displayReport(reportData) {
                                     position: 'top',
                                     labels: {
                                         padding: 15,
-                                        usePointStyle: true
+                                        usePointStyle: false,
+                                        boxWidth: 12,
+                                        boxHeight: 12
                                     }
                                 } 
                             },
@@ -2218,7 +2339,15 @@ function showSendFinanceSection() {
 // Show AI controls when a report is generated
 function showAIRecommendationControls() {
     const ctrl = document.getElementById('aiRecommendationControls');
-    if (ctrl) ctrl.style.display = 'flex';
+    if (!ctrl) return;
+    
+    // Hide AI recommendation button for member reports
+    const reportType = window.currentReportType;
+    if (reportType === 'member') {
+        ctrl.style.display = 'none';
+    } else {
+        ctrl.style.display = 'flex';
+    }
 }
 
 // Generate AI recommendations via backend
@@ -2302,43 +2431,126 @@ async function generateAIRecommendation() {
 }
 
 function renderAIRecommendations(payload) {
-    const section = document.getElementById('aiRecommendationSection');
-    if (!section) return;
-    section.style.display = 'block';
+    const reportCanvas = document.getElementById('reportCanvas');
+    if (!reportCanvas) return;
 
-    // Strategic text
-    const strategicEl = document.getElementById('aiStrategicText');
+    // Get strategic recommendations
     const strategic = (payload.ai && payload.ai.recommendations && payload.ai.recommendations.strategic) ||
                       (payload.mcda && payload.mcda.recommendations && payload.mcda.recommendations.strategic) ||
                       'No strategic recommendations available.';
-    if (strategicEl) strategicEl.textContent = strategic;
 
-    // Branch list
-    const branchList = document.getElementById('aiBranchList');
+    // Get branch-level recommendations
     const branchRecs = (payload.ai && payload.ai.recommendations && payload.ai.recommendations.branchLevel) || [];
-    if (branchList) {
-        branchList.innerHTML = branchRecs.map(item => `
-            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin-bottom:8px;background:#fff">
-                <div style="font-weight:600;color:#111827">${item.branchName || 'Branch'}</div>
-                <div style="font-size:12px;color:#374151;margin:4px 0">Priority: ${item.priority || 'Medium'}</div>
-                <ul style="margin:0;padding-left:18px">${(item.recommendations || []).map(r => `<li>${r}</li>`).join('')}</ul>
-                ${item.rationale ? `<div style="font-size:12px;color:#6b7280;margin-top:6px">Reason: ${item.rationale}</div>` : ''}
+
+    // Get ranking data
+    const ranked = (payload.mcda && payload.mcda.rankedBranches) || [];
+
+    // Create clean, minimalist white container for AI recommendations
+    let aiContent = `
+        <div class="ai-recommendation-container" style="background: #ffffff; border-radius: 8px; padding: 24px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+                <i class="fas fa-brain" style="color: #106F2C; font-size: 20px;"></i>
+                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">AI-Powered Recommendations</h3>
+                <span style="background: #f3f4f6; color: #6b7280; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;">BETA</span>
             </div>
-        `).join('');
+    `;
+
+    // Strategic Insights Section
+    if (strategic && strategic !== 'No strategic recommendations available.') {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Strategic Insights</h4>
+                <p style="margin: 0; color: #111827; line-height: 1.6; font-size: 14px;">${strategic}</p>
+            </div>
+        `;
     }
 
-    // Ranking table
-    const tbody = document.querySelector('#aiRankingTable tbody');
-    const ranked = (payload.mcda && payload.mcda.rankedBranches) || [];
-    if (tbody) {
-        tbody.innerHTML = ranked.map(r => `
-            <tr>
-                <td>${r.rank}</td>
-                <td>${r.branch_name || 'Branch'}</td>
-                <td>${(r.topsisScore * 100).toFixed(1)}%</td>
-                <td>${r.category}</td>
-            </tr>
-        `).join('');
+    // Branch-Level Recommendations Section
+    if (branchRecs.length > 0) {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Branch-Level Recommendations</h4>
+        `;
+        
+        branchRecs.forEach(item => {
+            aiContent += `
+                <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-bottom: 12px; background: #f9fafb;">
+                    <div style="font-weight: 600; color: #111827; font-size: 15px; margin-bottom: 8px;">${item.branchName || 'Branch'}</div>
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">
+                        <span style="font-weight: 500;">Priority:</span> ${item.priority || 'Medium'}
+                    </div>
+                    ${(item.recommendations || []).length > 0 ? `
+                        <ul style="margin: 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;">
+                            ${(item.recommendations || []).map(r => `<li style="margin-bottom: 6px;">${r}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    ${item.rationale ? `
+                        <div style="font-size: 12px; color: #6b7280; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                            <span style="font-weight: 500;">Reason:</span> ${item.rationale}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        aiContent += `</div>`;
+    }
+
+    // Performance Rankings Table Section
+    if (ranked.length > 0) {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Performance Rankings (TOPSIS Score)</h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Rank</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Branch</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Score</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Category</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        ranked.forEach(r => {
+            aiContent += `
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px; color: #111827;">${r.rank}</td>
+                    <td style="padding: 12px; color: #111827;">${r.branch_name || 'Branch'}</td>
+                    <td style="padding: 12px; color: #111827; font-weight: 500;">${(r.topsisScore * 100).toFixed(1)}%</td>
+                    <td style="padding: 12px; color: #111827;">${r.category}</td>
+                </tr>
+            `;
+        });
+        
+        aiContent += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    aiContent += `</div>`;
+
+    // Append AI recommendations to the existing canvas content (don't replace the report)
+    const existingContent = reportCanvas.innerHTML;
+    // Check if AI recommendations already exist in canvas
+    if (reportCanvas.querySelector('.ai-recommendation-container')) {
+        // Replace existing AI recommendations
+        const existingAI = reportCanvas.querySelector('.ai-recommendation-container');
+        existingAI.outerHTML = aiContent;
+    } else {
+        // Append new AI recommendations
+        reportCanvas.insertAdjacentHTML('beforeend', aiContent);
+    }
+
+    // Scroll to AI recommendations
+    const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+    if (aiContainer) {
+        aiContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
@@ -2382,8 +2594,6 @@ function clearConfiguration(reportType) {
         
     // Hide send finance section
     hideSendFinanceSection();
-        
-        showMessage('Configuration cleared successfully!', 'success');
     } catch (error) {
         console.error('Error clearing configuration:', error);
         showMessage('An error occurred while clearing the configuration.', 'error');
@@ -2474,6 +2684,8 @@ function lockPrefilledConfiguration(reportType) {
                     const note = document.createElement('small');
                     note.className = 'locked-note';
                     note.textContent = ' (Locked by Marketing Clerk request)';
+                    note.style.color = '#6b7280';
+                    note.style.fontWeight = '400';
                     header.appendChild(note);
                 }
             }
@@ -2587,14 +2799,10 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
             showLoadingDialog('Saving report...');
         }
         
-        // Generate PDF from canvas + AI section
+        // Generate PDF from canvas (AI recommendations are now inside the canvas)
         const canvas = document.getElementById('reportCanvas');
-        const aiSection = document.getElementById('aiRecommendationSection');
         const wrapper = document.createElement('div');
         if (canvas) wrapper.appendChild(canvas.cloneNode(true));
-        if (aiSection && aiSection.style.display !== 'none') {
-            wrapper.appendChild(aiSection.cloneNode(true));
-        }
         
         // Add Chart.js library and chart initialization scripts to the HTML
         let fullHTML = wrapper.innerHTML;
@@ -3208,6 +3416,13 @@ function hideSuccessDialog() {
     }
 }
 
+function hideErrorDialog() {
+    const existingDialog = document.getElementById('errorDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+}
+
 // Show minimalist success dialog
 function showSuccessDialog(message) {
     // Remove existing dialogs
@@ -3235,7 +3450,7 @@ function showSuccessDialog(message) {
     const dialog = document.createElement('div');
     dialog.style.cssText = `
         background: white;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 24px;
         max-width: 400px;
         width: 90%;
@@ -3255,18 +3470,16 @@ function showSuccessDialog(message) {
     // Create success icon
     const icon = document.createElement('div');
     icon.style.cssText = `
-        width: 32px;
-        height: 32px;
-        background: #0D5B11;
+        width: 40px;
+        height: 40px;
+        background: #f0fdf4;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         margin: 0 auto 16px;
-        font-size: 14px;
-        color: white;
     `;
-    icon.innerHTML = '<i class="fas fa-check"></i>';
+    icon.innerHTML = '<i class="fas fa-check-circle" style="color: #0D5B11; font-size: 18px;"></i>';
     
     // Create message
     const messageEl = document.createElement('p');
@@ -3274,14 +3487,38 @@ function showSuccessDialog(message) {
         color: #374151;
         font-size: 14px;
         font-weight: 500;
-        margin: 0;
-        line-height: 1.4;
+        margin: 0 0 20px 0;
+        line-height: 1.5;
     `;
     messageEl.textContent = message;
     
+    // Create OK button
+    const button = document.createElement('button');
+    button.textContent = 'OK';
+    button.style.cssText = `
+        background: #0D5B11;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    `;
+    button.onmouseover = () => button.style.background = '#0a4a0e';
+    button.onmouseout = () => button.style.background = '#0D5B11';
+    button.onclick = () => {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEscape);
+    };
+    
     // Add click outside to close
     overlay.onclick = (e) => {
-        if (e.target === overlay) overlay.remove();
+        if (e.target === overlay) {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
     };
     
     // Add escape key to close
@@ -3296,16 +3533,9 @@ function showSuccessDialog(message) {
     // Assemble dialog
     dialog.appendChild(icon);
     dialog.appendChild(messageEl);
+    dialog.appendChild(button);
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
-    
-    // Auto-close after 2.5 seconds
-    setTimeout(() => {
-        if (document.getElementById('successDialog')) {
-            overlay.remove();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    }, 2500);
 }
 
 // Create sent report entry
@@ -3419,7 +3649,129 @@ function getReportTypeDisplayName(reportType) {
 
 
 // Show message
+// Show minimalist error dialog (centered white container)
+function showErrorDialog(message) {
+    // Remove existing dialogs
+    hideLoadingDialog();
+    hideErrorDialog();
+    
+    // Create dialog overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'errorDialog';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+    `;
+    
+    // Create dialog content
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.2s ease;
+    `;
+    
+    // Trigger animation after element is added to DOM
+    setTimeout(() => {
+        dialog.style.opacity = '1';
+        dialog.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Create error icon
+    const icon = document.createElement('div');
+    icon.style.cssText = `
+        width: 40px;
+        height: 40px;
+        background: #fef2f2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    `;
+    icon.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 18px;"></i>';
+    
+    // Create message
+    const messageEl = document.createElement('p');
+    messageEl.style.cssText = `
+        color: #374151;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 0 20px 0;
+        line-height: 1.5;
+    `;
+    messageEl.textContent = message;
+    
+    // Create OK button
+    const button = document.createElement('button');
+    button.textContent = 'OK';
+    button.style.cssText = `
+        background: #0D5B11;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    `;
+    button.onmouseover = () => button.style.background = '#0a4a0e';
+    button.onmouseout = () => button.style.background = '#0D5B11';
+    button.onclick = () => {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEscape);
+    };
+    
+    // Add click outside to close
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    
+    // Add escape key to close
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Assemble dialog
+    dialog.appendChild(icon);
+    dialog.appendChild(messageEl);
+    dialog.appendChild(button);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+}
+
 function showMessage(message, type = 'info') {
+    // Use error dialog for error messages
+    if (type === 'error') {
+        showErrorDialog(message);
+        return;
+    }
+    
+    // For other message types, use the original notification style
     // Create message element
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
@@ -3963,8 +4315,21 @@ function showReportConfiguration() {
 }
 
 // Hide report configuration and show history (for returning to history view)
-function hideReportConfiguration() {
+async function hideReportConfiguration() {
     window.inConfigurationMode = false;
+    
+    // Hide report configuration section first
+    const reportConfig = document.querySelector('.report-config');
+    if (reportConfig) {
+        reportConfig.style.display = 'none';
+    }
+    
+    // Hide generate report button and canvas
+    hideGenerateReportSection();
+    
+    // Unlock configuration and remove locked notes
+    unlockConfiguration();
+    
     // Show sent reports section
     const sentReportsSection = document.querySelector('.sent-reports-section');
     if (sentReportsSection) {
@@ -3999,20 +4364,18 @@ function hideReportConfiguration() {
     const backContainer = document.getElementById('backToHistoryContainer');
     if (backContainer) backContainer.style.display = 'none';
     
-    // Hide report configuration section
-    const reportConfig = document.querySelector('.report-config');
-    if (reportConfig) {
-        reportConfig.style.display = 'none';
+    // Refresh reports list to show latest generated reports
+    try {
+        await initializeReportHistories();
+    } catch (error) {
+        console.error('Error refreshing reports:', error);
     }
-    
-    // Hide generate report button and canvas
-    hideGenerateReportSection();
-    
-    // Unlock configuration and remove locked notes
-    unlockConfiguration();
     
     // Reset filter to show all reports
     filterSentReports('all');
+    
+    // Scroll to top to show the reports list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // Unlock configuration and remove locked notes
@@ -4080,16 +4443,16 @@ function hideGenerateReportSection() {
         sendFinanceSection.style.display = 'none';
     }
     
-    // Hide AI recommendation section
-    const aiRecommendationSection = document.getElementById('aiRecommendationSection');
-    if (aiRecommendationSection) {
-        aiRecommendationSection.style.display = 'none';
-    }
-    
     // Hide AI recommendation controls
     const aiRecommendationControls = document.getElementById('aiRecommendationControls');
     if (aiRecommendationControls) {
         aiRecommendationControls.style.display = 'none';
+    }
+    
+    // Hide button container
+    const buttonContainer = document.querySelector('.button-container');
+    if (buttonContainer) {
+        buttonContainer.style.display = 'none';
     }
 }
 
@@ -4102,6 +4465,11 @@ function showGenerateReportSection() {
     const sendFinanceSection = document.getElementById('sendFinanceSection');
     // Keep send button hidden until a report is actually generated
     if (sendFinanceSection) sendFinanceSection.style.display = 'none';
+    // Show button container
+    const buttonContainer = document.querySelector('.button-container');
+    if (buttonContainer) {
+        buttonContainer.style.display = 'flex';
+    }
     const reportCanvas = document.getElementById('reportCanvas');
     if (reportCanvas) reportCanvas.style.display = 'block';
 }

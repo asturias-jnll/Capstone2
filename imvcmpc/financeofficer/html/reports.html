@@ -538,32 +538,12 @@
 
                 </div>
 
-                <!-- Send to Marketing Clerk Section -->
-                <div id="aiRecommendationControls" style="display:none; gap: 8px; margin-top: 12px;">
+                <!-- AI Recommendation Controls (will be inserted after canvas via JavaScript) -->
+                <div id="aiRecommendationControls" style="display:none;">
                     <button class="generate-ai-btn" id="generateAIButton" onclick="generateAIRecommendation()">
                         <i class="fas fa-brain"></i>
                         <span>Generate AI Recommendation</span>
                     </button>
-                </div>
-
-                <div id="aiRecommendationSection" class="ai-recommendation-section" style="display:none;">
-                    <div class="ai-recommendation-header">
-                        <i class="fas fa-brain"></i>
-                        <h3 style="margin:0">AI-Powered Prescriptive Recommendations</h3>
-                        <span class="beta-badge">BETA</span>
-                    </div>
-                    <div class="strategic-recommendations">
-                        <h4 style="margin:8px 0">Strategic Insights</h4>
-                        <p id="aiStrategicText" style="margin:0;color:#111827"></p>
-                    </div>
-                    <div class="branch-recommendations" style="margin-top:12px">
-                        <h4 style="margin:8px 0">Branch-Level Recommendations</h4>
-                        <div id="aiBranchList"></div>
-                    </div>
-                    <div class="mcda-rankings" style="margin-top:12px">
-                        <h4 style="margin:8px 0">Performance Rankings (TOPSIS Score)</h4>
-                        <table id="aiRankingTable"><thead><tr><th>Rank</th><th>Branch</th><th>Score</th><th>Category</th></tr></thead><tbody></tbody></table>
-                    </div>
                 </div>
 
                 <button class="send-finance-btn" id="sendFinanceSection" onclick="sendToMarketingClerk()" style="display: none;">

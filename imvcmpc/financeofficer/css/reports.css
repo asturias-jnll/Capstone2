@@ -954,11 +954,21 @@ div[style*="height: 300px"] h4 {
     }
 }
 
+/* Button Container - Wraps both AI and Send buttons */
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin: 12px 0;
+    width: 100%;
+}
+
 /* Send to Finance Officer Button */
 #sendFinanceSection {
-    display: block;
-    margin: 0 auto;
-    text-align: center;
+    display: inline-flex;
+    margin: 0;
+    margin-left: auto;
 }
 
 .send-finance-btn {
@@ -988,6 +998,53 @@ div[style*="height: 300px"] h4 {
 }
 
 .send-finance-btn i {
+    font-size: 16px;
+}
+
+/* Generate AI Recommendation Button */
+#aiRecommendationControls {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 0;
+    flex: 1;
+}
+
+.generate-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border: 2px solid #106F2C;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #106F2C;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(16, 111, 44, 0.1);
+    min-width: 200px;
+    justify-content: center;
+}
+
+.generate-ai-btn:hover {
+    background: #f0fdf4;
+    border-color: #0D5B11;
+    color: #0D5B11;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 111, 44, 0.2);
+}
+
+.generate-ai-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.generate-ai-btn i {
     font-size: 16px;
 }
 
