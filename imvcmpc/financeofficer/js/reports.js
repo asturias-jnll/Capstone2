@@ -3885,9 +3885,15 @@ function showReportConfiguration() {
         dateRangeFilter.style.display = 'none';
     }
     
+    // Hide dropdown filter
+    const reportTypeFilter = document.querySelector('.report-type-filter');
+    if (reportTypeFilter) {
+        reportTypeFilter.style.display = 'none';
+    }
+    
     // Show back button
     const backContainer = document.getElementById('backToHistoryContainer');
-    if (backContainer) backContainer.style.display = 'block';
+    if (backContainer) backContainer.style.display = 'flex';
     
     // Hide initial state to prevent "Choose a Report Type" flash
     const initialState = document.getElementById('initialState');
@@ -3920,6 +3926,12 @@ function hideReportConfiguration() {
     const dateRangeFilter = document.getElementById('dateRangeFilter');
     if (dateRangeFilter) {
         dateRangeFilter.style.display = 'flex';
+    }
+    
+    // Show dropdown filter
+    const reportTypeFilter = document.querySelector('.report-type-filter');
+    if (reportTypeFilter) {
+        reportTypeFilter.style.display = 'block';
     }
     
     // Hide back button
