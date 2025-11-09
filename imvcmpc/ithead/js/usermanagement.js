@@ -626,12 +626,190 @@ function getNextBranchNumber() {
 function toggleUserStatus(userId, currentStatus, event) {
     if (event) event.stopPropagation();
     const action = currentStatus ? 'deactivate' : 'activate';
-    if (confirm(`Are you sure you want to ${action} this user?`)) {
-        console.log(`Toggle user status: ${userId}, new status: ${!currentStatus}`);
-        // TODO: Implement API call to toggle user status
-        // After success, reload users
-        loadUsers();
+    
+    if (currentStatus) {
+        // Show deactivate confirmation modal
+        showDeactivateConfirmation(userId, currentStatus);
+    } else {
+        // For activate, use simple confirm (or can be updated later)
+        if (confirm(`Are you sure you want to ${action} this user?`)) {
+            performToggleUserStatus(userId, currentStatus);
+        }
     }
+}
+
+// Show deactivate confirmation modal
+function showDeactivateConfirmation(userId, currentStatus) {
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'deactivate-modal-overlay';
+    modalOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'deactivate-modal';
+    modalContent.style.cssText = `
+        background: #E9EEF3;
+        border-radius: 24px;
+        padding: 24px;
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease-out;
+    `;
+
+    modalContent.innerHTML = `
+        <h2 style="
+            font-size: 18px;
+            font-weight: 600;
+            color: #0B5E1C;
+            margin-bottom: 8px;
+        ">Confirm Deactivation</h2>
+        <p style="
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        ">Are you sure you want to deactivate this user?</p>
+        <div style="
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        ">
+            <button id="cancelDeactivate" style="
+                padding: 12px 24px;
+                border: 1px solid #D1D5DB;
+                border-radius: 10px;
+                background: white;
+                color: #4B5563;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 100px;
+            ">Cancel</button>
+            <button id="confirmDeactivate" style="
+                padding: 12px 24px;
+                border: none;
+                border-radius: 10px;
+                background: #187C19;
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 100px;
+            ">Deactivate</button>
+        </div>
+    `;
+
+    // Add CSS animation if not already added
+    if (!document.getElementById('deactivate-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'deactivate-modal-styles';
+        style.textContent = `
+            @keyframes modalSlideIn {
+                from {
+                    opacity: 0;
+                    transform: scale(0.9) translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+            
+            @keyframes modalSlideOut {
+                from {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: scale(0.9) translateY(-20px);
+                }
+            }
+            
+            #cancelDeactivate:hover {
+                border-color: #9CA3AF;
+                background: #F9FAFB;
+                transform: translateY(-1px);
+            }
+            
+            #confirmDeactivate:hover {
+                background: #0B5E1C;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Add modal to page
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+
+    // Add event listeners
+    document.getElementById('cancelDeactivate').addEventListener('click', () => {
+        closeDeactivateModal();
+    });
+
+    document.getElementById('confirmDeactivate').addEventListener('click', () => {
+        closeDeactivateModal();
+        performToggleUserStatus(userId, currentStatus);
+    });
+
+    // Close modal on overlay click
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            closeDeactivateModal();
+        }
+    });
+
+    // Close modal on Escape key
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeDeactivateModal();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+}
+
+// Close deactivate modal
+function closeDeactivateModal() {
+    const modal = document.querySelector('.deactivate-modal-overlay');
+    if (modal) {
+        const modalContent = modal.querySelector('.deactivate-modal');
+        if (modalContent) {
+            modalContent.style.animation = 'modalSlideOut 0.2s ease-in';
+        }
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 200);
+    }
+}
+
+// Perform the actual toggle user status action
+function performToggleUserStatus(userId, currentStatus) {
+    console.log(`Toggle user status: ${userId}, new status: ${!currentStatus}`);
+    // TODO: Implement API call to toggle user status
+    // After success, reload users
+    loadUsers();
 }
 
 // Note: Edit and Reset Password actions removed per requirements.
