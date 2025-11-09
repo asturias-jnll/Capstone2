@@ -2445,11 +2445,12 @@ window.saveReport = async function saveReport() {
         
         showLoadingDialog('Saving report...');
         
-        // Generate PDF from canvas
+        // Generate PDF from canvas (AI recommendations are now inside the canvas)
         const canvas = document.getElementById('reportCanvas');
         const wrapper = document.createElement('div');
         if (canvas) wrapper.appendChild(canvas.cloneNode(true));
         
+        // Add Chart.js library and chart initialization scripts to the HTML
         let fullHTML = wrapper.innerHTML;
         
         // Get all computed styles
@@ -2492,6 +2493,25 @@ window.saveReport = async function saveReport() {
         const branchLocation = localStorage.getItem('user_branch_location') || '';
         const branchDisplay = branchLocation ? `${branchName} ${branchLocation}` : branchName;
 
+        // Safely serialize chart data from reportData (same approach as Finance Officer)
+        let chartDataJSON = 'null';
+        let chartTypeStr = 'bar';
+        let chartsJSON = 'null';
+        
+        try {
+            if (reportData && reportData.chart) {
+                chartDataJSON = JSON.stringify(reportData.chart);
+            }
+            if (reportData && reportData.chartType) {
+                chartTypeStr = reportData.chartType;
+            }
+            if (reportData && reportData.charts) {
+                chartsJSON = JSON.stringify(reportData.charts);
+            }
+        } catch (e) {
+            console.error('Error serializing chart data:', e);
+        }
+
         // Wrap with Chart.js library and initialization
         fullHTML = `
 <!DOCTYPE html>
@@ -2507,7 +2527,7 @@ window.saveReport = async function saveReport() {
             padding: 15px;
             background: white;
             color: #333;
-            font-size: 11px;
+            font-size: 9px;
         }
         .report-header-section {
             margin-bottom: 20px;
@@ -2555,6 +2575,142 @@ window.saveReport = async function saveReport() {
             font-size: 10px;
             color: #6b7280;
         }
+        /* Card layout for PDF - horizontal alignment like canvas */
+        .report-stats,
+        .summary-cards,
+        .metric-cards,
+        .cards-container {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+            margin-bottom: 20px !important;
+            align-items: stretch !important;
+        }
+        .stat-card,
+        .summary-card,
+        .metric-card {
+            flex: 1 1 auto !important;
+            min-width: 150px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            margin: 0 !important;
+        }
+        /* Ensure cards display in a row, not stacked */
+        .stat-card + .stat-card,
+        .summary-card + .summary-card,
+        .metric-card + .metric-card {
+            margin-top: 0 !important;
+            margin-left: 0 !important;
+        }
+        /* Prevent cards from taking full width */
+        .report-stats .stat-card {
+            max-width: calc(25% - 9px) !important;
+        }
+        .summary-cards .summary-card,
+        .metric-cards .metric-card {
+            max-width: calc(50% - 6px) !important;
+        }
+        
+        /* Smaller text for tables */
+        table { 
+            width: 100%; 
+            border-collapse: collapse;
+            page-break-inside: auto;
+            font-size: 9px;
+        }
+        th, td {
+            padding: 6px 8px;
+            font-size: 9px;
+        }
+        th {
+            font-size: 10px !important;
+            font-weight: 600;
+        }
+        tr { 
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        /* Smaller stat cards - ensure all cards fit in one line */
+        .report-stats { 
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .stat-card {
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            padding: 8px;
+        }
+        .stat-card .stat-value {
+            font-size: 14px !important;
+        }
+        .stat-card .stat-label {
+            font-size: 8px !important;
+        }
+        
+        /* Smaller headings */
+        h4 {
+            font-size: 11px !important;
+            margin-bottom: 8px !important;
+        }
+        
+        /* Chart handling - ensure charts are included */
+        .report-content {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        canvas { 
+            max-width: 100%;
+            height: 200px !important;
+        }
+        
+        /* Better chart container sizing */
+        #reportChartContainer,
+        div[style*="height: 260px"],
+        div[style*="height: 300px"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        /* Chart wrapper adjustments - more compact */
+        div[style*="height: 260px"] canvas,
+        div[style*="height: 300px"] canvas,
+        #reportChart {
+            height: 200px !important;
+            width: 100% !important;
+        }
+        
+        @media print {
+            body { padding: 0; font-size: 9px; }
+            .report-content { padding: 8px; }
+            .report-header-section {
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+            .chart-with-title {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: auto !important;
+                orphans: 3;
+                widows: 3;
+            }
+            .chart-with-title h4 {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                margin-bottom: 8px !important;
+            }
+            .chart-with-title canvas {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-before: avoid !important;
+                break-before: avoid !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2566,6 +2722,132 @@ window.saveReport = async function saveReport() {
         <div class="report-timestamp">Generated on: ${dateStr} at ${timeStr}</div>
     </div>
     ${fullHTML}
+    <script>
+        // Initialize charts after DOM is ready (same approach as Finance Officer)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for Chart.js to load
+            if (typeof Chart !== 'undefined') {
+                // Get the chart data from the reportData
+                const chartData = ${chartDataJSON};
+                const chartType = '${chartTypeStr}';
+                const charts = ${chartsJSON};
+                
+                // Initialize single chart (savings/disbursement)
+                if (chartData && Array.isArray(chartData.labels)) {
+                    const canvas = document.getElementById('reportChart');
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        new Chart(ctx, {
+                            type: chartType,
+                            data: chartData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                aspectRatio: 3,
+                                scales: { 
+                                    y: { 
+                                        beginAtZero: true,
+                                        ticks: { font: { size: 8 } }
+                                    },
+                                    x: {
+                                        ticks: { font: { size: 8 } }
+                                    }
+                                },
+                                plugins: {
+                                    legend: { 
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            font: { size: 8 },
+                                            padding: 6,
+                                            boxWidth: 10,
+                                            usePointStyle: false
+                                        }
+                                    },
+                                    title: { display: false }
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                // Initialize branch report charts
+                if (charts) {
+                    const savingsCanvas = document.getElementById('branchSavingsChart');
+                    if (savingsCanvas && charts.savings) {
+                        const ctx = savingsCanvas.getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: charts.savings,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                aspectRatio: 3,
+                                scales: { 
+                                    y: { 
+                                        beginAtZero: true,
+                                        ticks: { font: { size: 8 } }
+                                    },
+                                    x: {
+                                        ticks: { font: { size: 8 } }
+                                    }
+                                },
+                                plugins: {
+                                    legend: { 
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            font: { size: 8 },
+                                            padding: 6,
+                                            boxWidth: 10,
+                                            usePointStyle: false
+                                        }
+                                    },
+                                    title: { display: false }
+                                }
+                            }
+                        });
+                    }
+                    
+                    const disbursementCanvas = document.getElementById('branchDisbChart');
+                    if (disbursementCanvas && charts.disbursement) {
+                        const ctx = disbursementCanvas.getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: charts.disbursement,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                aspectRatio: 3,
+                                scales: { 
+                                    y: { 
+                                        beginAtZero: true,
+                                        ticks: { font: { size: 8 } }
+                                    },
+                                    x: {
+                                        ticks: { font: { size: 8 } }
+                                    }
+                                },
+                                plugins: {
+                                    legend: { 
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            font: { size: 8 },
+                                            padding: 6,
+                                            boxWidth: 10,
+                                            usePointStyle: false
+                                        }
+                                    },
+                                    title: { display: false }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>`;
         
