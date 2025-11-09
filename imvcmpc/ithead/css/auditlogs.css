@@ -5,13 +5,45 @@
     padding: 0px 32px 32px;
 }
 
+/* Title Section - Minimalist (matching Analytics design) */
+.title-section {
+    margin: 20px 0 0 0;
+    padding: 0.1rem 0;
+    text-align: center;
+}
+
+.page-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #0D5B11;
+    margin: 0 0 0.2rem 0;
+    letter-spacing: -1px;
+}
+
+.page-description {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 0 0 0.5rem 0;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+}
+
+.title-underline {
+    width: calc(100% - 64px);
+    max-width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #0D5B11, #187C19, #69B41E);
+    border-radius: 2px;
+    margin: 0.75rem auto;
+}
+
 /* Filters Section */
 .filters-section {
     background: white;
     border: 1px solid var(--gray-300);
     border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
+    padding: 24px 24px 12px 24px;
+    margin-bottom: 0;
 }
 
 .filter-row {
@@ -71,9 +103,12 @@
 
 .filter-actions {
     display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    padding-top: 20px;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+    margin-bottom: 0;
+    padding-top: 8px;
+    padding-bottom: 0;
     border-top: 1px solid var(--gray-200);
 }
 
@@ -82,29 +117,33 @@
 .btn-export-csv {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 400;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex: 1;
+    max-width: 150px;
 }
 
 .btn-apply-filters {
-    background: var(--green);
+    background: linear-gradient(135deg, #0D5B11, #187C19);
     color: white;
+    border: 1px solid transparent;
 }
 
 .btn-apply-filters:hover {
-    background: var(--green-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(24, 124, 25, 0.3);
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+    color: var(--gray-700);
 }
 
 .btn-reset-filters {
-    background: white;
+    background: var(--gray-200);
     color: var(--gray-700);
     border: 1px solid var(--gray-300);
 }
@@ -115,15 +154,15 @@
 }
 
 .btn-export-csv {
-    background: var(--blue);
+    background: linear-gradient(135deg, #69B41E, #8DC71E);
     color: white;
-    margin-left: auto;
+    border: 1px solid transparent;
 }
 
 .btn-export-csv:hover {
-    background: var(--blue-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+    color: var(--gray-700);
 }
 
 /* Table Wrapper */
@@ -139,7 +178,7 @@
     background: var(--gray-50);
     border-bottom: 1px solid var(--gray-200);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--gray-700);
 }
 
@@ -150,7 +189,7 @@
 }
 
 .logs-table thead {
-    background: var(--gray-50);
+    background: var(--green-25);
     border-bottom: 2px solid var(--gray-200);
 }
 
@@ -159,7 +198,7 @@
     text-align: left;
     font-size: 13px;
     font-weight: 700;
-    color: var(--gray-700);
+    color: #0D5B11;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -294,19 +333,9 @@
 /* Pagination Container */
 .pagination-container {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 20px 24px;
-    background: white;
-    border: 1px solid var(--gray-300);
-    border-radius: 12px;
     margin-top: 16px;
-}
-
-.pagination-info {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--gray-600);
 }
 
 .pagination-controls {
@@ -323,7 +352,7 @@
     height: 36px;
     background: white;
     border: 1px solid var(--gray-300);
-    border-radius: 6px;
+    border-radius: 50%;
     color: var(--gray-600);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -350,12 +379,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
+    width: 36px;
     height: 36px;
-    padding: 0 8px;
     background: white;
     border: 1px solid var(--gray-300);
-    border-radius: 6px;
+    border-radius: 50%;
     font-size: 14px;
     font-weight: 500;
     color: var(--gray-700);
@@ -402,32 +430,35 @@
 
 .modal-dialog {
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    max-width: 800px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    max-width: 480px;
     width: 90%;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease;
+    border: 1px solid var(--gray-200);
 }
 
 .modal-dialog.modal-lg {
-    max-width: 900px;
+    max-width: 520px;
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
     border-bottom: 1px solid var(--gray-200);
+    border-radius: 12px 12px 0 0;
 }
 
 .modal-header h2 {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--gray-800);
+    font-size: 16px;
+    font-weight: 600;
+    color: #0D5B11;
     margin: 0;
 }
 
@@ -435,19 +466,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: var(--gray-100);
+    width: 32px;
+    height: 32px;
+    background: none;
     border: none;
-    border-radius: 8px;
-    color: var(--gray-600);
+    border-radius: 6px;
+    color: var(--gray-500);
     cursor: pointer;
     transition: all 0.2s ease;
+    font-size: 18px;
 }
 
 .modal-close:hover {
-    background: var(--red);
-    color: white;
+    background: var(--gray-100);
+    color: var(--gray-700);
 }
 
 .modal-content {
@@ -464,13 +496,13 @@
 .details-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+    gap: 16px;
 }
 
 .detail-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .detail-item.full-width {
@@ -478,17 +510,27 @@
 }
 
 .detail-item label {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--gray-500);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .detail-item span {
     font-size: 14px;
-    font-weight: 500;
-    color: var(--gray-800);
+    font-weight: 400;
+    color: var(--gray-700);
+}
+
+/* Remove status badge styling in modal */
+.details-content .status-badge {
+    background: none;
+    color: var(--gray-700);
+    padding: 0;
+    border-radius: 0;
+    font-weight: 400;
+    text-transform: capitalize;
 }
 
 

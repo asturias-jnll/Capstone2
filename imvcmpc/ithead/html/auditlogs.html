@@ -87,13 +87,10 @@
 
             <div class="content-container">
                 <div class="dashboard-content">
-                    <div class="audit-logs-header">
-                        <div class="header-content">
-                            <h1>
-                                Audit Logs
-                                <span class="header-description">Track and monitor all user actions across IMVCMPC system</span>
-                            </h1>
-                        </div>
+                    <!-- Title Section - Minimalist -->
+                    <div class="title-section">
+                        <h1 class="page-title">Audit Logs</h1>
+                        <p class="page-description">Track and monitor all user actions across IMVCMPC system</p>
                     </div>
 
                     <div class="audit-logs-content">
@@ -166,16 +163,18 @@
                                     <i class="fas fa-filter"></i>
                                     Apply Filters
                                 </button>
-                                <button class="btn-reset-filters" onclick="resetFilters()">
-                                    <i class="fas fa-redo"></i>
-                                    Reset
-                                </button>
                                 <button class="btn-export-csv" onclick="exportToCSV()">
                                     <i class="fas fa-download"></i>
                                     Export CSV
                                 </button>
+                                <button class="btn-reset-filters" onclick="resetFilters()">
+                                    <i class="fas fa-redo"></i>
+                                    Reset
+                                </button>
                             </div>
                         </div>
+
+                        <div class="title-underline"></div>
 
                         <!-- Logs Table -->
                         <div class="logs-table-wrapper">
@@ -203,9 +202,6 @@
 
                         <!-- Pagination -->
                         <div class="pagination-container" id="paginationContainer">
-                            <div class="pagination-info">
-                                <span id="paginationInfo">Showing 0 - 0 of 0 logs</span>
-                            </div>
                             <div class="pagination-controls">
                                 <button class="pagination-btn" id="firstPageBtn" onclick="goToPage(1)" disabled>
                                     <i class="fas fa-angle-double-left"></i>

@@ -430,11 +430,6 @@ function updatePaginationUI(pagination) {
     const totalPages = Math.ceil(total / limit);
     const currentPageNum = Math.floor(offset / limit) + 1;
 
-    // Update info text
-    const start = offset + 1;
-    const end = Math.min(offset + limit, total);
-    document.getElementById('paginationInfo').textContent = `Showing ${start} - ${end} of ${total} logs`;
-
     // Update button states
     document.getElementById('firstPageBtn').disabled = currentPageNum === 1;
     document.getElementById('prevPageBtn').disabled = currentPageNum === 1;
