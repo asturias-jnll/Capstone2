@@ -12,34 +12,31 @@ class TransactionService {
         this.pool = new Pool(config.database);
     }
 
-    // Determine which table to use based on branch ID
-    getTableName(branchId) {
-        const branchTableMap = {
-            1: 'ibaan_transactions',        // Main Branch - IBAAN
-            2: 'bauan_transactions',        // Branch 2 - BAUAN
-            3: 'sanjose_transactions',      // Branch 3 - SAN JOSE
-            4: 'rosario_transactions',      // Branch 4 - ROSARIO
-            5: 'sanjuan_transactions',      // Branch 5 - SAN JUAN
-            6: 'padregarcia_transactions',  // Branch 6 - PADRE GARCIA
-            7: 'lipacity_transactions',     // Branch 7 - LIPA CITY
-            8: 'batangascity_transactions', // Branch 8 - BATANGAS CITY
-            9: 'mabinilipa_transactions',   // Branch 9 - MABINI LIPA
-            10: 'calamias_transactions',    // Branch 10 - CALAMIAS
-            11: 'lemery_transactions',      // Branch 11 - LEMERY
-            12: 'mataasnakahoy_transactions', // Branch 12 - MATAAS NA KAHOY
-            13: 'tanauan_transactions'      // Branch 13 - TANAUAN
-        };
-
+    // Determine which table to use based on branch ID (dynamically from database)
+    async getTableName(branchId) {
         if (!branchId) {
             throw new Error('Branch ID is required to determine transaction table');
         }
 
-        const tableName = branchTableMap[branchId];
-        if (!tableName) {
-            throw new BranchNotFoundError(branchId);
-        }
+        const client = await this.pool.connect();
+        try {
+            // Query the database to get the branch location
+            const result = await client.query(`
+                SELECT location FROM branches WHERE id = $1
+            `, [branchId]);
 
-        return tableName;
+            if (result.rows.length === 0) {
+                throw new BranchNotFoundError(branchId);
+            }
+
+            const location = result.rows[0].location;
+            // Format location to table name: "LOBO" -> "lobo_transactions"
+            const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '_')}_transactions`;
+            
+            return tableName;
+        } finally {
+            client.release();
+        }
     }
 
     // Create a new transaction in the appropriate branch table
@@ -89,7 +86,7 @@ class TransactionService {
             ];
 
             // Get the appropriate table name for this branch
-            const tableName = this.getTableName(branchId);
+            const tableName = await this.getTableName(branchId);
 
             // Insert into the branch-specific table
             const query = `
@@ -126,7 +123,7 @@ class TransactionService {
             }
 
             // Determine which table to use based on branch
-            const tableName = this.getTableName(filters.branch_id);
+            const tableName = await this.getTableName(filters.branch_id);
             
             let query = `
                 SELECT 
@@ -420,7 +417,7 @@ class TransactionService {
             }
 
             // Determine which table to use based on branch
-            const tableName = this.getTableName(filters.branch_id);
+            const tableName = await this.getTableName(filters.branch_id);
             
             let query = `
                 SELECT 
@@ -469,7 +466,7 @@ class TransactionService {
             }
 
             // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
+            const tableName = await this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -502,7 +499,7 @@ class TransactionService {
             }
 
             // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
+            const tableName = await this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -632,7 +629,7 @@ class TransactionService {
             }
 
             // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
+            const tableName = await this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -670,7 +667,7 @@ class TransactionService {
             }
 
             // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
+            const tableName = await this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -706,7 +703,7 @@ class TransactionService {
             }
 
             // Determine which table to use based on branch
-            const tableName = this.getTableName(branchId);
+            const tableName = await this.getTableName(branchId);
             
             let query = `
                 SELECT 
@@ -741,7 +738,7 @@ class TransactionService {
             await client.query('BEGIN');
             
             // Get the appropriate table name for this branch
-            const tableName = this.getTableName(branchId);
+            const tableName = await this.getTableName(branchId);
             
             // Process each transaction
             for (let i = 0; i < transactionsData.length; i++) {

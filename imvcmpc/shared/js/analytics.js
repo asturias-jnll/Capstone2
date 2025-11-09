@@ -790,11 +790,17 @@ async function loadAnalyticsData() {
         // Check user role
         const userRole = localStorage.getItem('user_role');
         const isFinanceOfficer = userRole === 'Finance Officer';
+        const isITHead = userRole === 'IT Head';
         
-        // Show/hide Interest Income Trend chart based on role
+        // IT Head should see the same data as Finance Officer (Main Branch)
+        // Force IT Head to be treated as main branch user for analytics
+        const effectiveIsMainBranchUser = isITHead ? true : isMainBranchUser;
+        const effectiveBranchId = isITHead ? '1' : userBranchId;
+        
+        // Show/hide Interest Income Trend chart based on role (IT Head sees it too)
         const interestIncomeChartContainer = document.getElementById('interestIncomeTrendChartContainer');
         if (interestIncomeChartContainer) {
-            interestIncomeChartContainer.style.display = isFinanceOfficer ? 'block' : 'none';
+            interestIncomeChartContainer.style.display = (isFinanceOfficer || isITHead) ? 'block' : 'none';
         }
         
         console.log('🏢 User branch info:', {
@@ -802,7 +808,10 @@ async function loadAnalyticsData() {
             userBranchName,
             userBranchLocation,
             isMainBranchUser,
-            isFinanceOfficer
+            isFinanceOfficer,
+            isITHead,
+            effectiveIsMainBranchUser,
+            effectiveBranchId
         });
         
         // Try to load real data first
@@ -810,28 +819,29 @@ async function loadAnalyticsData() {
             console.log('📡 Fetching analytics data from API...');
             
             // Build fetch promises based on user role (pass abort signal to all)
+            // IT Head uses main branch data (same as Finance Officer Main Branch)
             const fetchPromises = [
-                fetchAnalyticsSummary(userBranchId, isMainBranchUser, signal),
-                fetchSavingsTrend(userBranchId, isMainBranchUser, signal),
-                fetchDisbursementTrend(userBranchId, isMainBranchUser, signal),
-                fetchBranchPerformance(userBranchId, isMainBranchUser, signal),
-                fetchMemberActivity(userBranchId, isMainBranchUser, signal),
-                fetchTopMembers(userBranchId, isMainBranchUser, signal),
-                fetchTopPatrons(userBranchId, isMainBranchUser, signal),
+                fetchAnalyticsSummary(effectiveBranchId, effectiveIsMainBranchUser, signal),
+                fetchSavingsTrend(effectiveBranchId, effectiveIsMainBranchUser, signal),
+                fetchDisbursementTrend(effectiveBranchId, effectiveIsMainBranchUser, signal),
+                fetchBranchPerformance(effectiveBranchId, effectiveIsMainBranchUser, signal),
+                fetchMemberActivity(effectiveBranchId, effectiveIsMainBranchUser, signal),
+                fetchTopMembers(effectiveBranchId, effectiveIsMainBranchUser, signal),
+                fetchTopPatrons(effectiveBranchId, effectiveIsMainBranchUser, signal),
                 fetchAllBranchesPerformance(signal)
             ];
             
-            // Add interest income trend fetch for Finance Officers (insert before branchPerformance)
-            if (isFinanceOfficer) {
-                fetchPromises.splice(3, 0, fetchInterestIncomeTrend(userBranchId, isMainBranchUser, signal));
+            // Add interest income trend fetch for Finance Officers and IT Head (insert before branchPerformance)
+            if (isFinanceOfficer || isITHead) {
+                fetchPromises.splice(3, 0, fetchInterestIncomeTrend(effectiveBranchId, effectiveIsMainBranchUser, signal));
             }
             
             const results = await Promise.all(fetchPromises);
             
-            // Extract results based on role
+            // Extract results based on role (IT Head treated same as Finance Officer)
             let summaryData, savingsTrend, disbursementTrend, interestIncomeTrend, branchPerformance, memberActivity, topMembers, topPatrons, allBranchesPerformance;
             
-            if (isFinanceOfficer) {
+            if (isFinanceOfficer || isITHead) {
                 [summaryData, savingsTrend, disbursementTrend, interestIncomeTrend, branchPerformance, memberActivity, topMembers, topPatrons, allBranchesPerformance] = results;
             } else {
                 [summaryData, savingsTrend, disbursementTrend, branchPerformance, memberActivity, topMembers, topPatrons, allBranchesPerformance] = results;
@@ -1333,11 +1343,11 @@ function updateSummaryCards(data) {
     
     // Check user role
     const userRole = localStorage.getItem('user_role');
-    const isFinanceOfficer = userRole === 'Finance Officer';
+    const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
     
     if (growthCard) {
         if (isFinanceOfficer) {
-            // For Finance Officer: Display Net Interest Income
+            // For Finance Officer or IT Head: Display Net Interest Income
             const netInterestIncome = data.net_interest_income || 0;
             growthCard.textContent = formatCurrency(netInterestIncome);
             const indicator = netInterestIncome >= 0 ? 'positive' : 'negative';
@@ -2033,7 +2043,7 @@ function updateCharts(savingsTrend, disbursementTrend, interestIncomeTrend, bran
     
     // Update interest income trend chart for Finance Officers
     const userRole = localStorage.getItem('user_role');
-    const isFinanceOfficer = userRole === 'Finance Officer';
+    const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
     if (isFinanceOfficer && interestIncomeTrend !== null && interestIncomeTrend !== undefined) {
         updateInterestIncomeTrendChart(interestIncomeTrend);
     }
@@ -2485,12 +2495,12 @@ function createBranchCard(branch, rank) {
     
     // Check user role
     const userRole = localStorage.getItem('user_role');
-    const isFinanceOfficer = userRole === 'Finance Officer';
+    const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
     
     let netValue, netLabel, netClass;
     
     if (isFinanceOfficer) {
-        // For Finance Officer: Display Net Interest Income
+        // For Finance Officer or IT Head: Display Net Interest Income
         netValue = parseFloat(branch.net_interest_income) || 0;
         netLabel = 'Net Interest Income';
     } else {
@@ -2566,7 +2576,7 @@ function updateTopMembersTable(data) {
     
     // Check user role
     const userRole = localStorage.getItem('user_role');
-    const isFinanceOfficer = userRole === 'Finance Officer';
+    const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
     
     // Limit to top 10 members
     const topMembers = data.slice(0, 10);
@@ -2575,7 +2585,7 @@ function updateTopMembersTable(data) {
         const row = document.createElement('tr');
         
         if (isFinanceOfficer) {
-            // For Finance Officer: Show only Rank, Member Name, and Total Savings
+            // For Finance Officer or IT Head: Show only Rank, Member Name, and Total Savings
             const totalSavings = parseFloat(member.total_savings) || 0;
             const totalSavingsColor = totalSavings > 0 ? '#007542' : '#6b7280'; // Green for positive, gray for zero
             
@@ -2656,7 +2666,7 @@ function updateBranchPerformanceTable(data) {
     
     // Check user role
     const userRole = localStorage.getItem('user_role');
-    const isFinanceOfficer = userRole === 'Finance Officer';
+    const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
     
     // Update column header based on role
     const columnHeader = document.getElementById('branchPerformanceColumnHeader');
@@ -2736,7 +2746,7 @@ function updateBranchPerformanceTable(data) {
         
         let value, valueColor;
         if (isFinanceOfficer) {
-            // For Finance Officer: Display Net Interest Income
+            // For Finance Officer or IT Head: Display Net Interest Income
             value = interestIncomeData[i] || 0;
             valueColor = value >= 0 ? '#007542' : '#EF4444';
         } else {
@@ -2760,7 +2770,7 @@ function updateBranchPerformanceTable(data) {
     
     let totalValue, totalValueColor;
     if (isFinanceOfficer) {
-        // For Finance Officer: Total Net Interest Income
+        // For Finance Officer or IT Head: Total Net Interest Income
         const totalInterestIncome = interestIncomeData.reduce((sum, val) => sum + val, 0);
         totalValue = totalInterestIncome;
         totalValueColor = totalValue >= 0 ? '#007542' : '#EF4444';

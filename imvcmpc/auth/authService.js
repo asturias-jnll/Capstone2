@@ -595,6 +595,205 @@ class AuthService {
             throw error;
         }
     }
+
+    // Create transaction table for a new branch
+    async createBranchTransactionTable(location) {
+        try {
+            // Format table name: lowercase location with underscores, append _transactions
+            const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '_')}_transactions`;
+
+            // Create the transaction table with the same schema as other branch tables
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS ${tableName} (
+                    id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
+                    transaction_date date NOT NULL,
+                    payee character varying(255) NOT NULL,
+                    reference character varying(100),
+                    cross_reference character varying(100),
+                    check_number character varying(50),
+                    particulars text NOT NULL,
+                    debit_amount numeric(15,2) DEFAULT 0.00,
+                    credit_amount numeric(15,2) DEFAULT 0.00,
+                    cash_in_bank numeric(15,2) DEFAULT 0.00,
+                    loan_receivables numeric(15,2) DEFAULT 0.00,
+                    savings_deposits numeric(15,2) DEFAULT 0.00,
+                    interest_income numeric(15,2) DEFAULT 0.00,
+                    service_charge numeric(15,2) DEFAULT 0.00,
+                    sundries numeric(15,2) DEFAULT 0.00,
+                    branch_id integer,
+                    created_by uuid,
+                    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+                    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            console.log(`Created transaction table: ${tableName}`);
+            return tableName;
+
+        } catch (error) {
+            console.error('Create branch transaction table error:', error);
+            throw error;
+        }
+    }
+
+    // Find or create branch by location
+    async findOrCreateBranch(branchName, location) {
+        try {
+            // Check if branch with this location already exists
+            const existingBranch = await db.query(`
+                SELECT id, name, location FROM branches 
+                WHERE LOWER(location) = LOWER($1)
+            `, [location]);
+
+            if (existingBranch.rows.length > 0) {
+                return existingBranch.rows[0].id;
+            }
+
+            // Get the maximum branch ID and increment it
+            const maxIdResult = await db.query(`
+                SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM branches
+            `);
+            const nextId = maxIdResult.rows[0].next_id;
+
+            // Create new branch with explicit ID
+            const result = await db.query(`
+                INSERT INTO branches (id, name, location, is_main_branch)
+                VALUES ($1, $2, $3, false)
+                RETURNING id, name, location
+            `, [nextId, branchName, location]);
+
+            // Update the sequence to match the new max ID
+            await db.query(`
+                SELECT setval('branches_id_seq', $1, true)
+            `, [nextId]);
+
+            // Create the corresponding transaction table for this branch
+            await this.createBranchTransactionTable(location);
+
+            console.log(`Branch created: ${branchName} (${location}) with ID ${nextId}`);
+            return result.rows[0].id;
+
+        } catch (error) {
+            console.error('Find or create branch error:', error);
+            throw error;
+        }
+    }
+
+    // Get next employee ID for a role
+    async getNextEmployeeId(rolePrefix) {
+        try {
+            // Query for the latest employee_id with this prefix
+            const result = await db.query(`
+                SELECT employee_id FROM users 
+                WHERE employee_id LIKE $1
+                ORDER BY employee_id DESC
+                LIMIT 1
+            `, [`${rolePrefix}%`]);
+
+            if (result.rows.length === 0) {
+                // No existing employees with this prefix, start at 001
+                return `${rolePrefix}001`;
+            }
+
+            // Extract the number from the employee_id (e.g., "MC013" -> 13)
+            const lastEmployeeId = result.rows[0].employee_id;
+            const numberMatch = lastEmployeeId.match(/\d+$/);
+            
+            if (!numberMatch) {
+                throw new Error(`Invalid employee_id format: ${lastEmployeeId}`);
+            }
+
+            const lastNumber = parseInt(numberMatch[0], 10);
+            const nextNumber = lastNumber + 1;
+            
+            // Format with leading zeros (e.g., 14 -> "014")
+            const paddedNumber = String(nextNumber).padStart(3, '0');
+            
+            return `${rolePrefix}${paddedNumber}`;
+
+        } catch (error) {
+            console.error('Get next employee ID error:', error);
+            throw error;
+        }
+    }
+
+    // Register branch users (Marketing Clerk and Finance Officer)
+    async registerBranchUsers(marketingClerkData, financeOfficerData) {
+        try {
+            // Extract location and branch name from Marketing Clerk data
+            const location = marketingClerkData.location.toUpperCase();
+            const branchName = marketingClerkData.branch;
+
+            // Find or create the branch
+            const branchId = await this.findOrCreateBranch(branchName, location);
+
+            // Get role IDs
+            const rolesResult = await db.query(`
+                SELECT id, name FROM roles WHERE name IN ('marketing_clerk', 'finance_officer')
+            `);
+            
+            const marketingClerkRoleId = rolesResult.rows.find(r => r.name === 'marketing_clerk')?.id;
+            const financeOfficerRoleId = rolesResult.rows.find(r => r.name === 'finance_officer')?.id;
+
+            if (!marketingClerkRoleId || !financeOfficerRoleId) {
+                throw new Error('Required roles not found in database');
+            }
+
+            // Generate employee IDs
+            const mcEmployeeId = await this.getNextEmployeeId('MC');
+            const foEmployeeId = await this.getNextEmployeeId('FO');
+
+            // Generate placeholder emails (empty string or based on username)
+            const mcEmail = marketingClerkData.email || `${marketingClerkData.username}@placeholder.com`;
+            const foEmail = financeOfficerData.email || `${financeOfficerData.username}@placeholder.com`;
+
+            // Prepare Marketing Clerk data
+            const mcUserData = {
+                username: marketingClerkData.username,
+                email: mcEmail,
+                password: marketingClerkData.password,
+                first_name: location,
+                last_name: 'Marketing Clerk',
+                role_id: marketingClerkRoleId,
+                branch_id: branchId,
+                employee_id: mcEmployeeId,
+                phone_number: null
+            };
+
+            // Prepare Finance Officer data
+            const foUserData = {
+                username: financeOfficerData.username,
+                email: foEmail,
+                password: financeOfficerData.password,
+                first_name: location,
+                last_name: 'Finance Officer',
+                role_id: financeOfficerRoleId,
+                branch_id: branchId,
+                employee_id: foEmployeeId,
+                phone_number: null
+            };
+
+            // Register both users
+            const mcResult = await this.registerUser(mcUserData);
+            const foResult = await this.registerUser(foUserData);
+
+            return {
+                success: true,
+                message: 'Branch users registered successfully',
+                marketingClerk: mcResult.user,
+                financeOfficer: foResult.user,
+                branch: {
+                    id: branchId,
+                    name: branchName,
+                    location: location
+                }
+            };
+
+        } catch (error) {
+            console.error('Register branch users error:', error);
+            throw error;
+        }
+    }
 }
 
 // Create singleton instance

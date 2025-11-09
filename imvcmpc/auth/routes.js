@@ -25,6 +25,57 @@ router.post('/register',
     }
 );
 
+// Register branch users (Marketing Clerk and Finance Officer) - IT Head only
+router.post('/register-branch-users',
+    authenticateToken,
+    checkRole('it_head'),
+    auditLog('branch_users_registration', 'users'),
+    async (req, res) => {
+        try {
+            const { marketingClerk, financeOfficer } = req.body;
+
+            if (!marketingClerk || !financeOfficer) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Both Marketing Clerk and Finance Officer data are required'
+                });
+            }
+
+            // Validate required fields for both users (email is optional - can be empty)
+            const requiredMcFields = ['location', 'username', 'password', 'branch'];
+            const requiredFoFields = ['location', 'username', 'password', 'branch'];
+
+            for (const field of requiredMcFields) {
+                if (!marketingClerk[field]) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Missing required Marketing Clerk field: ${field}`
+                    });
+                }
+            }
+
+            for (const field of requiredFoFields) {
+                if (!financeOfficer[field]) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Missing required Finance Officer field: ${field}`
+                    });
+                }
+            }
+
+            const result = await authService.registerBranchUsers(marketingClerk, financeOfficer);
+            res.status(201).json(result);
+
+        } catch (error) {
+            console.error('Branch users registration error:', error);
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
 // User login
 router.post('/login', 
     loginRateLimit,

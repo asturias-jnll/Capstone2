@@ -39,7 +39,8 @@ function initializeITHeadNavigation() {
     // IT Head navigation items
     const navItems = [
         { href: 'usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
-        { href: 'analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' }
+        { href: 'analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' },
+        { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' }
     ];
     
     // Generate navigation HTML

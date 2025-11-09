@@ -170,7 +170,9 @@ function autofillCreds(prefix) {
     const base = formatBaseFromLocation(locEl.value);
     if (base) {
         userEl.value = `${prefix}.${base}`;
-        passEl.value = `${base}123!`;
+        // Capitalize first letter for password to meet uppercase requirement
+        const capitalizedBase = base.charAt(0).toUpperCase() + base.slice(1);
+        passEl.value = `${capitalizedBase}123!`;
     } else {
         userEl.value = '';
         passEl.value = '';
@@ -192,6 +194,7 @@ function syncFinanceFromMarketing() {
     if (mcBranch && foBranch) {
         foBranch.value = mcBranch.value;
     }
+    // Note: Email is NOT mirrored - each user needs their own email
     // Ensure role label is correct
     const foRole = document.getElementById('foRole');
     if (foRole) foRole.value = 'Finance Officer';
@@ -514,17 +517,18 @@ function backToMarketingStep() {
     updateNextButton();
 }
 
-function saveAddUsers() {
+async function saveAddUsers() {
     // Block save unless Finance Officer fields are complete
     if (!validateFinanceStep()) {
         alert('Please complete Location, Username, and Password for the Finance Officer.');
         return;
     }
-    // Collect values (no API call yet; will be implemented later per instruction)
+    // Collect values for backend API (email will be empty string as placeholder)
     const payload = {
         marketingClerk: {
             location: document.getElementById('mcLocation')?.value?.trim() || '',
             username: document.getElementById('mcUsername')?.value?.trim() || '',
+            email: '', // Empty placeholder email
             password: document.getElementById('mcPassword')?.value || '',
             role: document.getElementById('mcRole')?.value || 'Marketing Clerk',
             branch: document.getElementById('mcBranch')?.value?.trim() || ''
@@ -532,62 +536,59 @@ function saveAddUsers() {
         financeOfficer: {
             location: document.getElementById('foLocation')?.value?.trim() || '',
             username: document.getElementById('foUsername')?.value?.trim() || '',
+            email: '', // Empty placeholder email
             password: document.getElementById('foPassword')?.value || '',
             role: document.getElementById('foRole')?.value || 'Finance Officer',
             branch: document.getElementById('foBranch')?.value?.trim() || ''
         }
     };
 
-    console.log('Add Users payload (no submit yet):', payload);
+    console.log('Submitting branch users:', payload);
 
-    // Clean up any previous temp entries and duplicates by username
-    const mcUsername = payload.marketingClerk.username;
-    const foUsername = payload.financeOfficer.username;
-    allUsers = allUsers.filter(u => {
-        const isTemp = typeof u?.id === 'string' && u.id.startsWith('tmp_');
-        const isDup = (u?.username === mcUsername) || (u?.username === foUsername);
-        return !isTemp && !isDup;
-    });
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.error('No access token found');
+            alert('Authentication error. Please log in again.');
+            return;
+        }
 
-    // Add Marketing Clerk and Finance Officer as separate rows in the table (client-side)
-    const createClientUser = ({ location, username, role, branch }) => ({
-        id: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        username,
-        role,
-        role_display_name: role,
-        branch_name: branch,           // e.g., "Branch 14"
-        branch_location: location,     // e.g., "IBAAN"
-        is_active: true,
-        first_name: '',
-        last_name: ''
-    });
+        // Call backend API to register both users
+        const response = await fetch('/api/auth/register-branch-users', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
 
-    const mcUser = createClientUser({
-        location: payload.marketingClerk.location,
-        username: mcUsername,
-        role: payload.marketingClerk.role,
-        branch: payload.marketingClerk.branch
-    });
-    const foUser = createClientUser({
-        location: payload.financeOfficer.location,
-        username: foUsername,
-        role: payload.financeOfficer.role,
-        branch: payload.financeOfficer.branch
-    });
+        const result = await response.json();
 
-    allUsers.push(mcUser, foUser);
-    applySearchAndDisplay();
+        if (response.ok && result.success) {
+            console.log('Branch users registered successfully:', result);
 
-    // Show success dialog and auto-close modal
-    showSuccessDialog('The New Branch Users of IMVCMPC were added successfully');
+            // Show success dialog
+            showSuccessDialog('The New Branch Users of IMVCMPC were added successfully');
 
-    // Reset branch cache so next modal open recalculates from current table
-    nextBranchNumberCache = null;
+            // Reset branch cache so next modal open recalculates from current table
+            nextBranchNumberCache = null;
 
-    // Close modal shortly after showing dialog
-    setTimeout(() => {
-        closeAddUserModal();
-    }, 600);
+            // Reload users from backend to show the newly created users
+            await loadUsers();
+
+            // Close modal shortly after showing dialog
+            setTimeout(() => {
+                closeAddUserModal();
+            }, 600);
+        } else {
+            console.error('Failed to register branch users:', result);
+            alert(`Failed to add users: ${result.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error registering branch users:', error);
+        alert('An error occurred while adding users. Please try again.');
+    }
 }
 
 // Helpers to compute next Branch number based on existing users

@@ -5,10 +5,10 @@ const GeneratedReportService = require('./generatedReportService');
 const router = express.Router();
 const service = new GeneratedReportService();
 
-// Create new generated report (Finance Officer - swapped functionality)
+// Create new generated report (Finance Officer and IT Head)
 router.post('/generated-reports',
     authenticateToken,
-    checkRole(['finance_officer']),
+    checkRole(['finance_officer', 'it_head']),
     auditLog('create_generated_report', 'generated_reports'),
     async (req, res) => {
         try {
@@ -69,7 +69,7 @@ router.post('/generated-reports',
 // Get reports list (filtered by role)
 router.get('/generated-reports',
     authenticateToken,
-    checkRole(['marketing_clerk', 'finance_officer']),
+    checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
     async (req, res) => {
         try {
             const userId = req.user.id;
@@ -105,7 +105,7 @@ router.get('/generated-reports',
 // Get specific report details
 router.get('/generated-reports/:id',
     authenticateToken,
-    checkRole(['marketing_clerk', 'finance_officer']),
+    checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
     async (req, res) => {
         try {
             const { id } = req.params;
@@ -139,7 +139,7 @@ router.get('/generated-reports/:id',
 // Download PDF
 router.get('/generated-reports/:id/pdf',
     authenticateToken,
-    checkRole(['marketing_clerk', 'finance_officer']),
+    checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
     async (req, res) => {
         try {
             const { id } = req.params;

@@ -134,6 +134,13 @@ function initializeRoleBasedNavigation() {
             { href: '/financeofficer/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
             { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
         ];
+    } else if (userRole === 'IT Head') {
+        // IT Head: User Management, Analytics, Reports (no notifications, no member data)
+        navItems = [
+            { href: '/ithead/html/usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
+            { href: '/ithead/html/analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' },
+            { href: '/ithead/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' }
+        ];
     } else {
         // Marketing Clerk and other roles: No Dashboard, No Analytics, starts with Member Data
         navItems = [
@@ -149,7 +156,7 @@ function initializeRoleBasedNavigation() {
         navItem.href = item.href;
         navItem.className = 'nav-item';
         
-        // Add notification badge for both Marketing Clerk and Finance Officer
+        // Add notification badge for both Marketing Clerk and Finance Officer (not IT Head)
         if (item.href === 'notifications.html' && (userRole === 'Marketing Clerk' || userRole === 'Finance Officer')) {
             navItem.innerHTML = `
                 <i class="${item.icon}"></i>
@@ -169,7 +176,7 @@ function initializeRoleBasedNavigation() {
     // Set active navigation after generating items
     setActiveNavigation();
     
-    // Initialize notification count for both Marketing Clerk and Finance Officer
+    // Initialize notification count for both Marketing Clerk and Finance Officer (not IT Head)
     if (userRole === 'Marketing Clerk' || userRole === 'Finance Officer') {
         console.log('🔄 Initializing notification count for', userRole);
         updateNotificationCount();

@@ -17,8 +17,8 @@ class AnalyticsService {
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
             
-            // Check if user is Finance Officer to calculate net_interest_income instead of net_growth
-            const isFinanceOfficer = userRole === 'Finance Officer';
+            // Check if user is Finance Officer or IT Head to calculate net_interest_income instead of net_growth
+            const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
             
             if (isMainBranch) {
                 // Main branch users see data from all branches
@@ -46,7 +46,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
-                const branchTable = this.getBranchTableName(branchId);
+                const branchTable = await this.getBranchTableName(branchId);
                 if (isFinanceOfficer) {
                     query = `
                         SELECT 
@@ -93,7 +93,7 @@ class AnalyticsService {
                 active_members: 0
             };
             
-            if (userRole === 'Finance Officer') {
+            if (userRole === 'Finance Officer' || userRole === 'IT Head') {
                 errorResult.net_interest_income = 0;
             } else {
                 errorResult.net_growth = 0;
@@ -103,43 +103,46 @@ class AnalyticsService {
         }
     }
 
-    // Get branch table name based on branch ID
-    getBranchTableName(branchId) {
-        const branchTables = {
-            '1': 'ibaan_transactions', // Main branch (IBAAN)
-            '2': 'bauan_transactions',
-            '3': 'sanjose_transactions',
-            '4': 'rosario_transactions',
-            '5': 'sanjuan_transactions',
-            '6': 'padregarcia_transactions',
-            '7': 'lipacity_transactions',
-            '8': 'batangascity_transactions',
-            '9': 'mabinilipa_transactions',
-            '10': 'calamias_transactions',
-            '11': 'lemery_transactions',
-            '12': 'mataasnakahoy_transactions',
-            '13': 'tanauan_transactions'
-        };
-        return branchTables[branchId] || 'ibaan_transactions';
+    // Get branch table name based on branch ID (dynamically from database)
+    async getBranchTableName(branchId) {
+        const client = await this.pool.connect();
+        try {
+            // Query the database to get the branch location
+            const result = await client.query(`
+                SELECT location FROM branches WHERE id = $1
+            `, [branchId]);
+
+            if (result.rows.length === 0) {
+                // Fallback to main branch if branch not found
+                return 'ibaan_transactions';
+            }
+
+            const location = result.rows[0].location;
+            // Format location to table name: "LOBO" -> "lobo_transactions"
+            const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '_')}_transactions`;
+            
+            return tableName;
+        } finally {
+            client.release();
+        }
     }
 
-    getBranchDisplayName(branchId) {
-        const branchNames = {
-            '1': 'Main Branch',
-            '2': 'Bauan Branch',
-            '3': 'San Jose Branch',
-            '4': 'Rosario Branch',
-            '5': 'San Juan Branch',
-            '6': 'Padre Garcia Branch',
-            '7': 'Lipa City Branch',
-            '8': 'Batangas City Branch',
-            '9': 'Mabini Lipa Branch',
-            '10': 'Calamias Branch',
-            '11': 'Lemery Branch',
-            '12': 'Mataas Na Kahoy Branch',
-            '13': 'Tanauan Branch'
-        };
-        return branchNames[branchId] || 'Main Branch';
+    async getBranchDisplayName(branchId) {
+        const client = await this.pool.connect();
+        try {
+            // Query the database to get the branch name
+            const result = await client.query(`
+                SELECT name, location FROM branches WHERE id = $1
+            `, [branchId]);
+
+            if (result.rows.length === 0) {
+                return 'Main Branch';
+            }
+
+            return result.rows[0].name || result.rows[0].location;
+        } finally {
+            client.release();
+        }
     }
 
     // Get savings trend data for charts
@@ -166,7 +169,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
-                const branchTable = this.getBranchTableName(branchId);
+                const branchTable = await this.getBranchTableName(branchId);
                 query = `
                     SELECT 
                         DATE_TRUNC('day', transaction_date) as date,
@@ -211,7 +214,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
-                const branchTable = this.getBranchTableName(branchId);
+                const branchTable = await this.getBranchTableName(branchId);
                 query = `
                     SELECT 
                         DATE_TRUNC('day', transaction_date) as date,
@@ -256,7 +259,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
-                const branchTable = this.getBranchTableName(branchId);
+                const branchTable = await this.getBranchTableName(branchId);
                 query = `
                     SELECT 
                         DATE_TRUNC('day', transaction_date) as date,
@@ -287,8 +290,8 @@ class AnalyticsService {
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
             
-            // Check if user is Finance Officer to include interest_income
-            const isFinanceOfficer = userRole === 'Finance Officer';
+            // Check if user is Finance Officer or IT Head to include interest_income
+            const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
             
             if (isMainBranch) {
                 // Main branch users see data from all branches
@@ -319,7 +322,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
-                const branchTable = this.getBranchTableName(branchId);
+                const branchTable = await this.getBranchTableName(branchId);
                 if (isFinanceOfficer) {
                     query = `
                         SELECT 
@@ -380,7 +383,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see data from their specific branch
-                const branchTable = this.getBranchTableName(branchId);
+                const branchTable = await this.getBranchTableName(branchId);
                 query = `
                     SELECT 
                         payee as member_name,
@@ -412,8 +415,8 @@ class AnalyticsService {
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
             
-            // Check if user is Finance Officer to order by total_savings instead of net_position
-            const isFinanceOfficer = userRole === 'Finance Officer';
+            // Check if user is Finance Officer or IT Head to order by total_savings instead of net_position
+            const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
             
             if (isMainBranch) {
                 // Main branch users see top members from all branches
@@ -452,7 +455,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see top members from their specific branch
-                const branchTable = this.getBranchTableName(branchId);
+                const branchTable = await this.getBranchTableName(branchId);
                 if (isFinanceOfficer) {
                     query = `
                         SELECT 
@@ -523,7 +526,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             } else {
                 // Non-main branch users see top patrons from their specific branch
-                const branchTable = this.getBranchTableName(branchId);
+                const branchTable = await this.getBranchTableName(branchId);
                 query = `
                     SELECT 
                         payee as member_name,
@@ -555,8 +558,8 @@ class AnalyticsService {
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
             
-            // Check if user is Finance Officer to calculate net_interest_income instead of net_position
-            const isFinanceOfficer = userRole === 'Finance Officer';
+            // Check if user is Finance Officer or IT Head to calculate net_interest_income instead of net_position
+            const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
             
             // Get all branch data using UNION ALL to combine all branch tables
             const branchQueries = [];

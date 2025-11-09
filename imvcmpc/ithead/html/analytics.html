@@ -3,277 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics - IT Head</title>
-    <link rel="stylesheet" href="../../shared/css/main.css">
-    <link rel="stylesheet" href="../../shared/css/analytics.css">
-    <link rel="stylesheet" href="../css/analytics.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        (function() {
-            const isExpanded = localStorage.getItem('navExpanded') === 'true';
-            if (isExpanded) {
-                document.documentElement.classList.add('nav-expanded');
-            }
-            
-            document.addEventListener('DOMContentLoaded', function() {
-                const navMenu = document.getElementById('nav-items-container');
-                if (navMenu) {
-                    navMenu.style.display = 'none';
-                }
-            });
-        })();
-    </script>
+    <title>IMVCMPC - Analytics</title>
 </head>
 <body>
-    <div id="mainScreen" class="screen active">
-        <nav class="navigation">
-            <div class="nav-header">
-                <div class="nav-logo">
-                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
-                    <span class="logo-text">IMVCMPC</span>
-                </div>
-                <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            </div>
-            
-            <div class="nav-menu" id="nav-items-container">
-                <!-- Navigation items will be dynamically populated by JavaScript -->
-            </div>
-            
-            <div class="nav-account">
-                <a href="account.html" class="nav-item">
-                    <i class="fas fa-user-circle"></i>
-                    <span>Account</span>
-                </a>
-            </div>
-            
-            <div class="nav-footer">
-                <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </nav>
-
-        <main class="main-content">
-            <div class="top-bar">
-                <div class="breadcrumb">
-                    <div class="datetime-display">
-                        <div class="date-display" id="currentDate"></div>
-                        <div class="time-display" id="currentTime"></div>
-                    </div>
-                </div>
-                <div class="user-profile">
-                    <div class="user-info">
-                        <span class="user-name" id="userName">User</span>
-                        <span class="user-role" id="userRole">IMVCMPC - Main Branch</span>
-                    </div>
-                    <div class="user-avatar" id="userAvatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-dropdown" id="userDropdown">
-                        <div class="dropdown-content">
-                            <div class="dropdown-user-info">
-                                <span class="dropdown-user-name" id="dropdownUserName">User</span>
-                                <span class="dropdown-user-role" id="dropdownUserRole">IMVCMPC - Main Branch</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Analytics Content -->
-            <div class="analytics-content">
-                <!-- Title Section -->
-                <div class="title-section">
-                    <h1 class="page-title">System Analytics</h1>
-                    <p class="page-description">Monitor system usage patterns and performance metrics</p>
-                    <div class="title-underline"></div>
-                </div>
-
-                <!-- Date Filter Section -->
-                <div class="filter-section">
-                    <div class="filter-container">
-                        <div class="quick-filters">
-                            <button class="filter-btn active" data-filter="yesterday">Yesterday</button>
-                            <button class="filter-btn" data-filter="last-7-days">Last 7 Days</button>
-                            <button class="filter-btn" data-filter="last-30-days">Last 30 Days</button>
-                            <button class="filter-btn" data-filter="custom">Custom</button>
-                        </div>
-                        
-                        <div class="custom-range" id="customRange" style="display: none;">
-                            <div class="custom-options">
-                                <div class="date-inputs" id="dateInputs">
-                                    <div class="input-group">
-                                        <label>From:</label>
-                                        <input type="date" id="startDate" class="date-input" onchange="updateAnalytics()">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>To:</label>
-                                        <input type="date" id="endDate" class="date-input" onchange="updateAnalytics()">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Usage Trends Cards -->
-                <div class="analytics-grid">
-                    <div class="card usage-card">
-                        <div class="card-header">
-                            <div class="card-icon">
-                                <i class="fas fa-sign-in-alt"></i>
-                            </div>
-                            <div class="card-title-group">
-                                <h3 class="card-title">Total Logins</h3>
-                                <p class="card-subtitle">Last 30 days</p>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <div class="metric-large" id="totalLoginsMetric">0</div>
-                            <div class="metric-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span id="loginsChange">+0%</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card usage-card">
-                        <div class="card-header">
-                            <div class="card-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="card-title-group">
-                                <h3 class="card-title">Active Users</h3>
-                                <p class="card-subtitle">Currently online</p>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <div class="metric-large" id="activeUsersMetric">0</div>
-                            <div class="metric-detail">Out of <span id="totalUsersCount">0</span> users</div>
-                        </div>
-                    </div>
-
-                    <div class="card usage-card">
-                        <div class="card-header">
-                            <div class="card-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="card-title-group">
-                                <h3 class="card-title">Avg Session Duration</h3>
-                                <p class="card-subtitle">Average per user</p>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <div class="metric-large" id="avgSessionMetric">0 min</div>
-                            <div class="metric-trend neutral">
-                                <span id="sessionTrend">Stable</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card usage-card">
-                        <div class="card-header">
-                            <div class="card-icon">
-                                <i class="fas fa-chart-bar"></i>
-                            </div>
-                            <div class="card-title-group">
-                                <h3 class="card-title">Peak Usage Time</h3>
-                                <p class="card-subtitle">Daily peak hours</p>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <div class="metric-large" id="peakTimeMetric">10 AM</div>
-                            <div class="metric-detail"><span id="peakUsersCount">0</span> concurrent users</div>
-                        </div>
-                    </div>
-
-                    <div class="card usage-card">
-                        <div class="card-header">
-                            <div class="card-icon">
-                                <i class="fas fa-building"></i>
-                            </div>
-                            <div class="card-title-group">
-                                <h3 class="card-title">Branches Active</h3>
-                                <p class="card-subtitle">Operational branches</p>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <div class="metric-large" id="activeBranchesMetric">0</div>
-                            <div class="metric-detail">All branches operational</div>
-                        </div>
-                    </div>
-
-                    <div class="card usage-card">
-                        <div class="card-header">
-                            <div class="card-icon">
-                                <i class="fas fa-tasks"></i>
-                            </div>
-                            <div class="card-title-group">
-                                <h3 class="card-title">Total Operations</h3>
-                                <p class="card-subtitle">System transactions</p>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <div class="metric-large" id="totalOpsMetric">0</div>
-                            <div class="metric-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span id="opsChange">+0%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Detailed Analytics Charts -->
-                <div class="analytics-section">
-                    <h2 class="section-title">Detailed Analytics</h2>
-                    
-                    <div class="charts-grid">
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>User Activity Over Time</h3>
-                                <p class="chart-subtitle">Login patterns across selected period</p>
-                            </div>
-                            <canvas id="activityChart" class="analytics-chart"></canvas>
-                        </div>
-
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>Usage by Branch</h3>
-                                <p class="chart-subtitle">Distribution across branches</p>
-                            </div>
-                            <canvas id="branchChart" class="analytics-chart"></canvas>
-                        </div>
-
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>Usage by Role</h3>
-                                <p class="chart-subtitle">User role activity distribution</p>
-                            </div>
-                            <canvas id="roleChart" class="analytics-chart"></canvas>
-                        </div>
-
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>System Operations</h3>
-                                <p class="chart-subtitle">Operations by type</p>
-                            </div>
-                            <canvas id="operationsChart" class="analytics-chart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
+    <script>
+        // Set user role for IT Head
+        localStorage.setItem('user_role', 'IT Head');
+        
+        // Branch information should be set by the login system
+        // If not set, redirect to login
+        const userBranchId = localStorage.getItem('user_branch_id');
+        const userBranchName = localStorage.getItem('user_branch_name');
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user');
+        
+        if (!userBranchId || !userBranchName || isMainBranchUser === null) {
+            // Redirect to login if branch information is not available
+            window.location.href = '../../logpage/login.html';
+        } else {
+            // Redirect to shared analytics page with proper branch information
+            window.location.href = '../../shared/html/analytics.html';
+        }
+    </script>
+    
+    <!-- Fallback content in case JavaScript is disabled -->
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h2>Redirecting to Analytics...</h2>
+        <p>If you are not redirected automatically, <a href="../../shared/html/analytics.html">click here</a>.</p>
     </div>
-
-    <script src="../../shared/js/main.js"></script>
-    <script src="../../shared/js/topbar.js"></script>
-    <script src="../js/main.js"></script>
-    <script src="../js/analytics.js"></script>
 
     <!-- Live Reload for Development -->
     <script src="/shared/js/live-reload.js"></script>

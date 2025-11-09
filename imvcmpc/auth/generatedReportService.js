@@ -269,8 +269,9 @@ class GeneratedReportService {
 
             // Build WHERE clause based on role (swapped functionality)
             // Finance Officer: only see reports they generated AND from their branch
+            // IT Head: only see reports they generated AND from their branch
             // Marketing Clerk: only see reports from their branch that were sent to them (have report_request_id)
-            if (userRole === 'finance_officer') {
+            if (userRole === 'finance_officer' || userRole === 'it_head') {
                 whereClause = 'WHERE gr.generated_by = $1 AND gr.branch_id = $2';
                 params.push(userId, userBranchId);
                 paramCount = 2;
@@ -382,8 +383,9 @@ class GeneratedReportService {
 
             // Add access control (swapped functionality)
             // Finance Officer: can only download reports they generated from their branch
+            // IT Head: can only download reports they generated from their branch
             // Marketing Clerk: can only download reports from their branch that were sent to them (have report_request_id)
-            if (userRole === 'finance_officer') {
+            if (userRole === 'finance_officer' || userRole === 'it_head') {
                 query += ' AND generated_by = $2 AND branch_id = $3';
                 params.push(userId, userBranchId);
             } else if (userRole === 'marketing_clerk') {

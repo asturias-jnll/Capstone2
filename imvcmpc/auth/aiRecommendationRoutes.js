@@ -147,7 +147,7 @@ router.post('/reports/generate-ai-recommendations',
 // Generate PDF from provided HTML
 router.post('/reports/generate-pdf',
   authenticateToken,
-  checkRole(['marketing_clerk', 'finance_officer']),
+  checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
   auditLog('generate_pdf', 'reports'),
   async (req, res) => {
     try {
