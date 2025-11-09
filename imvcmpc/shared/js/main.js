@@ -97,26 +97,18 @@ function setActiveNavigation() {
         
         // Check if this nav item corresponds to current page
         const href = item.getAttribute('href');
+        if (!href) return;
+        
+        // Extract filename from href (handle both relative and absolute paths)
         const cleanHref = href.replace(/^\.\//, '').split('/').pop();
         const cleanCurrent = currentPage.replace(/^\.\//, '');
         
+        // Match by filename (works for any path structure)
         if (cleanHref === cleanCurrent) {
             item.classList.add('active');
-        } else if (currentPage === 'dashboard.html' && href === 'dashboard.html') {
-            item.classList.add('active');
-        } else if (currentPage === 'memberdata.html' && href === 'memberdata.html') {
-            item.classList.add('active');
-        } else if (currentPage === 'analytics.html' && href === 'analytics.html') {
-            item.classList.add('active');
-        } else if (currentPage === 'reports.html' && href === 'reports.html') {
-            item.classList.add('active');
-        } else if (currentPage === 'notifications.html' && href === 'notifications.html') {
-            item.classList.add('active');
-        } else if (currentPage === 'account.html' && href === 'account.html') {
-            item.classList.add('active');
-        } else if (currentPage === 'auditlogs.html' && (href === 'auditlogs.html' || href.includes('auditlogs.html'))) {
-            item.classList.add('active');
-        } else if (currentPage === 'usermanagement.html' && (href === 'usermanagement.html' || href.includes('usermanagement.html'))) {
+        } 
+        // Also check if href ends with the current page filename (for absolute paths like /ithead/html/analytics.html)
+        else if (cleanCurrent !== '' && (href.endsWith(cleanCurrent) || href.endsWith('/' + cleanCurrent))) {
             item.classList.add('active');
         }
     });
@@ -148,9 +140,9 @@ function initializeRoleBasedNavigation() {
         // IT Head: User Management, Analytics, Reports, Audit Logs (no notifications, no member data)
         navItems = [
             { href: '/ithead/html/usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
-            { href: '/ithead/html/analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' },
+            { href: '/ithead/html/analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
             { href: '/ithead/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-            { href: '/ithead/html/auditlogs.html', icon: 'fas fa-clipboard-list', text: 'Audit Logs' }
+            { href: '/ithead/html/auditlogs.html', icon: 'fas fa-history', text: 'Audit Logs' }
         ];
     } else {
         // Marketing Clerk and other roles: No Dashboard, No Analytics, starts with Member Data
@@ -186,6 +178,11 @@ function initializeRoleBasedNavigation() {
     
     // Set active navigation after generating items
     setActiveNavigation();
+    
+    // Also call it after a short delay to ensure it runs after all scripts are loaded
+    setTimeout(() => {
+        setActiveNavigation();
+    }, 100);
     
     // Initialize notification count for both Marketing Clerk and Finance Officer (not IT Head)
     if (userRole === 'Marketing Clerk' || userRole === 'Finance Officer') {

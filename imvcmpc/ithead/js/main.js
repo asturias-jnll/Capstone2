@@ -39,9 +39,9 @@ function initializeITHeadNavigation() {
     // IT Head navigation items
     const navItems = [
         { href: 'usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
-        { href: 'analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' },
+        { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
         { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-        { href: 'auditlogs.html', icon: 'fas fa-clipboard-list', text: 'Audit Logs' }
+        { href: 'auditlogs.html', icon: 'fas fa-history', text: 'Audit Logs' }
     ];
     
     // Generate navigation HTML
@@ -113,12 +113,18 @@ function setActiveNavigation() {
     navItems.forEach(item => {
         item.classList.remove('active');
         const href = item.getAttribute('href');
+        if (!href) return;
         
-        // Remove leading ./ or current directory
+        // Extract filename from href (handle both relative and absolute paths)
         const cleanHref = href.replace(/^\.\//, '').split('/').pop();
         const cleanCurrent = currentPage.replace(/^\.\//, '');
         
+        // Match by filename (works for any path structure)
         if (cleanHref === cleanCurrent) {
+            item.classList.add('active');
+        }
+        // Also check if href ends with the current page filename (for absolute paths like /ithead/html/analytics.html)
+        else if (cleanCurrent !== '' && (href.endsWith(cleanCurrent) || href.endsWith('/' + cleanCurrent))) {
             item.classList.add('active');
         }
     });
