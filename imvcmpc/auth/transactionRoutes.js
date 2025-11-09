@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const TransactionService = require('./transactionService');
-const { authenticateToken, checkPermission, checkBranchAccess } = require('./middleware');
+const { authenticateToken, checkPermission, checkBranchAccess, auditLog } = require('./middleware');
 const { 
     TransactionNotFoundError, 
     BranchNotFoundError, 
@@ -11,7 +11,7 @@ const {
 const transactionService = new TransactionService();
 
 // Get all transactions with optional filtering
-router.get('/', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
+router.get('/', authenticateToken, auditLog('view_transactions', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
     try {
         // Ensure branch_id is always provided for data isolation
         const filters = {
@@ -62,7 +62,7 @@ router.get('/', authenticateToken, checkPermission('transactions:read'), async (
 });
 
 // Get transaction by ID
-router.get('/:id', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
+router.get('/:id', authenticateToken, auditLog('view_transaction_detail', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data
@@ -113,7 +113,7 @@ router.get('/:id', authenticateToken, checkPermission('transactions:read'), asyn
 });
 
 // Create new transaction
-router.post('/', authenticateToken, checkPermission('transactions:create'), async (req, res) => {
+router.post('/', authenticateToken, auditLog('create_transaction', 'transactions'), checkPermission('transactions:create'), async (req, res) => {
     try {
         // Allow all users to create transactions (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now create transactions
@@ -172,7 +172,7 @@ router.post('/', authenticateToken, checkPermission('transactions:create'), asyn
 });
 
 // Update transaction
-router.put('/:id', authenticateToken, checkPermission('transactions:update'), async (req, res) => {
+router.put('/:id', authenticateToken, auditLog('update_transaction', 'transactions'), checkPermission('transactions:update'), async (req, res) => {
     try {
         // Allow all users to update transactions (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now update transactions
@@ -253,7 +253,7 @@ router.put('/:id', authenticateToken, checkPermission('transactions:update'), as
 });
 
 // Delete transaction
-router.delete('/:id', authenticateToken, checkPermission('transactions:delete'), async (req, res) => {
+router.delete('/:id', authenticateToken, auditLog('delete_transaction', 'transactions'), checkPermission('transactions:delete'), async (req, res) => {
     try {
         // Allow all users to delete transactions (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now delete transactions
@@ -305,7 +305,7 @@ router.delete('/:id', authenticateToken, checkPermission('transactions:delete'),
 });
 
 // Get transaction statistics
-router.get('/stats/summary', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
+router.get('/stats/summary', authenticateToken, auditLog('view_transaction_stats', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data
@@ -480,7 +480,7 @@ router.get('/month/:year/:month', authenticateToken, checkPermission('transactio
 });
 
 // Bulk upload transactions (Marketing Clerk only)
-router.post('/bulk', authenticateToken, checkPermission('transactions:create'), async (req, res) => {
+router.post('/bulk', authenticateToken, auditLog('bulk_create_transactions', 'transactions'), checkPermission('transactions:create'), async (req, res) => {
     try {
         const { transactions: transactionsData, branch_id } = req.body;
         

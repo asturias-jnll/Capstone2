@@ -225,10 +225,11 @@ const auditLog = (action, resource = null) => {
                 try {
                     if (req.user) {
                         await db.query(`
-                            INSERT INTO audit_logs (user_id, action, resource, resource_id, details, ip_address, user_agent)
-                            VALUES ($1, $2, $3, $4, $5, $6, $7)
+                            INSERT INTO audit_logs (user_id, branch_id, action, resource, resource_id, details, ip_address, user_agent, status)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                         `, [
                             req.user.id,
+                            req.user.branch_id || null,
                             action,
                             resource,
                             req.params.id || req.body.id || null,
@@ -241,7 +242,8 @@ const auditLog = (action, resource = null) => {
                                 status: res.statusCode
                             }),
                             req.ip || req.connection.remoteAddress,
-                            req.get('User-Agent')
+                            req.get('User-Agent'),
+                            res.statusCode >= 200 && res.statusCode < 400 ? 'success' : 'failed'
                         ]);
                     }
                 } catch (error) {

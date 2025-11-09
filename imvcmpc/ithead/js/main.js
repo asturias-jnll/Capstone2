@@ -40,7 +40,8 @@ function initializeITHeadNavigation() {
     const navItems = [
         { href: 'usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
         { href: 'analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' },
-        { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' }
+        { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
+        { href: 'auditlogs.html', icon: 'fas fa-clipboard-list', text: 'Audit Logs' }
     ];
     
     // Generate navigation HTML

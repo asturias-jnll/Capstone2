@@ -156,9 +156,40 @@ function setupFilterButtons() {
                 document.getElementById('customRange').style.display = 'none';
             }
             
+            // Log filter usage to audit logs
+            logAnalyticsFilterUsage(filter);
+            
             updateAnalytics();
         });
     });
+}
+
+// Log analytics filter usage to audit logs
+async function logAnalyticsFilterUsage(filterType) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        // Make a request to log the filter usage
+        // We'll use a special endpoint or add it to the summary endpoint
+        // For now, we'll make a simple POST request to log it
+        await fetch('/api/auth/analytics/filter-log', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                filter_type: filterType
+            })
+        }).catch(err => {
+            // Silently fail - don't interrupt user experience
+            console.log('Filter audit log failed:', err);
+        });
+    } catch (error) {
+        // Silently fail - don't interrupt user experience
+        console.log('Filter audit log error:', error);
+    }
 }
 
 function updateAnalytics() {
@@ -679,7 +710,9 @@ function initializeITHeadNavigation() {
     
     const navItems = [
         { href: 'usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
-        { href: 'analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' }
+        { href: 'analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' },
+        { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
+        { href: 'auditlogs.html', icon: 'fas fa-clipboard-list', text: 'Audit Logs' }
     ];
     
     navItems.forEach(item => {

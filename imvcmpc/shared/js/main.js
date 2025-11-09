@@ -96,17 +96,27 @@ function setActiveNavigation() {
         item.classList.remove('active');
         
         // Check if this nav item corresponds to current page
-        if (currentPage === 'dashboard.html' && item.getAttribute('href') === 'dashboard.html') {
+        const href = item.getAttribute('href');
+        const cleanHref = href.replace(/^\.\//, '').split('/').pop();
+        const cleanCurrent = currentPage.replace(/^\.\//, '');
+        
+        if (cleanHref === cleanCurrent) {
             item.classList.add('active');
-        } else if (currentPage === 'memberdata.html' && item.getAttribute('href') === 'memberdata.html') {
+        } else if (currentPage === 'dashboard.html' && href === 'dashboard.html') {
             item.classList.add('active');
-        } else if (currentPage === 'analytics.html' && item.getAttribute('href') === 'analytics.html') {
+        } else if (currentPage === 'memberdata.html' && href === 'memberdata.html') {
             item.classList.add('active');
-        } else if (currentPage === 'reports.html' && item.getAttribute('href') === 'reports.html') {
+        } else if (currentPage === 'analytics.html' && href === 'analytics.html') {
             item.classList.add('active');
-        } else if (currentPage === 'notifications.html' && item.getAttribute('href') === 'notifications.html') {
+        } else if (currentPage === 'reports.html' && href === 'reports.html') {
             item.classList.add('active');
-        } else if (currentPage === 'account.html' && item.getAttribute('href') === 'account.html') {
+        } else if (currentPage === 'notifications.html' && href === 'notifications.html') {
+            item.classList.add('active');
+        } else if (currentPage === 'account.html' && href === 'account.html') {
+            item.classList.add('active');
+        } else if (currentPage === 'auditlogs.html' && (href === 'auditlogs.html' || href.includes('auditlogs.html'))) {
+            item.classList.add('active');
+        } else if (currentPage === 'usermanagement.html' && (href === 'usermanagement.html' || href.includes('usermanagement.html'))) {
             item.classList.add('active');
         }
     });
@@ -135,11 +145,12 @@ function initializeRoleBasedNavigation() {
             { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
         ];
     } else if (userRole === 'IT Head') {
-        // IT Head: User Management, Analytics, Reports (no notifications, no member data)
+        // IT Head: User Management, Analytics, Reports, Audit Logs (no notifications, no member data)
         navItems = [
             { href: '/ithead/html/usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
             { href: '/ithead/html/analytics.html', icon: 'fas fa-chart-line', text: 'Analytics' },
-            { href: '/ithead/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' }
+            { href: '/ithead/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
+            { href: '/ithead/html/auditlogs.html', icon: 'fas fa-clipboard-list', text: 'Audit Logs' }
         ];
     } else {
         // Marketing Clerk and other roles: No Dashboard, No Analytics, starts with Member Data

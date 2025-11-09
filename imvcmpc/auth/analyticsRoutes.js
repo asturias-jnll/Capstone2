@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('./middleware');
+const { authenticateToken, auditLog } = require('./middleware');
 
 // Analytics routes
 
 // Get analytics summary (4 main cards)
 router.get('/summary',
     authenticateToken,
+    auditLog('view_analytics', 'analytics'),
     async (req, res) => {
         try {
             const analyticsService = require('./analyticsService');
@@ -318,6 +319,27 @@ router.get('/all-branches-performance',
             });
         } catch (error) {
             console.error('All branches performance error:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
+// Log analytics filter usage
+router.post('/filter-log',
+    authenticateToken,
+    auditLog('apply_analytics_filter', 'analytics'),
+    async (req, res) => {
+        try {
+            // Just acknowledge the filter usage - the audit log middleware will handle logging
+            res.json({
+                success: true,
+                message: 'Filter usage logged'
+            });
+        } catch (error) {
+            console.error('Filter log error:', error);
             res.status(500).json({
                 success: false,
                 error: error.message

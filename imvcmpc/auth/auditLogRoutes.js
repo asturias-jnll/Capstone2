@@ -41,8 +41,12 @@ router.get('/audit-logs', authenticateToken, checkRole('it_head'), async (req, r
             let queryParams = [];
             let paramCount = 1;
 
-            // Note: eventType filter not applicable since all user_sessions are 'login' events
-            // If needed in the future, we can add logic to detect logout based on session expiry
+            // Add action/event type filter
+            if (eventType) {
+                whereConditions.push(`al.action ILIKE $${paramCount}`);
+                queryParams.push(`%${eventType}%`);
+                paramCount++;
+            }
 
             // Add user filter
             if (user) {
@@ -53,48 +57,59 @@ router.get('/audit-logs', authenticateToken, checkRole('it_head'), async (req, r
 
             // Add date range filter
             if (dateFrom) {
-                whereConditions.push(`DATE(us.created_at) >= $${paramCount}`);
+                whereConditions.push(`DATE(al.created_at) >= $${paramCount}`);
                 queryParams.push(dateFrom);
                 paramCount++;
             }
 
             if (dateTo) {
-                whereConditions.push(`DATE(us.created_at) <= $${paramCount}`);
+                whereConditions.push(`DATE(al.created_at) <= $${paramCount}`);
                 queryParams.push(dateTo);
                 paramCount++;
             }
 
-            // Build WHERE clause (add to existing WHERE u.username IS NOT NULL)
+            // Add status filter
+            if (status) {
+                whereConditions.push(`al.status = $${paramCount}`);
+                queryParams.push(status);
+                paramCount++;
+            }
+
+            // Build WHERE clause
             const whereClause = whereConditions.length > 0 
                 ? `AND ${whereConditions.join(' AND ')}` 
                 : '';
 
-            // Get total count from user_sessions
+            // Get total count from audit_logs
             const countQuery = `
                 SELECT COUNT(*) as total 
-                FROM user_sessions us
-                LEFT JOIN users u ON us.user_id = u.id
-                WHERE u.username IS NOT NULL
+                FROM audit_logs al
+                LEFT JOIN users u ON al.user_id = u.id
+                WHERE 1=1 ${whereClause}
             `;
-            const countResult = await db.query(countQuery, []);
+            const countResult = await db.query(countQuery, queryParams.slice(0, paramCount - 1));
             total = parseInt(countResult.rows[0].total);
 
-            // Get paginated results from user_sessions (login/logout events)
+            // Get paginated results from audit_logs
             const logsQuery = `
                 SELECT 
-                    us.id,
+                    al.id,
+                    al.user_id,
                     u.username,
-                    'login' as event_type,
-                    'authentication' as resource,
-                    'login' as action,
-                    'success' as status,
-                    us.ip_address,
-                    us.device_info as details,
-                    us.created_at as timestamp
-                FROM user_sessions us
-                LEFT JOIN users u ON us.user_id = u.id
-                WHERE u.username IS NOT NULL
-                ORDER BY us.created_at DESC
+                    al.action,
+                    al.resource,
+                    al.resource_id,
+                    al.details,
+                    al.ip_address,
+                    al.user_agent,
+                    al.status,
+                    al.created_at as timestamp,
+                    b.name as branch_name
+                FROM audit_logs al
+                LEFT JOIN users u ON al.user_id = u.id
+                LEFT JOIN branches b ON al.branch_id = b.id
+                WHERE 1=1 ${whereClause}
+                ORDER BY al.created_at DESC
                 LIMIT $${paramCount} OFFSET $${paramCount + 1}
             `;
 
@@ -148,12 +163,15 @@ router.get('/audit-logs/summary', authenticateToken, checkRole('it_head'), async
         try {
             const query = `
                 SELECT 
-                    'login' as event_type,
+                    al.action as event_type,
                     COUNT(*) as count,
-                    COUNT(*) as successful,
-                    0 as failed
-                FROM user_sessions
-                WHERE created_at >= NOW() - INTERVAL '30 days'
+                    SUM(CASE WHEN al.status = 'success' THEN 1 ELSE 0 END) as successful,
+                    SUM(CASE WHEN al.status = 'failed' THEN 1 ELSE 0 END) as failed
+                FROM audit_logs al
+                WHERE al.created_at >= NOW() - INTERVAL '30 days'
+                GROUP BY al.action
+                ORDER BY count DESC
+                LIMIT 10
             `;
 
             const result = await db.query(query);
@@ -193,18 +211,22 @@ router.get('/audit-logs/:id', authenticateToken, checkRole('it_head'), async (re
         try {
             const query = `
                 SELECT 
-                    us.id,
+                    al.id,
+                    al.user_id,
                     u.username,
-                    'login' as event_type,
-                    'authentication' as resource,
-                    'login' as action,
-                    'success' as status,
-                    us.ip_address,
-                    us.device_info as details,
-                    us.created_at as timestamp
-                FROM user_sessions us
-                LEFT JOIN users u ON us.user_id = u.id
-                WHERE us.id = $1
+                    al.action,
+                    al.resource,
+                    al.resource_id,
+                    al.details,
+                    al.ip_address,
+                    al.user_agent,
+                    al.status,
+                    al.created_at as timestamp,
+                    b.name as branch_name
+                FROM audit_logs al
+                LEFT JOIN users u ON al.user_id = u.id
+                LEFT JOIN branches b ON al.branch_id = b.id
+                WHERE al.id = $1
             `;
 
             const result = await db.query(query, [id]);
@@ -249,16 +271,21 @@ router.get('/audit-logs/export/csv', authenticateToken, checkRole('it_head'), as
         let queryParams = [];
         let paramCount = 1;
 
-        // Event type filter not applicable for user_sessions (all are login)
+        // Add event type filter
+        if (eventType) {
+            whereConditions.push(`al.action ILIKE $${paramCount}`);
+            queryParams.push(`%${eventType}%`);
+            paramCount++;
+        }
         
         if (dateFrom) {
-            whereConditions.push(`DATE(us.created_at) >= $${paramCount}`);
+            whereConditions.push(`DATE(al.created_at) >= $${paramCount}`);
             queryParams.push(dateFrom);
             paramCount++;
         }
 
         if (dateTo) {
-            whereConditions.push(`DATE(us.created_at) <= $${paramCount}`);
+            whereConditions.push(`DATE(al.created_at) <= $${paramCount}`);
             queryParams.push(dateTo);
             paramCount++;
         }
@@ -267,23 +294,23 @@ router.get('/audit-logs/export/csv', authenticateToken, checkRole('it_head'), as
             ? `WHERE ${whereConditions.join(' AND ')}` 
             : '';
 
-        let csv = 'Timestamp,User,Event Type,Resource,Action,Status,IP Address,Details\n';
+        let csv = 'Timestamp,User,Action,Resource,Status,IP Address,Branch\n';
 
         try {
             const query = `
                 SELECT 
-                    us.created_at as timestamp,
+                    al.created_at as timestamp,
                     u.username as user,
-                    'login' as event_type,
-                    'authentication' as resource,
-                    'login' as action,
-                    'success' as status,
-                    us.ip_address,
-                    us.device_info as details
-                FROM user_sessions us
-                LEFT JOIN users u ON us.user_id = u.id
+                    al.action,
+                    al.resource,
+                    al.status,
+                    al.ip_address,
+                    b.name as branch_name
+                FROM audit_logs al
+                LEFT JOIN users u ON al.user_id = u.id
+                LEFT JOIN branches b ON al.branch_id = b.id
                 ${whereClause}
-                ORDER BY us.created_at DESC
+                ORDER BY al.created_at DESC
             `;
 
             const result = await db.query(query, queryParams);
@@ -291,13 +318,12 @@ router.get('/audit-logs/export/csv', authenticateToken, checkRole('it_head'), as
             result.rows.forEach(row => {
                 const values = [
                     row.timestamp,
-                    `"${row.user}"`,
-                    row.event_type,
-                    row.resource,
+                    `"${row.user || 'N/A'}"`,
                     row.action,
+                    row.resource || 'N/A',
                     row.status,
                     row.ip_address,
-                    `"${row.details || ''}"`
+                    `"${row.branch_name || 'N/A'}"`
                 ];
                 csv += values.join(',') + '\n';
             });
