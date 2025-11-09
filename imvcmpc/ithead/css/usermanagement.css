@@ -10,7 +10,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     margin-bottom: 0;
+    flex-wrap: nowrap;
 }
 
 .search-container {
@@ -99,7 +101,7 @@
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     display: none;
-    z-index: 100;
+    z-index: 10000;
     overflow: hidden;
 }
 
@@ -150,7 +152,7 @@
 /* User Management Header */
 .user-management-header {
     padding: 16px 32px;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
 }
 
 .header-content h1 {
@@ -162,7 +164,7 @@
     align-items: center;
     gap: 8px;
     letter-spacing: 0;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .header-description {
@@ -478,51 +480,528 @@
 }
 
 /* Responsive Design */
+
+/* Tablet View (max-width: 1024px) */
 @media (max-width: 1024px) {
+    .user-management-content {
+        padding: 0px 20px 20px;
+    }
+
     .user-management-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
+        padding: 16px 20px;
+        margin-bottom: 5px;
     }
-    
+
+    .header-content h1 {
+        font-size: 18px;
+    }
+
+    .header-description {
+        font-size: 12px;
+    }
+
     .table-controls {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
+        flex-wrap: wrap;
     }
-    
+
+    .search-container {
+        flex: 1;
+        min-width: 200px;
+    }
+
     .search-container input {
         width: 100%;
     }
-    
+
     .controls-group {
-        justify-content: flex-end;
+        flex-shrink: 0;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding: 14px 16px;
+        font-size: 13px;
     }
 }
 
-/* Responsive Design */
+/* Small Screen / Mobile Landscape (max-width: 768px) */
 @media (max-width: 768px) {
+    .navigation {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 1001 !important;
+        width: 60px !important;
+    }
+
+    .main-content {
+        margin-left: 60px !important;
+        width: calc(100vw - 60px) !important;
+        max-width: calc(100vw - 60px) !important;
+        overflow-x: hidden !important;
+    }
+
     .user-management-content {
-        padding: 16px;
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 5px 8px 20px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
     }
 
-    .users-table {
-        overflow-x: auto;
+    .user-management-header,
+    .users-table,
+    .table-controls {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
     }
 
-    .users-table table {
-        min-width: 800px;
+    .user-management-header {
+        padding: 12px 16px;
+        margin-bottom: 8px;
     }
 
-    .action-btn {
-        width: 32px;
-        height: 32px;
-        margin-right: 4px;
+    .header-content h1 {
+        font-size: 16px;
+        flex-wrap: wrap;
+    }
+
+    .header-description {
+        font-size: 11px;
+        margin-left: 4px;
+    }
+
+    .table-controls {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 8px;
+    }
+
+    .search-container {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .search-container input {
+        padding: 8px 14px 8px 38px;
+        font-size: 13px;
+    }
+
+    .controls-group {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .sort-dropdown {
+        position: relative;
+    }
+
+    .sort-btn {
+        padding: 8px 14px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .sort-menu {
+        position: fixed;
+        right: auto;
+        left: auto;
+        top: auto;
+        bottom: auto;
+        transform: translateX(0);
+        z-index: 10000;
+        min-width: 160px;
+        max-width: calc(100vw - 80px);
     }
 
     .add-user-btn {
-        padding: 10px 20px;
+        padding: 8px 16px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .users-table {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 12px;
+    }
+
+    .users-table table {
+        min-width: 700px;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding: 12px 14px;
+        font-size: 12px;
+    }
+
+    .action-btn {
+        width: 30px;
+        height: 30px;
+        margin-right: 4px;
+        font-size: 12px;
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+
+    /* Modal Responsive */
+    .modal-dialog {
+        width: 90%;
+        max-width: 500px;
+    }
+
+    .modal-header {
+        padding: 12px 16px;
+    }
+
+    .modal-header h2 {
+        font-size: 16px;
+    }
+
+    .modal-content {
+        padding: 16px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .step-title {
         font-size: 14px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+}
+
+/* Mobile View (max-width: 480px) */
+@media (max-width: 480px) {
+    .navigation {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 1001 !important;
+        width: 60px !important;
+    }
+
+    .main-content {
+        margin-left: 60px !important;
+        width: calc(100vw - 60px) !important;
+        max-width: calc(100vw - 60px) !important;
+        overflow-x: hidden !important;
+    }
+
+    .user-management-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 5px 4px 20px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    .user-management-header,
+    .users-table,
+    .table-controls {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    .user-management-header {
+        padding: 10px 12px;
+        margin-bottom: 7px;
+    }
+
+    .header-content h1 {
+        font-size: 14px;
+        flex-wrap: wrap;
+    }
+
+    .header-description {
+        font-size: 10px;
+        margin-left: 2px;
+    }
+
+    .table-controls {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    .search-container {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .search-container input {
+        padding: 7px 12px 7px 36px;
+        font-size: 12px;
+    }
+
+    .search-container i {
+        left: 12px;
+        font-size: 12px;
+    }
+
+    .controls-group {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .sort-btn {
+        padding: 7px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .add-user-btn {
+        padding: 7px 14px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .add-user-btn i {
+        font-size: 14px;
+    }
+
+    .users-table {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 10px;
+    }
+
+    .users-table table {
+        min-width: 600px;
+    }
+
+    .users-table th {
+        padding: 10px 12px;
+        font-size: 11px;
+    }
+
+    .users-table td {
+        padding: 10px 12px;
+        font-size: 11px;
+    }
+
+    .action-btn {
+        width: 28px;
+        height: 28px;
+        margin-right: 3px;
+        font-size: 11px;
+    }
+
+    .status-badge {
+        padding: 3px 8px;
+        font-size: 10px;
+    }
+
+    /* Modal Responsive */
+    .modal-dialog {
+        width: 95%;
+        max-width: 95%;
+    }
+
+    .modal-header {
+        padding: 10px 14px;
+    }
+
+    .modal-header h2 {
+        font-size: 15px;
+    }
+
+    .modal-close {
+        font-size: 16px;
+    }
+
+    .modal-content {
+        padding: 14px;
+    }
+
+    .step-title {
+        font-size: 13px;
+        margin-bottom: 12px;
+    }
+
+    .form-group label {
+        font-size: 11px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .modal-actions {
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .btn {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+}
+
+/* Very Small Mobile (max-width: 360px) */
+@media (max-width: 360px) {
+    .user-management-content {
+        padding: 5px 4px 20px !important;
+    }
+
+    .user-management-header {
+        padding: 8px 10px;
+        margin-bottom: 5px;
+    }
+
+    .header-content h1 {
+        font-size: 13px;
+    }
+
+    .header-description {
+        font-size: 9px;
+    }
+
+    .table-controls {
+        gap: 4px;
+    }
+
+    .search-container input {
+        padding: 6px 10px 6px 34px;
+        font-size: 11px;
+    }
+
+    .sort-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .add-user-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+
+    .users-table table {
+        min-width: 550px;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding: 8px 10px;
+        font-size: 10px;
+    }
+
+    .action-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 10px;
+    }
+
+    .modal-dialog {
+        width: 98%;
+        max-width: 98%;
+    }
+
+    .modal-header {
+        padding: 8px 12px;
+    }
+
+    .modal-header h2 {
+        font-size: 14px;
+    }
+
+    .modal-content {
+        padding: 12px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    .btn {
+        padding: 7px 12px;
+        font-size: 11px;
+    }
+}
+
+/* Deactivate Confirmation Modal Responsive Styles */
+@media (max-width: 900px) {
+    .deactivate-modal {
+        max-width: 320px !important;
+        width: 85% !important;
+        padding: 20px !important;
+        border-radius: 20px !important;
+    }
+    
+    .deactivate-modal h2 {
+        font-size: 16px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .deactivate-modal p {
+        font-size: 13px !important;
+        margin-bottom: 16px !important;
+    }
+    
+    .deactivate-modal button {
+        padding: 10px 20px !important;
+        font-size: 13px !important;
+        min-width: 80px !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .deactivate-modal {
+        max-width: 280px !important;
+        width: 80% !important;
+        padding: 16px !important;
+        border-radius: 16px !important;
+    }
+    
+    .deactivate-modal h2 {
+        font-size: 14px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .deactivate-modal p {
+        font-size: 12px !important;
+        margin-bottom: 14px !important;
+    }
+    
+    .deactivate-modal > div {
+        gap: 8px !important;
+        flex-direction: row !important;
+    }
+    
+    .deactivate-modal button {
+        padding: 8px 16px !important;
+        font-size: 12px !important;
+        min-width: 80px !important;
+        width: auto !important;
     }
 }
 
