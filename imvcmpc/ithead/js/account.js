@@ -245,21 +245,21 @@ async function savePersonalInfo() {
     const email = document.getElementById('email').value.trim();
     
     if (!fullName || !username || !email) {
-        showNotification('Please fill in all required fields', 'error');
+        showErrorDialog('Please fill in all required fields');
         return;
     }
     
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        showNotification('Please enter a valid email address', 'error');
+        showErrorDialog('Please enter a valid email address');
         return;
     }
     
     try {
         const token = localStorage.getItem('access_token');
         if (!token) {
-            showNotification('Unauthorized', 'error');
+            showErrorDialog('Unauthorized');
             return;
         }
         
@@ -283,17 +283,17 @@ async function savePersonalInfo() {
         });
         
         if (response.ok) {
-            showNotification('Profile updated successfully', 'success');
+            showSuccessDialog('Profile updated successfully');
             // Update stored data and exit edit mode
             originalData = { fullName, username, email };
             exitEditMode();
         } else {
             const error = await response.json();
-            showNotification(error.detail || 'Failed to update profile', 'error');
+            showErrorDialog(error.detail || 'Failed to update profile');
         }
     } catch (error) {
         console.error('Error updating profile:', error);
-        showNotification('Failed to update profile', 'error');
+        showErrorDialog('Failed to update profile');
     }
 }
 
@@ -309,24 +309,24 @@ async function handleChangePassword() {
     const confirmPassword = document.getElementById('confirmPassword').value;
     
     if (!currentPassword || !newPassword || !confirmPassword) {
-        showNotification('Please fill in all password fields', 'error');
+        showErrorDialog('Please fill in all password fields');
         return;
     }
     
     if (newPassword !== confirmPassword) {
-        showNotification('New passwords do not match', 'error');
+        showErrorDialog('New passwords do not match');
         return;
     }
     
     if (newPassword.length < 8) {
-        showNotification('Password must be at least 8 characters long', 'error');
+        showErrorDialog('Password must be at least 8 characters long');
         return;
     }
     
     try {
         const token = localStorage.getItem('access_token');
         if (!token) {
-            showNotification('Unauthorized', 'error');
+            showErrorDialog('Unauthorized');
             return;
         }
         
@@ -343,17 +343,17 @@ async function handleChangePassword() {
         });
         
         if (response.ok) {
-            showNotification('Password changed successfully', 'success');
+            showSuccessDialog('Password changed successfully');
             // Clear password fields
             document.getElementById('currentPassword').value = '';
             document.getElementById('newPassword').value = '';
             document.getElementById('confirmPassword').value = '';
         } else {
-            showNotification('Failed to change password', 'error');
+            showErrorDialog('Failed to change password');
         }
     } catch (error) {
         console.error('Error changing password:', error);
-        showNotification('Failed to change password', 'error');
+        showErrorDialog('Failed to change password');
     }
 }
 
@@ -404,6 +404,266 @@ function showNotification(message, type) {
             }
         }, 300);
     }, 3000);
+}
+
+// Show minimalist success dialog
+function showSuccessDialog(message) {
+    // Remove existing dialogs
+    const existingDialog = document.getElementById('successDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+    
+    // Create dialog overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'successDialog';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+    `;
+    
+    // Create dialog content
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.2s ease;
+    `;
+    
+    // Trigger animation after element is added to DOM
+    setTimeout(() => {
+        dialog.style.opacity = '1';
+        dialog.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Create success icon
+    const icon = document.createElement('div');
+    icon.style.cssText = `
+        width: 40px;
+        height: 40px;
+        background: #f0fdf4;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    `;
+    icon.innerHTML = '<i class="fas fa-check-circle" style="color: #0D5B11; font-size: 18px;"></i>';
+    
+    // Create message
+    const messageEl = document.createElement('p');
+    messageEl.style.cssText = `
+        color: #374151;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 0 20px 0;
+        line-height: 1.5;
+    `;
+    messageEl.textContent = message;
+    
+    // Create OK button
+    const button = document.createElement('button');
+    button.textContent = 'OK';
+    button.style.cssText = `
+        background: #0D5B11;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    `;
+    button.onmouseover = () => button.style.background = '#0a4a0e';
+    button.onmouseout = () => button.style.background = '#0D5B11';
+    button.onclick = () => {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEscape);
+    };
+    
+    // Add click outside to close
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    
+    // Add escape key to close
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Add fadeIn animation if not exists
+    if (!document.getElementById('fadeInStyle')) {
+        const style = document.createElement('style');
+        style.id = 'fadeInStyle';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Assemble dialog
+    dialog.appendChild(icon);
+    dialog.appendChild(messageEl);
+    dialog.appendChild(button);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+}
+
+// Show minimalist error dialog
+function showErrorDialog(message) {
+    // Remove existing dialogs
+    const existingDialog = document.getElementById('errorDialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+    
+    // Create dialog overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'errorDialog';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+    `;
+    
+    // Create dialog content
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.2s ease;
+    `;
+    
+    // Trigger animation after element is added to DOM
+    setTimeout(() => {
+        dialog.style.opacity = '1';
+        dialog.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Create error icon
+    const icon = document.createElement('div');
+    icon.style.cssText = `
+        width: 40px;
+        height: 40px;
+        background: #fef2f2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    `;
+    icon.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 18px;"></i>';
+    
+    // Create message
+    const messageEl = document.createElement('p');
+    messageEl.style.cssText = `
+        color: #374151;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 0 20px 0;
+        line-height: 1.5;
+    `;
+    messageEl.textContent = message;
+    
+    // Create OK button
+    const button = document.createElement('button');
+    button.textContent = 'OK';
+    button.style.cssText = `
+        background: #0D5B11;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    `;
+    button.onmouseover = () => button.style.background = '#0a4a0e';
+    button.onmouseout = () => button.style.background = '#0D5B11';
+    button.onclick = () => {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEscape);
+    };
+    
+    // Add click outside to close
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    
+    // Add escape key to close
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Add fadeIn animation if not exists
+    if (!document.getElementById('fadeInStyle')) {
+        const style = document.createElement('style');
+        style.id = 'fadeInStyle';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Assemble dialog
+    dialog.appendChild(icon);
+    dialog.appendChild(messageEl);
+    dialog.appendChild(button);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
 }
 
 // Export functions

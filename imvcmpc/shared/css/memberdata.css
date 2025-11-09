@@ -809,7 +809,6 @@ body {
 /* Success message modal - dim background */
 .simple-message-modal {
     background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
 }
 
 .modal-content {
@@ -835,6 +834,18 @@ body {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
     border: 1px solid var(--gray-100);
     overflow: hidden;
+}
+
+/* Modal Backgrounds - Match Logout Modal (no blur) */
+#transactionModal.modal,
+#pendingRequestsModal.modal,
+#uploadTransactionsModal.modal,
+#transactionFormDialog.modal,
+#financeOfficerRequestsModal.modal,
+#transactionPreviewModal.modal,
+.simple-message-modal {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 /* Transaction Preview Modal - Match Add Transaction Form */
