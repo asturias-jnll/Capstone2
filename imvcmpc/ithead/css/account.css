@@ -470,4 +470,42 @@
     }
 }
 
+/* Status with Note Wrapper - Side by Side Layout */
+.status-with-note-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    grid-column: 1 / -1; /* Span full width of parent grid */
+    margin: 0;
+    align-items: stretch; /* Make both containers same height */
+}
+
+/* Account Information Note - Uses account-section styling */
+.account-info-note {
+    /* Inherits all styling from account-section, height will match via align-items: stretch */
+}
+
+.account-info-note .status-content p {
+    margin: 0;
+    color: #6b7280 !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    line-height: 1.5;
+    padding: 0.25rem 0;
+}
+
+.account-info-note .status-content p.note-italic {
+    font-style: italic;
+    margin-top: 0.5rem;
+    color: #5a606e !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .status-with-note-wrapper {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+}
+
 

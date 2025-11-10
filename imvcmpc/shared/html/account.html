@@ -170,24 +170,39 @@
                         </div>
                     </div>
 
-                    <!-- Account Status Section -->
-                    <div class="account-section status-section">
-                        <div class="section-header">
-                            <h2><i class="fas fa-shield-alt"></i> Account Status</h2>
+                    <!-- Account Status Section with Note -->
+                    <div class="status-with-note-wrapper">
+                        <div class="account-section status-section">
+                            <div class="section-header">
+                                <h2><i class="fas fa-shield-alt"></i> Account Status</h2>
+                            </div>
+                            
+                            <div class="status-content">
+                                <div class="form-group">
+                                    <label>Security Status</label>
+                                    <span class="info-value" id="securityStatus">Active</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>Last Login</label>
+                                    <span class="info-value" id="lastLogin">—</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>Session Duration</label>
+                                    <span class="info-value" id="sessionDuration">—</span>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="status-content">
-                            <div class="form-group">
-                                <label>Security Status</label>
-                                <span class="info-value" id="securityStatus">Active</span>
+
+                        <!-- Account Information Note -->
+                        <div class="account-section account-info-note">
+                            <div class="section-header">
+                                <h2><i class="fas fa-info-circle"></i> Account Guidelines</h2>
                             </div>
-                            <div class="form-group">
-                                <label>Last Login</label>
-                                <span class="info-value" id="lastLogin">—</span>
-                            </div>
-                            <div class="form-group">
-                                <label>Session Duration</label>
-                                <span class="info-value" id="sessionDuration">—</span>
+                            <div class="status-content">
+                                <p>Password Requirements: Minimum 8 characters. Must be different from your current password.</p>
+                                <p>Profile Updates: Personal information can be updated once every 30 days.</p>
+                                <p>Update Frequency: Password and profile changes are limited to once every 30 days for security purposes.</p>
+                                <p class="note-italic">Note: Account modifications are applied immediately upon saving.</p>
                             </div>
                         </div>
                     </div>
