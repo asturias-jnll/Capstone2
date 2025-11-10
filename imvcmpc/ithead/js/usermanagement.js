@@ -631,10 +631,8 @@ function toggleUserStatus(userId, currentStatus, event) {
         // Show deactivate confirmation modal
         showDeactivateConfirmation(userId, currentStatus);
     } else {
-        // For activate, use simple confirm (or can be updated later)
-        if (confirm(`Are you sure you want to ${action} this user?`)) {
-            performToggleUserStatus(userId, currentStatus);
-        }
+        // Show activate confirmation modal
+        showActivateConfirmation(userId, currentStatus);
     }
 }
 
@@ -793,6 +791,150 @@ function closeDeactivateModal() {
     const modal = document.querySelector('.deactivate-modal-overlay');
     if (modal) {
         const modalContent = modal.querySelector('.deactivate-modal');
+        if (modalContent) {
+            modalContent.style.animation = 'modalSlideOut 0.2s ease-in';
+        }
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 200);
+    }
+}
+
+// Show activate confirmation modal
+function showActivateConfirmation(userId, currentStatus) {
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'activate-modal-overlay';
+    modalOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'activate-modal';
+    modalContent.style.cssText = `
+        background: #E9EEF3;
+        border-radius: 24px;
+        padding: 24px;
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease-out;
+    `;
+
+    modalContent.innerHTML = `
+        <h2 style="
+            font-size: 18px;
+            font-weight: 600;
+            color: #0B5E1C;
+            margin-bottom: 8px;
+        ">Confirm Activation</h2>
+        <p style="
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        ">Are you sure you want to activate this user?</p>
+        <div style="
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        ">
+            <button id="cancelActivate" style="
+                padding: 12px 24px;
+                border: 1px solid #D1D5DB;
+                border-radius: 10px;
+                background: white;
+                color: #4B5563;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 100px;
+            ">Cancel</button>
+            <button id="confirmActivate" style="
+                padding: 12px 24px;
+                border: none;
+                border-radius: 10px;
+                background: #187C19;
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 100px;
+            ">Activate</button>
+        </div>
+    `;
+
+    // Add CSS animation if not already added (reuse deactivate styles)
+    if (!document.getElementById('activate-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'activate-modal-styles';
+        style.textContent = `
+            #cancelActivate:hover {
+                border-color: #9CA3AF;
+                background: #F9FAFB;
+                transform: translateY(-1px);
+            }
+            
+            #confirmActivate:hover {
+                background: #0B5E1C;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Add modal to page
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+
+    // Add event listeners
+    document.getElementById('cancelActivate').addEventListener('click', () => {
+        closeActivateModal();
+    });
+
+    document.getElementById('confirmActivate').addEventListener('click', () => {
+        closeActivateModal();
+        performToggleUserStatus(userId, currentStatus);
+    });
+
+    // Close modal on overlay click
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            closeActivateModal();
+        }
+    });
+
+    // Close modal on Escape key
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeActivateModal();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+}
+
+// Close activate modal
+function closeActivateModal() {
+    const modal = document.querySelector('.activate-modal-overlay');
+    if (modal) {
+        const modalContent = modal.querySelector('.activate-modal');
         if (modalContent) {
             modalContent.style.animation = 'modalSlideOut 0.2s ease-in';
         }
