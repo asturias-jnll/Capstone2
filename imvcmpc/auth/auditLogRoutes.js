@@ -10,6 +10,7 @@ const router = express.Router();
  * Query parameters:
  *   - eventType: Filter by event type (login, logout, password_change)
  *   - user: Filter by username
+ *   - resource: Filter by resource type (transactions, analytics, reports)
  *   - dateFrom: Filter logs from this date (YYYY-MM-DD)
  *   - dateTo: Filter logs until this date (YYYY-MM-DD)
  *   - status: Filter by status (success, failed)
@@ -23,6 +24,7 @@ router.get('/audit-logs', authenticateToken, checkRole('it_head'), async (req, r
             user,
             dateFrom,
             dateTo,
+            resource,
             status,
             limit = 100,
             offset = 0
@@ -52,6 +54,13 @@ router.get('/audit-logs', authenticateToken, checkRole('it_head'), async (req, r
             if (user) {
                 whereConditions.push(`u.username ILIKE $${paramCount}`);
                 queryParams.push(`%${user}%`);
+                paramCount++;
+            }
+
+            // Add resource filter
+            if (resource) {
+                whereConditions.push(`al.resource ILIKE $${paramCount}`);
+                queryParams.push(`%${resource}%`);
                 paramCount++;
             }
 

@@ -5,6 +5,7 @@ let totalLogs = 0;
 let currentFilters = {};
 let timestampUpdateInterval = null;
 let autoRefreshInterval = null;
+let usernameFilterDebounce = null;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
@@ -32,6 +33,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Auto-refresh logs every 30 seconds to show new entries
     startAutoRefresh();
+
+    // Add real-time filtering for username field with debouncing
+    const userFilterInput = document.getElementById('userFilter');
+    if (userFilterInput) {
+        userFilterInput.addEventListener('input', function() {
+            // Clear existing debounce timeout
+            if (usernameFilterDebounce) {
+                clearTimeout(usernameFilterDebounce);
+            }
+            
+            // Set new debounce timeout (400ms delay)
+            usernameFilterDebounce = setTimeout(() => {
+                applyFilters();
+            }, 400);
+        });
+    }
 });
 
 // Start real-time timestamp updates
@@ -105,6 +122,7 @@ async function loadAuditLogs() {
         if (currentFilters.dateTo) params.append('dateTo', currentFilters.dateTo);
         if (currentFilters.user) params.append('user', currentFilters.user);
         if (currentFilters.eventType) params.append('eventType', currentFilters.eventType);
+        if (currentFilters.resource) params.append('resource', currentFilters.resource);
         if (currentFilters.status) params.append('status', currentFilters.status);
 
         const response = await fetch(`/api/auth/audit-logs?${params.toString()}`, {
@@ -260,6 +278,43 @@ function formatAction(action) {
         .join(' ');
 }
 
+// Format timestamp with proper timezone handling for Philippine time (UTC+8)
+function formatTimestamp(timestamp) {
+    if (!timestamp) {
+        return 'N/A';
+    }
+    
+    const logTime = new Date(timestamp);
+    
+    // Check if the date is valid
+    if (isNaN(logTime.getTime())) {
+        console.error('Invalid timestamp:', timestamp);
+        return 'N/A';
+    }
+    
+    // Handle timezone issue: if timestamp appears to be in the future,
+    // it's likely the database is storing Philippine time (UTC+8) as UTC
+    // Adjust by subtracting 8 hours (28800 seconds) from the log time
+    const now = new Date();
+    let adjustedTime = logTime;
+    
+    if (logTime > now) {
+        // Adjust for Philippine timezone (UTC+8 = 8 hours = 28800 seconds)
+        adjustedTime = new Date(logTime.getTime() - (8 * 60 * 60 * 1000));
+    }
+    
+    // Format as readable date/time string
+    return adjustedTime.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
+}
+
 // Apply filters
 function applyFilters() {
     const dateFrom = document.getElementById('dateFrom').value;
@@ -346,7 +401,7 @@ function displayLogDetails(log) {
             </div>
             <div class="detail-item">
                 <label>Timestamp:</label>
-                <span>${new Date(log.timestamp).toLocaleString()}</span>
+                <span>${formatTimestamp(log.timestamp)}</span>
             </div>
             <div class="detail-item">
                 <label>Username:</label>
