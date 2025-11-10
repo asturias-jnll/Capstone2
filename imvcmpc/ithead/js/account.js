@@ -7,6 +7,16 @@ let detachListeners = null; // function to remove input listeners when exiting e
 // Initialize account
 document.addEventListener('DOMContentLoaded', function() {
     loadUserInfo();
+    
+    // Initialize account status after a short delay to ensure DOM is ready
+    setTimeout(() => {
+        initializeAccountStatus();
+        setupPageVisibilityHandling();
+    }, 100);
+    
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    setInterval(updateSessionDuration, 1000);
 });
 
 // Helper: format branch display as "Main Branch IBAAN" or "Branch 3 IBAAN"
@@ -664,6 +674,299 @@ function showErrorDialog(message) {
     dialog.appendChild(button);
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
+}
+
+// Setup page visibility handling for accurate session tracking
+function setupPageVisibilityHandling() {
+    // Reset hidden time for the current session
+    // The sessionStartTime already reflects the original login time,
+    // so we only need to track hidden time for the current page load
+    localStorage.removeItem('sessionHiddenTime');
+    let hiddenTime = 0;
+    let lastHiddenTime = null;
+    
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            lastHiddenTime = new Date();
+        } else {
+            if (lastHiddenTime) {
+                const hiddenDuration = new Date() - lastHiddenTime;
+                hiddenTime += hiddenDuration;
+                lastHiddenTime = null;
+            }
+        }
+    });
+    
+    setInterval(() => {
+        if (hiddenTime > 0) {
+            localStorage.setItem('sessionHiddenTime', hiddenTime.toString());
+        }
+    }, 5000);
+    
+    window.addEventListener('beforeunload', function() {
+        const currentTime = new Date();
+        const sessionStartTime = localStorage.getItem('sessionStartTime');
+        if (sessionStartTime) {
+            const startTime = new Date(sessionStartTime);
+            const totalElapsed = currentTime - startTime;
+            // Subtract hidden time to get only active time (excluding time when page was hidden)
+            const currentHiddenTime = parseInt(localStorage.getItem('sessionHiddenTime') || '0');
+            const activeTime = totalElapsed - currentHiddenTime;
+            // Save active time (excluding hidden time) so restoration is accurate
+            localStorage.setItem('lastActiveTime', activeTime.toString());
+        }
+    });
+    
+    // Note: Session restoration is now handled in initializeAccountStatus()
+    // to ensure it happens before checking if it's a new login
+}
+
+// Initialize account status with real data
+function initializeAccountStatus() {
+    const now = new Date();
+    
+    // First, restore session if it was saved on page unload
+    // This must happen before checking if it's a new login
+    // Note: We don't recalculate sessionStartTime from lastActiveTime because
+    // sessionStartTime should remain the original login time. The lastActiveTime
+    // is only used to verify session continuity, but the actual start time is preserved.
+    const lastActiveTime = localStorage.getItem('lastActiveTime');
+    if (lastActiveTime) {
+        // Clear lastActiveTime as it's no longer needed after restoration check
+        localStorage.removeItem('lastActiveTime');
+        // Note: sessionStartTime should already be preserved from before the page unload
+        // We don't recalculate it because that would cause incorrect duration calculations
+    }
+    
+    // Re-read sessionStartTime after potential restoration
+    const sessionStartTime = localStorage.getItem('sessionStartTime');
+    const lastLoginTime = localStorage.getItem('lastLoginTime'); // Set by login.js on actual login
+    const lastLogin = localStorage.getItem('lastLogin');
+    
+    // Check if this is a new login or just a page refresh
+    // A new login is indicated by:
+    // 1. sessionStartTime doesn't exist AND lastLoginTime was set recently (within last 2 minutes)
+    // 2. OR sessionStartTime is old (more than 30 minutes ago, indicating session expired)
+    let isNewLogin = false;
+    
+    if (!sessionStartTime) {
+        // No existing session
+        if (lastLoginTime) {
+            // Check if lastLoginTime was set very recently (within 2 minutes)
+            const loginTime = new Date(lastLoginTime);
+            const timeSinceLogin = now - loginTime;
+            const twoMinutes = 2 * 60 * 1000; // 2 minutes in milliseconds
+            
+            if (timeSinceLogin < twoMinutes) {
+                // Very recent login with no session, this is a new login
+                isNewLogin = true;
+            }
+        } else {
+            // No session and no recent login time, treat as new login
+            isNewLogin = true;
+        }
+    } else {
+        // Session exists - check if it's expired
+        const sessionStart = new Date(sessionStartTime);
+        const sessionAge = now - sessionStart;
+        const thirtyMinutes = 30 * 60 * 1000; // 30 minutes in milliseconds
+        
+        if (sessionAge > thirtyMinutes) {
+            // Session expired, treat as new login
+            isNewLogin = true;
+        } else {
+            // Session is still valid - this is a refresh, not a new login
+            isNewLogin = false;
+        }
+    }
+    
+    // Initialize sessionStartTime if it doesn't exist or if it's a new login
+    if (!sessionStartTime || isNewLogin) {
+        localStorage.setItem('sessionStartTime', now.toISOString());
+    }
+    
+    // Initialize lastLogin if it doesn't exist
+    if (!lastLogin) {
+        localStorage.setItem('lastLogin', now.toISOString());
+        // If we just created lastLogin and there was no original session, treat as new login
+        if (!sessionStartTime) {
+            isNewLogin = true;
+        }
+    }
+    
+    // Only record successful login if it's actually a new login
+    if (isNewLogin) {
+        recordSuccessfulLogin();
+    } else {
+        // Just update the display without resetting times
+        updateSecurityStatus();
+        updateLastLogin();
+        updateSessionDuration();
+    }
+    
+    // Always ensure display is updated (in case elements weren't ready earlier)
+    setTimeout(() => {
+        updateSecurityStatus();
+        updateLastLogin();
+        updateSessionDuration();
+    }, 200);
+}
+
+// Update security status based on login activity
+function updateSecurityStatus() {
+    try {
+        const securityStatusElement = document.getElementById('securityStatus');
+        if (!securityStatusElement) return;
+        
+        const lastLogin = localStorage.getItem('lastLogin');
+        if (!lastLogin) {
+            securityStatusElement.textContent = 'Active';
+            return;
+        }
+        
+        const loginDate = new Date(lastLogin);
+        const now = new Date();
+        
+        if (isNaN(loginDate.getTime())) {
+            localStorage.setItem('lastLogin', new Date().toISOString());
+            securityStatusElement.textContent = 'Active';
+            return;
+        }
+        
+        const timeDiff = now - loginDate;
+        const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff < 7) {
+            securityStatusElement.textContent = 'Active';
+        } else {
+            securityStatusElement.textContent = `Inactive for ${daysDiff} days`;
+        }
+        
+    } catch (error) {
+        console.error('Error updating security status:', error);
+        const securityStatusElement = document.getElementById('securityStatus');
+        if (securityStatusElement) {
+            securityStatusElement.textContent = 'Active';
+        }
+    }
+}
+
+// Update last login display with exact date and time
+function updateLastLogin() {
+    try {
+        const lastLoginElement = document.getElementById('lastLogin');
+        if (!lastLoginElement) return;
+        
+        const lastLogin = localStorage.getItem('lastLogin');
+        if (lastLogin) {
+            const loginDate = new Date(lastLogin);
+            
+            if (isNaN(loginDate.getTime())) {
+                localStorage.setItem('lastLogin', new Date().toISOString());
+                lastLoginElement.textContent = '—';
+                return;
+            }
+            
+            // Use toLocaleString() to match MC/FO format: "MM/DD/YYYY, H:MM:SS AM/PM"
+            lastLoginElement.textContent = loginDate.toLocaleString('en-US');
+        } else {
+            lastLoginElement.textContent = '—';
+        }
+    } catch (error) {
+        console.error('Error updating last login:', error);
+        const lastLoginElement = document.getElementById('lastLogin');
+        if (lastLoginElement) {
+            lastLoginElement.textContent = '—';
+        }
+    }
+}
+
+// Update session duration since session start
+function updateSessionDuration() {
+    try {
+        const sessionDurationElement = document.getElementById('sessionDuration');
+        if (!sessionDurationElement) return;
+        
+        const sessionStartTime = localStorage.getItem('sessionStartTime');
+        if (sessionStartTime) {
+            const sessionStart = new Date(sessionStartTime);
+            
+            if (isNaN(sessionStart.getTime())) {
+                // Invalid session start time, reset it
+                const now = new Date();
+                localStorage.setItem('sessionStartTime', now.toISOString());
+                sessionDurationElement.textContent = '0s';
+                return;
+            }
+            
+            const now = new Date();
+            let timeDiff = now - sessionStart;
+            
+            // Subtract hidden time (when page was in background)
+            const hiddenTime = parseInt(localStorage.getItem('sessionHiddenTime') || '0');
+            timeDiff -= hiddenTime;
+            
+            if (timeDiff < 0) timeDiff = 0;
+            
+            const hours = Math.floor(timeDiff / 3600000);
+            const minutes = Math.floor((timeDiff % 3600000) / 60000);
+            const seconds = Math.floor((timeDiff % 60000) / 1000);
+            
+            // Use abbreviated format to match MC/FO: "Xh Ym" or "Ym" or "Xs"
+            let durationText;
+            if (hours > 0) {
+                durationText = `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                durationText = `${minutes}m`;
+            } else {
+                durationText = `${seconds}s`;
+            }
+            
+            sessionDurationElement.textContent = durationText;
+        } else {
+            // No session start time, show 0
+            sessionDurationElement.textContent = '0s';
+        }
+    } catch (error) {
+        console.error('Error updating session duration:', error);
+        const sessionDurationElement = document.getElementById('sessionDuration');
+        if (sessionDurationElement) {
+            sessionDurationElement.textContent = '0s';
+        }
+    }
+}
+
+// Record successful login
+function recordSuccessfulLogin() {
+    localStorage.setItem('lastLogin', new Date().toISOString());
+    localStorage.setItem('sessionStartTime', new Date().toISOString());
+    
+    updateSecurityStatus();
+    updateLastLogin();
+    updateSessionDuration();
+}
+
+// Update date and time display
+function updateDateTime() {
+    const now = new Date();
+    
+    // Update date
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateDisplay = document.getElementById('currentDate');
+    if (dateDisplay) {
+        dateDisplay.textContent = now.toLocaleDateString('en-US', dateOptions);
+    }
+    
+    // Update time
+    const timeDisplay = document.getElementById('currentTime');
+    if (timeDisplay) {
+        timeDisplay.textContent = now.toLocaleTimeString('en-US', { 
+            hour12: true, 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        });
+    }
 }
 
 // Export functions

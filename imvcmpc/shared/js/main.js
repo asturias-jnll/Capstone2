@@ -502,6 +502,12 @@ function clearUserSession() {
     localStorage.removeItem('user_branch_name');
     localStorage.removeItem('user_branch_location');
     localStorage.removeItem('is_main_branch_user');
+    // Clear account status data
+    localStorage.removeItem('sessionStartTime');
+    localStorage.removeItem('lastLogin');
+    localStorage.removeItem('loginAttempts');
+    localStorage.removeItem('sessionHiddenTime');
+    localStorage.removeItem('lastActiveTime');
 }
 
 // Show logout loading with spinning logo

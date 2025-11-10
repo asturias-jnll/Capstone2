@@ -312,6 +312,10 @@ window.initializeDynamicUserHeader = function() {
 
 // Setup page visibility handling for accurate session tracking
 function setupPageVisibilityHandling() {
+    // Reset hidden time for the current session
+    // The sessionStartTime already reflects the original login time,
+    // so we only need to track hidden time for the current page load
+    localStorage.removeItem('sessionHiddenTime');
     let hiddenTime = 0;
     let lastHiddenTime = null;
     
@@ -338,52 +342,103 @@ function setupPageVisibilityHandling() {
         const sessionStartTime = localStorage.getItem('sessionStartTime');
         if (sessionStartTime) {
             const startTime = new Date(sessionStartTime);
-            const activeTime = currentTime - startTime;
+            const totalElapsed = currentTime - startTime;
+            // Subtract hidden time to get only active time (excluding time when page was hidden)
+            const currentHiddenTime = parseInt(localStorage.getItem('sessionHiddenTime') || '0');
+            const activeTime = totalElapsed - currentHiddenTime;
+            // Save active time (excluding hidden time) so restoration is accurate
             localStorage.setItem('lastActiveTime', activeTime.toString());
         }
     });
     
-    window.addEventListener('load', function() {
-        const lastActiveTime = localStorage.getItem('lastActiveTime');
-        if (lastActiveTime) {
-            const now = new Date();
-            const adjustedStartTime = new Date(now - parseInt(lastActiveTime));
-            localStorage.setItem('sessionStartTime', adjustedStartTime.toISOString());
-            localStorage.removeItem('lastActiveTime');
-        }
-    });
+    // Note: Session restoration is now handled in initializeAccountStatus()
+    // to ensure it happens before checking if it's a new login
 }
 
 // Initialize account status with real data
 function initializeAccountStatus() {
-    if (!localStorage.getItem('sessionStartTime')) {
-        localStorage.setItem('sessionStartTime', new Date().toISOString());
+    const now = new Date();
+    
+    // First, restore session if it was saved on page unload
+    // This must happen before checking if it's a new login
+    // Note: We don't recalculate sessionStartTime from lastActiveTime because
+    // sessionStartTime should remain the original login time. The lastActiveTime
+    // is only used to verify session continuity, but the actual start time is preserved.
+    const lastActiveTime = localStorage.getItem('lastActiveTime');
+    if (lastActiveTime) {
+        // Clear lastActiveTime as it's no longer needed after restoration check
+        localStorage.removeItem('lastActiveTime');
+        // Note: sessionStartTime should already be preserved from before the page unload
+        // We don't recalculate it because that would cause incorrect duration calculations
     }
     
-    if (!localStorage.getItem('loginAttempts')) {
-        localStorage.setItem('loginAttempts', JSON.stringify({
-            successful: 1,
-            failed: 0,
-            lastAttempt: new Date().toISOString()
-        }));
+    // Re-read sessionStartTime after potential restoration
+    const sessionStartTime = localStorage.getItem('sessionStartTime');
+    const lastLoginTime = localStorage.getItem('lastLoginTime'); // Set by login.js on actual login
+    const lastLogin = localStorage.getItem('lastLogin');
+    
+    // Check if this is a new login or just a page refresh
+    // A new login is indicated by:
+    // 1. sessionStartTime doesn't exist AND lastLoginTime was set recently (within last 2 minutes)
+    // 2. OR sessionStartTime is old (more than 30 minutes ago, indicating session expired)
+    let isNewLogin = false;
+    
+    if (!sessionStartTime) {
+        // No existing session
+        if (lastLoginTime) {
+            // Check if lastLoginTime was set very recently (within 2 minutes)
+            const loginTime = new Date(lastLoginTime);
+            const timeSinceLogin = now - loginTime;
+            const twoMinutes = 2 * 60 * 1000; // 2 minutes in milliseconds
+            
+            if (timeSinceLogin < twoMinutes) {
+                // Very recent login with no session, this is a new login
+                isNewLogin = true;
+            }
+        } else {
+            // No session and no recent login time, treat as new login
+            isNewLogin = true;
+        }
+    } else {
+        // Session exists - check if it's expired
+        const sessionStart = new Date(sessionStartTime);
+        const sessionAge = now - sessionStart;
+        const thirtyMinutes = 30 * 60 * 1000; // 30 minutes in milliseconds
+        
+        if (sessionAge > thirtyMinutes) {
+            // Session expired, treat as new login
+            isNewLogin = true;
+        } else {
+            // Session is still valid - this is a refresh, not a new login
+            isNewLogin = false;
+        }
     }
     
-    if (!localStorage.getItem('lastLogin')) {
-        localStorage.setItem('lastLogin', new Date().toISOString());
+    // Initialize sessionStartTime if it doesn't exist or if it's a new login
+    if (!sessionStartTime || isNewLogin) {
+        localStorage.setItem('sessionStartTime', now.toISOString());
     }
     
-    recordSuccessfulLogin();
+    // Initialize lastLogin if it doesn't exist
+    if (!lastLogin) {
+        localStorage.setItem('lastLogin', now.toISOString());
+    }
     
-    updateSecurityStatus();
-    updateLastLogin();
-    updateSessionDuration();
-    updateLoginAttempts();
+    // Only record successful login if it's actually a new login
+    if (isNewLogin) {
+        recordSuccessfulLogin();
+    } else {
+        // Just update the display without resetting times
+        updateSecurityStatus();
+        updateLastLogin();
+        updateSessionDuration();
+    }
 }
 
 // Update security status based on login activity
 function updateSecurityStatus() {
     try {
-        const securityStatusElement = document.querySelector('.status-content .form-group:first-child .info-value');
+        const securityStatusElement = document.getElementById('securityStatus');
         if (!securityStatusElement) return;
         
         const lastLogin = localStorage.getItem('lastLogin');
@@ -412,7 +467,7 @@ function updateSecurityStatus() {
         
     } catch (error) {
         console.error('Error updating security status:', error);
-        const securityStatusElement = document.querySelector('.status-content .form-group:first-child .info-value');
+        const securityStatusElement = document.getElementById('securityStatus');
         if (securityStatusElement) {
             securityStatusElement.textContent = 'Active';
         }
@@ -422,7 +477,7 @@ function updateSecurityStatus() {
 // Update last login display with exact date and time
 function updateLastLogin() {
     try {
-        const lastLoginElement = document.querySelector('.status-content .form-group:nth-child(2) .info-value');
+        const lastLoginElement = document.getElementById('lastLogin');
         if (!lastLoginElement) return;
         
         const lastLogin = localStorage.getItem('lastLogin');
@@ -431,46 +486,46 @@ function updateLastLogin() {
             
             if (isNaN(loginDate.getTime())) {
                 localStorage.setItem('lastLogin', new Date().toISOString());
-                lastLoginElement.textContent = 'Just now';
+                lastLoginElement.textContent = '—';
                 return;
             }
             
-            const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-            const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
-            
-            const dateStr = loginDate.toLocaleDateString('en-US', dateOptions);
-            const timeStr = loginDate.toLocaleTimeString('en-US', timeOptions);
-            
-            lastLoginElement.textContent = `${dateStr} at ${timeStr}`;
+            // Use toLocaleString() to match MC/FO format: "MM/DD/YYYY, H:MM:SS AM/PM"
+            lastLoginElement.textContent = loginDate.toLocaleString('en-US');
+        } else {
+            lastLoginElement.textContent = '—';
         }
     } catch (error) {
         console.error('Error updating last login:', error);
-        const lastLoginElement = document.querySelector('.status-content .form-group:nth-child(2) .info-value');
+        const lastLoginElement = document.getElementById('lastLogin');
         if (lastLoginElement) {
-            lastLoginElement.textContent = 'Just now';
+            lastLoginElement.textContent = '—';
         }
     }
 }
 
-// Update session duration since last login
+// Update session duration since session start
 function updateSessionDuration() {
     try {
-        const sessionDurationElement = document.querySelector('.status-content .form-group:nth-child(3) .info-value');
+        const sessionDurationElement = document.getElementById('sessionDuration');
         if (!sessionDurationElement) return;
         
-        const lastLogin = localStorage.getItem('lastLogin');
-        if (lastLogin) {
-            const loginDate = new Date(lastLogin);
+        const sessionStartTime = localStorage.getItem('sessionStartTime');
+        if (sessionStartTime) {
+            const sessionStart = new Date(sessionStartTime);
             
-            if (isNaN(loginDate.getTime())) {
-                localStorage.setItem('lastLogin', new Date().toISOString());
-                sessionDurationElement.textContent = '0 seconds';
+            if (isNaN(sessionStart.getTime())) {
+                // Invalid session start time, reset it
+                const now = new Date();
+                localStorage.setItem('sessionStartTime', now.toISOString());
+                sessionDurationElement.textContent = '0s';
                 return;
             }
             
             const now = new Date();
-            let timeDiff = now - loginDate;
+            let timeDiff = now - sessionStart;
             
+            // Subtract hidden time (when page was in background)
             const hiddenTime = parseInt(localStorage.getItem('sessionHiddenTime') || '0');
             timeDiff -= hiddenTime;
             
@@ -480,79 +535,38 @@ function updateSessionDuration() {
             const minutes = Math.floor((timeDiff % 3600000) / 60000);
             const seconds = Math.floor((timeDiff % 60000) / 1000);
             
+            // Use abbreviated format to match MC/FO: "Xh Ym" or "Ym" or "Xs"
             let durationText;
             if (hours > 0) {
-                durationText = `${hours} hour${hours > 1 ? 's' : ''} ${minutes} minute${minutes > 1 ? 's' : ''}`;
+                durationText = `${hours}h ${minutes}m`;
             } else if (minutes > 0) {
-                durationText = `${minutes} minute${minutes > 1 ? 's' : ''} ${seconds} second${seconds > 1 ? 's' : ''}`;
+                durationText = `${minutes}m`;
             } else {
-                durationText = `${seconds} second${seconds > 1 ? 's' : ''}`;
+                durationText = `${seconds}s`;
             }
             
             sessionDurationElement.textContent = durationText;
+        } else {
+            // No session start time, show 0
+            sessionDurationElement.textContent = '0s';
         }
     } catch (error) {
         console.error('Error updating session duration:', error);
-        const sessionDurationElement = document.querySelector('.status-content .form-group:nth-child(3) .info-value');
+        const sessionDurationElement = document.getElementById('sessionDuration');
         if (sessionDurationElement) {
-            sessionDurationElement.textContent = '0 seconds';
-        }
-    }
-}
-
-// Update login attempts display
-function updateLoginAttempts() {
-    try {
-        const loginAttemptsElement = document.querySelector('.status-content .form-group:nth-child(4) .info-value');
-        if (!loginAttemptsElement) return;
-        
-        const loginAttempts = JSON.parse(localStorage.getItem('loginAttempts') || '{}');
-        const successful = loginAttempts.successful || 1;
-        const failed = loginAttempts.failed || 0;
-        
-        if (typeof successful !== 'number' || typeof failed !== 'number' || 
-            successful < 0 || failed < 0) {
-            localStorage.setItem('loginAttempts', JSON.stringify({
-                successful: 1,
-                failed: 0,
-                lastAttempt: new Date().toISOString()
-            }));
-            loginAttemptsElement.textContent = '1 (Successful)';
-            return;
-        }
-        
-        let attemptsText;
-        if (failed === 0) {
-            attemptsText = `${successful} (Successful)`;
-        } else {
-            attemptsText = `${successful + failed} (${successful} Successful, ${failed} Failed)`;
-        }
-        
-        loginAttemptsElement.textContent = attemptsText;
-    } catch (error) {
-        console.error('Error updating login attempts:', error);
-        const loginAttemptsElement = document.querySelector('.status-content .form-group:nth-child(4) .info-value');
-        if (loginAttemptsElement) {
-            loginAttemptsElement.textContent = '1 (Successful)';
+            sessionDurationElement.textContent = '0s';
         }
     }
 }
 
 // Record successful login
 function recordSuccessfulLogin() {
-    const loginAttempts = JSON.parse(localStorage.getItem('loginAttempts') || '{}');
-    loginAttempts.successful = (loginAttempts.successful || 0) + 1;
-    loginAttempts.lastAttempt = new Date().toISOString();
-    loginAttempts.lastSuccessfulAttempt = new Date().toISOString();
-    
-    localStorage.setItem('loginAttempts', JSON.stringify(loginAttempts));
     localStorage.setItem('lastLogin', new Date().toISOString());
     localStorage.setItem('sessionStartTime', new Date().toISOString());
     
     updateSecurityStatus();
     updateLastLogin();
     updateSessionDuration();
-    updateLoginAttempts();
 }
 
 // Setup all event listeners
