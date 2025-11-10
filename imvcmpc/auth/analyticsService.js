@@ -6,6 +6,101 @@ class AnalyticsService {
         this.pool = new Pool(config.database);
     }
 
+    // Get transaction count data for charts
+    async getTransactionCount(filters = {}, userRole = null, isMainBranch = false, branchId = '1') {
+        try {
+            const { startDate, endDate } = filters;
+            let query, params;
+            
+            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
+            const startDateFormatted = startDate; // YYYY-MM-DD format
+            const endDateFormatted = endDate; // YYYY-MM-DD format
+            
+            if (isMainBranch) {
+                // Main branch users see data from all branches
+                query = `
+                    SELECT 
+                        DATE_TRUNC('day', transaction_date) as date,
+                        COUNT(*) as transaction_count
+                    FROM ibaan_transactions 
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    GROUP BY DATE_TRUNC('day', transaction_date)
+                    ORDER BY date
+                `;
+                params = [startDateFormatted, endDateFormatted];
+            } else {
+                // Non-main branch users see data from their specific branch
+                const branchTable = await this.getBranchTableName(branchId);
+                query = `
+                    SELECT 
+                        DATE_TRUNC('day', transaction_date) as date,
+                        COUNT(*) as transaction_count
+                    FROM ${branchTable} 
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    GROUP BY DATE_TRUNC('day', transaction_date)
+                    ORDER BY date
+                `;
+                params = [startDateFormatted, endDateFormatted];
+            }
+            
+            const result = await this.pool.query(query, params);
+            return result.rows;
+        } catch (error) {
+            console.error('Error fetching transaction count:', error);
+            return [];
+        }
+    }
+
+    // Get average transaction value data for charts
+    async getAverageTransactionValue(filters = {}, userRole = null, isMainBranch = false, branchId = '1') {
+        try {
+            const { startDate, endDate } = filters;
+            let query, params;
+            
+            const startDateFormatted = startDate;
+            const endDateFormatted = endDate;
+            
+            if (isMainBranch) {
+                query = `
+                    SELECT 
+                        DATE_TRUNC('day', transaction_date) as date,
+                        COALESCE(SUM(savings_deposits), 0) as total_savings,
+                        COALESCE(SUM(loan_receivables), 0) as total_loans,
+                        COUNT(*) as transaction_count,
+                        COALESCE(SUM(savings_deposits) / NULLIF(COUNT(*), 0), 0) as average_savings_per_transaction,
+                        COALESCE(SUM(loan_receivables) / NULLIF(COUNT(*), 0), 0) as average_loans_per_transaction
+                    FROM ibaan_transactions 
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    GROUP BY DATE_TRUNC('day', transaction_date)
+                    ORDER BY date
+                `;
+                params = [startDateFormatted, endDateFormatted];
+            } else {
+                const branchTable = await this.getBranchTableName(branchId);
+                query = `
+                    SELECT 
+                        DATE_TRUNC('day', transaction_date) as date,
+                        COALESCE(SUM(savings_deposits), 0) as total_savings,
+                        COALESCE(SUM(loan_receivables), 0) as total_loans,
+                        COUNT(*) as transaction_count,
+                        COALESCE(SUM(savings_deposits) / NULLIF(COUNT(*), 0), 0) as average_savings_per_transaction,
+                        COALESCE(SUM(loan_receivables) / NULLIF(COUNT(*), 0), 0) as average_loans_per_transaction
+                    FROM ${branchTable} 
+                    WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                    GROUP BY DATE_TRUNC('day', transaction_date)
+                    ORDER BY date
+                `;
+                params = [startDateFormatted, endDateFormatted];
+            }
+            
+            const result = await this.pool.query(query, params);
+            return result.rows;
+        } catch (error) {
+            console.error('Error fetching average transaction value:', error);
+            return [];
+        }
+    }
+
     // Get analytics summary data for the 4 main cards
     async getAnalyticsSummary(filters = {}, userRole = null, isMainBranch = false, branchId = '1') {
         try {

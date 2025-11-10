@@ -533,7 +533,7 @@
 }
 
 .chart-header h3 {
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: #0D5B11;
     margin: 0;
@@ -646,7 +646,7 @@
 }
 
 .branches-performance-header h3 {
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: #0D5B11;
     margin: 0;
@@ -777,28 +777,32 @@
     color: #0D5B11;
 }
 
-.branch-net-position {
+.branch-card .branch-net-position {
     text-align: center;
     padding: 0.6rem;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 6px;
     border: 2px solid;
     margin-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-.branch-net-position.positive {
-    border-color: #22C55E;
-    background: rgba(34, 197, 94, 0.05);
+.branch-card .branch-net-position.positive {
+    border-color: #0B5E1C;
+    background: rgba(11, 94, 28, 0.05);
 }
 
-.branch-net-position.negative {
+.branch-card .branch-net-position.negative {
     border-color: #EF4444;
     background: rgba(239, 68, 68, 0.05);
 }
 
-.branch-net-position.neutral {
-    border-color: #6B7280;
-    background: rgba(107, 114, 128, 0.05);
+.branch-card .branch-net-position.neutral {
+    border-color: #E5E7EB;
+    background: var(--white);
 }
 
 .branch-net-label {
@@ -816,7 +820,7 @@
 }
 
 .branch-net-value.positive {
-    color: #22C55E;
+    color: #0B5E1C;
 }
 
 .branch-net-value.negative {
@@ -857,15 +861,18 @@
     color: #0D5B11;
 }
 
-.branch-rank {
-    background: linear-gradient(135deg, #0D5B11, #187C19);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 10px;
+.branch-card .branch-rank {
+    background: white;
+    color: #0B5E1C;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     font-size: 0.65rem;
     font-weight: 600;
-    text-align: center;
-    min-width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #8DC71E;
 }
 
 /* Mobile Responsive for Branches Performance */
@@ -1015,6 +1022,34 @@
 }
 
 .table-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+    transform: scale(1.05);
+}
+
+/* Insight button styling (for analytics page insight cards) */
+.insight-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.insight-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: #f3f4f6;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.insight-btn:hover {
     background: #e5e7eb;
     color: #374151;
     transform: scale(1.05);

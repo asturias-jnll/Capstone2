@@ -41,6 +41,78 @@ router.get('/summary',
     }
 );
 
+// Get transaction count data
+router.get('/transaction-count',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role_display_name;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getTransactionCount(filters, userRole, isMainBranchUser, userBranchId);
+            
+            res.json({
+                success: true,
+                data: data
+            });
+        } catch (error) {
+            console.error('Transaction count error:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
+// Get average transaction value data
+router.get('/average-transaction-value',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const analyticsService = require('./analyticsService');
+            const service = new analyticsService();
+            
+            // Extract parameters from query
+            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const userRole = req.user?.role_display_name;
+            const isMainBranchUser = isMainBranch === 'true';
+            const userBranchId = branchId || '1';
+            
+            // Prepare filters
+            const filters = {
+                startDate: startDate || new Date().toISOString().split('T')[0],
+                endDate: endDate || new Date().toISOString().split('T')[0]
+            };
+            
+            const data = await service.getAverageTransactionValue(filters, userRole, isMainBranchUser, userBranchId);
+            
+            res.json({
+                success: true,
+                data: data
+            });
+        } catch (error) {
+            console.error('Average transaction value error:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+);
+
 // Get savings trend data
 router.get('/savings-trend',
     authenticateToken,

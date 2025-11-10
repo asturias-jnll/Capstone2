@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('./database');
 const { authenticateToken, checkRole } = require('./middleware');
+const AnalyticsService = require('./analyticsService');
 
 const router = express.Router();
 
@@ -335,6 +336,52 @@ router.get('/it-analytics/operations-breakdown', authenticateToken, checkRole('i
                 { label: 'password_change', value: 45 }
             ]
         });
+    }
+});
+
+/**
+ * GET /api/auth/it-analytics/transaction-count
+ * Get transaction count time series for IT Head
+ */
+router.get('/it-analytics/transaction-count', authenticateToken, checkRole('it_head'), async (req, res) => {
+    try {
+        const service = new AnalyticsService();
+        const { startDate, endDate, branchId, isMainBranch } = req.query;
+        const userRole = req.user?.role_display_name;
+        const isMainBranchUser = isMainBranch === 'true';
+        const userBranchId = branchId || '1';
+        const filters = {
+            startDate: startDate || new Date().toISOString().split('T')[0],
+            endDate: endDate || new Date().toISOString().split('T')[0]
+        };
+        const data = await service.getTransactionCount(filters, userRole, isMainBranchUser, userBranchId);
+        res.json({ success: true, data });
+    } catch (error) {
+        console.error('IT Head transaction count error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/auth/it-analytics/average-transaction-value
+ * Get average transaction value time series for IT Head
+ */
+router.get('/it-analytics/average-transaction-value', authenticateToken, checkRole('it_head'), async (req, res) => {
+    try {
+        const service = new AnalyticsService();
+        const { startDate, endDate, branchId, isMainBranch } = req.query;
+        const userRole = req.user?.role_display_name;
+        const isMainBranchUser = isMainBranch === 'true';
+        const userBranchId = branchId || '1';
+        const filters = {
+            startDate: startDate || new Date().toISOString().split('T')[0],
+            endDate: endDate || new Date().toISOString().split('T')[0]
+        };
+        const data = await service.getAverageTransactionValue(filters, userRole, isMainBranchUser, userBranchId);
+        res.json({ success: true, data });
+    } catch (error) {
+        console.error('IT Head average transaction value error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
