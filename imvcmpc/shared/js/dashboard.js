@@ -196,7 +196,6 @@ async function loadDashboardData() {
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         hideLoadingState();
-        showNotification('Failed to load dashboard data', 'error');
     }
 }
 
