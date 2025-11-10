@@ -10,12 +10,12 @@ const mcdaService = new MCDAService();
 const aiService = new AIRecommendationService({
   AI_ENABLED: process.env.AI_ENABLED,
   AI_PROVIDER: process.env.AI_PROVIDER,
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   AI_API_KEY: process.env.AI_API_KEY,
   AI_MODEL: process.env.AI_MODEL,
   AI_MAX_TOKENS: process.env.AI_MAX_TOKENS,
-  AI_TEMPERATURE: process.env.AI_TEMPERATURE
+  AI_TEMPERATURE: process.env.AI_TEMPERATURE,
+  AI_TIMEOUT: process.env.AI_TIMEOUT
 });
 const pdfService = new PDFService();
 
@@ -68,7 +68,7 @@ router.get('/test-ai',
 // Generate AI recommendations (MCDA + optional LLM)
 router.post('/reports/generate-ai-recommendations',
   authenticateToken,
-  checkRole(['marketing_clerk', 'finance_officer']),
+  checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
   auditLog('generate_ai_recommendations', 'reports'),
   async (req, res) => {
     try {

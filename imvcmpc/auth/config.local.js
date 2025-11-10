@@ -91,9 +91,9 @@ const config = {
     // AI Configuration
     ai: {
         enabled: process.env.AI_ENABLED === 'true',
-        provider: process.env.AI_PROVIDER || 'openai',
-        apiKey: process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.AI_API_KEY || '',
-        model: process.env.AI_MODEL || 'gpt-4-turbo-preview',
+        provider: process.env.AI_PROVIDER || 'anthropic',
+        apiKey: process.env.ANTHROPIC_API_KEY || process.env.AI_API_KEY || '',
+        model: process.env.AI_MODEL || 'claude-3-5-sonnet-20241022',
         maxTokens: parseInt(process.env.AI_MAX_TOKENS || '2000', 10),
         temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7')
     }
