@@ -256,6 +256,10 @@ async function validateMemberExists(memberName) {
 async function initializeReports() {
     setupReportTypeDropdown();
     setupReportTypeSelector();
+    
+    // Populate branch checkboxes dynamically before setting up branch selection
+    await populateBranchCheckboxes();
+    
     setupBranchSelection();
     setupTransactionTypeButtons();
     setupDateRangeFilter();
@@ -799,17 +803,80 @@ function showGenerateButton() {
     }
 }
 
+// Populate branch checkboxes dynamically from database
+async function populateBranchCheckboxes() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.error('No access token found for populating branch checkboxes');
+            return;
+        }
+
+        // Fetch branches from API
+        const response = await fetch('/api/auth/branches', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            console.error('Failed to fetch branches:', response.status);
+            return;
+        }
+
+        const result = await response.json();
+        if (!result.success || !result.branches || result.branches.length === 0) {
+            console.log('No branches found');
+            return;
+        }
+
+        // Find all branch-grid containers (there may be multiple in different config sections)
+        const branchGrids = document.querySelectorAll('.branch-grid');
+        
+        if (branchGrids.length === 0) {
+            console.log('No branch-grid containers found');
+            return;
+        }
+
+        // Generate checkbox HTML for each branch
+        const branchCheckboxesHTML = result.branches.map(branch => {
+            // Determine display name: Main Branch for id=1, otherwise Branch [id]
+            const displayName = branch.id === 1 ? 'Main Branch' : `Branch ${branch.id}`;
+            const branchValue = `branch${branch.id}`;
+            
+            return `
+                <label class="branch-checkbox">
+                    <input type="checkbox" name="branchSelection" value="${branchValue}">
+                    <span class="checkmark">
+                        <span class="branch-name">${displayName}</span>
+                        <span class="branch-location">${branch.location}</span>
+                    </span>
+                </label>
+            `;
+        }).join('');
+
+        // Populate all branch-grid containers
+        branchGrids.forEach(grid => {
+            grid.innerHTML = branchCheckboxesHTML;
+        });
+
+        console.log(`Populated ${result.branches.length} branch checkboxes`);
+    } catch (error) {
+        console.error('Error populating branch checkboxes:', error);
+    }
+}
+
 // Setup branch selection functionality (only for main branch users)
 function setupBranchSelection() {
     const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
     
     // Only setup branch selection for main branch users
     if (isMainBranchUser) {
-        const branchCheckboxes = document.querySelectorAll('.branch-checkbox input[type="checkbox"]');
-        branchCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
+        // Use event delegation since checkboxes are dynamically populated
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.name === 'branchSelection' && e.target.type === 'checkbox') {
                 console.log('Branch selection changed for main branch user');
-            });
+            }
         });
     }
 }

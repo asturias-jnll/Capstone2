@@ -1,25 +1,76 @@
 // Shared Top Bar Functionality
 // This file handles dynamic updates for the top bar across all pages
 
-// Branch mapping for all branches
-const branchData = {
-    '1': { name: 'Main Branch', location: 'IBAAN', contact: '+63 43 123 4567', isMain: true },
-    '2': { name: 'Branch 2', location: 'BAUAN', contact: '+63 43 234 5678', isMain: false },
-    '3': { name: 'Branch 3', location: 'SAN JOSE', contact: '+63 43 345 6789', isMain: false },
-    '4': { name: 'Branch 4', location: 'ROSARIO', contact: '+63 43 456 7890', isMain: false },
-    '5': { name: 'Branch 5', location: 'SAN JUAN', contact: '+63 43 567 8901', isMain: false },
-    '6': { name: 'Branch 6', location: 'PADRE GARCIA', contact: '+63 43 678 9012', isMain: false },
-    '7': { name: 'Branch 7', location: 'LIPA CITY', contact: '+63 43 789 0123', isMain: false },
-    '8': { name: 'Branch 8', location: 'BATANGAS CITY', contact: '+63 43 890 1234', isMain: false },
-    '9': { name: 'Branch 9', location: 'MABINI LIPA', contact: '+63 43 901 2345', isMain: false },
-    '10': { name: 'Branch 10', location: 'CALAMIAS', contact: '+63 43 012 3456', isMain: false },
-    '11': { name: 'Branch 11', location: 'LEMERY', contact: '+63 43 123 4567', isMain: false },
-    '12': { name: 'Branch 12', location: 'MATAAS NA KAHOY', contact: '+63 43 234 5678', isMain: false },
-    '13': { name: 'Branch 13', location: 'TANAUAN', contact: '+63 43 345 6789', isMain: false }
-};
+// Cache for branch data to avoid repeated API calls
+let branchDataCache = null;
+let branchDataPromise = null;
+
+// Fetch branch data from API
+async function fetchBranchData() {
+    // Return cached data if available
+    if (branchDataCache) {
+        return branchDataCache;
+    }
+    
+    // Return existing promise if already fetching
+    if (branchDataPromise) {
+        return branchDataPromise;
+    }
+    
+    // Create new fetch promise
+    branchDataPromise = (async () => {
+        try {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                console.warn('No access token found for fetching branch data');
+                return {};
+            }
+
+            const response = await fetch('/api/auth/branches', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch branches:', response.status);
+                return {};
+            }
+
+            const result = await response.json();
+            if (!result.success || !result.branches || result.branches.length === 0) {
+                console.log('No branches found');
+                return {};
+            }
+
+            // Convert array to object keyed by branch ID
+            const branchData = {};
+            result.branches.forEach(branch => {
+                branchData[branch.id.toString()] = {
+                    name: branch.name,
+                    location: branch.location,
+                    contact: branch.contact_number || '+63 43 123 4567',
+                    isMain: branch.is_main_branch || false
+                };
+            });
+
+            // Cache the data
+            branchDataCache = branchData;
+            return branchData;
+        } catch (error) {
+            console.error('Error fetching branch data:', error);
+            return {};
+        } finally {
+            // Clear promise so we can retry if needed
+            branchDataPromise = null;
+        }
+    })();
+    
+    return branchDataPromise;
+}
 
 // Function to get user data from multiple sources
-function getUserData() {
+async function getUserData() {
     console.log('=== GETTING USER DATA FOR TOPBAR ===');
     
     // Try to get from localStorage first
@@ -36,8 +87,10 @@ function getUserData() {
     console.log('- user_branch_location:', userBranchLocation);
     console.log('- is_main_branch_user:', isMainBranchUser);
 
-    // FIX: Correct the branch data based on location
+    // FIX: Correct the branch data based on location (fetch from API)
     if (userBranchLocation) {
+        const branchData = await fetchBranchData();
+        
         // Find the correct branch ID based on location
         const correctBranch = Object.entries(branchData).find(([id, data]) => 
             data.location === userBranchLocation
@@ -107,10 +160,10 @@ function getUserData() {
 }
 
 // Function to update top bar information
-function updateTopBar() {
+async function updateTopBar() {
     console.log('=== UPDATING TOP BAR ===');
     
-    const userData = getUserData();
+    const userData = await getUserData();
     const { userRole, userBranchId, userBranchLocation, isMainBranchUser } = userData;
 
     // Update Header - FIXED FORMAT

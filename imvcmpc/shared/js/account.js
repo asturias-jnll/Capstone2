@@ -216,6 +216,44 @@ function updatePermissions(userRole, isMainBranch) {
     }
 }
 
+// Fetch branch contact information from API
+async function fetchBranchContact(branchId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.warn('No access token found for fetching branch contact');
+            return '+63 43 123 4567';
+        }
+
+        const response = await fetch('/api/auth/branches', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            console.error('Failed to fetch branches:', response.status);
+            return '+63 43 123 4567';
+        }
+
+        const result = await response.json();
+        if (!result.success || !result.branches || result.branches.length === 0) {
+            return '+63 43 123 4567';
+        }
+
+        // Find the branch by ID
+        const branch = result.branches.find(b => b.id.toString() === branchId.toString());
+        if (branch && branch.contact_number) {
+            return branch.contact_number;
+        }
+
+        return '+63 43 123 4567';
+    } catch (error) {
+        console.error('Error fetching branch contact:', error);
+        return '+63 43 123 4567';
+    }
+}
+
 // Update branch information in account details
 function updateBranchInformation(branchId, branchName, branchLocation, isMainBranch) {
     // Update branch name - format as "Main Branch", "Branch 2", "Branch 3", etc.
@@ -230,25 +268,13 @@ function updateBranchInformation(branchId, branchName, branchLocation, isMainBra
     // Update branch location
     updateElement('branchLocation', `${branchLocation}, Batangas`);
     
-    // Update branch contact based on branch
-    const branchContacts = {
-        '1': '+63 43 123 4567', // IBAAN
-        '2': '+63 43 234 5678', // BAUAN
-        '3': '+63 43 345 6789', // SAN JOSE
-        '4': '+63 43 456 7890', // ROSARIO
-        '5': '+63 43 567 8901', // SAN JUAN
-        '6': '+63 43 678 9012', // PADRE GARCIA
-        '7': '+63 43 789 0123', // LIPA CITY
-        '8': '+63 43 890 1234', // BATANGAS CITY
-        '9': '+63 43 901 2345', // MABINI LIPA
-        '10': '+63 43 012 3456', // CALAMIAS
-        '11': '+63 43 123 4567', // LEMERY
-        '12': '+63 43 234 5678',  // MATAAS NA KAHOY
-        '13': '+63 43 345 6789'   // TANAUAN
-    };
-    
-    const contact = branchContacts[branchId] || '+63 43 123 4567';
-    updateElement('branchContact', contact);
+    // Fetch branch contact from API
+    fetchBranchContact(branchId).then(contact => {
+        updateElement('branchContact', contact || '+63 43 123 4567');
+    }).catch(error => {
+        console.error('Error fetching branch contact:', error);
+        updateElement('branchContact', '+63 43 123 4567');
+    });
     
     // Update operation days
     updateElement('branchOperationDays', 'Monday - Friday');

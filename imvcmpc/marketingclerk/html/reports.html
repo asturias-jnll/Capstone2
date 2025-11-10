@@ -315,97 +315,7 @@
                             <div class="branch-selection">
                                 <label>Select Branches (Multiple)</label>
                                 <div class="branch-grid">
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch1">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 1</span>
-                                            <span class="branch-location">IBAAN</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch2">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 2</span>
-                                            <span class="branch-location">BAUAN</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch3">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 3</span>
-                                            <span class="branch-location">SAN JOSE</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch4">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 4</span>
-                                            <span class="branch-location">ROSARIO</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch5">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 5</span>
-                                            <span class="branch-location">SAN JUAN</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch6">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 6</span>
-                                            <span class="branch-location">PADRE GARCIA</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch7">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 7</span>
-                                            <span class="branch-location">LIPA CITY</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch8">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 8</span>
-                                            <span class="branch-location">BATANGAS CITY</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch9">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 9</span>
-                                            <span class="branch-location">MABINI LIPA</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch10">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 10</span>
-                                            <span class="branch-location">CALAMIAS</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch11">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 11</span>
-                                            <span class="branch-location">LEMERY</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch12">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 12</span>
-                                            <span class="branch-location">MATAAS NA KAHOY</span>
-                                        </span>
-                                    </label>
-                                    <label class="branch-checkbox">
-                                        <input type="checkbox" name="branchSelection" value="branch13">
-                                        <span class="checkmark">
-                                            <span class="branch-name">Branch 13</span>
-                                            <span class="branch-location">TANAUAN</span>
-                                        </span>
-                                    </label>
+                                    <!-- Branches will be populated dynamically -->
                                 </div>
                             </div>
                             <div class="branch-config-row">
@@ -504,36 +414,56 @@
             let userBranchLocation = localStorage.getItem('user_branch_location');
             let isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
 
-            // Correct the branch data based on location (same logic as topbar)
+            // Correct the branch data based on location (fetch from API)
             if (userBranchLocation) {
-                const branchData = {
-                    '1': { name: 'Main Branch', location: 'IBAAN', isMain: true },
-                    '2': { name: 'Branch 2', location: 'BAUAN', isMain: false },
-                    '3': { name: 'Branch 3', location: 'SAN JOSE', isMain: false },
-                    '4': { name: 'Branch 4', location: 'ROSARIO', isMain: false },
-                    '5': { name: 'Branch 5', location: 'SAN JUAN', isMain: false },
-                    '6': { name: 'Branch 6', location: 'PADRE GARCIA', isMain: false },
-                    '7': { name: 'Branch 7', location: 'LIPA CITY', isMain: false },
-                    '8': { name: 'Branch 8', location: 'BATANGAS CITY', isMain: false },
-                    '9': { name: 'Branch 9', location: 'MABINI LIPA', isMain: false },
-                    '10': { name: 'Branch 10', location: 'CALAMIAS', isMain: false },
-                    '11': { name: 'Branch 11', location: 'LEMERY', isMain: false },
-                    '12': { name: 'Branch 12', location: 'MATAAS NA KAHOY', isMain: false },
-                    '13': { name: 'Branch 13', location: 'TANAUAN', isMain: false }
-                };
-
-                const correctBranch = Object.entries(branchData).find(([id, data]) => 
-                    data.location === userBranchLocation
-                );
+                // Fetch branch data from API
+                fetch('/api/auth/branches', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success && result.branches) {
+                        // Find branch by location
+                        const correctBranch = result.branches.find(b => 
+                            b.location === userBranchLocation
+                        );
+                        
+                        if (correctBranch) {
+                            userBranchId = correctBranch.id.toString();
+                            userBranchName = correctBranch.name;
+                            isMainBranchUser = correctBranch.is_main_branch || false;
+                            
+                            // Update localStorage with corrected values
+                            localStorage.setItem('user_branch_id', userBranchId);
+                            localStorage.setItem('user_branch_name', userBranchName);
+                            localStorage.setItem('is_main_branch_user', isMainBranchUser.toString());
+                            
+                            // Continue with toggle logic
+                            continueToggleBranchReports(userBranchId, userBranchName, isMainBranchUser);
+                        } else {
+                            continueToggleBranchReports(userBranchId, userBranchName, isMainBranchUser);
+                        }
+                    } else {
+                        continueToggleBranchReports(userBranchId, userBranchName, isMainBranchUser);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching branch data:', error);
+                    continueToggleBranchReports(userBranchId, userBranchName, isMainBranchUser);
+                });
                 
-                if (correctBranch) {
-                    const [correctId, correctData] = correctBranch;
-                    userBranchId = correctId;
-                    userBranchName = correctData.name;
-                    isMainBranchUser = correctData.isMain;
-                }
+                return; // Exit early, continueToggleBranchReports will be called
             }
-
+            
+            // If no location, continue normally
+            continueToggleBranchReports(userBranchId, userBranchName, isMainBranchUser);
+        }
+        
+        // Helper function to continue with toggle logic after branch data is fetched
+        function continueToggleBranchReports(userBranchId, userBranchName, isMainBranchUser) {
+            const userBranchLocation = localStorage.getItem('user_branch_location');
             console.log('User is main branch:', isMainBranchUser);
             console.log('User branch location:', userBranchLocation);
 

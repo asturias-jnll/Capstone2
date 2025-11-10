@@ -657,62 +657,85 @@ class AnalyticsService {
             // Check if user is Finance Officer or IT Head to calculate net_interest_income instead of net_position
             const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
             
+            // Dynamically fetch all branches from database
+            const branchesResult = await this.pool.query(`
+                SELECT id, name, location, is_main_branch
+                FROM branches
+                ORDER BY id
+            `);
+            
+            if (branchesResult.rows.length === 0) {
+                console.log('No branches found in database');
+                return [];
+            }
+            
             // Get all branch data using UNION ALL to combine all branch tables
             const branchQueries = [];
             const allParams = [startDateFormatted, endDateFormatted];
-            let paramIndex = 3; // Start from $3 since $1 and $2 are used for dates
             
-            // Define all 13 branches with their details
-            const branches = [
-                { id: '1', name: 'Main Branch', location: 'IBAAN', table: 'ibaan_transactions' },
-                { id: '2', name: 'Bauan Branch', location: 'BAUAN', table: 'bauan_transactions' },
-                { id: '3', name: 'San Jose Branch', location: 'SAN JOSE', table: 'sanjose_transactions' },
-                { id: '4', name: 'Rosario Branch', location: 'ROSARIO', table: 'rosario_transactions' },
-                { id: '5', name: 'San Juan Branch', location: 'SAN JUAN', table: 'sanjuan_transactions' },
-                { id: '6', name: 'Padre Garcia Branch', location: 'PADRE GARCIA', table: 'padregarcia_transactions' },
-                { id: '7', name: 'Lipa City Branch', location: 'LIPA CITY', table: 'lipacity_transactions' },
-                { id: '8', name: 'Batangas City Branch', location: 'BATANGAS CITY', table: 'batangascity_transactions' },
-                { id: '9', name: 'Mabini Lipa Branch', location: 'MABINI LIPA', table: 'mabinilipa_transactions' },
-                { id: '10', name: 'Calamias Branch', location: 'CALAMIAS', table: 'calamias_transactions' },
-                { id: '11', name: 'Lemery Branch', location: 'LEMERY', table: 'lemery_transactions' },
-                { id: '12', name: 'Mataas Na Kahoy Branch', location: 'MATAAS NA KAHOY', table: 'mataasnakahoy_transactions' },
-                { id: '13', name: 'Tanauan Branch', location: 'TANAUAN', table: 'tanauan_transactions' }
-            ];
-            
-            // Build UNION query for all branches
-            branches.forEach((branch, index) => {
-                let branchQuery;
-                if (isFinanceOfficer) {
-                    branchQuery = `
-                        SELECT 
-                            '${branch.id}' as branch_id,
-                            '${branch.name}' as branch_name,
-                            '${branch.location}' as branch_location,
-                            COALESCE(SUM(savings_deposits), 0) as total_savings,
-                            COALESCE(SUM(loan_receivables), 0) as total_disbursements,
-                            COALESCE(SUM(interest_income), 0) as net_interest_income,
-                            COUNT(DISTINCT payee) as active_members,
-                            COUNT(*) as total_transactions
-                        FROM ${branch.table} 
-                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
-                    `;
-                } else {
-                    branchQuery = `
-                        SELECT 
-                            '${branch.id}' as branch_id,
-                            '${branch.name}' as branch_name,
-                            '${branch.location}' as branch_location,
-                            COALESCE(SUM(savings_deposits), 0) as total_savings,
-                            COALESCE(SUM(loan_receivables), 0) as total_disbursements,
-                            COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_position,
-                            COUNT(DISTINCT payee) as active_members,
-                            COUNT(*) as total_transactions
-                        FROM ${branch.table} 
-                        WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
-                    `;
+            // Build UNION query for all branches dynamically
+            for (const branch of branchesResult.rows) {
+                try {
+                    // Get transaction table name for this branch
+                    const tableName = await this.getBranchTableName(branch.id.toString());
+                    
+                    // Check if table exists before adding to query
+                    const tableExists = await this.pool.query(`
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_schema = 'public' 
+                            AND table_name = $1
+                        )
+                    `, [tableName]);
+                    
+                    if (!tableExists.rows[0].exists) {
+                        console.log(`Transaction table ${tableName} does not exist for branch ${branch.id}, skipping`);
+                        continue;
+                    }
+                    
+                    let branchQuery;
+                    if (isFinanceOfficer) {
+                        branchQuery = `
+                            SELECT 
+                                '${branch.id}' as branch_id,
+                                '${branch.name}' as branch_name,
+                                '${branch.location}' as branch_location,
+                                COALESCE(SUM(savings_deposits), 0) as total_savings,
+                                COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                                COALESCE(SUM(interest_income), 0) as net_interest_income,
+                                COUNT(DISTINCT payee) as active_members,
+                                COUNT(*) as total_transactions
+                            FROM ${tableName}
+                            WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        `;
+                    } else {
+                        branchQuery = `
+                            SELECT 
+                                '${branch.id}' as branch_id,
+                                '${branch.name}' as branch_name,
+                                '${branch.location}' as branch_location,
+                                COALESCE(SUM(savings_deposits), 0) as total_savings,
+                                COALESCE(SUM(loan_receivables), 0) as total_disbursements,
+                                COALESCE(SUM(savings_deposits) - SUM(loan_receivables), 0) as net_position,
+                                COUNT(DISTINCT payee) as active_members,
+                                COUNT(*) as total_transactions
+                            FROM ${tableName}
+                            WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
+                        `;
+                    }
+                    branchQueries.push(branchQuery);
+                } catch (error) {
+                    console.error(`Error processing branch ${branch.id} (${branch.name}):`, error.message);
+                    // Continue with other branches even if one fails
+                    continue;
                 }
-                branchQueries.push(branchQuery);
-            });
+            }
+            
+            // If no valid branch queries, return empty array
+            if (branchQueries.length === 0) {
+                console.log('No valid branch transaction tables found');
+                return [];
+            }
             
             // Combine all branch queries with UNION ALL
             const finalQuery = branchQueries.join(' UNION ALL ');
