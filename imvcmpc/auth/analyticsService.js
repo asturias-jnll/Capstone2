@@ -118,8 +118,9 @@ class AnalyticsService {
             }
 
             const location = result.rows[0].location;
-            // Format location to table name: "LOBO" -> "lobo_transactions"
-            const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '_')}_transactions`;
+            // Format location to table name: "LIPA CITY" -> "lipacity_transactions"
+            // Remove all non-alphanumeric characters (including spaces) and convert to lowercase
+            const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '')}_transactions`;
             
             return tableName;
         } finally {

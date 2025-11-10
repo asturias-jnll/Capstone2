@@ -3273,12 +3273,24 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
         window.currentReportData = null;
         window.currentReportType = null;
         
-        // 3. Deactivate all report type buttons
+        // 3. Clear report request ID to prevent it from being used in subsequent saves
+        // This ensures that after sending a requested report, any new reports are treated as independent saves
+        window.currentReportRequestId = null;
+        
+        // 4. Clear URL parameters if present (requestId)
+        // Reuse urlParams from earlier in the function to avoid redeclaration
+        if (urlParams.has('requestId')) {
+            urlParams.delete('requestId');
+            const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+            window.history.replaceState({}, '', newUrl);
+        }
+        
+        // 5. Deactivate all report type buttons
         document.querySelectorAll('.report-type-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         
-        // 4. Clear the specific report type configuration (without showing message)
+        // 6. Clear the specific report type configuration (without showing message)
         try {
             switch (reportType) {
                 case 'savings':
@@ -3298,7 +3310,7 @@ window.sendToMarketingClerk = async function sendToMarketingClerk() {
             console.error('Error clearing configuration:', error);
         }
         
-        // 5. Return to history view
+        // 7. Return to history view
         hideReportConfiguration();
         
     } catch (error) {
@@ -4368,6 +4380,18 @@ function showReportConfiguration() {
 async function hideReportConfiguration() {
     window.inConfigurationMode = false;
     
+    // Clear report request ID when hiding configuration to ensure clean state
+    // This prevents old request IDs from being used in subsequent report generations
+    window.currentReportRequestId = null;
+    
+    // Clear URL parameters if present (requestId)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('requestId')) {
+        urlParams.delete('requestId');
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.history.replaceState({}, '', newUrl);
+    }
+    
     // Hide report configuration section first
     const reportConfig = document.querySelector('.report-config');
     if (reportConfig) {
@@ -4699,6 +4723,9 @@ function toggleReportTypeMenu() {
     }
 }
 
+// Make toggleReportTypeMenu available immediately (before DOMContentLoaded)
+window.toggleReportTypeMenu = toggleReportTypeMenu;
+
 // Select report type from dropdown
 function selectReportType(type) {
     const menu = document.getElementById('reportTypeMenu');
@@ -4759,6 +4786,6 @@ function selectReportType(type) {
 // Make functions globally available
 window.showReportConfiguration = showReportConfiguration;
 window.selectMember = selectMember;
-window.toggleReportTypeMenu = toggleReportTypeMenu;
+// toggleReportTypeMenu is already made available above (line 4727)
 window.selectReportType = selectReportType;
 

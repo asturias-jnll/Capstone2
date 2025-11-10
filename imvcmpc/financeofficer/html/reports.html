@@ -17,13 +17,22 @@
             }
             
             // Check for report request and add class to body to prevent any flashes
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlRequestId = urlParams.get('requestId');
-            const raw = sessionStorage.getItem('report_request_prefill');
-            
-            if (urlRequestId || raw) {
-                document.body.classList.add('report-request-mode');
+            // Wait for document.body to be available
+            function addReportRequestModeClass() {
+                if (document.body) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const urlRequestId = urlParams.get('requestId');
+                    const raw = sessionStorage.getItem('report_request_prefill');
+                    
+                    if (urlRequestId || raw) {
+                        document.body.classList.add('report-request-mode');
+                    }
+                } else {
+                    // If body is not ready, wait for DOMContentLoaded
+                    document.addEventListener('DOMContentLoaded', addReportRequestModeClass);
+                }
             }
+            addReportRequestModeClass();
         })();
     </script>
     <style>

@@ -599,8 +599,9 @@ class AuthService {
     // Create transaction table for a new branch
     async createBranchTransactionTable(location) {
         try {
-            // Format table name: lowercase location with underscores, append _transactions
-            const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '_')}_transactions`;
+            // Format table name: lowercase location without spaces/special chars, append _transactions
+            // "LIPA CITY" -> "lipacity_transactions"
+            const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '')}_transactions`;
 
             // Create the transaction table with the same schema as other branch tables
             await db.query(`
