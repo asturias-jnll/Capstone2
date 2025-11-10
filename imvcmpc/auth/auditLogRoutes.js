@@ -268,7 +268,12 @@ router.get('/audit-logs/:id', authenticateToken, checkRole('it_head'), async (re
                     al.user_agent,
                     al.status,
                     al.created_at as timestamp,
-                    b.name as branch_name
+                    b.name as branch_name,
+                    CASE 
+                        WHEN al.action IN ('deactivate_user', 'reactivate_user') AND al.resource_id IS NOT NULL THEN
+                            (SELECT b2.name FROM users u2 LEFT JOIN branches b2 ON u2.branch_id = b2.id WHERE u2.id::text = al.resource_id::text)
+                        ELSE NULL
+                    END as affected_user_branch
                 FROM audit_logs al
                 LEFT JOIN users u ON al.user_id = u.id
                 LEFT JOIN branches b ON al.branch_id = b.id

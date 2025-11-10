@@ -318,6 +318,31 @@ const auditLog = (action, resource = null) => {
                             };
                         } else if (action === 'change_password') {
                             details.password_changed = true;
+                        } else if (finalAction === 'add_user' && req.body) {
+                            // Store branch information for add_user action
+                            if (req.body.marketingClerk && req.body.marketingClerk.branch) {
+                                details.branch_added = req.body.marketingClerk.branch;
+                            } else if (req.body.financeOfficer && req.body.financeOfficer.branch) {
+                                details.branch_added = req.body.financeOfficer.branch;
+                            }
+                        } else if ((finalAction === 'deactivate_user' || finalAction === 'reactivate_user') && req.params) {
+                            // Get branch of the user being deactivated/reactivated
+                            try {
+                                const userBranchResult = await db.query(`
+                                    SELECT b.name as branch_name, b.location as branch_location
+                                    FROM users u
+                                    LEFT JOIN branches b ON u.branch_id = b.id
+                                    WHERE u.id = $1
+                                `, [req.params.userId]);
+                                if (userBranchResult.rows.length > 0 && userBranchResult.rows[0].branch_name) {
+                                    details.affected_branch = userBranchResult.rows[0].branch_name;
+                                    if (userBranchResult.rows[0].branch_location) {
+                                        details.affected_branch_location = userBranchResult.rows[0].branch_location;
+                                    }
+                                }
+                            } catch (err) {
+                                console.warn('Could not fetch branch for deactivate/reactivate:', err);
+                            }
                         }
                         
                         await db.query(`

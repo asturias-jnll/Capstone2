@@ -417,6 +417,22 @@ async function showLogDetails(logId) {
         const data = await response.json();
         
         if (data.success && data.log) {
+            // Use affected_user_branch from backend if available, otherwise try to get from details
+            if ((data.log.action === 'deactivate_user' || data.log.action === 'reactivate_user') && data.log.affected_user_branch) {
+                try {
+                    const parsedDetails = typeof data.log.details === 'string' ? JSON.parse(data.log.details) : data.log.details;
+                    if (!parsedDetails.affected_branch) {
+                        parsedDetails.affected_branch = data.log.affected_user_branch;
+                        data.log.details = parsedDetails;
+                    }
+                } catch (err) {
+                    // If details is not an object, create one
+                    if (data.log.affected_user_branch) {
+                        data.log.details = JSON.stringify({ affected_branch: data.log.affected_user_branch });
+                    }
+                }
+            }
+            
             displayLogDetails(data.log);
         } else {
             throw new Error('Log not found');
@@ -431,6 +447,33 @@ async function showLogDetails(logId) {
 // Display log details in modal
 function displayLogDetails(log) {
     const detailsContent = document.getElementById('detailsContent');
+    
+    // Parse details JSON if it exists
+    let parsedDetails = {};
+    if (log.details) {
+        try {
+            parsedDetails = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+        } catch (e) {
+            console.warn('Failed to parse log details:', e);
+        }
+    }
+    
+    // Get branch information for add/deactivate/reactivate actions
+    let affectedBranch = null;
+    if (log.action === 'add_user' || log.action === 'deactivate_user' || log.action === 'reactivate_user') {
+        // Try to get branch from parsed details
+        if (parsedDetails.branch_added) {
+            affectedBranch = parsedDetails.branch_added;
+        } else if (parsedDetails.affected_branch) {
+            affectedBranch = parsedDetails.affected_branch;
+        } else if (parsedDetails.body && parsedDetails.body.marketingClerk && parsedDetails.body.marketingClerk.branch) {
+            affectedBranch = parsedDetails.body.marketingClerk.branch;
+        } else if (parsedDetails.body && parsedDetails.body.financeOfficer && parsedDetails.body.financeOfficer.branch) {
+            affectedBranch = parsedDetails.body.financeOfficer.branch;
+        } else if (parsedDetails.body && parsedDetails.body.branch) {
+            affectedBranch = parsedDetails.body.branch;
+        }
+    }
     
     let detailsHTML = `
         <div class="details-grid">
@@ -470,6 +513,43 @@ function displayLogDetails(log) {
             </div>
         </div>
     `;
+    
+    // Add expanded details section for specific actions
+    if (log.action === 'add_user' || log.action === 'deactivate_user' || log.action === 'reactivate_user') {
+        detailsHTML += `
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <h3 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 12px;">Additional Details</h3>
+                <div class="details-grid">
+        `;
+        
+        if (log.action === 'add_user') {
+            detailsHTML += `
+                    <div class="detail-item">
+                        <label>Branch Added:</label>
+                        <span>${affectedBranch || 'N/A'}</span>
+                    </div>
+            `;
+        } else if (log.action === 'deactivate_user') {
+            detailsHTML += `
+                    <div class="detail-item">
+                        <label>Branch Deactivated:</label>
+                        <span>${affectedBranch || 'N/A'}</span>
+                    </div>
+            `;
+        } else if (log.action === 'reactivate_user') {
+            detailsHTML += `
+                    <div class="detail-item">
+                        <label>Branch Re-activated:</label>
+                        <span>${affectedBranch || 'N/A'}</span>
+                    </div>
+            `;
+        }
+        
+        detailsHTML += `
+                </div>
+            </div>
+        `;
+    }
     
     detailsContent.innerHTML = detailsHTML;
     document.getElementById('detailsModal').style.display = 'flex';
