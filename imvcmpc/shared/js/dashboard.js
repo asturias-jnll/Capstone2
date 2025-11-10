@@ -346,7 +346,7 @@ function updateSummaryCards(data) {
             `;
             // Update card title
             if (growthCardTitle) {
-                growthCardTitle.textContent = 'Net Growth';
+                growthCardTitle.textContent = 'Net Interest Income';
             }
         }
     }

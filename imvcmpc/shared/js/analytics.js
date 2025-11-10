@@ -1372,7 +1372,7 @@ function updateSummaryCards(data) {
             `;
             // Update card title
             if (growthCardTitle) {
-                growthCardTitle.textContent = 'Net Growth';
+                growthCardTitle.textContent = 'Net Interest Income';
             }
         }
     }
@@ -2294,14 +2294,14 @@ function updateInterestIncomeTrendChart(data) {
                 datasets: [{
                     label: 'Monthly Interest Income (Bar)',
                     data: values,
-                    backgroundColor: 'rgba(245, 158, 11, 0.7)', // Orange with transparency
-                    borderColor: '#F59E0B', // Orange border
+                    backgroundColor: 'rgba(158, 209, 75, 0.7)', // light green with transparency
+                    borderColor: '#69b33e', // green border
                     borderWidth: 2,
                     type: 'bar'
                 }, {
                     label: 'Interest Income Trend (Line)',
                     data: values,
-                    borderColor: '#FB923C', // Lighter orange for line
+                    borderColor: '#326316', // darker green for line
                     backgroundColor: 'transparent',
                     borderWidth: 3,
                     fill: false,
@@ -2309,8 +2309,8 @@ function updateInterestIncomeTrendChart(data) {
                     type: 'line',
                     pointRadius: 5,
                     pointHoverRadius: 7,
-                    pointBackgroundColor: '#F59E0B',
-                    pointBorderColor: '#FB923C'
+                    pointBackgroundColor: '#69b33e',
+                    pointBorderColor: '#326316'
                 }]
             },
             options: getChartOptions('bar', true)
