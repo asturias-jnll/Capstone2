@@ -2721,7 +2721,27 @@ function updateTransactionCountChart(data) {
     if (canvas) canvas.style.display = 'block';
     
     try {
-        chartInstances.transactionCountChart = new Chart(canvas, {
+		// Build base options and override Y-axis to show count (no currency)
+		const baseLineOptions = getChartOptions('line', false);
+		// Ensure scales exist before overriding
+		const countYAxis = {
+			...(baseLineOptions.scales && baseLineOptions.scales.y ? baseLineOptions.scales.y : {}),
+			title: {
+				display: true,
+				text: 'No. of Transactions'
+			},
+			ticks: {
+				callback: function(value) {
+					return Number(value).toLocaleString();
+				}
+			}
+		};
+		const countScales = {
+			...(baseLineOptions.scales || {}),
+			y: countYAxis
+		};
+		
+		chartInstances.transactionCountChart = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: labels,
@@ -2740,7 +2760,10 @@ function updateTransactionCountChart(data) {
                     pointBorderWidth: 2
                 }]
             },
-            options: getChartOptions('line', false)
+			options: {
+				...baseLineOptions,
+				scales: countScales
+			}
         });
         
         console.log('✅ Transaction count chart created successfully');
