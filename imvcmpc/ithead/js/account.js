@@ -12,11 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         initializeAccountStatus();
         setupPageVisibilityHandling();
+        // Start interval after initialization to ensure session is set up
+        setInterval(updateSessionDuration, 1000);
     }, 100);
     
     updateDateTime();
     setInterval(updateDateTime, 1000);
-    setInterval(updateSessionDuration, 1000);
 });
 
 // Helper: format branch display as "Main Branch IBAAN" or "Branch 3 IBAAN"
@@ -294,16 +295,20 @@ async function savePersonalInfo() {
         
         if (response.ok) {
             showSuccessDialog('Profile updated successfully');
-            // Update stored data and exit edit mode
             originalData = { fullName, username, email };
             exitEditMode();
         } else {
-            const error = await response.json();
-            showErrorDialog(error.detail || 'Failed to update profile');
+            try {
+                const errorData = await response.json();
+                const errorMessage = errorData.error || errorData.detail || 'Failed to update profile';
+                showErrorDialog(errorMessage);
+            } catch (parseError) {
+                showErrorDialog('Failed to update profile');
+            }
         }
     } catch (error) {
         console.error('Error updating profile:', error);
-        showErrorDialog('Failed to update profile');
+        showErrorDialog('Network error. Please check your connection and try again.');
     }
 }
 
@@ -354,16 +359,21 @@ async function handleChangePassword() {
         
         if (response.ok) {
             showSuccessDialog('Password changed successfully');
-            // Clear password fields
             document.getElementById('currentPassword').value = '';
             document.getElementById('newPassword').value = '';
             document.getElementById('confirmPassword').value = '';
         } else {
-            showErrorDialog('Failed to change password');
+            try {
+                const errorData = await response.json();
+                const errorMessage = errorData.error || errorData.detail || 'Failed to change password';
+                showErrorDialog(errorMessage);
+            } catch (parseError) {
+                showErrorDialog('Failed to change password');
+            }
         }
     } catch (error) {
         console.error('Error changing password:', error);
-        showErrorDialog('Failed to change password');
+        showErrorDialog('Network error. Please check your connection and try again.');
     }
 }
 
@@ -372,13 +382,13 @@ function togglePassword(inputId, iconElement) {
     const input = document.getElementById(inputId);
     if (!input) return;
     
-    // Toggle between text (visible) and password (hidden) type
-    if (input.type === 'text') {
-        input.type = 'password';
+    // Toggle between password (hidden) and text (visible) type
+    if (input.type === 'password') {
+        input.type = 'text';
         iconElement.classList.remove('fa-eye-slash');
         iconElement.classList.add('fa-eye');
     } else {
-        input.type = 'text';
+        input.type = 'password';
         iconElement.classList.remove('fa-eye');
         iconElement.classList.add('fa-eye-slash');
     }
@@ -766,18 +776,9 @@ function initializeAccountStatus() {
             isNewLogin = true;
         }
     } else {
-        // Session exists - check if it's expired
-        const sessionStart = new Date(sessionStartTime);
-        const sessionAge = now - sessionStart;
-        const thirtyMinutes = 30 * 60 * 1000; // 30 minutes in milliseconds
-        
-        if (sessionAge > thirtyMinutes) {
-            // Session expired, treat as new login
-            isNewLogin = true;
-        } else {
-            // Session is still valid - this is a refresh, not a new login
-            isNewLogin = false;
-        }
+        // Session exists - keep the existing session (no expiration check)
+        // This allows the session duration to continue indefinitely like Finance Officer/Marketing Clerk
+        isNewLogin = false;
     }
     
     // Initialize sessionStartTime if it doesn't exist or if it's a new login
@@ -788,10 +789,6 @@ function initializeAccountStatus() {
     // Initialize lastLogin if it doesn't exist
     if (!lastLogin) {
         localStorage.setItem('lastLogin', now.toISOString());
-        // If we just created lastLogin and there was no original session, treat as new login
-        if (!sessionStartTime) {
-            isNewLogin = true;
-        }
     }
     
     // Only record successful login if it's actually a new login
@@ -803,13 +800,6 @@ function initializeAccountStatus() {
         updateLastLogin();
         updateSessionDuration();
     }
-    
-    // Always ensure display is updated (in case elements weren't ready earlier)
-    setTimeout(() => {
-        updateSecurityStatus();
-        updateLastLogin();
-        updateSessionDuration();
-    }, 200);
 }
 
 // Update security status based on login activity

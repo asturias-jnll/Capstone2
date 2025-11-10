@@ -400,8 +400,13 @@
                     originalData = { fullName, username, email };
                     exitEditMode();
                 } else {
-                    const err = await resp.json().catch(() => ({}));
-                    showErrorDialog(err.detail || 'Failed to update profile');
+                    try {
+                        const err = await resp.json();
+                        const errorMessage = err.error || err.detail || 'Failed to update profile';
+                        showErrorDialog(errorMessage);
+                    } catch (parseError) {
+                        showErrorDialog('Failed to update profile');
+                    }
                 }
             } catch (e) {
                 console.error('Update error:', e);
@@ -431,7 +436,13 @@
                     document.getElementById('newPassword').value = '';
                     document.getElementById('confirmPassword').value = '';
                 } else {
-                    showErrorDialog('Failed to change password');
+                    try {
+                        const err = await resp.json();
+                        const errorMessage = err.error || err.detail || 'Failed to change password';
+                        showErrorDialog(errorMessage);
+                    } catch (parseError) {
+                        showErrorDialog('Failed to change password');
+                    }
                 }
             } catch (e) {
                 console.error('Change password error:', e);
@@ -442,8 +453,15 @@
         function togglePassword(inputId, icon) {
             const input = document.getElementById(inputId);
             if (!input) return;
-            if (input.type === 'text') { input.type = 'password'; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
-            else { input.type = 'text'; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
         }
 
         function showNotification(message, type) {
