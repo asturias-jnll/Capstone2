@@ -44,6 +44,8 @@ let transactions = [];
 let currentTransactions = [];
 let editingTransactionId = null;
 let currentZoom = 90;
+let pendingDeletionRequests = new Map(); // Track transactions with pending deletion requests
+let pendingEditRequests = new Map(); // Track transactions with pending edit requests
 
 // Initialize transaction ledger
 function initializeTransactionLedger() {
@@ -289,6 +291,13 @@ async function loadTransactionsFromDatabase() {
             transactions = response.data || [];
             currentTransactions = [...transactions];
             console.log('Transactions loaded:', transactions.length);
+            
+            // Load pending deletion and edit requests for Marketing Clerks
+            if (userRole === 'Marketing Clerk') {
+                await loadPendingDeletionRequests(userBranchId);
+                await loadPendingEditRequests(userBranchId);
+            }
+            
             renderTransactionTable();
             
         } else {
@@ -742,11 +751,11 @@ function populateTransactionModal(transaction) {
     document.getElementById('modalServiceCharge').textContent = formatAmount(transaction.service_charge || transaction.serviceCharge);
     document.getElementById('modalSundries').textContent = formatAmount(transaction.sundries);
     
-    // Reset modal footer to normal view
-    resetModalFooterToNormal();
-    
     // Store current transaction for edit/delete operations
     window.currentTransaction = transaction;
+    
+    // Reset modal footer to normal view (this will set buttons based on pending requests)
+    resetModalFooterToNormal();
 }
 
 // Close transaction modal
@@ -771,6 +780,21 @@ function startEditMode() {
     // Check user role and prevent Finance Officers from editing
     const userRole = localStorage.getItem('user_role');
     if (userRole === 'Finance Officer') {
+        return;
+    }
+    
+    // Check if there are pending requests that prevent editing
+    const hasPendingEdit = pendingEditRequests.has(window.currentTransaction.id);
+    const hasPendingDeletion = pendingDeletionRequests.has(window.currentTransaction.id);
+    
+    if (hasPendingEdit) {
+        const existingRequest = pendingEditRequests.get(window.currentTransaction.id);
+        showErrorMessage(`An edit request for this transaction is already pending (Request #${existingRequest.id.substring(0, 8)}). Please wait for the Finance Officer to process it.`);
+        return;
+    }
+    
+    if (hasPendingDeletion) {
+        showErrorMessage('Cannot edit: A deletion request is pending for this transaction. Please wait for the Finance Officer to process it.');
         return;
     }
     
@@ -901,18 +925,41 @@ function resetModalFooterToNormal() {
         let deleteButtonHtml = '';
         
         // Only show edit and delete buttons for Marketing Clerks
-        if (userRole === 'Marketing Clerk') {
-            editButtonHtml = `
-                <button class="btn btn-primary" onclick="startEditMode()">
-                    <i class="fas fa-edit"></i>
-                    Edit
-                </button>`;
+        if (userRole === 'Marketing Clerk' && window.currentTransaction) {
+            const transactionId = window.currentTransaction.id;
             
-            deleteButtonHtml = `
-                <button class="btn btn-danger" onclick="deleteTransaction()">
-                    <i class="fas fa-trash"></i>
-                    Delete
-                </button>`;
+            // Strictly check each map - only check for the specific request type
+            const hasPendingDeletion = pendingDeletionRequests.has(transactionId);
+            const hasPendingEdit = pendingEditRequests.has(transactionId);
+            
+            if (hasPendingEdit) {
+                // Show "Edit Request Pending" button, hide Delete button
+                editButtonHtml = `
+                    <button class="btn btn-primary btn-disabled" disabled title="An edit request for this transaction is already pending">
+                        <i class="fas fa-clock"></i>
+                        Edit Request Pending
+                    </button>`;
+            } else if (hasPendingDeletion) {
+                // Show "Delete Request Pending" button, hide Edit button
+                deleteButtonHtml = `
+                    <button class="btn btn-danger btn-disabled" disabled title="A deletion request for this transaction is already pending">
+                        <i class="fas fa-clock"></i>
+                        Delete Request Pending
+                    </button>`;
+            } else {
+                // No pending requests - show both buttons normally
+                editButtonHtml = `
+                    <button class="btn btn-primary" onclick="startEditMode()">
+                        <i class="fas fa-edit"></i>
+                        Edit
+                    </button>`;
+                
+                deleteButtonHtml = `
+                    <button class="btn btn-danger" onclick="deleteTransaction()">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>`;
+            }
         }
         
         modalFooter.innerHTML = `
@@ -938,32 +985,7 @@ function cancelEdit() {
     populateTransactionModal(window.currentTransaction);
     
     // Restore original footer
-    const userRole = localStorage.getItem('user_role');
-    const isFinanceOfficer = userRole === 'Finance Officer';
-    
-    const editButtonHtml = isFinanceOfficer ? '' : `
-        <button class="btn btn-warning" onclick="startEditMode()">
-            <i class="fas fa-edit"></i>
-            Edit
-        </button>`;
-    
-    const deleteButtonHtml = isFinanceOfficer ? '' : `
-        <button class="btn btn-danger" onclick="deleteTransaction()">
-            <i class="fas fa-trash"></i>
-            Delete
-        </button>`;
-    
-    const modalFooter = document.getElementById('modalFooter');
-    if (modalFooter) {
-        modalFooter.innerHTML = `
-            <button class="btn btn-secondary" onclick="closeTransactionModal()">
-                <i class="fas fa-times"></i>
-                Close
-            </button>
-            ${editButtonHtml}
-            ${deleteButtonHtml}
-        `;
-    }
+    resetModalFooterToNormal();
 }
 
 // Request changes - Send to Finance Officer for approval
@@ -1097,6 +1119,12 @@ async function requestChanges() {
         });
         
         if (response.success) {
+            // Add to pending edit requests map and remove from deletion requests if present
+            if (response.data && response.data.id) {
+                pendingDeletionRequests.delete(window.currentTransaction.id); // Remove from deletion map if exists
+                pendingEditRequests.set(window.currentTransaction.id, response.data);
+            }
+            
             showSuccess('Change request sent to Finance Officer for approval');
             closeTransactionModal();
             await loadTransactionsFromDatabase();
@@ -1139,6 +1167,17 @@ function collectEditedValues() {
 // Delete transaction
 async function deleteTransaction() {
     if (!window.currentTransaction) return;
+    
+    const userRole = localStorage.getItem('user_role');
+    
+    // For Marketing Clerks, check if deletion request already exists
+    if (userRole === 'Marketing Clerk') {
+        if (pendingDeletionRequests.has(window.currentTransaction.id)) {
+            const existingRequest = pendingDeletionRequests.get(window.currentTransaction.id);
+            showErrorMessage(`A deletion request for this transaction is already pending (Request #${existingRequest.id.substring(0, 8)}). Please wait for the Finance Officer to process it.`);
+            return;
+        }
+    }
     
     // Show minimalist centered confirmation
     showDeleteConfirmation();
@@ -1246,6 +1285,66 @@ function closeDeleteConfirmation() {
     }
 }
 
+// Load pending deletion requests for transactions
+async function loadPendingDeletionRequests(userBranchId) {
+    try {
+        // Fetch all pending deletion requests for this branch
+        const response = await apiRequest(`/change-requests?branch_id=${userBranchId}&status=pending&request_type=deletion`);
+        
+        if (response.success && response.data) {
+            // Clear existing map
+            pendingDeletionRequests.clear();
+            
+            // Map transaction IDs to their pending deletion requests
+            // Only include requests with request_type === 'deletion'
+            response.data.forEach(request => {
+                if (request.transaction_id && 
+                    request.status === 'pending' && 
+                    (request.request_type === 'deletion' || request.request_type === 'delete')) {
+                    // Ensure this transaction is not in the edit requests map
+                    pendingEditRequests.delete(request.transaction_id);
+                    pendingDeletionRequests.set(request.transaction_id, request);
+                }
+            });
+            
+            console.log('Pending deletion requests loaded:', pendingDeletionRequests.size);
+        }
+    } catch (error) {
+        console.error('Error loading pending deletion requests:', error);
+        // Don't throw - this is not critical, just log the error
+    }
+}
+
+// Load pending edit requests for transactions
+async function loadPendingEditRequests(userBranchId) {
+    try {
+        // Fetch all pending modification/edit requests for this branch
+        const response = await apiRequest(`/change-requests?branch_id=${userBranchId}&status=pending&request_type=modification`);
+        
+        if (response.success && response.data) {
+            // Clear existing map
+            pendingEditRequests.clear();
+            
+            // Map transaction IDs to their pending edit requests
+            // Only include requests with request_type === 'modification'
+            response.data.forEach(request => {
+                if (request.transaction_id && 
+                    request.status === 'pending' && 
+                    (request.request_type === 'modification' || request.request_type === 'edit')) {
+                    // Ensure this transaction is not in the deletion requests map
+                    pendingDeletionRequests.delete(request.transaction_id);
+                    pendingEditRequests.set(request.transaction_id, request);
+                }
+            });
+            
+            console.log('Pending edit requests loaded:', pendingEditRequests.size);
+        }
+    } catch (error) {
+        console.error('Error loading pending edit requests:', error);
+        // Don't throw - this is not critical, just log the error
+    }
+}
+
 // Confirm delete action
 async function confirmDelete() {
     if (!window.currentTransaction) return;
@@ -1259,13 +1358,21 @@ async function confirmDelete() {
     }
     
     // Marketing Clerks must request deletion
+    // Check if deletion request already exists for this transaction
+    const transaction = window.currentTransaction;
+    if (pendingDeletionRequests.has(transaction.id)) {
+        const existingRequest = pendingDeletionRequests.get(transaction.id);
+        showErrorMessage(`A deletion request for this transaction is already pending (Request #${existingRequest.id.substring(0, 8)}). Please wait for the Finance Officer to process it.`);
+        closeDeleteConfirmation();
+        return;
+    }
+    
     try {
         showLoadingState();
         closeDeleteConfirmation();
         
         const userId = localStorage.getItem('user_id');
         const userBranchId = localStorage.getItem('user_branch_id');
-        const transaction = window.currentTransaction;
         
         // Create delete request
         const requestData = {
@@ -1283,6 +1390,12 @@ async function confirmDelete() {
         });
         
         if (response.success) {
+            // Add to pending deletion requests map and remove from edit requests if present
+            if (response.data && response.data.id) {
+                pendingEditRequests.delete(transaction.id); // Remove from edit map if exists
+                pendingDeletionRequests.set(transaction.id, response.data);
+            }
+            
             closeTransactionModal();
             await loadTransactionsFromDatabase();
             showDeleteRequestSuccessMessage(transaction.payee);
