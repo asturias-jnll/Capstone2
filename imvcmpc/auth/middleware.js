@@ -23,24 +23,32 @@ const authenticateToken = async (req, res, next) => {
             });
         }
 
-        // Get user details from database
+        // Get user details from database (check without is_active filter first)
         const userResult = await db.query(`
             SELECT u.*, r.name as role_name, r.display_name as role_display_name,
                    b.name as branch_name, b.location as branch_location, b.is_main_branch
             FROM users u
             JOIN roles r ON u.role_id = r.id
             LEFT JOIN branches b ON u.branch_id = b.id
-            WHERE u.id = $1 AND u.is_active = true
+            WHERE u.id = $1
         `, [verification.payload.sub]);
 
         if (userResult.rows.length === 0) {
             return res.status(401).json({
-                error: 'User not found or inactive',
+                error: 'User not found',
                 code: 'USER_NOT_FOUND'
             });
         }
 
         const user = userResult.rows[0];
+
+        // Check if account is deactivated
+        if (!user.is_active) {
+            return res.status(401).json({
+                error: 'Your account has been deactivated by the IT Head. Please contact your administrator for assistance.',
+                code: 'ACCOUNT_DEACTIVATED'
+            });
+        }
 
         // Get user permissions
         const permissionsResult = await db.query(`

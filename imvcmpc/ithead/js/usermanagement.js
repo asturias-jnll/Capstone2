@@ -805,11 +805,45 @@ function closeDeactivateModal() {
 }
 
 // Perform the actual toggle user status action
-function performToggleUserStatus(userId, currentStatus) {
-    console.log(`Toggle user status: ${userId}, new status: ${!currentStatus}`);
-    // TODO: Implement API call to toggle user status
-    // After success, reload users
-    loadUsers();
+async function performToggleUserStatus(userId, currentStatus) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            alert('Authentication required. Please log in again.');
+            return;
+        }
+
+        const newStatus = !currentStatus;
+        const response = await fetch(`/api/auth/users/${userId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_active: newStatus })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.error || 'Failed to update user status.';
+            alert(errorMessage);
+            return;
+        }
+
+        const result = await response.json();
+        const statusLabel = newStatus ? 'activated' : 'deactivated';
+
+        if (result?.success || result?.user) {
+            showSuccessDialog(`User has been ${statusLabel} successfully.`);
+        } else {
+            alert(`User ${statusLabel}, but unexpected response received.`);
+        }
+
+        await loadUsers();
+    } catch (error) {
+        console.error('Error toggling user status:', error);
+        alert('An unexpected error occurred while updating user status.');
+    }
 }
 
 // Note: Edit and Reset Password actions removed per requirements.

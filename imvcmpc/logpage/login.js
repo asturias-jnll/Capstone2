@@ -264,6 +264,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     
+    // Check if user was redirected due to account deactivation
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('deactivated') === 'true') {
+        const deactivationMessage = sessionStorage.getItem('deactivationMessage');
+        if (deactivationMessage) {
+            showError(deactivationMessage);
+            // Clear the message from sessionStorage after showing it
+            sessionStorage.removeItem('deactivationMessage');
+            // Remove the query parameter from URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+    
     // Check if user is already logged in
     checkExistingSession();
     

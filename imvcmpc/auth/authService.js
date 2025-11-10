@@ -93,14 +93,14 @@ class AuthService {
     // User login
     async loginUser(username, password, deviceInfo = null, ipAddress = null) {
         try {
-            // Get user by username or email
+            // First, get user by username or email (without is_active filter to check status)
             const userResult = await db.query(`
                 SELECT u.*, r.name as role_name, r.display_name as role_display_name,
                        b.name as branch_name, b.location as branch_location, b.is_main_branch
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
                 LEFT JOIN branches b ON u.branch_id = b.id
-                WHERE (u.username = $1 OR u.email = $1) AND u.is_active = true
+                WHERE (u.username = $1 OR u.email = $1)
             `, [username]);
 
             if (userResult.rows.length === 0) {
@@ -108,6 +108,11 @@ class AuthService {
             }
 
             const user = userResult.rows[0];
+
+            // Check if account is deactivated
+            if (!user.is_active) {
+                throw new Error('Your account has been deactivated by the IT Head. Please contact your administrator for assistance.');
+            }
 
             // Check if account is locked - DISABLED
             // if (user.locked_until && new Date() < user.locked_until) {

@@ -510,6 +510,58 @@ function clearUserSession() {
     localStorage.removeItem('lastActiveTime');
 }
 
+// Handle account deactivation - automatically log out user
+function handleAccountDeactivation(message) {
+    // Clear session
+    clearUserSession();
+    
+    // Store deactivation message in sessionStorage to show on login page
+    const deactivationMessage = message || 'Your account has been deactivated by the IT Head. You have been logged out.';
+    sessionStorage.setItem('deactivationMessage', deactivationMessage);
+    
+    // Redirect to login page
+    window.location.href = '../../logpage/login.html?deactivated=true';
+}
+
+// Global fetch interceptor to catch deactivated account errors
+(function() {
+    const originalFetch = window.fetch;
+    
+    window.fetch = async function(...args) {
+        try {
+            const response = await originalFetch.apply(this, args);
+            
+            // Check if response is JSON and has error code for deactivated account
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    // Clone response to read it without consuming the original
+                    const clonedResponse = response.clone();
+                    try {
+                        const data = await clonedResponse.json();
+                        
+                        // Check for account deactivation error code
+                        if (data.code === 'ACCOUNT_DEACTIVATED' || 
+                            (data.error && data.error.includes('deactivated by the IT Head'))) {
+                            handleAccountDeactivation(data.error || 'Your account has been deactivated by the IT Head.');
+                            // Return a rejected promise to prevent further processing
+                            return Promise.reject(new Error('Account deactivated'));
+                        }
+                    } catch (e) {
+                        // If JSON parsing fails, continue with original response
+                        console.error('Error parsing error response:', e);
+                    }
+                }
+            }
+            
+            return response;
+        } catch (error) {
+            // Re-throw original error
+            throw error;
+        }
+    };
+})();
+
 // Show logout loading with spinning logo
 function showLogoutLoading() {
     // Create loading overlay
