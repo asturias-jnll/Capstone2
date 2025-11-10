@@ -2339,7 +2339,7 @@ function showSendFinanceSection() {
                 sendFinanceSection.querySelector('i').className = 'fas fa-paper-plane';
             } else {
                 // Not locked, configured by finance officer independently
-                buttonText.textContent = 'SAVE';
+                buttonText.textContent = 'SAVE REPORT';
                 sendFinanceSection.querySelector('i').className = 'fas fa-save';
             }
         }

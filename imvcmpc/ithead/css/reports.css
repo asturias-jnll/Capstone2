@@ -814,18 +814,18 @@
 .generate-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 14px 28px;
+    gap: 6px;
+    padding: 10px 20px;
     background: linear-gradient(135deg, #0D5B11, #187C19);
     color: #ffffff;
     border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 400;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(13, 91, 17, 0.2);
-    min-width: 160px;
+    min-width: 140px;
     justify-content: center;
 }
 
@@ -836,7 +836,7 @@
 }
 
 .generate-btn i {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 /* Report Canvas */
@@ -1015,20 +1015,22 @@ div[style*="height: 300px"] h4 {
 .send-finance-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 14px 28px;
+    gap: 6px;
+    padding: 8px 16px;
     border: none;
-    border-radius: 10px;
+    border-radius: 18px;
     background: linear-gradient(135deg, #0D5B11, #187C19);
     color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 400;
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     box-shadow: 0 2px 8px rgba(13, 91, 17, 0.2);
-    min-width: 200px;
+    min-width: 160px;
+    height: 36px;
+    box-sizing: border-box;
     justify-content: center;
 }
 
@@ -1039,7 +1041,7 @@ div[style*="height: 300px"] h4 {
 }
 
 .send-finance-btn i {
-    font-size: 16px;
+    font-size: 12px;
 }
 
 /* Generate AI Recommendation Button */
@@ -1054,20 +1056,22 @@ div[style*="height: 300px"] h4 {
 .generate-ai-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 14px 28px;
+    gap: 6px;
+    padding: 6px 14px;
     border: 2px solid #106F2C;
-    border-radius: 10px;
+    border-radius: 18px;
     background: #ffffff;
     color: #106F2C;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 400;
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     box-shadow: 0 2px 8px rgba(16, 111, 44, 0.1);
-    min-width: 200px;
+    min-width: 160px;
+    height: 36px;
+    box-sizing: border-box;
     justify-content: center;
 }
 
@@ -1086,7 +1090,7 @@ div[style*="height: 300px"] h4 {
 }
 
 .generate-ai-btn i {
-    font-size: 16px;
+    font-size: 12px;
 }
 
 /* Report Content Styles */
