@@ -9,7 +9,7 @@ const changeRequestService = new ChangeRequestService();
 router.post('/change-requests',
     authenticateToken,
     checkRole(['marketing_clerk']),
-    auditLog('change_request_creation', 'change_requests'),
+    auditLog('request_change', 'transactions'),
     async (req, res) => {
         try {
             const { transaction_id, transaction_table, original_data, requested_changes, reason, request_type } = req.body;
@@ -222,7 +222,19 @@ router.get('/change-requests/:requestId',
 router.put('/change-requests/:requestId/status',
     authenticateToken,
     checkRole(['finance_officer']),
-    auditLog('change_request_status_update', 'change_requests'),
+    (req, res, next) => {
+        // Determine action based on status before calling auditLog
+        const status = req.body.status;
+        const action = status === 'approved' ? 'approve_change_request' : 
+                      status === 'rejected' ? 'reject_change_request' : 
+                      'change_request_status_update';
+        
+        // Attach action to request for middleware
+        req.auditAction = action;
+        req.auditResource = 'transactions';
+        next();
+    },
+    auditLog('change_request_status_update', 'transactions'), // Middleware will use req.auditAction
     async (req, res) => {
         try {
             const { requestId } = req.params;
@@ -271,7 +283,7 @@ router.put('/change-requests/:requestId/status',
 router.post('/change-requests/:requestId/process',
     authenticateToken,
     checkRole(['finance_officer']),
-    auditLog('change_request_processing', 'change_requests'),
+    // Removed auditLog - processing is internal operation, approve/reject are logged separately
     async (req, res) => {
         try {
             const { requestId } = req.params;

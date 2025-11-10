@@ -109,6 +109,11 @@ function getChartOptions(type) {
 // Load dashboard data
 async function loadDashboardData() {
     try {
+        // Log dashboard view
+        if (typeof AuditLogger !== 'undefined') {
+            AuditLogger.logDashboardView();
+        }
+        
         showLoadingState();
         console.log('Loading dashboard data...');
         

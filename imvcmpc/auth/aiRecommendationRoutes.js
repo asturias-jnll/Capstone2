@@ -69,7 +69,7 @@ router.get('/test-ai',
 router.post('/reports/generate-ai-recommendations',
   authenticateToken,
   checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
-  auditLog('generate_ai_recommendations', 'reports'),
+  auditLog('generate_ai_recommendation', 'reports'),
   async (req, res) => {
     try {
       console.log('🤖 [AI-RECO] Starting AI recommendation generation...');
@@ -148,7 +148,7 @@ router.post('/reports/generate-ai-recommendations',
 router.post('/reports/generate-pdf',
   authenticateToken,
   checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
-  auditLog('generate_pdf', 'reports'),
+  auditLog('generate_report_pdf', 'reports'),
   async (req, res) => {
     try {
       const { reportHTML, title } = req.body || {};

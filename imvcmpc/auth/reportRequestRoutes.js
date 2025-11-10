@@ -9,7 +9,7 @@ const service = new ReportRequestService();
 router.post('/report-requests',
     authenticateToken,
     checkRole(['marketing_clerk']),
-    auditLog('report_request_creation', 'report_requests'),
+    auditLog('request_report', 'reports'),
     async (req, res) => {
         try {
             const userId = req.user.id;
@@ -42,7 +42,7 @@ router.post('/report-requests',
 router.patch('/report-requests/:id/status',
     authenticateToken,
     checkRole(['marketing_clerk', 'finance_officer']),
-    auditLog('report_request_status_update', 'report_requests'),
+    // Removed auditLog - status updates are internal operations, not user actions
     async (req, res) => {
         try {
             const { id } = req.params;

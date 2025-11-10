@@ -62,7 +62,7 @@ router.get('/', authenticateToken, auditLog('view_transactions', 'transactions')
 });
 
 // Get transaction by ID
-router.get('/:id', authenticateToken, auditLog('view_transaction_detail', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
+router.get('/:id', authenticateToken, auditLog('view_transaction', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data
@@ -305,7 +305,7 @@ router.delete('/:id', authenticateToken, auditLog('delete_transaction', 'transac
 });
 
 // Get transaction statistics
-router.get('/stats/summary', authenticateToken, auditLog('view_transaction_stats', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
+router.get('/stats/summary', authenticateToken, auditLog('view_transactions', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data

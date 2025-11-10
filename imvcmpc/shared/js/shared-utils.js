@@ -352,9 +352,34 @@ class SharedUtils {
     }
 
     // Perform actual logout with spinning logo
-    performLogout() {
+    async performLogout() {
         // Show logout loading with spinning logo
         this.showLogoutLoading();
+        
+        try {
+            // Call backend logout API to log the action
+            const token = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            
+            if (token && refreshToken) {
+                try {
+                    await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            refresh_token: refreshToken
+                        })
+                    });
+                } catch (error) {
+                    console.warn('Logout API call failed, but continuing with logout:', error);
+                }
+            }
+        } catch (error) {
+            console.warn('Error during logout API call:', error);
+        }
         
         // Clear user session data
         this.clearUserSession();

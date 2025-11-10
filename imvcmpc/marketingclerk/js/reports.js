@@ -627,6 +627,12 @@ function generateReport() {
 
         // Display report
         displayReport(reportData);
+        
+        // Log report generation
+        if (typeof AuditLogger !== 'undefined') {
+            const reportConfig = collectReportConfig(reportType);
+            AuditLogger.logReportGeneration(reportType, reportConfig);
+        }
 
         // Show send to finance section
         showSendFinanceSection();
@@ -1083,7 +1089,11 @@ async function requestReport() {
             const text = await res.text();
             throw new Error(text || 'Failed to send report request');
         }
-        return res.json();
+        const result = await res.json();
+        
+        // Backend already logs request_report via auditLog middleware, so no need to log here
+        
+        return result;
     }).then(() => {
         showSuccessDialog('Report request sent to Finance Officer!');
         
@@ -2324,6 +2334,12 @@ window.viewGeneratedReport = async function viewGeneratedReport(reportId) {
         const result = await response.json();
         const report = result.data;
         
+        // Log report view
+        if (typeof AuditLogger !== 'undefined') {
+            const source = report.status === 'sent' ? 'sent' : 'saved';
+            AuditLogger.logReportView(reportId, report.report_type || 'unknown', source);
+        }
+        
         // Display report data
         displayReportContent(report);
         
@@ -2453,6 +2469,24 @@ window.downloadReportPDF = async function downloadReportPDF(reportId) {
         if (!response.ok) throw new Error('Failed to download PDF');
         
         const blob = await response.blob();
+        
+        // Log report download
+        if (typeof AuditLogger !== 'undefined') {
+            // Fetch report details to get report type
+            try {
+                const reportRes = await fetch(`/api/auth/generated-reports/${reportId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (reportRes.ok) {
+                    const reportData = await reportRes.json();
+                    const reportType = reportData.data?.report_type || 'unknown';
+                    AuditLogger.logReportDownload(reportId, reportType);
+                }
+            } catch (err) {
+                console.warn('Could not fetch report type for logging:', err);
+            }
+        }
+        
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

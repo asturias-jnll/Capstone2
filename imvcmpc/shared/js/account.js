@@ -26,6 +26,9 @@
 
 // Initialize account system
 document.addEventListener('DOMContentLoaded', function() {
+    // Note: Account page view is not logged - only actions within the account page are logged
+    // (e.g., update_profile, change_password via backend routes)
+    
     initializeAccount();
     initializeDynamicUserHeader();
     

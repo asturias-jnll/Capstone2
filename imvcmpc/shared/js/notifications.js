@@ -157,6 +157,11 @@ function setupNotificationEventListeners() {
 // Load notifications from API
 async function loadNotificationsFromAPI() {
     try {
+        // Log notification view
+        if (typeof AuditLogger !== 'undefined') {
+            AuditLogger.logNotificationView();
+        }
+        
         const token = localStorage.getItem('access_token');
         if (!token) {
             console.error('❌ No access token found');

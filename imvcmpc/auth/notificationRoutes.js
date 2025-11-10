@@ -98,7 +98,7 @@ router.get('/notifications/:notificationId',
 router.post('/notifications',
     authenticateToken,
     checkRole(['it_head', 'finance_officer']),
-    auditLog('notification_creation', 'notifications'),
+    auditLog('create_notification', 'notifications'),
     async (req, res) => {
         try {
             const { user_id, branch_id, title, content, category, type, status, reference_type, reference_id, is_highlighted, priority } = req.body;
@@ -219,7 +219,7 @@ router.put('/notifications/:notificationId/highlight',
 // Delete notification
 router.delete('/notifications/:notificationId',
     authenticateToken,
-    auditLog('notification_deletion', 'notifications'),
+    auditLog('delete_notification', 'notifications'),
     async (req, res) => {
         try {
             const { notificationId } = req.params;

@@ -7,7 +7,7 @@ const { authenticateToken, auditLog } = require('./middleware');
 // Get analytics summary (4 main cards)
 router.get('/summary',
     authenticateToken,
-    auditLog('view_analytics', 'analytics'),
+    // Removed auditLog here - frontend handles view_analytics logging to prevent duplicates
     async (req, res) => {
         try {
             const analyticsService = require('./analyticsService');

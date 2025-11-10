@@ -7,6 +7,8 @@ let filtersInitialized = false; // Flag to prevent duplicate event listener regi
 let loadRequestId = 0; // Counter to track the latest load request and prevent race conditions
 let abortController = null; // AbortController to cancel in-flight requests
 let debounceTimer = null; // Timer for debouncing filter changes
+let analyticsViewLogged = false; // Flag to ensure analytics view is logged only once per page load
+let isInitialLoad = true; // Flag to track if this is the initial page load (don't log filter on initial load)
 
 // Initialize Analytics Dashboard
 function initializeAnalytics() {
@@ -332,6 +334,8 @@ function setupDateInputs() {
         monthSelect.addEventListener('change', function() {
             if (currentFilter === 'custom' && customType === 'month') {
                 setMonthRange();
+                // User changed month selector, so log the filter application
+                applyFilters(true);
             }
         });
     }
@@ -340,6 +344,8 @@ function setupDateInputs() {
         yearSelect.addEventListener('change', function() {
             if (currentFilter === 'custom' && customType === 'month') {
                 setMonthRange();
+                // User changed year selector, so log the filter application
+                applyFilters(true);
             }
         });
     }
@@ -349,6 +355,8 @@ function setupDateInputs() {
         yearSelectOnly.addEventListener('change', function() {
             if (currentFilter === 'custom' && customType === 'year') {
                 setYearRange();
+                // User changed year selector, so log the filter application
+                applyFilters(true);
             }
         });
     }
@@ -358,6 +366,8 @@ function setupDateInputs() {
         weekDate.addEventListener('change', function() {
             if (currentFilter === 'custom' && customType === 'week') {
                 setWeekRangeFromSingleDate(this.value);
+                // User changed week date, so log the filter application
+                applyFilters(true);
             }
         });
     }
@@ -521,9 +531,9 @@ function setMonthRange() {
     
     updateDateHints('month');
     
-    // Auto-apply filters
-    console.log('📅 Month range set, auto-applying filters...');
-    applyFilters();
+    // Month range set programmatically - don't call applyFilters here
+    // The event listener will call applyFilters(true) if user changed the selector
+    console.log('📅 Month range set...');
 }
 
 // Set year range (full year)
@@ -554,9 +564,9 @@ function setYearRange() {
     // Update hint text
     updateDateHints('year');
     
-    // Auto-apply filters
-    console.log('📅 Year range set, auto-applying filters...');
-    applyFilters();
+    // Year range set programmatically - don't call applyFilters here
+    // The event listener will call applyFilters(true) if user changed the selector
+    console.log('📅 Year range set...');
 }
 
 // Set week range from single date selection
@@ -593,8 +603,8 @@ function setWeekRangeFromSingleDate(selectedDate) {
         endDateInput.style.backgroundColor = '';
     }, 1000);
     
-    // Apply filters
-    applyFilters();
+    // Week range set programmatically - don't call applyFilters here
+    // The event listener will call applyFilters(true) if user changed the week date
 }
 
 // Update week preview display
@@ -714,7 +724,7 @@ function formatDate(dateString) {
 }
 
 // Auto-apply filters when selection changes
-function applyFilters() {
+function applyFilters(userInitiated = true) {
     console.log('🔄 Applying filters:', currentFilter);
     
     // Cancel any pending debounce timer
@@ -745,6 +755,44 @@ function applyFilters() {
         console.log('📅 Custom date range:', { startDate, endDate, customType });
     }
     
+    // Log filter application with details (only if user-initiated, not on initial page load or programmatic calls)
+    if (userInitiated && !isInitialLoad && typeof AuditLogger !== 'undefined') {
+        let filterDetails = {
+            filterType: currentFilter
+        };
+        
+        if (currentFilter === 'custom') {
+            const startDate = document.getElementById('startDate')?.value;
+            const endDate = document.getElementById('endDate')?.value;
+            filterDetails.dateRange = {
+                startDate: startDate || null,
+                endDate: endDate || null,
+                customType: customType || null
+            };
+        } else {
+            const dateRange = getDateRange(currentFilter);
+            filterDetails.dateRange = {
+                startDate: dateRange.start.toISOString().split('T')[0],
+                endDate: dateRange.end.toISOString().split('T')[0]
+            };
+        }
+        
+        // Get branch information
+        const userBranchId = localStorage.getItem('user_branch_id') || '1';
+        const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+        filterDetails.branchSelection = {
+            branch_id: userBranchId,
+            is_main_branch: isMainBranchUser
+        };
+        
+        AuditLogger.logAnalyticsFilter(filterDetails);
+    }
+    
+    // Mark that initial load is complete after first filter application
+    if (isInitialLoad) {
+        isInitialLoad = false;
+    }
+    
     // Debounce: Wait 300ms before loading data to prevent rapid-fire requests
     debounceTimer = setTimeout(() => {
         debounceTimer = null;
@@ -770,6 +818,12 @@ async function loadAnalyticsData() {
     
     console.log('🔄 Starting to load analytics data... (Request #' + thisRequestId + ')');
     console.log('🔍 Current filter:', currentFilter);
+    
+    // Log analytics view only once per page load (when request ID is 1 and not already logged)
+    if (thisRequestId === 1 && !analyticsViewLogged && typeof AuditLogger !== 'undefined') {
+        analyticsViewLogged = true;
+        AuditLogger.logAnalyticsView();
+    }
     
     // Only show loading state if this is the latest request
     if (thisRequestId === loadRequestId) {

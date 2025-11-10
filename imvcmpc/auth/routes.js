@@ -29,7 +29,7 @@ router.post('/register',
 router.post('/register-branch-users',
     authenticateToken,
     checkRole('it_head'),
-    auditLog('branch_users_registration', 'users'),
+    auditLog('add_user', 'users'),
     async (req, res) => {
         try {
             const { marketingClerk, financeOfficer } = req.body;
@@ -79,7 +79,7 @@ router.post('/register-branch-users',
 // User login
 router.post('/login', 
     loginRateLimit,
-    auditLog('user_login', 'auth'),
+    auditLog('login', 'users'),
     async (req, res) => {
         try {
             const { username, password } = req.body;
@@ -132,7 +132,7 @@ router.post('/refresh', async (req, res) => {
 // User logout
 router.post('/logout', 
     authenticateToken,
-    auditLog('user_logout', 'auth'),
+    auditLog('logout', 'users'),
     async (req, res) => {
         try {
             const { refresh_token } = req.body;
@@ -230,7 +230,7 @@ router.get('/me',
 // Update profile (personal information)
 router.put('/update-profile',
     authenticateToken,
-    auditLog('profile_update', 'users'),
+    auditLog('update_profile', 'users'),
     async (req, res) => {
         try {
             const { first_name, last_name, username, email } = req.body;
@@ -262,7 +262,7 @@ router.put('/update-profile',
 // Change password
 router.put('/change-password',
     authenticateToken,
-    auditLog('password_change', 'users'),
+    auditLog('change_password', 'users'),
     async (req, res) => {
         try {
             const { current_password, new_password } = req.body;
@@ -310,6 +310,34 @@ router.get('/users',
 router.put('/users/:userId',
     authenticateToken,
     checkRole('it_head'),
+    async (req, res, next) => {
+        // Determine action based on is_active status change
+        if (req.body.hasOwnProperty('is_active')) {
+            // Get current user status from database
+            try {
+                const db = require('./database');
+                const userResult = await db.query('SELECT is_active FROM users WHERE id = $1', [req.params.userId]);
+                if (userResult.rows.length > 0) {
+                    const currentStatus = userResult.rows[0].is_active;
+                    const newStatus = req.body.is_active;
+                    // Only log if status actually changed
+                    if (currentStatus !== newStatus) {
+                        req.auditAction = newStatus ? 'reactivate_user' : 'deactivate_user';
+                    } else {
+                        req.auditAction = 'user_update';
+                    }
+                } else {
+                    req.auditAction = 'user_update';
+                }
+            } catch (error) {
+                req.auditAction = 'user_update';
+            }
+        } else {
+            req.auditAction = 'user_update';
+        }
+        req.auditResource = 'users';
+        next();
+    },
     auditLog('user_update', 'users'),
     async (req, res) => {
         try {

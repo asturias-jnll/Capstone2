@@ -1,8 +1,10 @@
 const express = require('express');
 const db = require('./database');
 const { authenticateToken, checkRole } = require('./middleware');
+const AuditLogService = require('./auditLogService');
 
 const router = express.Router();
+const auditLogService = new AuditLogService();
 
 /**
  * GET /api/audit-logs
@@ -44,10 +46,44 @@ router.get('/audit-logs', authenticateToken, checkRole('it_head'), async (req, r
             let paramCount = 1;
 
             // Add action/event type filter
+            // Filter by first word of action:
+            // view = view, apply
+            // create = create, generate, download, request, save, send, add
+            // update = approve, reject, update, change, deactivate, reactivate
+            // delete = delete
             if (eventType) {
-                whereConditions.push(`al.action ILIKE $${paramCount}`);
-                queryParams.push(`%${eventType}%`);
-                paramCount++;
+                if (eventType === 'login' || eventType === 'logout') {
+                    // Exact match for login/logout
+                    whereConditions.push(`al.action = $${paramCount}`);
+                    queryParams.push(eventType);
+                    paramCount++;
+                } else if (eventType === 'view') {
+                    // Match actions starting with "view" or "apply"
+                    const viewPatterns = ['view%', 'apply%'];
+                    const viewConditions = viewPatterns.map((_, idx) => `al.action LIKE $${paramCount + idx}`).join(' OR ');
+                    whereConditions.push(`(${viewConditions})`);
+                    queryParams.push(...viewPatterns);
+                    paramCount += viewPatterns.length;
+                } else if (eventType === 'create') {
+                    // Match actions starting with "create", "generate", "download", "request", "save", "send", "add"
+                    const createPatterns = ['create%', 'generate%', 'download%', 'request%', 'save%', 'send%', 'add%'];
+                    const createConditions = createPatterns.map((_, idx) => `al.action LIKE $${paramCount + idx}`).join(' OR ');
+                    whereConditions.push(`(${createConditions})`);
+                    queryParams.push(...createPatterns);
+                    paramCount += createPatterns.length;
+                } else if (eventType === 'update') {
+                    // Match actions starting with "approve", "reject", "update", "change", "deactivate", "reactivate"
+                    const updatePatterns = ['approve%', 'reject%', 'update%', 'change%', 'deactivate%', 'reactivate%'];
+                    const updateConditions = updatePatterns.map((_, idx) => `al.action LIKE $${paramCount + idx}`).join(' OR ');
+                    whereConditions.push(`(${updateConditions})`);
+                    queryParams.push(...updatePatterns);
+                    paramCount += updatePatterns.length;
+                } else if (eventType === 'delete') {
+                    // Match actions starting with "delete"
+                    whereConditions.push(`al.action LIKE $${paramCount}`);
+                    queryParams.push('delete%');
+                    paramCount++;
+                }
             }
 
             // Add user filter
@@ -57,22 +93,23 @@ router.get('/audit-logs', authenticateToken, checkRole('it_head'), async (req, r
                 paramCount++;
             }
 
-            // Add resource filter
+            // Add resource filter (exact match, case-insensitive)
             if (resource) {
-                whereConditions.push(`al.resource ILIKE $${paramCount}`);
-                queryParams.push(`%${resource}%`);
+                whereConditions.push(`LOWER(al.resource) = LOWER($${paramCount})`);
+                queryParams.push(resource);
                 paramCount++;
             }
 
             // Add date range filter
             if (dateFrom) {
-                whereConditions.push(`DATE(al.created_at) >= $${paramCount}`);
+                whereConditions.push(`al.created_at >= $${paramCount}::date`);
                 queryParams.push(dateFrom);
                 paramCount++;
             }
 
             if (dateTo) {
-                whereConditions.push(`DATE(al.created_at) <= $${paramCount}`);
+                // Include the entire day by adding time 23:59:59
+                whereConditions.push(`al.created_at <= ($${paramCount}::date + INTERVAL '1 day' - INTERVAL '1 second')`);
                 queryParams.push(dateTo);
                 paramCount++;
             }
@@ -350,6 +387,50 @@ router.get('/audit-logs/export/csv', authenticateToken, checkRole('it_head'), as
         res.json({
             success: false,
             error: 'Failed to export audit logs'
+        });
+    }
+});
+
+/**
+ * POST /api/auth/audit-logs
+ * Create an audit log entry from frontend
+ * Body: { action, resource, resource_id, details }
+ */
+router.post('/audit-logs', authenticateToken, async (req, res) => {
+    try {
+        const { action, resource, resource_id, details } = req.body;
+
+        if (!action) {
+            return res.status(400).json({
+                success: false,
+                error: 'Action is required'
+            });
+        }
+
+        const logData = {
+            user_id: req.user.id,
+            branch_id: req.user.branch_id || null,
+            action,
+            resource: resource || null,
+            resource_id: resource_id || null,
+            details: details || {},
+            ip_address: req.ip || req.connection.remoteAddress || null,
+            user_agent: req.get('User-Agent') || null,
+            status: 'success'
+        };
+
+        const auditLog = await auditLogService.createAuditLog(logData);
+
+        res.json({
+            success: true,
+            data: auditLog
+        });
+
+    } catch (error) {
+        console.error('Error creating audit log:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create audit log'
         });
     }
 });

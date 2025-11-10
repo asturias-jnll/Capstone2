@@ -231,24 +231,105 @@ const auditLog = (action, resource = null) => {
             // Log the action after response is sent
             setTimeout(async () => {
                 try {
-                    if (req.user) {
+                    let userId = null;
+                    let branchId = null;
+                    
+                    // For login, get user_id from response data
+                    if (action === 'login') {
+                        try {
+                            const responseData = typeof data === 'string' ? JSON.parse(data) : data;
+                            if (responseData && responseData.success && responseData.user && responseData.user.id) {
+                                userId = responseData.user.id;
+                                branchId = responseData.user.branch_id || null;
+                            }
+                        } catch (e) {
+                            // If parsing fails, try to get from username
+                            if (req.body && req.body.username) {
+                                const userResult = await db.query('SELECT id, branch_id FROM users WHERE username = $1', [req.body.username]);
+                                if (userResult.rows.length > 0) {
+                                    userId = userResult.rows[0].id;
+                                    branchId = userResult.rows[0].branch_id || null;
+                                }
+                            }
+                        }
+                    } else if (req.user) {
+                        // For other actions, use req.user
+                        userId = req.user.id;
+                        branchId = req.user.branch_id || null;
+                    }
+                    
+                    if (userId) {
+                        // Build enhanced details based on action type
+                        let details = {
+                            method: req.method,
+                            url: req.originalUrl,
+                            body: req.body,
+                            params: req.params,
+                            query: req.query,
+                            status: res.statusCode
+                        };
+                        
+                        // Use custom action if set on request
+                        const finalAction = req.auditAction || action;
+                        const finalResource = req.auditResource || resource;
+                        
+                        // Enhance details for specific actions
+                        if ((action === 'change_request_creation' || action === 'request_change') && req.body) {
+                            details.request_type = req.body.request_type || 'modification';
+                            details.transaction_id = req.body.transaction_id;
+                            details.requested_changes = req.body.requested_changes;
+                            details.reason = req.body.reason;
+                        } else if ((action === 'change_request_status_update' || finalAction === 'approve_change_request' || finalAction === 'reject_change_request') && req.body) {
+                            details.status_action = req.body.status; // approve or reject
+                            details.change_request_id = req.params.requestId;
+                            details.finance_officer_notes = req.body.finance_officer_notes;
+                        } else if (action === 'apply_analytics_filter' && req.body) {
+                            details.filter_type = req.body.filterType || req.body.filter_type;
+                            details.date_range = req.body.dateRange || req.body.date_range;
+                            details.branch_selection = req.body.branchSelection || req.body.branch_selection;
+                        } else if (action === 'bulk_create_transactions' && req.body) {
+                            details.transaction_count = req.body.transactions?.length || 0;
+                            details.file_name = req.body.file_name || 'unknown';
+                        } else if (action === 'create_transaction' && req.body) {
+                            details.transaction_details = {
+                                payee: req.body.payee,
+                                transaction_type: req.body.transaction_type || (req.body.savings_deposits > 0 ? 'savings' : 'disbursement'),
+                                amount: req.body.savings_deposits || req.body.loan_receivables || 0
+                            };
+                        } else if (action === 'delete_transaction' && req.params) {
+                            details.transaction_id = req.params.id;
+                        } else if ((action === 'report_request_creation' || action === 'request_report') && req.body) {
+                            details.report_type = req.body.report_type;
+                            details.report_config = req.body.report_config;
+                            details.priority = req.body.priority || 'normal';
+                            details.fo_notes = req.body.fo_notes;
+                            details.due_at = req.body.due_at;
+                        } else if (action === 'login' && req.body) {
+                            details.username = req.body.username;
+                        } else if (action === 'logout') {
+                            // Logout details
+                            details.logout_time = new Date().toISOString();
+                        } else if (action === 'update_profile' && req.body) {
+                            details.updated_fields = {
+                                first_name: req.body.first_name || null,
+                                last_name: req.body.last_name || null,
+                                username: req.body.username || null,
+                                email: req.body.email || null
+                            };
+                        } else if (action === 'change_password') {
+                            details.password_changed = true;
+                        }
+                        
                         await db.query(`
                             INSERT INTO audit_logs (user_id, branch_id, action, resource, resource_id, details, ip_address, user_agent, status)
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                         `, [
-                            req.user.id,
-                            req.user.branch_id || null,
-                            action,
-                            resource,
-                            req.params.id || req.body.id || null,
-                            JSON.stringify({
-                                method: req.method,
-                                url: req.originalUrl,
-                                body: req.body,
-                                params: req.params,
-                                query: req.query,
-                                status: res.statusCode
-                            }),
+                            userId,
+                            branchId,
+                            finalAction,
+                            finalResource,
+                            req.params.id || req.params.requestId || req.body.id || null,
+                            JSON.stringify(details),
                             req.ip || req.connection.remoteAddress,
                             req.get('User-Agent'),
                             res.statusCode >= 200 && res.statusCode < 400 ? 'success' : 'failed'

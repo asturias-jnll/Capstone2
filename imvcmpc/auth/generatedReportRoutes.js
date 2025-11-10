@@ -6,10 +6,13 @@ const router = express.Router();
 const service = new GeneratedReportService();
 
 // Create new generated report (Finance Officer and IT Head)
+// Note: This route is called when saving/sending reports, not when initially generating
+// Frontend logs generate_report when user clicks Generate, and save_report/send_report when saving
+// Backend logs generate_report_pdf when PDF is generated
 router.post('/generated-reports',
     authenticateToken,
     checkRole(['finance_officer', 'it_head']),
-    auditLog('create_generated_report', 'generated_reports'),
+    // Removed auditLog - frontend handles save_report/send_report logging, backend handles generate_report_pdf
     async (req, res) => {
         try {
             const userId = req.user.id;
@@ -174,7 +177,7 @@ router.get('/generated-reports/:id/pdf',
 router.patch('/generated-reports/:id/viewed',
     authenticateToken,
     checkRole(['marketing_clerk']),
-    auditLog('mark_report_viewed', 'generated_reports'),
+    auditLog('view_report', 'reports'),
     async (req, res) => {
         try {
             const { id } = req.params;
@@ -210,7 +213,7 @@ router.patch('/generated-reports/:id/viewed',
 router.patch('/generated-reports/:id/status',
     authenticateToken,
     checkRole(['finance_officer']),
-    auditLog('update_report_status', 'generated_reports'),
+    // Removed auditLog - status updates are internal operations, not user actions
     async (req, res) => {
         try {
             const { id } = req.params;

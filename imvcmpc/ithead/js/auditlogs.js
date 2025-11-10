@@ -22,8 +22,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
     
-    document.getElementById('dateFrom').valueAsDate = lastWeek;
-    document.getElementById('dateTo').valueAsDate = today;
+    // Format dates as YYYY-MM-DD for date inputs
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+    document.getElementById('dateFrom').value = formatDate(lastWeek);
+    document.getElementById('dateTo').value = formatDate(today);
+    
+    // Set initial filters based on default dates
+    currentFilters = {
+        dateFrom: formatDate(lastWeek),
+        dateTo: formatDate(today)
+    };
 
     // Load initial logs
     loadAuditLogs();
@@ -271,6 +285,20 @@ function updateAllTimestamps() {
 function formatAction(action) {
     if (!action) return 'N/A';
     
+    // Special handling for specific actions
+    const actionMap = {
+        'generate_ai_recommendation': 'Generate AI Recommendation',
+        'branch_users_registration': 'Add User', // Legacy support
+        'add_user': 'Add User',
+        'deactivate_user': 'Deactivate User',
+        'reactivate_user': 'Re-activate User',
+        'user_update': 'User Update'
+    };
+    
+    if (actionMap[action]) {
+        return actionMap[action];
+    }
+    
     // Convert snake_case to Title Case
     return action
         .split('_')
@@ -325,8 +353,8 @@ function applyFilters() {
     const status = document.getElementById('statusFilter').value;
 
     currentFilters = {
-        dateFrom,
-        dateTo,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
         user: user || undefined,
         eventType: action || undefined,
         resource: resource || undefined,
@@ -346,14 +374,25 @@ function resetFilters() {
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
     
-    document.getElementById('dateFrom').valueAsDate = lastWeek;
-    document.getElementById('dateTo').valueAsDate = today;
+    // Format dates as YYYY-MM-DD for date inputs
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+    document.getElementById('dateFrom').value = formatDate(lastWeek);
+    document.getElementById('dateTo').value = formatDate(today);
     document.getElementById('userFilter').value = '';
     document.getElementById('actionFilter').value = '';
     document.getElementById('resourceFilter').value = '';
     document.getElementById('statusFilter').value = '';
 
-    currentFilters = {};
+    currentFilters = {
+        dateFrom: formatDate(lastWeek),
+        dateTo: formatDate(today)
+    };
     currentPage = 1;
     
     loadAuditLogs();

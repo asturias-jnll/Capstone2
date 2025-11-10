@@ -1322,6 +1322,13 @@ async function generateReport() {
         // Expose current report data/type for AI generation
         window.currentReportData = reportData;
         window.currentReportType = reportType;
+        
+        // Log report generation (only when initially generating, not when saving)
+        // Note: When saving, the backend will log generate_report, and frontend will log save_report
+        if (typeof AuditLogger !== 'undefined') {
+            const reportConfig = collectReportConfig(reportType);
+            AuditLogger.logReportGeneration(reportType, reportConfig);
+        }
 
         // Show AI controls (optional step by user)
         showAIRecommendationControls();
@@ -2236,6 +2243,8 @@ async function generateAIRecommendation() {
 
         renderAIRecommendations(data);
         window.aiRecommendationsGenerated = true;
+        
+        // Backend already logs generate_ai_recommendation via auditLog middleware, so no need to log here
     } catch (e) {
         console.error('âŒ [Frontend] AI generation failed:', e.message);
         console.error('âŒ [Frontend] Stack:', e.stack);
@@ -2961,6 +2970,15 @@ window.saveReport = async function saveReport() {
         if (!saveRes.ok) {
             const errorText = await saveRes.text();
             throw new Error(errorText || 'Failed to save report');
+        }
+        
+        // Get saved report result before reloading
+        const savedResult = await saveRes.json();
+        
+        // Log report save
+        if (typeof AuditLogger !== 'undefined') {
+            const reportConfig = collectReportConfig(reportType);
+            AuditLogger.logReportSave(reportType, reportConfig);
         }
         
         // Reload reports from database
@@ -4245,6 +4263,12 @@ window.viewGeneratedReport = async function viewGeneratedReport(reportId) {
         const result = await response.json();
         const report = result.data;
         
+        // Log report view
+        if (typeof AuditLogger !== 'undefined') {
+            const source = report.status === 'sent' ? 'sent' : 'saved';
+            AuditLogger.logReportView(reportId, report.report_type || 'unknown', source);
+        }
+        
         // Display report data
         displayReportContent(report);
     } catch (error) {
@@ -4385,6 +4409,24 @@ window.downloadReportPDF = async function downloadReportPDF(reportId) {
         if (!response.ok) throw new Error('Failed to download PDF');
         
         const blob = await response.blob();
+        
+        // Log report download
+        if (typeof AuditLogger !== 'undefined') {
+            // Fetch report details to get report type
+            try {
+                const reportRes = await fetch(`/api/auth/generated-reports/${reportId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (reportRes.ok) {
+                    const reportData = await reportRes.json();
+                    const reportType = reportData.data?.report_type || 'unknown';
+                    AuditLogger.logReportDownload(reportId, reportType);
+                }
+            } catch (err) {
+                console.warn('Could not fetch report type for logging:', err);
+            }
+        }
+        
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
