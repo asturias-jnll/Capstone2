@@ -848,7 +848,7 @@ body {
 /* Reactivation Modal Styles */
 #reactivationModal {
     z-index: 10000;
-    animation: fadeIn 0.3s ease-out;
+	animation: fadeIn 0.2s ease-out;
 }
 
 .reactivation-modal-content {
@@ -859,7 +859,7 @@ body {
     width: 90%;
     text-align: left;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    animation: modalSlideIn 0.3s ease-out;
+	animation: fadeIn 0.25s ease-out;
 }
 
 @keyframes modalSlideIn {
@@ -912,6 +912,14 @@ body {
     margin-bottom: 20px;
 }
 
+.reactivation-form .form-group {
+	animation: none !important;
+}
+
+.reactivation-step {
+	animation: none !important;
+}
+
 .reactivation-form .form-group label {
     display: block;
     font-size: 14px;
@@ -930,15 +938,24 @@ body {
     resize: vertical;
     min-height: 100px;
     background: var(--white);
-    transition: all 0.3s ease;
+	transition: none;
     box-sizing: border-box;
+}
+
+.reactivation-form #reactivationReason {
+	min-height: 32px;
+	padding: 6px 10px;
+	line-height: 1.25;
+	font-size: 13px;
+	border-width: 1px;
+	border-radius: 8px;
 }
 
 .reactivation-form textarea:focus {
     outline: none;
     border-color: var(--dark-green);
-    border-width: 2.2px;
-    box-shadow: 0 0 0 3px rgba(11, 94, 28, 0.1);
+    border-width: 1px;
+    box-shadow: none;
 }
 
 .reactivation-form textarea::placeholder {
@@ -961,6 +978,10 @@ body {
     line-height: 1.4;
 }
 
+#reactivationStatus {
+	margin-top: 6px;
+}
+
 .reactivation-status.success {
     background: #f0fdf4;
     color: var(--dark-green);
@@ -977,7 +998,12 @@ body {
     display: flex;
     gap: 12px;
     justify-content: center;
-    margin-top: 24px;
+	margin-top: 4px;
+}
+
+.reactivation-actions .reactivation-btn {
+	flex: 1;
+	min-width: 0;
 }
 
 .reactivation-btn {
@@ -986,7 +1012,7 @@ body {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+	transition: none;
     min-width: 100px;
     border: none;
 }
@@ -995,6 +1021,10 @@ body {
     background: var(--white);
     color: var(--gray-600);
     border: 1px solid var(--gray-300);
+}
+
+#reactivationModal .reactivation-btn.cancel-btn {
+	width: auto;
 }
 
 .reactivation-btn.cancel-btn:hover {
@@ -1024,13 +1054,14 @@ body {
     background: var(--green);
     color: var(--white);
     width: 100%;
-    margin-top: 8px;
+	margin-top: 4px;
+	margin-bottom: 0;
 }
 
 .reactivation-btn.send-code-btn:hover {
     background: var(--dark-green);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
+	transform: none;
+	box-shadow: none;
 }
 
 .reactivation-btn.send-code-btn:disabled {
@@ -1043,6 +1074,18 @@ body {
     margin-bottom: 20px;
 }
 
+.reactivation-step#verifyCodeStep {
+	margin-bottom: 6px !important;
+}
+
+.reactivation-step#sendCodeStep {
+	margin-bottom: 6px;
+}
+
+.reactivation-step#sendCodeStep .form-group {
+	margin-bottom: 6px;
+}
+
 .reactivation-step label {
     display: block;
     font-weight: 600;
@@ -1053,12 +1096,26 @@ body {
 
 #verificationCode {
     text-align: center;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    font-family: 'Courier New', monospace;
+	font-size: 14px;
+	font-weight: 600;
+	letter-spacing: 1px;
+	font-family: 'Inter', sans-serif;
+	padding: 8px 12px 8px 36px;
+	line-height: 1.2;
 }
 
+/* Tighten spacing between Step 3 textarea and status box */
+#verifyCodeStep .form-group {
+	margin-bottom: 8px !important;
+}
+
+#verifyCodeStep .form-group:last-child {
+	margin-bottom: 4px !important;
+}
+
+#reactivationStatus {
+	margin-top: 4px !important;
+}
 /* Mobile Responsive for Reactivation Modal */
 @media (max-width: 768px) {
     .reactivation-modal-content {
@@ -1147,6 +1204,10 @@ body {
     margin-bottom: 8px;
 }
 
+.forgot-password-form .form-group {
+	animation: none !important;
+}
+
 .forgot-password-form .input-group {
     position: relative;
     display: flex;
@@ -1168,7 +1229,7 @@ body {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     background: var(--white);
-    transition: all 0.3s ease;
+	transition: none;
     box-sizing: border-box;
 }
 

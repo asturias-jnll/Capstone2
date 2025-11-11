@@ -412,16 +412,35 @@ async function sendReactivationCode() {
                 setTimeout(() => codeInput.focus(), 100);
             }
         } else {
-            // Show error
-            if (sendCodeError) {
-                sendCodeError.textContent = data.error || 'Failed to send verification code. Please try again.';
-                sendCodeError.style.display = 'block';
-            }
-            
-            // Re-enable button
-            if (sendCodeBtn) {
-                sendCodeBtn.disabled = false;
-                sendCodeBtn.innerHTML = '<i class="fas fa-envelope"></i> Send Verification Code';
+            // If there's a pending request or a modal-level error, show in status box and hide steps/actions
+            const isPending = data.error && /pending/i.test(data.error);
+            if (isPending && statusMsg) {
+                statusMsg.textContent = data.error;
+                statusMsg.className = 'reactivation-status error';
+                statusMsg.style.display = 'block';
+
+                const sendCodeStep = document.getElementById('sendCodeStep');
+                const verifyCodeStep = document.getElementById('verifyCodeStep');
+                const actionsRow = document.querySelector('#reactivationModal .reactivation-actions');
+                if (sendCodeStep) sendCodeStep.style.display = 'none';
+                if (verifyCodeStep) verifyCodeStep.style.display = 'none';
+                if (actionsRow) actionsRow.style.display = 'none';
+
+                // Auto-close after short delay
+                setTimeout(() => {
+                    closeReactivationModal();
+                }, 4000);
+            } else {
+                // Show inline error near button
+                if (sendCodeError) {
+                    sendCodeError.textContent = data.error || 'Failed to send verification code. Please try again.';
+                    sendCodeError.style.display = 'block';
+                }
+                // Re-enable button
+                if (sendCodeBtn) {
+                    sendCodeBtn.disabled = false;
+                    sendCodeBtn.innerHTML = '<i class="fas fa-envelope"></i> Send Verification Code';
+                }
             }
         }
     } catch (error) {
@@ -451,6 +470,8 @@ function showForgotPasswordModal() {
         const error = document.getElementById('forgotPasswordError');
         const statusMsg = document.getElementById('forgotPasswordStatus');
         const submitBtn = document.getElementById('submitForgotPasswordBtn');
+		const formGroup = modal.querySelector('.forgot-password-form .form-group');
+			const actionsRow = modal.querySelector('.forgot-password-actions');
         
         if (input) input.value = '';
         if (error) {
@@ -466,6 +487,14 @@ function showForgotPasswordModal() {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Send Reset Link';
         }
+		// Make sure the username/email field is visible each time the modal opens
+		if (formGroup) {
+			formGroup.style.display = '';
+		}
+			// Ensure actions are visible when opening the modal
+			if (actionsRow) {
+				actionsRow.style.display = 'flex';
+			}
         
         // Focus on input
         if (input) {
@@ -536,6 +565,20 @@ async function submitForgotPassword() {
                 statusMsg.className = 'forgot-password-status success';
                 statusMsg.style.display = 'block';
             }
+			
+			// Hide the username/email field after successful send
+			const modal = document.getElementById('forgotPasswordModal');
+			if (modal) {
+				const formGroup = modal.querySelector('.forgot-password-form .form-group');
+				const actionsRow = modal.querySelector('.forgot-password-actions');
+				if (formGroup) {
+					formGroup.style.display = 'none';
+				}
+				// Hide cancel and submit buttons
+				if (actionsRow) {
+					actionsRow.style.display = 'none';
+				}
+			}
             
             // Hide error message
             if (error) {
@@ -550,13 +593,11 @@ async function submitForgotPassword() {
                 closeForgotPasswordModal();
             }, 5000);
         } else {
-            // Show error message in error field
+            // Show error in status message only (avoid duplicate inline error)
             if (error) {
-                error.textContent = data.error || 'Failed to send reset link. Please try again.';
-                error.style.display = 'block';
+                error.style.display = 'none';
+                error.textContent = '';
             }
-            
-            // Also show in status message for visibility
             if (statusMsg) {
                 statusMsg.textContent = data.error || 'Failed to send reset link. Please try again.';
                 statusMsg.className = 'forgot-password-status error';
@@ -669,14 +710,31 @@ async function submitReactivationRequest() {
                 statusMsg.className = 'reactivation-status success';
                 statusMsg.style.display = 'block';
             }
-            
+
+            // Hide steps and actions; keep header and success message visible
+            const sendStep = document.getElementById('sendCodeStep');
+            const verifyStep = document.getElementById('verifyCodeStep');
+            const actionsRow = document.querySelector('#reactivationModal .reactivation-actions');
+            const cancelBtn = document.querySelector('#reactivationModal .reactivation-btn.cancel-btn');
+            const submitBtnEl = document.getElementById('submitReactivationBtn');
+
+            if (sendStep) sendStep.style.display = 'none';
+            if (verifyStep) verifyStep.style.display = 'none';
+            if (actionsRow) actionsRow.style.display = 'none';
+            if (cancelBtn) cancelBtn.style.display = 'none';
+            if (submitBtnEl) submitBtnEl.style.display = 'none';
+
+            // Clear sensitive input values
+            if (codeInput) codeInput.value = '';
+            if (reasonInput) reasonInput.value = '';
+
             // Clear password from memory
             deactivatedUserInfo.password = null;
-            
-            // Close modal after 3 seconds
+
+            // Close modal after 5 seconds
             setTimeout(() => {
                 closeReactivationModal();
-            }, 3000);
+            }, 5000);
         } else {
             // Show error message
             if (data.error && data.error.includes('code')) {
@@ -695,6 +753,18 @@ async function submitReactivationRequest() {
                     statusMsg.className = 'reactivation-status error';
                     statusMsg.style.display = 'block';
                 }
+                // Hide steps and actions for modal-level errors (e.g., pending request)
+                const sendStep = document.getElementById('sendCodeStep');
+                const verifyStep = document.getElementById('verifyCodeStep');
+                const actionsRow = document.querySelector('#reactivationModal .reactivation-actions');
+                if (sendStep) sendStep.style.display = 'none';
+                if (verifyStep) verifyStep.style.display = 'none';
+                if (actionsRow) actionsRow.style.display = 'none';
+
+                // Auto-close after short delay
+                setTimeout(() => {
+                    closeReactivationModal();
+                }, 4000);
             }
             
             // Re-enable button
