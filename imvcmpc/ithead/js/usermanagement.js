@@ -1159,9 +1159,10 @@ async function showReactivationRequests() {
                     minute: '2-digit'
                 });
 
+                requestItem.setAttribute('data-request-id', '${request.id}');
                 requestItem.innerHTML = `
                     <div class="request-header">
-                        <div class="request-user-info">
+                        <div class="request-user-row">
                             <div class="request-user-name">
                                 ${request.first_name || ''} ${request.last_name || ''}
                             </div>
@@ -1172,33 +1173,30 @@ async function showReactivationRequests() {
                                 <span><i class="fas fa-building"></i> ${request.branch_name || request.branch_location || 'N/A'}</span>
                             </div>
                         </div>
-                        <div class="request-meta">
-                            <div><i class="fas fa-clock"></i> ${formattedDate}</div>
-                            ${request.ip_address ? `<div style="margin-top: 4px;"><i class="fas fa-network-wired"></i> ${request.ip_address}</div>` : ''}
-                        </div>
                     </div>
                     <div class="request-reason">
                         <strong>Reason:</strong><br>
                         ${request.reason || 'No reason provided'}
                     </div>
-                    <textarea 
-                        class="request-notes-input" 
-                        id="notes_${request.id}" 
-                        placeholder="Optional: Add review notes..."
-                    ></textarea>
-                    <div class="request-actions">
-                        <button 
-                            class="request-action-btn approve" 
-                            onclick="approveReactivationRequest('${request.id}', 'notes_${request.id}')"
-                        >
-                            <i class="fas fa-check"></i> Approve
-                        </button>
-                        <button 
-                            class="request-action-btn reject" 
-                            onclick="rejectReactivationRequest('${request.id}', 'notes_${request.id}')"
-                        >
-                            <i class="fas fa-times"></i> Reject
-                        </button>
+                    <div class="request-footer">
+                        <div class="request-meta">
+                            <div><i class="fas fa-clock"></i> ${formattedDate}</div>
+                            ${request.ip_address ? `<div class="request-ip"><i class="fas fa-network-wired"></i> ${request.ip_address}</div>` : ''}
+                        </div>
+                        <div class="request-actions">
+                            <button 
+                                class="request-action-btn approve" 
+                                onclick="approveReactivationRequest('${request.id}')"
+                            >
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button 
+                                class="request-action-btn reject" 
+                                onclick="rejectReactivationRequest('${request.id}')"
+                            >
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </div>
                     </div>
                 `;
                 
@@ -1231,7 +1229,7 @@ function closeReactivationNotification() {
 }
 
 // Approve reactivation request
-async function approveReactivationRequest(requestId, notesInputId) {
+async function approveReactivationRequest(requestId) {
     try {
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -1239,11 +1237,8 @@ async function approveReactivationRequest(requestId, notesInputId) {
             return;
         }
 
-        const notesInput = document.getElementById(notesInputId);
-        const notes = notesInput ? notesInput.value.trim() : '';
-
         // Disable buttons for this request
-        const requestItem = notesInput.closest('.reactivation-request-item');
+        const requestItem = document.querySelector(`.reactivation-request-item[data-request-id="${requestId}"]`);
         const buttons = requestItem.querySelectorAll('.request-action-btn');
         buttons.forEach(btn => btn.disabled = true);
 
@@ -1255,7 +1250,7 @@ async function approveReactivationRequest(requestId, notesInputId) {
             },
             body: JSON.stringify({
                 action: 'approve',
-                notes: notes || null
+                notes: null
             })
         });
 
@@ -1283,9 +1278,8 @@ async function approveReactivationRequest(requestId, notesInputId) {
         alert(error.message || 'Failed to approve reactivation request. Please try again.');
         
         // Re-enable buttons
-        const notesInput = document.getElementById(notesInputId);
-        if (notesInput) {
-            const requestItem = notesInput.closest('.reactivation-request-item');
+        const requestItem = document.querySelector(`.reactivation-request-item[data-request-id="${requestId}"]`);
+        if (requestItem) {
             const buttons = requestItem.querySelectorAll('.request-action-btn');
             buttons.forEach(btn => btn.disabled = false);
         }
@@ -1293,7 +1287,7 @@ async function approveReactivationRequest(requestId, notesInputId) {
 }
 
 // Reject reactivation request
-async function rejectReactivationRequest(requestId, notesInputId) {
+async function rejectReactivationRequest(requestId) {
     try {
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -1301,11 +1295,8 @@ async function rejectReactivationRequest(requestId, notesInputId) {
             return;
         }
 
-        const notesInput = document.getElementById(notesInputId);
-        const notes = notesInput ? notesInput.value.trim() : '';
-
         // Disable buttons for this request
-        const requestItem = notesInput.closest('.reactivation-request-item');
+        const requestItem = document.querySelector(`.reactivation-request-item[data-request-id="${requestId}"]`);
         const buttons = requestItem.querySelectorAll('.request-action-btn');
         buttons.forEach(btn => btn.disabled = true);
 
@@ -1317,7 +1308,7 @@ async function rejectReactivationRequest(requestId, notesInputId) {
             },
             body: JSON.stringify({
                 action: 'reject',
-                notes: notes || null
+                notes: null
             })
         });
 
@@ -1344,9 +1335,8 @@ async function rejectReactivationRequest(requestId, notesInputId) {
         alert(error.message || 'Failed to reject reactivation request. Please try again.');
         
         // Re-enable buttons
-        const notesInput = document.getElementById(notesInputId);
-        if (notesInput) {
-            const requestItem = notesInput.closest('.reactivation-request-item');
+        const requestItem = document.querySelector(`.reactivation-request-item[data-request-id="${requestId}"]`);
+        if (requestItem) {
             const buttons = requestItem.querySelectorAll('.request-action-btn');
             buttons.forEach(btn => btn.disabled = false);
         }

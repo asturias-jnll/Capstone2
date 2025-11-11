@@ -1211,7 +1211,7 @@
 }
 
 .reactivation-requests-modal-content {
-    max-width: 800px;
+    max-width: 680px;
     width: 90%;
     max-height: 90vh;
     display: flex;
@@ -1247,32 +1247,18 @@
     box-shadow: 0 2px 8px rgba(24, 124, 25, 0.1);
 }
 
-.request-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
+.request-header { display: block; margin-bottom: 12px; }
+
+.request-user-row { 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    gap: 12px; 
+    flex-wrap: wrap; 
 }
 
-.request-user-info {
-    flex: 1;
-}
-
-.request-user-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--gray-800);
-    margin-bottom: 4px;
-}
-
-.request-user-details {
-    font-size: 13px;
-    color: var(--gray-600);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 4px;
-}
+.request-user-name { font-size: 16px; font-weight: 700; color: var(--dark-green); }
+.request-user-details { font-size: 13px; color: var(--gray-600); display: flex; flex-wrap: wrap; gap: 12px; margin-top: 0; }
 
 .request-user-details span {
     display: flex;
@@ -1285,11 +1271,7 @@
     color: var(--gray-500);
 }
 
-.request-meta {
-    font-size: 12px;
-    color: var(--gray-500);
-    text-align: right;
-}
+.request-meta { font-size: 12px; color: var(--gray-500); text-align: left; }
 
 .request-reason {
     background: white;
@@ -1302,31 +1284,10 @@
     line-height: 1.5;
 }
 
-.request-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--gray-200);
-}
+.request-footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--gray-200); }
+.request-actions { display: flex; gap: 8px; }
 
-.request-notes-input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--gray-300);
-    border-radius: 6px;
-    font-size: 13px;
-    font-family: 'Inter', sans-serif;
-    resize: vertical;
-    min-height: 60px;
-    margin-bottom: 12px;
-}
-
-.request-notes-input:focus {
-    outline: none;
-    border-color: var(--green);
-    box-shadow: 0 0 0 3px rgba(24, 124, 25, 0.1);
-}
+/* Notes input removed */
 
 .request-action-btn {
     padding: 8px 16px;
@@ -1399,8 +1360,9 @@
     }
     
     .reactivation-requests-modal-content {
-        width: 95%;
+        width: 92%;
         max-height: 95vh;
+        max-width: 560px;
     }
     
     .request-header {
@@ -1413,12 +1375,16 @@
     }
     
     .request-actions {
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
     }
     
     .request-action-btn {
-        width: 100%;
+        width: auto;
         justify-content: center;
+        min-width: 120px;
     }
 }
 
