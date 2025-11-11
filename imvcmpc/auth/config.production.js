@@ -105,8 +105,8 @@ const config = {
     email: {
         smtp: {
             host: process.env.SMTP_HOST || 'smtp.gmail.com',
-            port: parseInt(process.env.SMTP_PORT || '587', 10),
-            secure: process.env.SMTP_SECURE === 'true',
+            port: parseInt(process.env.SMTP_PORT || '465', 10),
+            secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
             auth: {
                 user: process.env.SMTP_USER || 'capstone.imvcmpc.system@gmail.com',
                 pass: process.env.SMTP_PASS || 'cayl zrwp wfvq uwys'

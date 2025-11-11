@@ -9,19 +9,49 @@ class EmailService {
 
     initializeTransporter() {
         try {
+            // Enhanced configuration with timeout and connection settings
             this.transporter = nodemailer.createTransport({
                 host: config.email.smtp.host,
                 port: config.email.smtp.port,
-                secure: config.email.smtp.secure,
-                auth: config.email.smtp.auth
+                secure: config.email.smtp.secure, // true for 465, false for 587
+                auth: config.email.smtp.auth,
+                // Connection timeout settings
+                connectionTimeout: 30000, // 30 seconds
+                greetingTimeout: 20000, // 20 seconds
+                socketTimeout: 30000, // 30 seconds
+                // TLS configuration
+                tls: {
+                    rejectUnauthorized: true,
+                    minVersion: 'TLSv1.2',
+                    ciphers: 'HIGH:!aNULL:!MD5'
+                },
+                // Pool configuration for better connection management
+                pool: true,
+                maxConnections: 5,
+                maxMessages: 10,
+                // Enable debugging in development
+                debug: process.env.NODE_ENV !== 'production',
+                logger: process.env.NODE_ENV !== 'production'
             });
 
-            // Verify connection configuration
+            // Verify connection configuration with timeout
+            const verifyTimeout = setTimeout(() => {
+                console.warn('Email service verification is taking longer than expected...');
+            }, 10000);
+
             this.transporter.verify((error, success) => {
+                clearTimeout(verifyTimeout);
                 if (error) {
                     console.error('Email service configuration error:', error);
+                    console.error('Please check your SMTP settings and ensure:');
+                    console.error('1. SMTP host and port are correct');
+                    console.error('2. For Gmail: Use port 465 with secure:true (recommended for cloud hosting)');
+                    console.error('3. App password is valid and 2FA is enabled');
+                    console.error('4. Your hosting provider allows outbound SMTP connections');
                 } else {
-                    console.log('Email service is ready to send messages');
+                    console.log('✓ Email service is ready to send messages');
+                    console.log(`  Host: ${config.email.smtp.host}:${config.email.smtp.port}`);
+                    console.log(`  Secure: ${config.email.smtp.secure}`);
                 }
             });
         } catch (error) {

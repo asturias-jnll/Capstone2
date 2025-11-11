@@ -54,4 +54,19 @@ services:
         value: 100
       - key: LOG_LEVEL
         value: info
+      # Email/SMTP Configuration
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 465
+      - key: SMTP_SECURE
+        value: true
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        value: IMVCMPC System <capstone.imvcmpc.system@gmail.com>
+      - key: RESET_LINK_BASE_URL
+        sync: false
     healthCheckPath: /health
