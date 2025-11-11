@@ -1532,6 +1532,87 @@ function generateReportDetails(reportType, config) {
     }
 }
 
+// Generate clean filename from report title (for downloads)
+function generateReportFileName(reportType, config, createdAt) {
+    // Parse date string and handle timezone properly to avoid day shift
+    let localDateString = createdAt;
+    if (createdAt && createdAt.includes('T')) {
+        localDateString = createdAt.split('T')[0];
+    }
+    
+    // Parse config if it's a string, default to empty object if null/undefined
+    let parsedConfig = {};
+    try {
+        if (config) {
+            if (typeof config === 'string') {
+                parsedConfig = JSON.parse(config);
+            } else if (typeof config === 'object' && config !== null) {
+                parsedConfig = config;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to parse config:', e);
+        parsedConfig = {};
+    }
+    
+    // Ensure parsedConfig is always an object
+    if (!parsedConfig || typeof parsedConfig !== 'object') {
+        parsedConfig = {};
+    }
+    
+    let fileName = '';
+    
+    switch (reportType) {
+        case 'savings': {
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            fileName = `Savings Report – ${monthName} ${year}`;
+            break;
+        }
+        case 'disbursement': {
+            const month = parsedConfig.month || new Date().getMonth() + 1;
+            const year = parsedConfig.year || new Date().getFullYear();
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            fileName = `Disbursement Report – ${monthName} ${year}`;
+            break;
+        }
+        case 'member': {
+            let memberName = parsedConfig.member || 
+                           parsedConfig.payee ||
+                           parsedConfig.memberName ||
+                           parsedConfig.name ||
+                           'Member';
+            fileName = `Member Report - ${memberName}`;
+            break;
+        }
+        case 'branch': {
+            let branchCount = 0;
+            if (parsedConfig && parsedConfig.branches) {
+                branchCount = parsedConfig.branches.length;
+            } else if (parsedConfig && parsedConfig.transactionTypes) {
+                branchCount = parsedConfig.transactionTypes.length;
+            } else {
+                branchCount = 1;
+            }
+            const branchText = branchCount === 1 ? '1 Branch' : `${branchCount} Branches`;
+            fileName = `Branch Report – ${branchText}`;
+            break;
+        }
+        default:
+            fileName = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+    }
+    
+    // Sanitize filename: remove invalid characters and replace with underscores
+    fileName = fileName.replace(/[<>:"/\\|?*]/g, '_');
+    // Replace multiple spaces with single space and trim
+    fileName = fileName.replace(/\s+/g, ' ').trim();
+    // Remove multiple consecutive underscores
+    fileName = fileName.replace(/_+/g, '_');
+    
+    return fileName + '.pdf';
+}
+
 // Generate report title based on type and config
 function generateReportTitle(reportType, config, createdAt) {
     // Parse date string and handle timezone properly to avoid day shift
@@ -2470,27 +2551,52 @@ window.downloadReportPDF = async function downloadReportPDF(reportId) {
         
         const blob = await response.blob();
         
-        // Log report download
-        if (typeof AuditLogger !== 'undefined') {
-            // Fetch report details to get report type
-            try {
-                const reportRes = await fetch(`/api/auth/generated-reports/${reportId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (reportRes.ok) {
-                    const reportData = await reportRes.json();
-                    const reportType = reportData.data?.report_type || 'unknown';
-                    AuditLogger.logReportDownload(reportId, reportType);
+        // Fetch report details for filename and logging
+        let fileName = `report_${reportId}.pdf`; // Default fallback
+        try {
+            const reportRes = await fetch(`/api/auth/generated-reports/${reportId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (reportRes.ok) {
+                const reportData = await reportRes.json();
+                const reportInfo = reportData.data;
+                if (reportInfo) {
+                    const reportType = reportInfo.report_type || 'unknown';
+                    const config = reportInfo.config || {};
+                    const createdAt = reportInfo.created_at || new Date().toISOString();
+                    
+                    // Generate filename based on report title
+                    fileName = generateReportFileName(reportType, config, createdAt);
+                    
+                    // Log report download
+                    if (typeof AuditLogger !== 'undefined') {
+                        AuditLogger.logReportDownload(reportId, reportType);
+                    }
                 }
-            } catch (err) {
-                console.warn('Could not fetch report type for logging:', err);
+            }
+        } catch (err) {
+            console.warn('Could not fetch report details for filename:', err);
+            // Still try to log if AuditLogger is available
+            if (typeof AuditLogger !== 'undefined') {
+                try {
+                    const reportRes = await fetch(`/api/auth/generated-reports/${reportId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (reportRes.ok) {
+                        const reportData = await reportRes.json();
+                        const reportType = reportData.data?.report_type || 'unknown';
+                        AuditLogger.logReportDownload(reportId, reportType);
+                    }
+                } catch (logErr) {
+                    console.warn('Could not fetch report type for logging:', logErr);
+                }
             }
         }
         
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `report_${reportId}.pdf`;
+        a.download = fileName;
         a.click();
         window.URL.revokeObjectURL(url);
     } catch (error) {
