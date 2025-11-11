@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const db = require('./database');
 const jwtManager = require('./jwt');
 const config = require('./config');
+const emailService = require('./emailService');
 
 class AuthService {
     constructor() {
@@ -109,9 +110,26 @@ class AuthService {
 
             const user = userResult.rows[0];
 
-            // Check if account is deactivated
+            // SECURITY: Verify password FIRST before checking activation status
+            // This ensures identity is verified before allowing reactivation requests
+            const isValidPassword = await bcrypt.compare(password, user.password_hash);
+            if (!isValidPassword) {
+                // Increment login attempts - DISABLED
+                // await this.incrementLoginAttempts(user.id);
+                throw new Error('Invalid credentials');
+            }
+
+            // Check if account is deactivated (password is verified = identity confirmed)
             if (!user.is_active) {
-                throw new Error('Your account has been deactivated by the IT Head. Please contact your administrator for assistance.');
+                // Return special response for identity-verified deactivated accounts
+                return {
+                    success: false,
+                    error: 'Your account has been deactivated by the IT Head. Please contact your administrator for assistance.',
+                    code: 'ACCOUNT_DEACTIVATED',
+                    identity_verified: true,
+                    user_id: user.id,
+                    username: user.username
+                };
             }
 
             // Check if account is locked - DISABLED
@@ -119,14 +137,6 @@ class AuthService {
             //     const lockoutTime = Math.ceil((user.locked_until - new Date()) / 1000 / 60);
             //     throw new Error(`Account is locked. Try again in ${lockoutTime} minutes.`);
             // }
-
-            // Verify password
-            const isValidPassword = await bcrypt.compare(password, user.password_hash);
-            if (!isValidPassword) {
-                // Increment login attempts - DISABLED
-                // await this.incrementLoginAttempts(user.id);
-                throw new Error('Invalid credentials');
-            }
 
             // Reset login attempts on successful login - DISABLED
             // await this.resetLoginAttempts(user.id);
@@ -797,6 +807,214 @@ class AuthService {
 
         } catch (error) {
             console.error('Register branch users error:', error);
+            throw error;
+        }
+    }
+
+    // Request password reset
+    async requestPasswordReset(usernameOrEmail) {
+        try {
+            // Find user by username or email
+            const userResult = await db.query(`
+                SELECT id, username, email, first_name, last_name, is_active, branch_id
+                FROM users
+                WHERE username = $1 OR email = $1
+            `, [usernameOrEmail]);
+
+            if (userResult.rows.length === 0) {
+                // User not found - return error
+                return {
+                    success: false,
+                    error: 'The entered email or username does not belong to any branch user. Please check your input and try again.'
+                };
+            }
+
+            const user = userResult.rows[0];
+
+            // Check if user is a branch user (has branch_id)
+            if (!user.branch_id) {
+                // User exists but is not a branch user (e.g., IT Head)
+                return {
+                    success: false,
+                    error: 'The entered email or username does not belong to any branch user. Please check your input and try again.'
+                };
+            }
+
+            // Check if email is valid (not placeholder) - check this before active status
+            if (!user.email || user.email.includes('@placeholder.com') || user.email.trim() === '') {
+                throw new Error('Email address is not configured. Please contact your IT Head for password reset.');
+            }
+
+            // Check if user is active
+            if (!user.is_active) {
+                // Don't reveal account status for security, but show email
+                return {
+                    success: true,
+                    message: `A password reset link was sent to ${user.email}`,
+                    email: user.email
+                };
+            }
+
+            // Check for existing valid token (prevent spam)
+            const existingToken = await db.query(`
+                SELECT id FROM password_reset_tokens
+                WHERE user_id = $1 AND expires_at > CURRENT_TIMESTAMP AND used_at IS NULL
+                ORDER BY created_at DESC
+                LIMIT 1
+            `, [user.id]);
+
+            if (existingToken.rows.length > 0) {
+                // Token already exists and is valid
+                return {
+                    success: true,
+                    message: `A password reset link was sent to ${user.email}`,
+                    email: user.email
+                };
+            }
+
+            // Generate reset token
+            const resetToken = jwtManager.generatePasswordResetToken();
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
+
+            // Store token in database
+            await db.query(`
+                INSERT INTO password_reset_tokens (user_id, token, expires_at)
+                VALUES ($1, $2, $3)
+            `, [user.id, resetToken, expiresAt]);
+
+            // Generate reset link
+            const resetLink = `${config.email.resetLinkBaseUrl}?token=${resetToken}`;
+
+            // Send email
+            await emailService.sendPasswordResetEmail(
+                user.email,
+                user.username,
+                resetLink
+            );
+
+            return {
+                success: true,
+                message: `A password reset link was sent to ${user.email}`,
+                email: user.email
+            };
+
+        } catch (error) {
+            console.error('Password reset request error:', error);
+            throw error;
+        }
+    }
+
+    // Verify reset token
+    async verifyResetToken(token) {
+        try {
+            const tokenResult = await db.query(`
+                SELECT prt.*, u.username, u.email, u.first_name, u.last_name
+                FROM password_reset_tokens prt
+                JOIN users u ON prt.user_id = u.id
+                WHERE prt.token = $1 AND prt.expires_at > CURRENT_TIMESTAMP AND prt.used_at IS NULL
+            `, [token]);
+
+            if (tokenResult.rows.length === 0) {
+                throw new Error('Invalid or expired reset token');
+            }
+
+            return {
+                success: true,
+                token: tokenResult.rows[0],
+                user: {
+                    username: tokenResult.rows[0].username,
+                    email: tokenResult.rows[0].email,
+                    first_name: tokenResult.rows[0].first_name,
+                    last_name: tokenResult.rows[0].last_name
+                }
+            };
+
+        } catch (error) {
+            console.error('Verify reset token error:', error);
+            throw error;
+        }
+    }
+
+    // Reset password using token
+    async resetPassword(token, newPassword) {
+        try {
+            // Verify token
+            const tokenResult = await db.query(`
+                SELECT prt.*, u.id as user_id, u.is_active
+                FROM password_reset_tokens prt
+                JOIN users u ON prt.user_id = u.id
+                WHERE prt.token = $1 AND prt.expires_at > CURRENT_TIMESTAMP AND prt.used_at IS NULL
+            `, [token]);
+
+            if (tokenResult.rows.length === 0) {
+                throw new Error('Invalid or expired reset token');
+            }
+
+            const tokenData = tokenResult.rows[0];
+
+            // Check if user is active
+            if (!tokenData.is_active) {
+                throw new Error('Account is deactivated. Please contact your IT Head.');
+            }
+
+            // Validate new password
+            this.validatePassword(newPassword);
+
+            // Hash new password
+            const passwordHash = await bcrypt.hash(newPassword, this.bcryptRounds);
+
+            // Update user password
+            await db.query(`
+                UPDATE users
+                SET password_hash = $1, last_password_change = CURRENT_TIMESTAMP,
+                    password_changed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2
+            `, [passwordHash, tokenData.user_id]);
+
+            // Mark token as used
+            await db.query(`
+                UPDATE password_reset_tokens
+                SET used_at = CURRENT_TIMESTAMP
+                WHERE id = $1
+            `, [tokenData.id]);
+
+            // Get user info for notification
+            const userResult = await db.query(`
+                SELECT id, username, branch_id, first_name, last_name
+                FROM users
+                WHERE id = $1
+            `, [tokenData.user_id]);
+
+            if (userResult.rows.length > 0) {
+                const user = userResult.rows[0];
+                
+                // Create notification for successful password reset
+                const NotificationService = require('./notificationService');
+                const notificationService = new NotificationService();
+                
+                await notificationService.createNotification({
+                    user_id: user.id,
+                    branch_id: user.branch_id,
+                    title: 'Password Reset Successful',
+                    content: 'Your password has been successfully reset. If you did not perform this action, please contact your IT Head immediately.',
+                    category: 'system',
+                    type: 'success',
+                    status: 'pending',
+                    reference_type: 'password_reset',
+                    reference_id: tokenData.id,
+                    is_highlighted: true,
+                    priority: 'important'
+                });
+            }
+
+            return {
+                success: true,
+                message: 'Password has been reset successfully'
+            };
+
+        } catch (error) {
+            console.error('Reset password error:', error);
             throw error;
         }
     }

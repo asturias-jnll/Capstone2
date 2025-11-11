@@ -250,6 +250,10 @@
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .notification-item:hover {

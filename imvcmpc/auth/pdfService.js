@@ -275,31 +275,41 @@ class PDFService {
 
         // Branch performance table
         if (reportData.rows && Array.isArray(reportData.rows)) {
+            // Determine which columns to show based on selected transaction types
+            const showSavings = reportData.charts && reportData.charts.savings;
+            const showDisbursements = reportData.charts && reportData.charts.disbursement;
+            
+            // Build header columns dynamically
+            let headerColumns = '<th>Branch Name</th><th>Active Members</th>';
+            if (showSavings) {
+                headerColumns += '<th>Total Savings</th>';
+            }
+            if (showDisbursements) {
+                headerColumns += '<th>Total Disbursements</th>';
+            }
+            headerColumns += '<th>Net Interest Income</th>';
+            
             content += `
             <div class="report-table">
                 <h3>Branch Performance Summary</h3>
                 <table>
                     <thead>
                         <tr>
-                            <th>Branch Name</th>
-                            <th>Active Members</th>
-                            <th>Total Savings</th>
-                            <th>Total Disbursements</th>
-                            <th>Net Position</th>
-                            <th>Performance %</th>
+                            ${headerColumns}
                         </tr>
                     </thead>
                     <tbody>
-                        ${reportData.rows.map(row => `
-                            <tr>
-                                <td>${row.branch_name || 'N/A'}</td>
-                                <td>${Number(row.active_members || 0).toLocaleString('en-PH')}</td>
-                                <td>₱${Number(row.total_savings || 0).toLocaleString('en-PH')}</td>
-                                <td>₱${Number(row.total_disbursements || 0).toLocaleString('en-PH')}</td>
-                                <td>₱${Number(row.net_position || 0).toLocaleString('en-PH')}</td>
-                                <td>${Number(row.performancePct || 0).toFixed(2)}%</td>
-                            </tr>
-                        `).join('')}
+                        ${reportData.rows.map(row => {
+                            let rowColumns = `<td>${row.branch_name || 'N/A'}</td><td>${Number(row.active_members || 0).toLocaleString('en-PH')}</td>`;
+                            if (showSavings) {
+                                rowColumns += `<td>₱${Number(row.total_savings || 0).toLocaleString('en-PH')}</td>`;
+                            }
+                            if (showDisbursements) {
+                                rowColumns += `<td>₱${Number(row.total_disbursements || 0).toLocaleString('en-PH')}</td>`;
+                            }
+                            rowColumns += `<td>₱${Number(row.net_interest_income || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
+                            return `<tr>${rowColumns}</tr>`;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>`;

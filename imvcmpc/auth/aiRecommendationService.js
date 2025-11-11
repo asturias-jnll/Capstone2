@@ -182,12 +182,24 @@ ${this.formatBranchDataForAI(rankedBranches)}
 ANALYSIS WEIGHTS:
 ${Object.entries(weights).map(([criterion, weight]) => `- ${criterion}: ${(weight * 100).toFixed(1)}%`).join('\n')}
 
+METRICS EXPLANATION:
+- Total Savings = Capital coming IN from members (financial resources available)
+- Total Disbursements = Capital going OUT as loans (lending activity)
+- Net Interest Income = Profit generated from lending operations (financial health indicator)
+
+RESOURCE OPTIMIZATION OPPORTUNITIES:
+When analyzing branches, identify opportunities to optimize resource allocation:
+- If Branch A has high savings but low disbursements (underutilized capital), while Branch B has high loan demand but limited funds, recommend redistributing lending capital from Branch A to Branch B
+- Share expertise from high Net Interest Income branches to improve lending strategies in underperforming branches
+- Allocate investment resources to branches with high growth potential
+
 TASK:
 Provide strategic and branch-level recommendations based on this analysis. Focus on:
 1. Strategic insights for overall cooperative performance
-2. Specific actionable recommendations for each branch
-3. Priority areas for improvement
-4. Best practices to replicate from top performers
+2. Resource allocation and optimization strategies (capital redistribution, expertise sharing)
+3. Specific actionable recommendations for each branch
+4. Priority areas for improvement
+5. Best practices to replicate from top performers
 
 FORMAT YOUR RESPONSE AS JSON:
 {
@@ -225,7 +237,7 @@ Ensure recommendations are:
    - Category: ${branch.category}
    - Total Savings: ₱${Number(branch.total_savings || 0).toLocaleString('en-PH')}
    - Total Disbursements: ₱${Number(branch.total_disbursements || 0).toLocaleString('en-PH')}
-   - Net Position: ₱${Number(branch.net_position || 0).toLocaleString('en-PH')}
+   - Net Interest Income: ₱${Number(branch.net_interest_income || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
    - Active Members: ${Number(branch.active_members || 0).toLocaleString('en-PH')}
    - Performance %: ${Number(branch.performancePct || 0).toFixed(2)}%`;
         }).join('\n\n');

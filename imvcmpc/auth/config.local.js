@@ -96,6 +96,21 @@ const config = {
         model: process.env.AI_MODEL || 'claude-3-5-sonnet-20241022',
         maxTokens: parseInt(process.env.AI_MAX_TOKENS || '2000', 10),
         temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7')
+    },
+
+    // Email Configuration
+    email: {
+        smtp: {
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.SMTP_PORT || '587', 10),
+            secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+            auth: {
+                user: process.env.SMTP_USER || 'capstone.imvcmpc.system@gmail.com',
+                pass: process.env.SMTP_PASS || 'cayl zrwp wfvq uwys'
+            }
+        },
+        from: process.env.EMAIL_FROM || 'IMVCMPC System <capstone.imvcmpc.system@gmail.com>',
+        resetLinkBaseUrl: process.env.RESET_LINK_BASE_URL || 'http://localhost:3000/logpage/reset-password.html'
     }
 };
 

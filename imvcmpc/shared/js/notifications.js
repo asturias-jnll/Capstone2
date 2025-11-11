@@ -55,17 +55,10 @@ function setupFilterEventListeners() {
     });
 }
 
-// Setup notification item event listeners
-function setupNotificationEventListeners() {
-    document.addEventListener('click', async function(e) {
-        // Handle notification click
-        if (e.target.closest('.notification-item')) {
-            const notificationItem = e.target.closest('.notification-item');
+// Handle notification click (extracted to reusable function)
+async function handleNotificationClick(notification, notificationItem) {
             const notificationId = notificationItem.getAttribute('data-id');
             
-            // Find the notification
-            let notification = allNotifications.find(n => n.id === notificationId);
-            if (notification) {
                 // Always mark as read when clicked
                 await markAsRead(notificationId, false);
 
@@ -130,15 +123,32 @@ function setupNotificationEventListeners() {
                 // For Finance Officer: clicking notification makes it read (no blue dot) but keeps green if not completed
                 // For Marketing Clerk: clicking notification makes it read (white background)
                 const userRole = localStorage.getItem('user_role');
+    
+    // Check if this is a change request approved/rejected notification
+    const isChangeRequestApprovedRejected = notification.reference_type === 'change_request' && 
+        (notification.title.includes('Approved') || notification.title.includes('Rejected'));
+    
                 if (userRole === 'Finance Officer') {
                     // FO: Remove blue dot but keep green background if not completed
                     notificationItem.classList.remove('unread');
                     notificationItem.classList.add('read');
                 } else {
                     // MC: Remove blue dot and change to white background
+        // Remove pending (green) for system notifications and change request approved/rejected
+        // Keep green for important notifications that need action (pending change requests, report requests)
                     notificationItem.classList.remove('unread');
+        if (notification.category === 'system' || isChangeRequestApprovedRejected) {
+            // System notifications and change request approved/rejected: remove green background when read
+            notificationItem.classList.remove('pending');
+        }
+        // Important notifications that need action keep their green background even when read
                     notificationItem.classList.add('read');
                 }
+    
+    // Also update the notification object to reflect it's been read
+    if (notification) {
+        notification.isRead = true;
+    }
 
                 // Update the UI to reflect the read state
                 filterNotifications(currentFilter);
@@ -147,8 +157,30 @@ function setupNotificationEventListeners() {
                 // Show modal for important notifications: change request, report request, or generated report
                 if (notification.category === 'important' && (notification.reference_type === 'change_request' || notification.reference_type === 'report_request' || notification.reference_type === 'generated_report')) {
                     showNotificationModal(notification);
+    } else if (notification.category === 'system') {
+        // For system notifications (reactivation, password reset), show modal with details
+        showNotificationModal(notification);
                 }
                 // For other notifications, they are already marked as read above
+    
+    // Update notification badge count after marking as read
+    if ((userRole === 'Marketing Clerk' || userRole === 'Finance Officer') && typeof updateNotificationCount === 'function') {
+        await updateNotificationCount();
+    }
+}
+
+// Setup notification item event listeners
+function setupNotificationEventListeners() {
+    document.addEventListener('click', async function(e) {
+        // Handle notification click
+        if (e.target.closest('.notification-item')) {
+            const notificationItem = e.target.closest('.notification-item');
+            const notificationId = notificationItem.getAttribute('data-id');
+            
+            // Find the notification
+            let notification = allNotifications.find(n => n.id === notificationId);
+            if (notification) {
+                await handleNotificationClick(notification, notificationItem);
             }
         }
     });
@@ -282,9 +314,15 @@ function createNotificationItem(notification) {
     
     // For Marketing Clerk: Green background until action is taken (status changes from pending)
     // Blue dot only shows for unread notifications
+    // System notifications (reactivation, password reset): no green background when read
+    // Change request approved/rejected: no green background when read
+    // Important notifications that need action (pending change requests, report requests): keep green background even when read
     const shouldShowAsUnread = isUnread;
     const shouldShowAsPending = isPending; // Green background for pending notifications
     const shouldShowAsCompleted = isCompleted; // White background for completed notifications
+    const isSystemNotification = notification.category === 'system';
+    const isChangeRequestApprovedRejected = notification.reference_type === 'change_request' && 
+        (notification.title.includes('Approved') || notification.title.includes('Rejected'));
     
     // Build class string based on state
     let classString = 'notification-item';
@@ -298,8 +336,11 @@ function createNotificationItem(notification) {
             classString += ' pending';
         }
     } else {
+        // Read notifications
         classString += ' read';
-        if (shouldShowAsPending) {
+        // For system notifications and change request approved/rejected: don't show green background when read
+        // For important notifications that need action: keep green background when read (they need action)
+        if (shouldShowAsPending && !isSystemNotification && !isChangeRequestApprovedRejected) {
             classString += ' pending';
         }
     }
@@ -438,9 +479,19 @@ function filterNotifications(filterType) {
     
     switch (filterType) {
         case 'unread':
-            // For both roles: to do = not completed (green background notifications)
-            // Green notifications (with or without blue dot) are considered to do
-            filteredNotifications = validNotifications.filter(n => n.status !== 'completed');
+            // To Do: notifications that need action (exclude system notifications and change request approved/rejected)
+            filteredNotifications = validNotifications.filter(n => {
+                // Exclude completed notifications
+                if (n.status === 'completed') return false;
+                // Exclude system notifications (reactivation, password reset)
+                if (n.category === 'system') return false;
+                // Exclude change request approved/rejected notifications
+                if (n.reference_type === 'change_request' && 
+                    (n.title.includes('Approved') || n.title.includes('Rejected'))) {
+                    return false;
+                }
+                return true;
+            });
             break;
         case 'important':
             filteredNotifications = validNotifications.filter(n => n.category === 'important');
@@ -458,20 +509,44 @@ function filterNotifications(filterType) {
 
 // Update notification counts
 function updateNotificationCounts() {
-    // Count to do notifications (green notifications - with or without blue dot)
-    const unreadCount = allNotifications.filter(n => n.status !== 'completed').length;
+    // Count unread notifications for "To Do" filter (exclude system and change request approved/rejected)
+    const unreadCount = allNotifications.filter(n => {
+        if (n.isRead) return false;
+        // Exclude system notifications (reactivation, password reset)
+        if (n.category === 'system') return false;
+        // Exclude change request approved/rejected notifications
+        if (n.reference_type === 'change_request' && 
+            (n.title.includes('Approved') || n.title.includes('Rejected'))) {
+            return false;
+        }
+        return true;
+    }).length;
     
-    // Update To Do filter badge (only badge that shows count)
+    // Count unread system notifications
+    const systemUnreadCount = allNotifications.filter(n => n.category === 'system' && !n.isRead).length;
+    
+    // Count unread important notifications
+    const importantUnreadCount = allNotifications.filter(n => n.category === 'important' && !n.isRead).length;
+    
+    // Update To Do filter badge (show count of unread notifications)
     const unreadBadge = document.getElementById('unreadFilterBadge');
     if (unreadBadge) {
         unreadBadge.textContent = unreadCount;
         unreadBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
     }
     
-    // Hide badges on all other filters
+    // Update Important filter badge
     const importantBadge = document.getElementById('importantFilterBadge');
     if (importantBadge) {
-        importantBadge.style.display = 'none';
+        importantBadge.textContent = importantUnreadCount;
+        importantBadge.style.display = importantUnreadCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    // Update System filter badge
+    const systemBadge = document.getElementById('systemFilterBadge');
+    if (systemBadge) {
+        systemBadge.textContent = systemUnreadCount;
+        systemBadge.style.display = systemUnreadCount > 0 ? 'inline-block' : 'none';
     }
     
     // Hide any legacy badges
@@ -525,12 +600,23 @@ function showNotificationModal(notification) {
             isCompleted: notification.status === 'completed'
         });
         
+        // Check if this is a change request approved/rejected notification
+        const isChangeRequestApprovedRejected = notification.reference_type === 'change_request' && 
+            (notification.title.includes('Approved') || notification.title.includes('Rejected'));
+        
         if (notification.reference_type === 'generated_report') {
             // Show Delete/View Report buttons for generated report notifications
             console.log('➡️ Showing reportButtons (Delete/View Report)');
             if (initialButtons) initialButtons.style.display = 'none';
             if (actionTakenButtons) actionTakenButtons.style.display = 'none';
             if (reportButtons) reportButtons.style.display = 'flex';
+        } else if (notification.category === 'system' || isChangeRequestApprovedRejected) {
+            // System notifications (reactivation, password reset) and change request approved/rejected
+            // Show Close/Delete buttons (no Take Action)
+            console.log('➡️ Showing actionTakenButtons (Close/Delete) - no action needed');
+            if (initialButtons) initialButtons.style.display = 'none';
+            if (actionTakenButtons) actionTakenButtons.style.display = 'flex';
+            if (reportButtons) reportButtons.style.display = 'none';
         } else if (notification.status === 'completed') {
             // Show Close/Delete buttons for completed notifications
             console.log('➡️ Showing actionTakenButtons (Close/Delete)');
@@ -538,7 +624,7 @@ function showNotificationModal(notification) {
             if (actionTakenButtons) actionTakenButtons.style.display = 'flex';
             if (reportButtons) reportButtons.style.display = 'none';
         } else {
-            // Show Later/Take Action buttons for pending notifications
+            // Show Later/Take Action buttons for pending notifications that need action
             console.log('➡️ Showing initialButtons (Later/Take Action)');
             if (initialButtons) initialButtons.style.display = 'flex';
             if (actionTakenButtons) actionTakenButtons.style.display = 'none';
@@ -944,15 +1030,15 @@ async function markAsRead(notificationId, refreshList = true) {
                 }
             }
             
-            if (refreshList) {
-                // Refresh display
-                filterNotifications(currentFilter);
-                
-                // Update notification count for both roles
+            // Always update navigation badge count when notification is marked as read
                 const userRole = localStorage.getItem('user_role');
                 if ((userRole === 'Marketing Clerk' || userRole === 'Finance Officer') && typeof updateNotificationCount === 'function') {
                     await updateNotificationCount();
                 }
+            
+            if (refreshList) {
+                // Refresh display
+                filterNotifications(currentFilter);
             }
         }
     } catch (error) {

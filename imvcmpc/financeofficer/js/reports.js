@@ -1479,13 +1479,17 @@ async function generateReport() {
                 const totalSavings = parseFloat(r.total_savings || 0) || 0;
                 const totalDisb = parseFloat(r.total_disbursements || 0) || 0;
                 const net = parseFloat(r.net_position || (totalSavings - totalDisb)) || 0;
-                const perfPct = (totalDisb !== 0) ? (net / Math.abs(totalDisb)) * 100 : (net >= 0 ? 100 : -100);
+                // Use net_interest_income for Finance Officer (from analytics service)
+                const netInterestIncome = parseFloat(r.net_interest_income || 0) || 0;
                 return {
-                    branch_name: r.branch_name || r.branch_location || `Branch ${r.branch_id}`,
+                    branch_id: r.branch_id,
+                    branch_location: r.branch_location || r.branch_name || `Branch ${r.branch_id}`,
+                    branch_name: `Branch ${r.branch_id} - ${r.branch_location || r.branch_name}`, // For table display
+                    branch_location_only: r.branch_location || r.branch_name || `Branch ${r.branch_id}`, // For graphs
                     active_members: parseInt(r.active_members || 0, 10) || 0,
                     total_savings: totalSavings,
                     total_disbursements: totalDisb,
-                    performancePct: perfPct,
+                    net_interest_income: netInterestIncome,
                     net_position: net
                 };
             });
@@ -1504,7 +1508,7 @@ async function generateReport() {
                 rows: finalRows,
                 charts: {
                     savings: showSavings ? {
-                        labels: finalRows.map(x => x.branch_name),
+                        labels: finalRows.map(x => x.branch_location_only),
                         datasets: [
                             {
                                 label: 'Total Savings (Bar)',
@@ -1531,7 +1535,7 @@ async function generateReport() {
                         ]
                     } : null,
                     disbursement: showDisb ? {
-                        labels: finalRows.map(x => x.branch_name),
+                        labels: finalRows.map(x => x.branch_location_only),
                         datasets: [
                             {
                                 label: 'Total Disbursements (Bar)',
@@ -2325,6 +2329,26 @@ function generateBranchReportHTML(reportData) {
     const month = reportData.period.split(' ')[0];
     const year = reportData.period.split(' ')[1];
     
+    // Determine which columns to show based on selected transaction types
+    const showSavings = reportData.charts && reportData.charts.savings;
+    const showDisbursements = reportData.charts && reportData.charts.disbursement;
+    
+    // Build header columns dynamically
+    let headerColumns = '<th>Branch Name</th><th>Total Members</th>';
+    if (showSavings) {
+        headerColumns += '<th>Total Savings</th>';
+    }
+    if (showDisbursements) {
+        headerColumns += '<th>Total Disbursements</th>';
+    }
+    headerColumns += '<th>Net Interest Income</th>';
+    
+    // Calculate colspan for "no data" message
+    let colspan = 2; // Branch Name + Total Members
+    if (showSavings) colspan++;
+    if (showDisbursements) colspan++;
+    colspan++; // Net Interest Income
+    
     let html = `
         <div class="report-content">
             <div class="report-stats">
@@ -2350,25 +2374,23 @@ function generateBranchReportHTML(reportData) {
                 <table>
                     <thead>
                         <tr>
-                            <th>Branch Name</th>
-                            <th>Total Members</th>
-                            <th>Total Savings</th>
-                            <th>Total Disbursements</th>
-                            <th>Performance %</th>
+                            ${headerColumns}
                         </tr>
                     </thead>
                     <tbody>
-                        ${Array.isArray(reportData.rows) && reportData.rows.length ? reportData.rows.map(r => `
+                        ${Array.isArray(reportData.rows) && reportData.rows.length ? reportData.rows.map(r => {
+                            let rowColumns = `<td>${r.branch_name}</td><td>${r.active_members}</td>`;
+                            if (showSavings) {
+                                rowColumns += `<td>₱${Number(r.total_savings || 0).toLocaleString('en-PH')}</td>`;
+                            }
+                            if (showDisbursements) {
+                                rowColumns += `<td>₱${Number(r.total_disbursements || 0).toLocaleString('en-PH')}</td>`;
+                            }
+                            rowColumns += `<td>₱${Number(r.net_interest_income || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
+                            return `<tr>${rowColumns}</tr>`;
+                        }).join('') : `
                             <tr>
-                                <td>${r.branch_name}</td>
-                                <td>${r.active_members}</td>
-                                <td>₱${Number(r.total_savings || 0).toLocaleString('en-PH')}</td>
-                                <td>₱${Number(r.total_disbursements || 0).toLocaleString('en-PH')}</td>
-                                <td>${(r.performancePct || 0).toFixed(2)}%</td>
-                            </tr>
-                        `).join('') : `
-                            <tr>
-                                <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">
+                                <td colspan="${colspan}" style="text-align: center; padding: 40px; color: #9ca3af;">
                                     <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
                                     No data available for selected filters
                                 </td>

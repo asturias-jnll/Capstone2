@@ -95,6 +95,12 @@ router.post('/login',
             const ipAddress = req.ip || req.connection.remoteAddress;
 
             const result = await authService.loginUser(username, password, deviceInfo, ipAddress);
+            
+            // Handle special case: identity-verified deactivated account
+            if (!result.success && result.code === 'ACCOUNT_DEACTIVATED' && result.identity_verified) {
+                return res.status(401).json(result);
+            }
+            
             res.json(result);
 
         } catch (error) {
@@ -371,6 +377,529 @@ router.delete('/users/:userId',
         }
     }
 );
+
+// Request reactivation (public endpoint - no auth required, but identity must be verified via password)
+// Send reactivation verification code (Method 3 - Email verification)
+router.post('/send-reactivation-code', async (req, res) => {
+    try {
+        const db = require('./database');
+        const bcrypt = require('bcryptjs');
+        const emailService = require('./emailService');
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username and password are required'
+            });
+        }
+        
+        // Find user and verify password
+        const userResult = await db.query(`
+            SELECT id, username, email, password_hash, is_active
+            FROM users
+            WHERE username = $1
+        `, [username]);
+        
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials'
+            });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Verify password
+        const isValidPassword = await bcrypt.compare(password, user.password_hash);
+        if (!isValidPassword) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials'
+            });
+        }
+        
+        // Check if user is already active
+        if (user.is_active) {
+            return res.status(400).json({
+                success: false,
+                error: 'Your account is already active'
+            });
+        }
+        
+        // Check if email is valid (not placeholder)
+        if (!user.email || user.email.includes('@placeholder.com') || user.email.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                error: 'Email address is not configured. Please contact your IT Head for reactivation.'
+            });
+        }
+        
+        // Generate 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+        
+        // Invalidate any existing unused codes for this user
+        await db.query(`
+            UPDATE reactivation_verification_codes
+            SET used = true
+            WHERE user_id = $1 AND used = false AND expires_at > CURRENT_TIMESTAMP
+        `, [user.id]);
+        
+        // Store code in database
+        await db.query(`
+            INSERT INTO reactivation_verification_codes (user_id, code, expires_at)
+            VALUES ($1, $2, $3)
+        `, [user.id, code, expiresAt]);
+        
+        // Send email
+        await emailService.sendReactivationCodeEmail(user.email, user.username, code);
+        
+        res.json({
+            success: true,
+            message: `Verification code sent to ${user.email}`
+        });
+        
+    } catch (error) {
+        console.error('Send reactivation code error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to send verification code'
+        });
+    }
+});
+
+// Verify reactivation code and submit request (Method 3 - Email verification)
+router.post('/verify-reactivation-code', async (req, res) => {
+    try {
+        const db = require('./database');
+        const bcrypt = require('bcryptjs');
+        const { username, password, code, reason } = req.body;
+        
+        if (!username || !password || !code || !reason) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username, password, verification code, and reason are required'
+            });
+        }
+        
+        if (reason.trim().length < 10) {
+            return res.status(400).json({
+                success: false,
+                error: 'Reason must be at least 10 characters'
+            });
+        }
+        
+        // Verify code format
+        if (!/^\d{6}$/.test(code)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid verification code format'
+            });
+        }
+        
+        // Find user and verify password
+        const userResult = await db.query(`
+            SELECT id, username, email, password_hash, is_active
+            FROM users
+            WHERE username = $1
+        `, [username]);
+        
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials'
+            });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Verify password
+        const isValidPassword = await bcrypt.compare(password, user.password_hash);
+        if (!isValidPassword) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid credentials'
+            });
+        }
+        
+        // Check if user is already active
+        if (user.is_active) {
+            return res.status(400).json({
+                success: false,
+                error: 'Your account is already active'
+            });
+        }
+        
+        // Verify code
+        const codeResult = await db.query(`
+            SELECT id, expires_at, used
+            FROM reactivation_verification_codes
+            WHERE user_id = $1 AND code = $2 AND used = false
+            ORDER BY created_at DESC
+            LIMIT 1
+        `, [user.id, code]);
+        
+        if (codeResult.rows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid or expired verification code'
+            });
+        }
+        
+        const codeRecord = codeResult.rows[0];
+        
+        // Check if code is expired
+        if (new Date() > new Date(codeRecord.expires_at)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Verification code has expired. Please request a new code.'
+            });
+        }
+        
+        // Check if code is already used
+        if (codeRecord.used) {
+            return res.status(400).json({
+                success: false,
+                error: 'Verification code has already been used'
+            });
+        }
+        
+        // Mark code as used
+        await db.query(`
+            UPDATE reactivation_verification_codes
+            SET used = true
+            WHERE id = $1
+        `, [codeRecord.id]);
+        
+        // Check if there's already a pending request
+        const existingRequest = await db.query(`
+            SELECT id FROM reactivation_requests WHERE user_id = $1 AND status = $2
+        `, [user.id, 'pending']);
+        
+        if (existingRequest.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'You already have a pending reactivation request'
+            });
+        }
+        
+        // Capture request metadata
+        const ipAddress = req.ip || req.connection.remoteAddress;
+        const userAgent = req.get('User-Agent');
+        
+        // Create reactivation request record
+        await db.query(`
+            INSERT INTO reactivation_requests (user_id, username, reason, status, ip_address, user_agent)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [user.id, username, reason.trim(), 'pending', ipAddress, userAgent]);
+        
+        res.json({
+            success: true,
+            message: 'Reactivation request submitted successfully'
+        });
+        
+    } catch (error) {
+        console.error('Verify reactivation code error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to verify code and submit request'
+        });
+    }
+});
+
+// Submit reactivation request (public - for deactivated users) - OLD METHOD (keeping for backward compatibility)
+router.post('/request-reactivation', async (req, res) => {
+    try {
+        const db = require('./database');
+        const { username, reason } = req.body;
+        
+        if (!username || !reason) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username and reason are required'
+            });
+        }
+        
+        if (reason.trim().length < 10) {
+            return res.status(400).json({
+                success: false,
+                error: 'Reason must be at least 10 characters'
+            });
+        }
+        
+        // Find user by username
+        const userResult = await db.query(
+            'SELECT id, username, is_active FROM users WHERE username = $1',
+            [username]
+        );
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Check if user is already active
+        if (user.is_active) {
+            return res.status(400).json({
+                success: false,
+                error: 'Your account is already active'
+            });
+        }
+        
+        // Check if there's already a pending request
+        const existingRequest = await db.query(
+            'SELECT id FROM reactivation_requests WHERE user_id = $1 AND status = $2',
+            [user.id, 'pending']
+        );
+        
+        if (existingRequest.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'You already have a pending reactivation request'
+            });
+        }
+        
+        // Capture request metadata
+        const ipAddress = req.ip || req.connection.remoteAddress;
+        const userAgent = req.get('User-Agent');
+        
+        // Create reactivation request record
+        await db.query(
+            `INSERT INTO reactivation_requests (user_id, username, reason, status, ip_address, user_agent)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [user.id, username, reason.trim(), 'pending', ipAddress, userAgent]
+        );
+        
+        res.json({
+            success: true,
+            message: 'Reactivation request submitted successfully'
+        });
+        
+    } catch (error) {
+        console.error('Reactivation request error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to submit reactivation request'
+        });
+    }
+});
+
+// Get pending reactivation requests (IT Head only)
+router.get('/reactivation-requests',
+    authenticateToken,
+    checkRole('it_head'),
+    async (req, res) => {
+        try {
+            const db = require('./database');
+            const result = await db.query(`
+                SELECT rr.*, 
+                       u.first_name, u.last_name, u.email, u.employee_id,
+                       r.display_name as role_display_name,
+                       b.name as branch_name, b.location as branch_location
+                FROM reactivation_requests rr
+                JOIN users u ON rr.user_id = u.id
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN branches b ON u.branch_id = b.id
+                WHERE rr.status = 'pending'
+                ORDER BY rr.requested_at DESC
+            `);
+            
+            res.json({
+                success: true,
+                requests: result.rows
+            });
+        } catch (error) {
+            console.error('Get reactivation requests error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to retrieve reactivation requests'
+            });
+        }
+    }
+);
+
+// Approve/reject reactivation request (IT Head only)
+router.put('/reactivation-requests/:requestId',
+    authenticateToken,
+    checkRole('it_head'),
+    auditLog('review_reactivation_request', 'reactivation_requests'),
+    async (req, res) => {
+        try {
+            const db = require('./database');
+            const NotificationService = require('./notificationService');
+            const notificationService = new NotificationService();
+            const { requestId } = req.params;
+            const { action, notes } = req.body;
+            
+            if (!['approve', 'reject'].includes(action)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid action. Must be "approve" or "reject"'
+                });
+            }
+            
+            // Get request details with user info
+            const requestResult = await db.query(`
+                SELECT rr.*, u.branch_id, u.first_name, u.last_name, u.username
+                FROM reactivation_requests rr
+                JOIN users u ON rr.user_id = u.id
+                WHERE rr.id = $1 AND rr.status = $2
+            `, [requestId, 'pending']);
+            
+            if (requestResult.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Request not found or already processed'
+                });
+            }
+            
+            const request = requestResult.rows[0];
+            const newStatus = action === 'approve' ? 'approved' : 'rejected';
+            
+            // Update request status
+            await db.query(
+                `UPDATE reactivation_requests 
+                 SET status = $1, reviewed_at = CURRENT_TIMESTAMP, 
+                     reviewed_by = $2, review_notes = $3
+                 WHERE id = $4`,
+                [newStatus, req.user.id, notes || null, requestId]
+            );
+            
+            // If approved, reactivate the user
+            if (action === 'approve') {
+                await db.query(
+                    'UPDATE users SET is_active = true WHERE id = $1',
+                    [request.user_id]
+                );
+            }
+            
+            // Create notification for the user
+            const notificationTitle = action === 'approve' 
+                ? 'Account Reactivation Approved' 
+                : 'Account Reactivation Rejected';
+            const notificationContent = action === 'approve'
+                ? `Your account reactivation request has been approved. You can now log in to your account.${notes ? ` Note: ${notes}` : ''}`
+                : `Your account reactivation request has been rejected.${notes ? ` Reason: ${notes}` : ' Please contact your IT Head for more information.'}`;
+            
+            await notificationService.createNotification({
+                user_id: request.user_id,
+                branch_id: request.branch_id,
+                title: notificationTitle,
+                content: notificationContent,
+                category: 'system',
+                type: action === 'approve' ? 'success' : 'error',
+                status: 'pending',
+                reference_type: 'reactivation_request',
+                reference_id: requestId,
+                is_highlighted: true,
+                priority: 'important'
+            });
+            
+            res.json({
+                success: true,
+                message: `Reactivation request ${action}d successfully`
+            });
+            
+        } catch (error) {
+            console.error('Process reactivation request error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to process reactivation request'
+            });
+        }
+    }
+);
+
+// Forgot password - Request password reset
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { username_or_email } = req.body;
+        
+        if (!username_or_email) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username or email is required'
+            });
+        }
+        
+        const result = await authService.requestPasswordReset(username_or_email);
+        
+        // If result indicates failure, return error status
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+        
+        res.json(result);
+        
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        // Return generic message for security (don't reveal if user exists)
+        if (error.message.includes('Email address is not configured')) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        } else {
+            res.json({
+                success: true,
+                message: 'If an account with that email exists, a password reset link has been sent.'
+            });
+        }
+    }
+});
+
+// Verify reset token
+router.get('/verify-reset-token/:token', async (req, res) => {
+    try {
+        const { token } = req.params;
+        
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                error: 'Token is required'
+            });
+        }
+        
+        const result = await authService.verifyResetToken(token);
+        res.json(result);
+        
+    } catch (error) {
+        console.error('Verify reset token error:', error);
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Reset password
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { token, new_password } = req.body;
+        
+        if (!token || !new_password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Token and new password are required'
+            });
+        }
+        
+        const result = await authService.resetPassword(token, new_password);
+        res.json(result);
+        
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
 
 // Get all branches
 router.get('/branches',

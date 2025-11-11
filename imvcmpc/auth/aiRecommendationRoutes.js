@@ -1,6 +1,8 @@
 const express = require('express');
+const crypto = require('crypto');
 const { authenticateToken, checkRole, auditLog } = require('./middleware');
 const config = require('./config');
+const db = require('./database');
 const MCDAService = require('./mcdaService');
 const AIRecommendationService = require('./aiRecommendationService');
 const PDFService = require('./pdfService');
@@ -65,7 +67,7 @@ router.get('/test-ai',
   }
 );
 
-// Generate AI recommendations (MCDA + optional LLM)
+// Generate AI recommendations (MCDA + optional LLM) with caching
 router.post('/reports/generate-ai-recommendations',
   authenticateToken,
   checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
@@ -87,16 +89,92 @@ router.post('/reports/generate-ai-recommendations',
         hasApiKey: !!aiService.config.apiKey
       });
 
-      // For branch reports, expect rows; for others, construct minimal dataset
+      // STEP 1: Generate cache key based on report configuration
+      const cacheConfig = {
+        reportType,
+        period: reportData.period,
+        branches: reportData.branches,
+        // Include which transaction types are selected (savings, disbursements, or both)
+        chartTypes: {
+          hasSavings: !!reportData.charts?.savings,
+          hasDisbursement: !!reportData.charts?.disbursement
+        },
+        rows: reportData.rows?.map(r => ({
+          branch_id: r.branch_id,
+          total_savings: parseFloat(r.total_savings || 0),
+          total_disbursements: parseFloat(r.total_disbursements || 0),
+          net_interest_income: parseFloat(r.net_interest_income || 0),
+          active_members: parseInt(r.active_members || 0, 10)
+        }))
+      };
+      const cacheKey = crypto.createHash('md5')
+        .update(JSON.stringify(cacheConfig))
+        .digest('hex');
+      
+      console.log('🔑 [AI-RECO] Cache key:', cacheKey);
+
+      // STEP 2: Check if cached recommendation exists
+      try {
+        const cacheResult = await db.query(`
+          SELECT 
+            mcda_results, 
+            ai_recommendations, 
+            source, 
+            model,
+            created_at,
+            access_count
+          FROM ai_recommendation_cache
+          WHERE cache_key = $1
+        `, [cacheKey]);
+
+        if (cacheResult.rows.length > 0) {
+          const cached = cacheResult.rows[0];
+          console.log('✅ [AI-RECO] Cache HIT! Using cached recommendation');
+          console.log('✅ [AI-RECO] Original created:', cached.created_at);
+          console.log('✅ [AI-RECO] Access count:', cached.access_count);
+          
+          // Update access tracking
+          await db.query(`
+            UPDATE ai_recommendation_cache
+            SET accessed_at = CURRENT_TIMESTAMP,
+                access_count = access_count + 1
+            WHERE cache_key = $1
+          `, [cacheKey]);
+
+          return res.json({
+            success: true,
+            data: {
+              mcda: cached.mcda_results,
+              ai: {
+                ...cached.ai_recommendations,
+                cached: true,
+                cacheInfo: {
+                  created: cached.created_at,
+                  accessCount: cached.access_count + 1,
+                  source: cached.source,
+                  model: cached.model
+                }
+              }
+            }
+          });
+        }
+      } catch (cacheError) {
+        console.warn('⚠️ [AI-RECO] Cache lookup error:', cacheError.message);
+        // Continue with generation if cache fails
+      }
+
+      console.log('❌ [AI-RECO] Cache MISS! Generating new recommendation...');
+
+      // STEP 3: Prepare data and run MCDA
       let branchesData = [];
       if (reportType === 'branch' && reportData && Array.isArray(reportData.rows)) {
         branchesData = reportData.rows.map(r => ({
           branch_id: r.branch_id || null,
-          branch_name: r.branch_name,
+          branch_name: r.branch_location_only || r.branch_location || r.branch_name, // Use location only for AI
           active_members: r.active_members,
           total_savings: r.total_savings,
           total_disbursements: r.total_disbursements,
-          net_position: r.net_position,
+          net_interest_income: r.net_interest_income,
           performancePct: r.performancePct
         }));
       } else if ((reportType === 'savings' || reportType === 'disbursement') && reportData) {
@@ -107,7 +185,7 @@ router.post('/reports/generate-ai-recommendations',
           active_members: reportData.activeMembers || 0,
           total_savings: reportType === 'savings' ? (reportData.total || 0) : 0,
           total_disbursements: reportType === 'disbursement' ? (reportData.total || 0) : 0,
-          net_position: (reportData.total || 0),
+          net_interest_income: 0,
           performancePct: 0
         }];
       } else {
@@ -135,11 +213,138 @@ router.post('/reports/generate-ai-recommendations',
         console.warn('⚠️ [AI-RECO] Error:', aiResult.error);
       }
 
-      return res.json({ success: true, data: { mcda: mcdaResults, ai: aiResult } });
+      // STEP 4: Store in cache
+      try {
+        await db.query(`
+          INSERT INTO ai_recommendation_cache (
+            cache_key, 
+            report_type, 
+            report_config, 
+            mcda_results, 
+            ai_recommendations, 
+            source, 
+            model
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          ON CONFLICT (cache_key) DO UPDATE SET
+            accessed_at = CURRENT_TIMESTAMP,
+            access_count = ai_recommendation_cache.access_count + 1
+        `, [
+          cacheKey,
+          reportType,
+          cacheConfig,
+          mcdaResults,
+          aiResult,
+          aiResult.source,
+          aiResult.metadata?.model || null
+        ]);
+        console.log('💾 [AI-RECO] Cached recommendation saved');
+      } catch (cacheError) {
+        console.warn('⚠️ [AI-RECO] Failed to cache recommendation:', cacheError.message);
+        // Don't fail the request if caching fails
+      }
+
+      return res.json({ 
+        success: true, 
+        data: { 
+          mcda: mcdaResults, 
+          ai: {
+            ...aiResult,
+            cached: false
+          }
+        } 
+      });
     } catch (error) {
       console.error('❌ [AI-RECO] Error:', error.message);
       console.error('❌ [AI-RECO] Stack:', error.stack);
       return res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// Clear AI recommendation cache (IT Head only)
+router.delete('/reports/clear-ai-cache',
+  authenticateToken,
+  checkRole(['it_head']),
+  auditLog('clear_ai_cache', 'reports'),
+  async (req, res) => {
+    try {
+      const { daysOld = 30 } = req.query;
+      const daysOldInt = parseInt(daysOld, 10);
+      
+      if (isNaN(daysOldInt) || daysOldInt < 1) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid daysOld parameter. Must be a positive integer.' 
+        });
+      }
+      
+      console.log(`🗑️ [AI-CACHE] Clearing cache entries older than ${daysOldInt} days...`);
+      
+      const result = await db.query(`
+        DELETE FROM ai_recommendation_cache
+        WHERE created_at < NOW() - INTERVAL '${daysOldInt} days'
+        RETURNING id, cache_key, created_at
+      `);
+      
+      console.log(`✅ [AI-CACHE] Deleted ${result.rowCount} cache entries`);
+      
+      res.json({
+        success: true,
+        message: `Deleted ${result.rowCount} cache entries older than ${daysOldInt} days`,
+        deletedCount: result.rowCount
+      });
+    } catch (error) {
+      console.error('❌ [AI-CACHE] Cache cleanup error:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// Get AI cache statistics (IT Head only)
+router.get('/reports/ai-cache-stats',
+  authenticateToken,
+  checkRole(['it_head']),
+  async (req, res) => {
+    try {
+      console.log('📊 [AI-CACHE] Fetching cache statistics...');
+      
+      const stats = await db.query(`
+        SELECT 
+          COUNT(*) as total_entries,
+          SUM(access_count) as total_accesses,
+          AVG(access_count) as avg_accesses_per_entry,
+          COUNT(CASE WHEN source = 'ai' THEN 1 END) as ai_generated,
+          COUNT(CASE WHEN source = 'rule-based-fallback' THEN 1 END) as rule_based,
+          MIN(created_at) as oldest_entry,
+          MAX(created_at) as newest_entry,
+          MAX(accessed_at) as last_accessed
+        FROM ai_recommendation_cache
+      `);
+      
+      const topAccessed = await db.query(`
+        SELECT 
+          report_type,
+          cache_key,
+          access_count,
+          created_at,
+          accessed_at
+        FROM ai_recommendation_cache
+        ORDER BY access_count DESC
+        LIMIT 10
+      `);
+      
+      console.log('✅ [AI-CACHE] Statistics retrieved');
+      
+      res.json({
+        success: true,
+        data: {
+          summary: stats.rows[0],
+          topAccessed: topAccessed.rows
+        }
+      });
+    } catch (error) {
+      console.error('❌ [AI-CACHE] Error fetching cache stats:', error);
+      res.status(500).json({ success: false, error: error.message });
     }
   }
 );

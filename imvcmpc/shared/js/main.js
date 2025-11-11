@@ -236,12 +236,10 @@ async function updateNotificationCount() {
                 console.log(`  [${index}] Title: "${n.title}" | Type: ${n.reference_type} | Read: ${n.isRead} | Status: ${n.status}`);
             });
             
-            // Count unread notifications for both roles (include report_request and generated_report)
-            const unreadCount = notifications.filter(n => !n.isRead && (
-                n.reference_type === 'change_request' || n.reference_type === 'report_request' || n.reference_type === 'generated_report'
-            )).length;
+            // Count all unread notifications (including system notifications like reactivation and password reset)
+            const unreadCount = notifications.filter(n => !n.isRead).length;
             
-            console.log('🔢 Unread important notifications (CR + RR):', unreadCount);
+            console.log('🔢 Total unread notifications:', unreadCount);
             console.log('🎯 Updating badge with count:', unreadCount);
             
             updateNotificationBadge(unreadCount);

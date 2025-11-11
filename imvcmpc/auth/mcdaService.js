@@ -6,7 +6,7 @@ class MCDAService {
         this.defaultWeights = {
             total_savings: 0.25,      // 25%
             total_disbursements: 0.20, // 20%
-            net_position: 0.30,       // 30% (most important for financial health)
+            net_interest_income: 0.30,       // 30% (most important for financial health)
             active_members: 0.15,     // 15%
             performance_pct: 0.10     // 10%
         };
@@ -15,7 +15,7 @@ class MCDAService {
         this.criteria = {
             total_savings: { type: 'benefit', weight: this.defaultWeights.total_savings },
             total_disbursements: { type: 'cost', weight: this.defaultWeights.total_disbursements },
-            net_position: { type: 'benefit', weight: this.defaultWeights.net_position },
+            net_interest_income: { type: 'benefit', weight: this.defaultWeights.net_interest_income },
             active_members: { type: 'benefit', weight: this.defaultWeights.active_members },
             performance_pct: { type: 'benefit', weight: this.defaultWeights.performance_pct }
         };
@@ -98,7 +98,7 @@ class MCDAService {
         return branchesData.map(branch => [
             parseFloat(branch.total_savings || 0),
             parseFloat(branch.total_disbursements || 0),
-            parseFloat(branch.net_position || 0),
+            parseFloat(branch.net_interest_income || 0),
             parseFloat(branch.active_members || 0),
             parseFloat(branch.performancePct || 0)
         ]);
@@ -146,7 +146,7 @@ class MCDAService {
         const weightValues = [
             weights.total_savings,
             weights.total_disbursements,
-            weights.net_position,
+            weights.net_interest_income,
             weights.active_members,
             weights.performance_pct
         ];
@@ -351,6 +351,10 @@ class MCDAService {
             
             if (branch.active_members < 100) {
                 recommendations.push("Implement member acquisition strategies to increase active membership");
+            }
+            
+            if (branch.net_interest_income < 0) {
+                recommendations.push("Review lending strategies and interest rate policies to improve net interest income profitability");
             }
             
             if (branch.performancePct < 0) {

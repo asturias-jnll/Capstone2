@@ -1062,3 +1062,360 @@
     }
 }
 
+/* Reactivation Notification Banner */
+.reactivation-notification {
+    background: linear-gradient(135deg, #0B5E1C, #69B41E);
+    color: white;
+    padding: 16px 20px;
+    margin: 0 32px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
+    animation: slideDown 0.5s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.reactivation-notification .notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reactivation-notification .notification-icon {
+    font-size: 20px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.reactivation-notification .notification-text {
+    flex: 1;
+    font-size: 14px;
+}
+
+.reactivation-notification .notification-action {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reactivation-notification .notification-action:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.reactivation-notification .notification-close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.reactivation-notification .notification-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive styles for reactivation notification */
+@media (max-width: 768px) {
+    .reactivation-notification {
+        margin-top: -20px;
+        margin-bottom: 25px;
+        margin-left: 16px;
+        margin-right: 16px;
+        padding: 12px 16px;
+    }
+    
+    .reactivation-notification .notification-content {
+        gap: 8px;
+    }
+    
+    .reactivation-notification .notification-text {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .reactivation-notification .notification-action {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .reactivation-notification {
+        margin-top: -15px;
+        margin-bottom: 20px;
+        margin-left: 16px;
+        margin-right: 16px;
+        padding: 10px 12px;
+    }
+    
+    .reactivation-notification .notification-icon {
+        font-size: 16px;
+    }
+    
+    .reactivation-notification .notification-text {
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .reactivation-notification .notification-action {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+}
+
+
+/* Reactivation Requests Modal */
+#reactivationRequestsModal {
+    z-index: 10060;
+}
+
+.reactivation-requests-modal-content {
+    max-width: 800px;
+    width: 90%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.reactivation-requests-modal-content .modal-header {
+    flex-shrink: 0;
+}
+
+.reactivation-requests-modal-content .modal-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.reactivation-requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.reactivation-request-item {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-300);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.reactivation-request-item:hover {
+    border-color: var(--green);
+    box-shadow: 0 2px 8px rgba(24, 124, 25, 0.1);
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.request-user-info {
+    flex: 1;
+}
+
+.request-user-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+}
+
+.request-user-details {
+    font-size: 13px;
+    color: var(--gray-600);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.request-user-details span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.request-user-details i {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.request-meta {
+    font-size: 12px;
+    color: var(--gray-500);
+    text-align: right;
+}
+
+.request-reason {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 12px 0;
+    font-size: 14px;
+    color: var(--gray-700);
+    line-height: 1.5;
+}
+
+.request-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gray-200);
+}
+
+.request-notes-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    resize: vertical;
+    min-height: 60px;
+    margin-bottom: 12px;
+}
+
+.request-notes-input:focus {
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(24, 124, 25, 0.1);
+}
+
+.request-action-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.request-action-btn.approve {
+    background: var(--green);
+    color: white;
+}
+
+.request-action-btn.approve:hover {
+    background: var(--dark-green);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(11, 94, 28, 0.3);
+}
+
+.request-action-btn.reject {
+    background: #EF4444;
+    color: white;
+}
+
+.request-action-btn.reject:hover {
+    background: #DC2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.request-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.empty-requests {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+}
+
+.empty-requests i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var(--gray-400);
+}
+
+.empty-requests p {
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Responsive Styles for Reactivation Features */
+@media (max-width: 768px) {
+    .reactivation-notification {
+        margin: 0 16px 16px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .reactivation-notification .notification-action {
+        width: 100%;
+    }
+    
+    .reactivation-requests-modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .request-header {
+        flex-direction: column;
+    }
+    
+    .request-meta {
+        text-align: left;
+        margin-top: 8px;
+    }
+    
+    .request-actions {
+        flex-direction: column;
+    }
+    
+    .request-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+

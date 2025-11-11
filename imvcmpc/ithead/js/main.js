@@ -49,10 +49,21 @@ function initializeITHeadNavigation() {
         const navItem = document.createElement('a');
         navItem.href = item.href;
         navItem.className = 'nav-item';
-        navItem.innerHTML = `
-            <i class="${item.icon}"></i>
-            <span>${item.text}</span>
-        `;
+        
+        // Add badge for User Management item
+        if (item.href === 'usermanagement.html') {
+            navItem.setAttribute('data-nav-item', 'usermanagement');
+            navItem.innerHTML = `
+                <i class="${item.icon}"></i>
+                <span>${item.text}</span>
+                <span class="reactivation-badge" id="navReactivationBadge" style="display: none;">0</span>
+            `;
+        } else {
+            navItem.innerHTML = `
+                <i class="${item.icon}"></i>
+                <span>${item.text}</span>
+            `;
+        }
         
         navMenu.appendChild(navItem);
     });
@@ -65,6 +76,14 @@ function initializeITHeadNavigation() {
     
     // Show navigation immediately after populating
     navMenu.style.display = '';
+    
+    // Check for reactivation requests after navigation is created
+    checkNavReactivationBadge();
+    
+    // Periodically check for new reactivation requests (every 30 seconds)
+    setInterval(() => {
+        checkNavReactivationBadge();
+    }, 30000);
 }
 
 // Initialize dynamic user header
@@ -139,6 +158,42 @@ function setActiveNavigation() {
         }
     }
 }
+
+// Check and update reactivation badge in navigation
+async function checkNavReactivationBadge() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            return;
+        }
+
+        const response = await fetch('/api/auth/reactivation-requests', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const badge = document.getElementById('navReactivationBadge');
+            
+            if (badge) {
+                if (data.success && data.requests && data.requests.length > 0) {
+                    badge.textContent = data.requests.length;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking reactivation badge:', error);
+    }
+}
+
+// Export function for use in other pages
+window.checkNavReactivationBadge = checkNavReactivationBadge;
 
 // Initialize dashboard
 function initializeDashboard() {

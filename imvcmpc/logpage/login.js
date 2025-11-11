@@ -1,3 +1,6 @@
+// Global variable to store deactivated user info (identity verified)
+let deactivatedUserInfo = null;
+
 // Remove intro logo after animation completes
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
@@ -120,8 +123,27 @@ async function login() {
             }, 1000);
 
         } else {
-            // Handle API error
-            showError(data.error || 'Login failed. Please check your credentials.');
+            // Check if the error is due to identity-verified deactivation
+            if (data.code === 'ACCOUNT_DEACTIVATED' && data.identity_verified === true) {
+                // Password is correct, but account is deactivated
+                // Store verified user info for reactivation request (including password for code verification)
+                deactivatedUserInfo = {
+                    username: data.username,
+                    user_id: data.user_id,
+                    password: password, // Store password temporarily for reactivation code flow
+                    identity_verified: true
+                };
+                
+                // Hide loading dialog
+                document.getElementById('loadingDialog').style.display = 'none';
+                
+                // Show reactivation modal (identity is verified)
+                showReactivationModal();
+            } else {
+                // Invalid credentials or other error
+                showError(data.error || 'Login failed. Please check your credentials.');
+            }
+            
             loginBtn.disabled = false;
             document.getElementById('loadingDialog').style.display = 'none';
         }
@@ -255,6 +277,448 @@ function showError(message) {
     
     errorText.textContent = message;
     errorMessage.style.display = 'flex';
+}
+
+// Show reactivation modal
+function showReactivationModal() {
+    const modal = document.getElementById('reactivationModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        
+        // Reset to step 1 (send code)
+        const sendCodeStep = document.getElementById('sendCodeStep');
+        const verifyCodeStep = document.getElementById('verifyCodeStep');
+        const submitBtn = document.getElementById('submitReactivationBtn');
+        const sendCodeBtn = document.getElementById('sendCodeBtn');
+        
+        if (sendCodeStep) sendCodeStep.style.display = 'block';
+        if (verifyCodeStep) verifyCodeStep.style.display = 'none';
+        if (submitBtn) submitBtn.style.display = 'none';
+        if (sendCodeBtn) {
+            sendCodeBtn.disabled = false;
+            sendCodeBtn.innerHTML = '<i class="fas fa-envelope"></i> Send Verification Code';
+        }
+        
+        // Clear previous inputs and errors
+        const reasonInput = document.getElementById('reactivationReason');
+        const codeInput = document.getElementById('verificationCode');
+        const reasonError = document.getElementById('reasonError');
+        const codeError = document.getElementById('codeError');
+        const sendCodeError = document.getElementById('sendCodeError');
+        const statusMsg = document.getElementById('reactivationStatus');
+        
+        if (reasonInput) reasonInput.value = '';
+        if (codeInput) codeInput.value = '';
+        if (reasonError) {
+            reasonError.textContent = '';
+            reasonError.style.display = 'none';
+        }
+        if (codeError) {
+            codeError.textContent = '';
+            codeError.style.display = 'none';
+        }
+        if (sendCodeError) {
+            sendCodeError.textContent = '';
+            sendCodeError.style.display = 'none';
+        }
+        if (statusMsg) {
+            statusMsg.textContent = '';
+            statusMsg.style.display = 'none';
+            statusMsg.className = 'reactivation-status';
+        }
+    }
+}
+
+// Close reactivation modal
+function closeReactivationModal() {
+    const modal = document.getElementById('reactivationModal');
+    if (modal) {
+        modal.style.display = 'none';
+        // Clear password from memory for security
+        if (deactivatedUserInfo) {
+            deactivatedUserInfo.password = null;
+        }
+        deactivatedUserInfo = null;
+    }
+}
+
+// Send reactivation verification code
+async function sendReactivationCode() {
+    if (!deactivatedUserInfo || !deactivatedUserInfo.password) {
+        const sendCodeError = document.getElementById('sendCodeError');
+        if (sendCodeError) {
+            sendCodeError.textContent = 'Session expired. Please log in again.';
+            sendCodeError.style.display = 'block';
+        }
+        return;
+    }
+    
+    const sendCodeBtn = document.getElementById('sendCodeBtn');
+    const sendCodeError = document.getElementById('sendCodeError');
+    const statusMsg = document.getElementById('reactivationStatus');
+    
+    // Hide previous errors
+    if (sendCodeError) {
+        sendCodeError.style.display = 'none';
+    }
+    if (statusMsg) {
+        statusMsg.style.display = 'none';
+    }
+    
+    // Disable button and show loading
+    if (sendCodeBtn) {
+        sendCodeBtn.disabled = true;
+        sendCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    }
+    
+    try {
+        const response = await fetch('/api/auth/send-reactivation-code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: deactivatedUserInfo.username,
+                password: deactivatedUserInfo.password
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show step 2 (code input and reason)
+            const sendCodeStep = document.getElementById('sendCodeStep');
+            const verifyCodeStep = document.getElementById('verifyCodeStep');
+            const submitBtn = document.getElementById('submitReactivationBtn');
+            
+            if (sendCodeStep) sendCodeStep.style.display = 'none';
+            if (verifyCodeStep) verifyCodeStep.style.display = 'block';
+            if (submitBtn) submitBtn.style.display = 'block';
+            
+            // Show success message
+            if (statusMsg) {
+                statusMsg.textContent = data.message || 'Verification code sent to your email.';
+                statusMsg.className = 'reactivation-status success';
+                statusMsg.style.display = 'block';
+            }
+            
+            // Focus on code input and add number-only restriction
+            const codeInput = document.getElementById('verificationCode');
+            if (codeInput) {
+                // Only allow numbers
+                codeInput.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+                setTimeout(() => codeInput.focus(), 100);
+            }
+        } else {
+            // Show error
+            if (sendCodeError) {
+                sendCodeError.textContent = data.error || 'Failed to send verification code. Please try again.';
+                sendCodeError.style.display = 'block';
+            }
+            
+            // Re-enable button
+            if (sendCodeBtn) {
+                sendCodeBtn.disabled = false;
+                sendCodeBtn.innerHTML = '<i class="fas fa-envelope"></i> Send Verification Code';
+            }
+        }
+    } catch (error) {
+        console.error('Send reactivation code error:', error);
+        
+        // Show error
+        if (sendCodeError) {
+            sendCodeError.textContent = 'An error occurred. Please try again.';
+            sendCodeError.style.display = 'block';
+        }
+        
+        // Re-enable button
+        if (sendCodeBtn) {
+            sendCodeBtn.disabled = false;
+            sendCodeBtn.innerHTML = '<i class="fas fa-envelope"></i> Send Verification Code';
+        }
+    }
+}
+
+// Show forgot password modal
+function showForgotPasswordModal() {
+    const modal = document.getElementById('forgotPasswordModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // Clear previous input and errors
+        const input = document.getElementById('forgotPasswordInput');
+        const error = document.getElementById('forgotPasswordError');
+        const statusMsg = document.getElementById('forgotPasswordStatus');
+        const submitBtn = document.getElementById('submitForgotPasswordBtn');
+        
+        if (input) input.value = '';
+        if (error) {
+            error.textContent = '';
+            error.style.display = 'none';
+        }
+        if (statusMsg) {
+            statusMsg.textContent = '';
+            statusMsg.style.display = 'none';
+            statusMsg.className = 'forgot-password-status';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send Reset Link';
+        }
+        
+        // Focus on input
+        if (input) {
+            setTimeout(() => input.focus(), 100);
+        }
+    }
+}
+
+// Close forgot password modal
+function closeForgotPasswordModal() {
+    const modal = document.getElementById('forgotPasswordModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Submit forgot password request
+async function submitForgotPassword() {
+    const input = document.getElementById('forgotPasswordInput');
+    const error = document.getElementById('forgotPasswordError');
+    const statusMsg = document.getElementById('forgotPasswordStatus');
+    const submitBtn = document.getElementById('submitForgotPasswordBtn');
+    
+    const usernameOrEmail = input ? input.value.trim() : '';
+    
+    // Validate input
+    if (!usernameOrEmail) {
+        if (error) {
+            error.textContent = 'Please enter your username or email';
+            error.style.display = 'block';
+        }
+        return;
+    }
+    
+    // Hide error message
+    if (error) {
+        error.style.display = 'none';
+    }
+    
+    // Disable button and show loading state
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+    }
+    
+    // Hide previous status message
+    if (statusMsg) {
+        statusMsg.style.display = 'none';
+    }
+    
+    try {
+        const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username_or_email: usernameOrEmail
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show success message with email address
+            if (statusMsg) {
+                statusMsg.textContent = data.message || `A password reset link was sent to ${data.email || 'your email address'}`;
+                statusMsg.className = 'forgot-password-status success';
+                statusMsg.style.display = 'block';
+            }
+            
+            // Hide error message
+            if (error) {
+                error.style.display = 'none';
+            }
+            
+            // Clear input
+            if (input) input.value = '';
+            
+            // Close modal after 5 seconds
+            setTimeout(() => {
+                closeForgotPasswordModal();
+            }, 5000);
+        } else {
+            // Show error message in error field
+            if (error) {
+                error.textContent = data.error || 'Failed to send reset link. Please try again.';
+                error.style.display = 'block';
+            }
+            
+            // Also show in status message for visibility
+            if (statusMsg) {
+                statusMsg.textContent = data.error || 'Failed to send reset link. Please try again.';
+                statusMsg.className = 'forgot-password-status error';
+                statusMsg.style.display = 'block';
+            }
+            
+            // Re-enable button
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Reset Link';
+            }
+        }
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        
+        // Show error message
+        if (statusMsg) {
+            statusMsg.textContent = 'An error occurred. Please try again later.';
+            statusMsg.className = 'forgot-password-status error';
+            statusMsg.style.display = 'block';
+        }
+        
+        // Re-enable button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send Reset Link';
+        }
+    }
+}
+
+// Submit reactivation request (Method 3 - with code verification)
+async function submitReactivationRequest() {
+    if (!deactivatedUserInfo || !deactivatedUserInfo.password) {
+        const statusMsg = document.getElementById('reactivationStatus');
+        if (statusMsg) {
+            statusMsg.textContent = 'Session expired. Please log in again.';
+            statusMsg.className = 'reactivation-status error';
+            statusMsg.style.display = 'block';
+        }
+        return;
+    }
+    
+    const reasonInput = document.getElementById('reactivationReason');
+    const codeInput = document.getElementById('verificationCode');
+    const reasonError = document.getElementById('reasonError');
+    const codeError = document.getElementById('codeError');
+    const statusMsg = document.getElementById('reactivationStatus');
+    const submitBtn = document.getElementById('submitReactivationBtn');
+    
+    const reason = reasonInput ? reasonInput.value.trim() : '';
+    const code = codeInput ? codeInput.value.trim() : '';
+    
+    // Validate code
+    if (!code || !/^\d{6}$/.test(code)) {
+        if (codeError) {
+            codeError.textContent = 'Please enter a valid 6-digit verification code';
+            codeError.style.display = 'block';
+        }
+        return;
+    }
+    
+    // Validate reason
+    if (!reason || reason.length < 10) {
+        if (reasonError) {
+            reasonError.textContent = 'Please provide a reason (at least 10 characters)';
+            reasonError.style.display = 'block';
+        }
+        return;
+    }
+    
+    // Hide error messages
+    if (reasonError) {
+        reasonError.style.display = 'none';
+    }
+    if (codeError) {
+        codeError.style.display = 'none';
+    }
+    
+    // Disable button and show loading state
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+    }
+    
+    // Hide previous status message
+    if (statusMsg) {
+        statusMsg.style.display = 'none';
+    }
+    
+    try {
+        const response = await fetch('/api/auth/verify-reactivation-code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: deactivatedUserInfo.username,
+                password: deactivatedUserInfo.password,
+                code: code,
+                reason: reason
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show success message
+            if (statusMsg) {
+                statusMsg.textContent = 'Request submitted successfully! The IT Head will review your request.';
+                statusMsg.className = 'reactivation-status success';
+                statusMsg.style.display = 'block';
+            }
+            
+            // Clear password from memory
+            deactivatedUserInfo.password = null;
+            
+            // Close modal after 3 seconds
+            setTimeout(() => {
+                closeReactivationModal();
+            }, 3000);
+        } else {
+            // Show error message
+            if (data.error && data.error.includes('code')) {
+                if (codeError) {
+                    codeError.textContent = data.error;
+                    codeError.style.display = 'block';
+                }
+            } else if (data.error && data.error.includes('reason')) {
+                if (reasonError) {
+                    reasonError.textContent = data.error;
+                    reasonError.style.display = 'block';
+                }
+            } else {
+                if (statusMsg) {
+                    statusMsg.textContent = data.error || 'Failed to submit request. Please try again.';
+                    statusMsg.className = 'reactivation-status error';
+                    statusMsg.style.display = 'block';
+                }
+            }
+            
+            // Re-enable button
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Request';
+            }
+        }
+    } catch (error) {
+        console.error('Reactivation request error:', error);
+        
+        // Show error message
+        if (statusMsg) {
+            statusMsg.textContent = 'An error occurred. Please try again later.';
+            statusMsg.className = 'reactivation-status error';
+            statusMsg.style.display = 'block';
+        }
+        
+        // Re-enable button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Request';
+        }
+    }
 }
 
 

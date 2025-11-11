@@ -12,6 +12,7 @@ let nextBranchNumberCache = null;
 // Initialize user management
 document.addEventListener('DOMContentLoaded', function() {
     loadUsers();
+    checkReactivationRequests();
     
     // Close sort menu when clicking outside
     document.addEventListener('click', function(e) {
@@ -1046,6 +1047,319 @@ window.toggleSortDropdown = toggleSortDropdown;
 window.selectSortOption = selectSortOption;
 window.selectSortOrder = selectSortOrder;
 window.closeSuccessDialog = closeSuccessDialog;
+
+// Check for pending reactivation requests
+async function checkReactivationRequests() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            return;
+        }
+
+        const response = await fetch('/api/auth/reactivation-requests', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const requestCount = data.success && data.requests ? data.requests.length : 0;
+            
+            // Update notification banner
+            const notification = document.getElementById('reactivationNotification');
+            const count = document.getElementById('reactivationCount');
+            const plural = document.getElementById('reactivationPlural');
+            if (notification && count) {
+                if (requestCount > 0) {
+                    count.textContent = requestCount;
+                    // Update plural form
+                    if (plural) {
+                        plural.textContent = requestCount === 1 ? '' : 's';
+                    }
+                    notification.style.display = 'flex';
+                } else {
+                    notification.style.display = 'none';
+                }
+            }
+            
+            // Update navigation badge (works across all pages)
+            const navBadge = document.getElementById('navReactivationBadge');
+            if (navBadge) {
+                if (requestCount > 0) {
+                    navBadge.textContent = requestCount;
+                    navBadge.style.display = 'inline-flex';
+                } else {
+                    navBadge.style.display = 'none';
+                }
+            }
+            
+            // Also update via main.js function if available (for other pages)
+            if (typeof checkNavReactivationBadge === 'function') {
+                checkNavReactivationBadge();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking reactivation requests:', error);
+    }
+}
+
+// Show reactivation requests modal
+async function showReactivationRequests() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            alert('Authentication required. Please log in again.');
+            return;
+        }
+
+        const response = await fetch('/api/auth/reactivation-requests', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch reactivation requests');
+        }
+
+        const data = await response.json();
+        const requests = data.requests || [];
+
+        const modal = document.getElementById('reactivationRequestsModal');
+        const listContainer = document.getElementById('reactivationRequestsList');
+
+        if (!modal || !listContainer) {
+            return;
+        }
+
+        // Clear previous content
+        listContainer.innerHTML = '';
+
+        if (requests.length === 0) {
+            listContainer.innerHTML = `
+                <div class="empty-requests">
+                    <i class="fas fa-inbox"></i>
+                    <p>No pending reactivation requests</p>
+                </div>
+            `;
+        } else {
+            requests.forEach(request => {
+                const requestItem = document.createElement('div');
+                requestItem.className = 'reactivation-request-item';
+                
+                const requestedDate = new Date(request.requested_at);
+                const formattedDate = requestedDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                requestItem.innerHTML = `
+                    <div class="request-header">
+                        <div class="request-user-info">
+                            <div class="request-user-name">
+                                ${request.first_name || ''} ${request.last_name || ''}
+                            </div>
+                            <div class="request-user-details">
+                                <span><i class="fas fa-user"></i> ${request.username}</span>
+                                ${request.employee_id ? `<span><i class="fas fa-id-badge"></i> ${request.employee_id}</span>` : ''}
+                                <span><i class="fas fa-briefcase"></i> ${request.role_display_name || 'N/A'}</span>
+                                <span><i class="fas fa-building"></i> ${request.branch_name || request.branch_location || 'N/A'}</span>
+                            </div>
+                        </div>
+                        <div class="request-meta">
+                            <div><i class="fas fa-clock"></i> ${formattedDate}</div>
+                            ${request.ip_address ? `<div style="margin-top: 4px;"><i class="fas fa-network-wired"></i> ${request.ip_address}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="request-reason">
+                        <strong>Reason:</strong><br>
+                        ${request.reason || 'No reason provided'}
+                    </div>
+                    <textarea 
+                        class="request-notes-input" 
+                        id="notes_${request.id}" 
+                        placeholder="Optional: Add review notes..."
+                    ></textarea>
+                    <div class="request-actions">
+                        <button 
+                            class="request-action-btn approve" 
+                            onclick="approveReactivationRequest('${request.id}', 'notes_${request.id}')"
+                        >
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button 
+                            class="request-action-btn reject" 
+                            onclick="rejectReactivationRequest('${request.id}', 'notes_${request.id}')"
+                        >
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    </div>
+                `;
+                
+                listContainer.appendChild(requestItem);
+            });
+        }
+
+        // Show modal (matching existing modal-overlay pattern)
+        modal.style.display = 'flex';
+    } catch (error) {
+        console.error('Error loading reactivation requests:', error);
+        alert('Failed to load reactivation requests. Please try again.');
+    }
+}
+
+// Close reactivation requests modal
+function closeReactivationRequestsModal() {
+    const modal = document.getElementById('reactivationRequestsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Close reactivation notification banner
+function closeReactivationNotification() {
+    const notification = document.getElementById('reactivationNotification');
+    if (notification) {
+        notification.style.display = 'none';
+    }
+}
+
+// Approve reactivation request
+async function approveReactivationRequest(requestId, notesInputId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            alert('Authentication required. Please log in again.');
+            return;
+        }
+
+        const notesInput = document.getElementById(notesInputId);
+        const notes = notesInput ? notesInput.value.trim() : '';
+
+        // Disable buttons for this request
+        const requestItem = notesInput.closest('.reactivation-request-item');
+        const buttons = requestItem.querySelectorAll('.request-action-btn');
+        buttons.forEach(btn => btn.disabled = true);
+
+        const response = await fetch(`/api/auth/reactivation-requests/${requestId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'approve',
+                notes: notes || null
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to approve request');
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showSuccessDialog('Reactivation request approved successfully. User account has been reactivated.');
+            
+            // Refresh requests and users
+            await loadUsers();
+            await checkReactivationRequests();
+            
+            // Reload the requests list
+            await showReactivationRequests();
+        } else {
+            throw new Error(result.error || 'Failed to approve request');
+        }
+    } catch (error) {
+        console.error('Error approving reactivation request:', error);
+        alert(error.message || 'Failed to approve reactivation request. Please try again.');
+        
+        // Re-enable buttons
+        const notesInput = document.getElementById(notesInputId);
+        if (notesInput) {
+            const requestItem = notesInput.closest('.reactivation-request-item');
+            const buttons = requestItem.querySelectorAll('.request-action-btn');
+            buttons.forEach(btn => btn.disabled = false);
+        }
+    }
+}
+
+// Reject reactivation request
+async function rejectReactivationRequest(requestId, notesInputId) {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            alert('Authentication required. Please log in again.');
+            return;
+        }
+
+        const notesInput = document.getElementById(notesInputId);
+        const notes = notesInput ? notesInput.value.trim() : '';
+
+        // Disable buttons for this request
+        const requestItem = notesInput.closest('.reactivation-request-item');
+        const buttons = requestItem.querySelectorAll('.request-action-btn');
+        buttons.forEach(btn => btn.disabled = true);
+
+        const response = await fetch(`/api/auth/reactivation-requests/${requestId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'reject',
+                notes: notes || null
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to reject request');
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showSuccessDialog('Reactivation request rejected successfully.');
+            
+            // Refresh requests
+            await checkReactivationRequests();
+            
+            // Reload the requests list
+            await showReactivationRequests();
+        } else {
+            throw new Error(result.error || 'Failed to reject request');
+        }
+    } catch (error) {
+        console.error('Error rejecting reactivation request:', error);
+        alert(error.message || 'Failed to reject reactivation request. Please try again.');
+        
+        // Re-enable buttons
+        const notesInput = document.getElementById(notesInputId);
+        if (notesInput) {
+            const requestItem = notesInput.closest('.reactivation-request-item');
+            const buttons = requestItem.querySelectorAll('.request-action-btn');
+            buttons.forEach(btn => btn.disabled = false);
+        }
+    }
+}
+
+// Export functions
+window.checkReactivationRequests = checkReactivationRequests;
+window.showReactivationRequests = showReactivationRequests;
+window.closeReactivationRequestsModal = closeReactivationRequestsModal;
+window.closeReactivationNotification = closeReactivationNotification;
+window.approveReactivationRequest = approveReactivationRequest;
+window.rejectReactivationRequest = rejectReactivationRequest;
 
 // Filter users based on search input
 function filterUsers() {

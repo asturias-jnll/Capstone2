@@ -96,6 +96,25 @@
                         </div>
                     </div>
 
+                    <!-- Reactivation Requests Notification Banner -->
+                    <div id="reactivationNotification" class="reactivation-notification" style="display: none;">
+                        <div class="notification-content">
+                            <div class="notification-icon">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <div class="notification-text">
+                                <strong id="reactivationCount">0</strong> pending reactivation request<span id="reactivationPlural">s</span> require your attention
+                            </div>
+                            <button class="notification-action" onclick="showReactivationRequests()">
+                                <i class="fas fa-eye"></i>
+                                View Requests
+                            </button>
+                            <button class="notification-close" onclick="closeReactivationNotification()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="user-management-content">
                         <div class="table-controls">
                             <div class="search-container">
@@ -243,6 +262,23 @@
                             Save
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reactivation Requests Modal -->
+    <div id="reactivationRequestsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog reactivation-requests-modal-content">
+            <div class="modal-header">
+                <h2>Reactivation Requests</h2>
+                <button class="modal-close" onclick="closeReactivationRequestsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div id="reactivationRequestsList" class="reactivation-requests-list">
+                    <!-- Requests will be loaded here -->
                 </div>
             </div>
         </div>

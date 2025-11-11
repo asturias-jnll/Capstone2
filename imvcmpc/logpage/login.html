@@ -66,7 +66,7 @@
                         </div>
                         
                         <div class="forgot-password">
-                            <a href="#">Forgot Password?</a>
+                            <a href="#" onclick="showForgotPasswordModal(); return false;">Forgot Password?</a>
                         </div>
                         
                         <button type="button" id="loginBtn" class="login-btn" onclick="login()">
@@ -95,6 +95,111 @@
                 <i class="fas fa-user-circle"></i>
             </div>
             <h3 id="successMessage">Success!</h3>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal" style="display: none;">
+        <div class="modal-content forgot-password-modal-content">
+            <div class="forgot-password-modal-header">
+                <div class="forgot-password-icon">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h2>Forgot Password?</h2>
+                <p>Enter your username or email address and we'll send you a link to reset your password.</p>
+            </div>
+            
+            <div class="forgot-password-form">
+                <div class="form-group">
+                    <label for="forgotPasswordInput">Username or Email</label>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="forgotPasswordInput" 
+                              placeholder="Enter your username or email" 
+                              autocomplete="username">
+                    </div>
+                    <span id="forgotPasswordError" class="error-text" style="display: none;"></span>
+                </div>
+                
+                <div id="forgotPasswordStatus" class="forgot-password-status" style="display: none;"></div>
+                
+                <div class="forgot-password-actions">
+                    <button type="button" onclick="closeForgotPasswordModal()" class="forgot-password-btn cancel-btn">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="submitForgotPassword()" id="submitForgotPasswordBtn" class="forgot-password-btn submit-btn">
+                        Send Reset Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reactivation Request Modal -->
+    <div id="reactivationModal" class="modal" style="display: none;">
+        <div class="modal-content reactivation-modal-content">
+            <div class="reactivation-modal-header">
+                <div class="reactivation-icon">
+                    <i class="fas fa-user-lock"></i>
+                </div>
+                <h2>Account Deactivated</h2>
+                <p>Your account has been deactivated. To request reactivation, we'll send a verification code to your email.</p>
+            </div>
+            
+            <div class="reactivation-form">
+                <!-- Step 1: Send Code -->
+                <div id="sendCodeStep" class="reactivation-step">
+                    <div class="form-group">
+                        <label>Step 1: Request Verification Code</label>
+                        <p style="margin: 8px 0 16px 0; color: #6B7280; font-size: 14px;">
+                            Click the button below to receive a 6-digit verification code via email.
+                        </p>
+                        <button type="button" onclick="sendReactivationCode()" id="sendCodeBtn" class="reactivation-btn send-code-btn">
+                            <i class="fas fa-envelope"></i> Send Verification Code
+                        </button>
+                        <span id="sendCodeError" class="error-text" style="display: none;"></span>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Enter Code and Reason -->
+                <div id="verifyCodeStep" class="reactivation-step" style="display: none;">
+                    <div class="form-group">
+                        <label for="verificationCode">Step 2: Enter Verification Code</label>
+                        <div class="input-group">
+                            <i class="fas fa-key"></i>
+                            <input type="text" id="verificationCode" 
+                                  placeholder="Enter 6-digit code"
+                                  maxlength="6"
+                                  pattern="[0-9]{6}"
+                                  autocomplete="off">
+                        </div>
+                        <span id="codeError" class="error-text" style="display: none;"></span>
+                        <p style="margin: 8px 0 0 0; color: #6B7280; font-size: 12px;">
+                            Check your email for the verification code. Code expires in 15 minutes.
+                        </p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="reactivationReason">Step 3: Reason for Reactivation Request</label>
+                        <textarea id="reactivationReason" 
+                                  placeholder="Please explain why you need your account reactivated..."
+                                  rows="4"
+                                  required></textarea>
+                        <span id="reasonError" class="error-text" style="display: none;"></span>
+                    </div>
+                </div>
+                
+                <div id="reactivationStatus" class="reactivation-status" style="display: none;"></div>
+                
+                <div class="reactivation-actions">
+                    <button type="button" onclick="closeReactivationModal()" class="reactivation-btn cancel-btn">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="submitReactivationRequest()" id="submitReactivationBtn" class="reactivation-btn submit-btn" style="display: none;">
+                        Submit Request
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
