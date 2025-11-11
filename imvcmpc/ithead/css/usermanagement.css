@@ -151,7 +151,7 @@
 
 /* User Management Header */
 .user-management-header {
-    padding: 16px 32px;
+	padding: 8px 32px;
     margin-bottom: 5px;
 }
 
@@ -488,7 +488,7 @@
     }
 
     .user-management-header {
-        padding: 16px 20px;
+		padding: 8px 20px;
         margin-bottom: 5px;
     }
 
@@ -561,7 +561,7 @@
     }
 
     .user-management-header {
-        padding: 12px 16px;
+		padding: 8px 16px;
         margin-bottom: 8px;
     }
 
@@ -728,7 +728,7 @@
     }
 
     .user-management-header {
-        padding: 10px 12px;
+		padding: 8px 12px;
         margin-bottom: 7px;
     }
 
@@ -1067,7 +1067,7 @@
     background: linear-gradient(135deg, #0B5E1C, #69B41E);
     color: white;
     padding: 16px 20px;
-    margin: 0 32px 30px;
+	margin: 8px 32px 2px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(11, 94, 28, 0.3);
     animation: slideDown 0.5s ease;
@@ -1088,6 +1088,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+	width: 100%;
 }
 
 .reactivation-notification .notification-icon {
@@ -1122,6 +1123,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
+	margin-left: auto !important; /* anchor to the right edge inside banner */
 }
 
 .reactivation-notification .notification-action:hover {
@@ -1142,6 +1144,7 @@
     justify-content: center;
     width: 24px;
     height: 24px;
+	margin-left: 8px !important; /* small gap after the button */
 }
 
 .reactivation-notification .notification-close:hover {
@@ -1151,8 +1154,8 @@
 /* Responsive styles for reactivation notification */
 @media (max-width: 768px) {
     .reactivation-notification {
-        margin-top: -20px;
-        margin-bottom: 25px;
+		margin-top: 8px;
+		margin-bottom: 2px;
         margin-left: 16px;
         margin-right: 16px;
         padding: 12px 16px;
@@ -1177,8 +1180,8 @@
 
 @media (max-width: 480px) {
     .reactivation-notification {
-        margin-top: -15px;
-        margin-bottom: 20px;
+		margin-top: 6px;
+		margin-bottom: 2px;
         margin-left: 16px;
         margin-right: 16px;
         padding: 10px 12px;

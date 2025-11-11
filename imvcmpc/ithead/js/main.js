@@ -44,27 +44,15 @@ function initializeITHeadNavigation() {
         { href: 'auditlogs.html', icon: 'fas fa-history', text: 'Audit Logs' }
     ];
     
-    // Generate navigation HTML
+    // Generate navigation HTML (no count badges)
     navItems.forEach(item => {
         const navItem = document.createElement('a');
         navItem.href = item.href;
         navItem.className = 'nav-item';
-        
-        // Add badge for User Management item
-        if (item.href === 'usermanagement.html') {
-            navItem.setAttribute('data-nav-item', 'usermanagement');
-            navItem.innerHTML = `
-                <i class="${item.icon}"></i>
-                <span>${item.text}</span>
-                <span class="reactivation-badge" id="navReactivationBadge" style="display: none;">0</span>
-            `;
-        } else {
-            navItem.innerHTML = `
-                <i class="${item.icon}"></i>
-                <span>${item.text}</span>
-            `;
-        }
-        
+        navItem.innerHTML = `
+            <i class="${item.icon}"></i>
+            <span>${item.text}</span>
+        `;
         navMenu.appendChild(navItem);
     });
     
@@ -77,13 +65,7 @@ function initializeITHeadNavigation() {
     // Show navigation immediately after populating
     navMenu.style.display = '';
     
-    // Check for reactivation requests after navigation is created
-    checkNavReactivationBadge();
-    
-    // Periodically check for new reactivation requests (every 30 seconds)
-    setInterval(() => {
-        checkNavReactivationBadge();
-    }, 30000);
+    // No badge checks needed
 }
 
 // Initialize dynamic user header
