@@ -56,11 +56,11 @@ services:
         value: info
       # Email/SMTP Configuration
       - key: SMTP_HOST
-        value: smtp.gmail.com
+        value: smtp.mailersend.net
       - key: SMTP_PORT
-        value: 465
+        value: 587
       - key: SMTP_SECURE
-        value: true
+        value: false
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS

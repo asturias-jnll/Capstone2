@@ -22,9 +22,9 @@ class EmailService {
                 connectionTimeout: 60000, // 60 seconds (increased for cloud)
                 greetingTimeout: 30000, // 30 seconds
                 socketTimeout: 60000, // 60 seconds
-                // TLS configuration - Gmail uses valid certificates
+                // TLS configuration - for secure SMTP connections
                 tls: {
-                    rejectUnauthorized: true, // Gmail has valid certs
+                    rejectUnauthorized: true, // Verify SSL certificates
                     minVersion: 'TLSv1.2',
                     ciphers: 'HIGH:!aNULL:!MD5'
                 },
