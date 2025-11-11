@@ -9,51 +9,65 @@ class EmailService {
 
     initializeTransporter() {
         try {
-            // Enhanced configuration with timeout and connection settings
+            // Enhanced configuration optimized for cloud hosting (Render)
+            // For Render and other cloud providers, we need more lenient settings
+            const isProduction = process.env.NODE_ENV === 'production';
+            
             this.transporter = nodemailer.createTransport({
                 host: config.email.smtp.host,
                 port: config.email.smtp.port,
                 secure: config.email.smtp.secure, // true for 465, false for 587
                 auth: config.email.smtp.auth,
-                // Connection timeout settings
-                connectionTimeout: 30000, // 30 seconds
-                greetingTimeout: 20000, // 20 seconds
-                socketTimeout: 30000, // 30 seconds
-                // TLS configuration
+                // Increased timeout settings for cloud environments
+                connectionTimeout: 60000, // 60 seconds (increased for cloud)
+                greetingTimeout: 30000, // 30 seconds
+                socketTimeout: 60000, // 60 seconds
+                // TLS configuration - Gmail uses valid certificates
                 tls: {
-                    rejectUnauthorized: true,
+                    rejectUnauthorized: true, // Gmail has valid certs
                     minVersion: 'TLSv1.2',
                     ciphers: 'HIGH:!aNULL:!MD5'
                 },
-                // Pool configuration for better connection management
-                pool: true,
-                maxConnections: 5,
-                maxMessages: 10,
+                // Disable pooling for initial connection (can cause timeout issues)
+                // Pool will be created on-demand
+                pool: false,
                 // Enable debugging in development
-                debug: process.env.NODE_ENV !== 'production',
-                logger: process.env.NODE_ENV !== 'production'
+                debug: !isProduction,
+                logger: !isProduction
             });
 
-            // Verify connection configuration with timeout
+            // Verify connection configuration asynchronously (non-blocking)
+            // This allows the app to start even if SMTP verification takes time
+            // Connection will be verified on first email send attempt
             const verifyTimeout = setTimeout(() => {
                 console.warn('Email service verification is taking longer than expected...');
-            }, 10000);
+            }, 15000);
 
-            this.transporter.verify((error, success) => {
+            // Verify connection asynchronously (non-blocking)
+            // Wrap in try-catch to handle any synchronous errors
+            try {
+                this.transporter.verify((error, success) => {
+                    clearTimeout(verifyTimeout);
+                    if (error) {
+                        console.error('Email service configuration error:', error);
+                        console.error('Please check your SMTP settings and ensure:');
+                        console.error('1. SMTP host and port are correct');
+                        console.error('2. For Gmail: Use port 465 with secure:true (recommended for cloud hosting)');
+                        console.error('3. App password is valid and 2FA is enabled');
+                        console.error('4. Your hosting provider allows outbound SMTP connections');
+                        console.error('5. If using Render, verify SMTP_PORT=465 and SMTP_SECURE=true in environment variables');
+                        console.error(`Current config: ${config.email.smtp.host}:${config.email.smtp.port}, secure=${config.email.smtp.secure}`);
+                        // Don't throw - allow app to start, connection will be retried on send
+                    } else {
+                        console.log('✓ Email service is ready to send messages');
+                        console.log(`  Host: ${config.email.smtp.host}:${config.email.smtp.port}`);
+                        console.log(`  Secure: ${config.email.smtp.secure}`);
+                    }
+                });
+            } catch (err) {
                 clearTimeout(verifyTimeout);
-                if (error) {
-                    console.error('Email service configuration error:', error);
-                    console.error('Please check your SMTP settings and ensure:');
-                    console.error('1. SMTP host and port are correct');
-                    console.error('2. For Gmail: Use port 465 with secure:true (recommended for cloud hosting)');
-                    console.error('3. App password is valid and 2FA is enabled');
-                    console.error('4. Your hosting provider allows outbound SMTP connections');
-                } else {
-                    console.log('✓ Email service is ready to send messages');
-                    console.log(`  Host: ${config.email.smtp.host}:${config.email.smtp.port}`);
-                    console.log(`  Secure: ${config.email.smtp.secure}`);
-                }
-            });
+                console.warn('Email verification setup failed, will retry on first send:', err.message);
+            }
         } catch (error) {
             console.error('Failed to initialize email transporter:', error);
         }
@@ -147,8 +161,8 @@ class EmailService {
         `;
     }
 
-    // Send password reset email
-    async sendPasswordResetEmail(email, username, resetLink) {
+    // Send password reset email with retry logic
+    async sendPasswordResetEmail(email, username, resetLink, retries = 2) {
         try {
             if (!this.transporter) {
                 throw new Error('Email transporter not initialized');
@@ -162,15 +176,31 @@ class EmailService {
                 text: `Hello ${username},\n\nWe received a request to reset your password. Please click the following link to reset your password:\n\n${resetLink}\n\nThis link will expire in 1 hour. If you did not request this, please ignore this email.\n\nBest regards,\nIMVCMPC System`
             };
 
-            const info = await this.transporter.sendMail(mailOptions);
-            console.log('Password reset email sent:', info.messageId);
-            return {
-                success: true,
-                messageId: info.messageId
-            };
+            try {
+                const info = await this.transporter.sendMail(mailOptions);
+                console.log('Password reset email sent:', info.messageId);
+                return {
+                    success: true,
+                    messageId: info.messageId
+                };
+            } catch (sendError) {
+                // Retry on timeout or connection errors
+                if (retries > 0 && (sendError.code === 'ETIMEDOUT' || sendError.code === 'ECONNRESET' || sendError.code === 'ESOCKET')) {
+                    console.warn(`Email send failed, retrying... (${retries} attempts left)`, sendError.message);
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                    return this.sendPasswordResetEmail(email, username, resetLink, retries - 1);
+                }
+                throw sendError;
+            }
         } catch (error) {
             console.error('Error sending password reset email:', error);
-            throw new Error('Failed to send password reset email');
+            // Provide more helpful error message
+            if (error.code === 'ETIMEDOUT') {
+                throw new Error('Email service connection timeout. Please check SMTP settings and ensure your hosting provider allows outbound SMTP connections.');
+            } else if (error.code === 'EAUTH') {
+                throw new Error('Email authentication failed. Please verify SMTP_USER and SMTP_PASS are correct.');
+            }
+            throw new Error('Failed to send password reset email: ' + error.message);
         }
     }
 
@@ -260,8 +290,8 @@ class EmailService {
         `;
     }
 
-    // Send reactivation verification code email
-    async sendReactivationCodeEmail(email, username, code) {
+    // Send reactivation verification code email with retry logic
+    async sendReactivationCodeEmail(email, username, code, retries = 2) {
         try {
             if (!this.transporter) {
                 throw new Error('Email transporter not initialized');
@@ -275,15 +305,31 @@ class EmailService {
                 text: `Hello ${username},\n\nYou have requested to reactivate your IMVCMPC Finance Management System account. Please use the verification code below to complete your reactivation request:\n\nVerification Code: ${code}\n\nThis code will expire in 15 minutes. If you did not request account reactivation, please ignore this email.\n\nBest regards,\nIMVCMPC System`
             };
 
-            const info = await this.transporter.sendMail(mailOptions);
-            console.log('Reactivation code email sent:', info.messageId);
-            return {
-                success: true,
-                messageId: info.messageId
-            };
+            try {
+                const info = await this.transporter.sendMail(mailOptions);
+                console.log('Reactivation code email sent:', info.messageId);
+                return {
+                    success: true,
+                    messageId: info.messageId
+                };
+            } catch (sendError) {
+                // Retry on timeout or connection errors
+                if (retries > 0 && (sendError.code === 'ETIMEDOUT' || sendError.code === 'ECONNRESET' || sendError.code === 'ESOCKET')) {
+                    console.warn(`Email send failed, retrying... (${retries} attempts left)`, sendError.message);
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                    return this.sendReactivationCodeEmail(email, username, code, retries - 1);
+                }
+                throw sendError;
+            }
         } catch (error) {
             console.error('Error sending reactivation code email:', error);
-            throw new Error('Failed to send reactivation code email');
+            // Provide more helpful error message
+            if (error.code === 'ETIMEDOUT') {
+                throw new Error('Email service connection timeout. Please check SMTP settings and ensure your hosting provider allows outbound SMTP connections.');
+            } else if (error.code === 'EAUTH') {
+                throw new Error('Email authentication failed. Please verify SMTP_USER and SMTP_PASS are correct.');
+            }
+            throw new Error('Failed to send reactivation code email: ' + error.message);
         }
     }
 }

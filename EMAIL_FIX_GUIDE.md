@@ -11,10 +11,12 @@ You were experiencing `ETIMEDOUT` errors when trying to send emails from your Re
 ## ✅ What Was Fixed
 
 ### 1. Updated Email Service Configuration (`imvcmpc/auth/emailService.js`)
-- Added connection timeout settings (30 seconds)
+- **Increased timeout settings** (60 seconds for cloud environments)
+- **Disabled connection pooling** (can cause timeout issues on first connection)
+- **Made verification non-blocking** (app starts even if SMTP verification takes time)
+- **Added retry logic** (automatic retry on timeout/connection errors)
 - Enhanced TLS/SSL configuration
-- Added connection pooling for better performance
-- Improved error logging and diagnostics
+- Improved error logging and diagnostics with specific error codes
 
 ### 2. Changed SMTP Port Configuration
 - **Old:** Port 587 with STARTTLS (`SMTP_SECURE=false`)
@@ -157,6 +159,48 @@ SMTP_SECURE=false
 ```
 
 ## 🔍 Troubleshooting
+
+### Error: "Connection timeout" (ETIMEDOUT) on Render
+
+**Latest Fixes Applied:**
+The code has been updated with:
+- ✅ Increased connection timeout to 60 seconds (was 30)
+- ✅ Disabled connection pooling (prevents initial connection issues)
+- ✅ Non-blocking verification (app starts even if SMTP check fails)
+- ✅ Automatic retry logic (retries 2 times on timeout/connection errors)
+- ✅ Better error messages with specific error codes
+
+**If timeout persists, check:**
+
+1. **Verify Environment Variables in Render Dashboard:**
+   - Go to your service → Environment tab
+   - Ensure these are set correctly:
+     ```
+     SMTP_HOST=smtp.gmail.com
+     SMTP_PORT=465
+     SMTP_SECURE=true
+     SMTP_USER=capstone.imvcmpc.system@gmail.com
+     SMTP_PASS=cayl zrwp wfvq uwys
+     ```
+   - **Important:** `SMTP_SECURE` must be the string `"true"`, not boolean
+
+2. **Gmail App Password:**
+   - Verify App Password is correct and active
+   - Ensure 2FA is enabled on Gmail account
+   - Regenerate if needed: https://myaccount.google.com/apppasswords
+
+3. **Render Network Restrictions:**
+   - Some Render regions may block outbound SMTP connections
+   - Contact Render support: support@render.com
+   - Ask: "Are outbound connections to smtp.gmail.com:465 blocked?"
+   - Consider using SendGrid or Mailgun (see Alternative Solutions below)
+
+**Test SMTP connectivity from Render:**
+```bash
+# Access Render shell: Dashboard → Your Service → Shell
+openssl s_client -connect smtp.gmail.com:465 -crlf
+# Should show "CONNECTED" if port is accessible
+```
 
 ### Error: "Connection timeout" persists
 

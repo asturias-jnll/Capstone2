@@ -1159,7 +1159,7 @@ async function showReactivationRequests() {
                     minute: '2-digit'
                 });
 
-                requestItem.setAttribute('data-request-id', '${request.id}');
+                requestItem.setAttribute('data-request-id', request.id);
                 requestItem.innerHTML = `
                     <div class="request-header">
                         <div class="request-user-row">
@@ -1239,8 +1239,10 @@ async function approveReactivationRequest(requestId) {
 
         // Disable buttons for this request
         const requestItem = document.querySelector(`.reactivation-request-item[data-request-id="${requestId}"]`);
-        const buttons = requestItem.querySelectorAll('.request-action-btn');
-        buttons.forEach(btn => btn.disabled = true);
+        if (requestItem) {
+            const buttons = requestItem.querySelectorAll('.request-action-btn');
+            buttons.forEach(btn => btn.disabled = true);
+        }
 
         const response = await fetch(`/api/auth/reactivation-requests/${requestId}`, {
             method: 'PUT',
@@ -1297,8 +1299,10 @@ async function rejectReactivationRequest(requestId) {
 
         // Disable buttons for this request
         const requestItem = document.querySelector(`.reactivation-request-item[data-request-id="${requestId}"]`);
-        const buttons = requestItem.querySelectorAll('.request-action-btn');
-        buttons.forEach(btn => btn.disabled = true);
+        if (requestItem) {
+            const buttons = requestItem.querySelectorAll('.request-action-btn');
+            buttons.forEach(btn => btn.disabled = true);
+        }
 
         const response = await fetch(`/api/auth/reactivation-requests/${requestId}`, {
             method: 'PUT',
