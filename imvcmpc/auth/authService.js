@@ -851,7 +851,8 @@ class AuthService {
                 return {
                     success: true,
                     message: `A password reset link was sent to ${user.email}`,
-                    email: user.email
+                    email: user.email,
+                    user_id: user.id
                 };
             }
 
@@ -868,7 +869,8 @@ class AuthService {
                 return {
                     success: true,
                     message: `A password reset link was sent to ${user.email}`,
-                    email: user.email
+                    email: user.email,
+                    user_id: user.id
                 };
             }
 
@@ -896,7 +898,8 @@ class AuthService {
             return {
                 success: true,
                 message: `A password reset link was sent to ${user.email}`,
-                email: user.email
+                email: user.email,
+                user_id: user.id
             };
 
         } catch (error) {

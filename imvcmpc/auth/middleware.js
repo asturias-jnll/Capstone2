@@ -258,6 +258,11 @@ const auditLog = (action, resource = null) => {
                         branchId = req.user.branch_id || null;
                     }
                     
+                    // Skip audit log if flag is set
+                    if (req.skipAuditLog) {
+                        return;
+                    }
+                    
                     if (userId) {
                         // Build enhanced details based on action type
                         let details = {
@@ -326,22 +331,35 @@ const auditLog = (action, resource = null) => {
                                 details.branch_added = req.body.financeOfficer.branch;
                             }
                         } else if ((finalAction === 'deactivate_user' || finalAction === 'reactivate_user') && req.params) {
-                            // Get branch of the user being deactivated/reactivated
+                            // Get branch and user info of the user being deactivated/reactivated
                             try {
                                 const userBranchResult = await db.query(`
-                                    SELECT b.name as branch_name, b.location as branch_location
+                                    SELECT u.id, u.username, u.first_name, u.last_name, b.name as branch_name, b.location as branch_location
                                     FROM users u
                                     LEFT JOIN branches b ON u.branch_id = b.id
                                     WHERE u.id = $1
                                 `, [req.params.userId]);
-                                if (userBranchResult.rows.length > 0 && userBranchResult.rows[0].branch_name) {
-                                    details.affected_branch = userBranchResult.rows[0].branch_name;
-                                    if (userBranchResult.rows[0].branch_location) {
-                                        details.affected_branch_location = userBranchResult.rows[0].branch_location;
+                                if (userBranchResult.rows.length > 0) {
+                                    const userInfo = userBranchResult.rows[0];
+                                    if (userInfo.branch_name) {
+                                        details.affected_branch = userInfo.branch_name;
+                                        if (userInfo.branch_location) {
+                                            details.affected_branch_location = userInfo.branch_location;
+                                        }
+                                    }
+                                    // Add user information
+                                    if (finalAction === 'deactivate_user') {
+                                        details.deactivated_user_id = userInfo.id;
+                                        details.deactivated_username = userInfo.username;
+                                        details.deactivated_user_name = `${userInfo.first_name} ${userInfo.last_name}`;
+                                    } else if (finalAction === 'reactivate_user') {
+                                        details.reactivated_user_id = userInfo.id;
+                                        details.reactivated_username = userInfo.username;
+                                        details.reactivated_user_name = `${userInfo.first_name} ${userInfo.last_name}`;
                                     }
                                 }
                             } catch (err) {
-                                console.warn('Could not fetch branch for deactivate/reactivate:', err);
+                                console.warn('Could not fetch branch/user for deactivate/reactivate:', err);
                             }
                         }
                         

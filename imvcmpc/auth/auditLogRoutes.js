@@ -72,8 +72,8 @@ router.get('/audit-logs', authenticateToken, checkRole('it_head'), async (req, r
                     queryParams.push(...createPatterns);
                     paramCount += createPatterns.length;
                 } else if (eventType === 'update') {
-                    // Match actions starting with "approve", "reject", "update", "change", "deactivate", "reactivate"
-                    const updatePatterns = ['approve%', 'reject%', 'update%', 'change%', 'deactivate%', 'reactivate%'];
+                    // Match actions starting with "approve", "reject", "update", "change", "deactivate", "reactivate", "forgot"
+                    const updatePatterns = ['approve%', 'reject%', 'update%', 'change%', 'deactivate%', 'reactivate%', 'forgot%'];
                     const updateConditions = updatePatterns.map((_, idx) => `al.action LIKE $${paramCount + idx}`).join(' OR ');
                     whereConditions.push(`(${updateConditions})`);
                     queryParams.push(...updatePatterns);

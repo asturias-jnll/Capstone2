@@ -292,7 +292,8 @@ function formatAction(action) {
         'add_user': 'Add User',
         'deactivate_user': 'Deactivate User',
         'reactivate_user': 'Re-activate User',
-        'user_update': 'User Update'
+        'user_update': 'User Update',
+        'forgot_password': 'Forgot Password'
     };
     
     if (actionMap[action]) {
@@ -460,6 +461,8 @@ function displayLogDetails(log) {
     
     // Get branch information for add/deactivate/reactivate actions
     let affectedBranch = null;
+    let reactivatedUser = null;
+    let deactivatedUser = null;
     if (log.action === 'add_user' || log.action === 'deactivate_user' || log.action === 'reactivate_user') {
         // Try to get branch from parsed details
         if (parsedDetails.branch_added) {
@@ -472,6 +475,28 @@ function displayLogDetails(log) {
             affectedBranch = parsedDetails.body.financeOfficer.branch;
         } else if (parsedDetails.body && parsedDetails.body.branch) {
             affectedBranch = parsedDetails.body.branch;
+        }
+        
+        // Get reactivated user information for reactivate_user action
+        if (log.action === 'reactivate_user') {
+            if (parsedDetails.reactivated_username) {
+                reactivatedUser = {
+                    username: parsedDetails.reactivated_username,
+                    user_id: parsedDetails.reactivated_user_id,
+                    user_name: parsedDetails.reactivated_user_name || 'N/A'
+                };
+            }
+        }
+        
+        // Get deactivated user information for deactivate_user action
+        if (log.action === 'deactivate_user') {
+            if (parsedDetails.deactivated_username) {
+                deactivatedUser = {
+                    username: parsedDetails.deactivated_username,
+                    user_id: parsedDetails.deactivated_user_id,
+                    user_name: parsedDetails.deactivated_user_name || 'N/A'
+                };
+            }
         }
     }
     
@@ -536,6 +561,18 @@ function displayLogDetails(log) {
                         <span>${affectedBranch || 'N/A'}</span>
                     </div>
             `;
+            if (deactivatedUser) {
+                detailsHTML += `
+                    <div class="detail-item">
+                        <label>Deactivated User:</label>
+                        <span>${deactivatedUser.user_name} (${deactivatedUser.username})</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Deactivated User ID:</label>
+                        <span>${deactivatedUser.user_id || 'N/A'}</span>
+                    </div>
+                `;
+            }
         } else if (log.action === 'reactivate_user') {
             detailsHTML += `
                     <div class="detail-item">
@@ -543,6 +580,18 @@ function displayLogDetails(log) {
                         <span>${affectedBranch || 'N/A'}</span>
                     </div>
             `;
+            if (reactivatedUser) {
+                detailsHTML += `
+                    <div class="detail-item">
+                        <label>Re-activated User:</label>
+                        <span>${reactivatedUser.user_name} (${reactivatedUser.username})</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Re-activated User ID:</label>
+                        <span>${reactivatedUser.user_id || 'N/A'}</span>
+                    </div>
+                `;
+            }
         }
         
         detailsHTML += `

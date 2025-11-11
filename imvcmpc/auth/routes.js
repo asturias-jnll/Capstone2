@@ -727,10 +727,23 @@ router.get('/reactivation-requests',
 router.put('/reactivation-requests/:requestId',
     authenticateToken,
     checkRole('it_head'),
+    async (req, res, next) => {
+        // Set custom audit action and resource based on action type
+        const { action } = req.body;
+        if (action === 'approve') {
+            // Skip middleware audit log - we'll create custom one in handler
+            req.skipAuditLog = true;
+        } else {
+            req.auditAction = 'review_reactivation_request';
+            req.auditResource = 'reactivation_requests';
+        }
+        next();
+    },
     auditLog('review_reactivation_request', 'reactivation_requests'),
     async (req, res) => {
         try {
             const db = require('./database');
+            const auditLogService = require('./auditLogService');
             const NotificationService = require('./notificationService');
             const notificationService = new NotificationService();
             const { requestId } = req.params;
@@ -745,7 +758,7 @@ router.put('/reactivation-requests/:requestId',
             
             // Get request details with user info
             const requestResult = await db.query(`
-                SELECT rr.*, u.branch_id, u.first_name, u.last_name, u.username
+                SELECT rr.*, u.branch_id, u.first_name, u.last_name, u.username, u.id as user_id
                 FROM reactivation_requests rr
                 JOIN users u ON rr.user_id = u.id
                 WHERE rr.id = $1 AND rr.status = $2
@@ -776,6 +789,34 @@ router.put('/reactivation-requests/:requestId',
                     'UPDATE users SET is_active = true WHERE id = $1',
                     [request.user_id]
                 );
+                
+                // Create custom audit log for reactivate_user with user details
+                try {
+                    const AuditLogService = require('./auditLogService');
+                    const auditLogService = new AuditLogService();
+                    const branchResult = request.branch_id ? await db.query('SELECT name FROM branches WHERE id = $1', [request.branch_id]) : { rows: [] };
+                    await auditLogService.createAuditLog({
+                        user_id: req.user.id,
+                        branch_id: req.user.branch_id || null,
+                        action: 'reactivate_user',
+                        resource: 'users',
+                        resource_id: request.user_id.toString(),
+                        details: {
+                            reactivated_user_id: request.user_id,
+                            reactivated_username: request.username,
+                            reactivated_user_name: `${request.first_name} ${request.last_name}`,
+                            reactivation_request_id: requestId,
+                            review_notes: notes || null,
+                            affected_branch: branchResult.rows[0]?.name || null
+                        },
+                        ip_address: req.ip || req.connection.remoteAddress || null,
+                        user_agent: req.get('User-Agent') || null,
+                        status: 'success'
+                    });
+                } catch (auditError) {
+                    console.error('Error creating reactivate_user audit log:', auditError);
+                    // Don't fail the request if audit log fails
+                }
             }
             
             // Create notification for the user
@@ -832,6 +873,44 @@ router.post('/forgot-password', async (req, res) => {
         // If result indicates failure, return error status
         if (!result.success) {
             return res.status(400).json(result);
+        }
+        
+        // Create audit log for successful forgot password request
+        if (result.success && result.user_id) {
+            try {
+                const db = require('./database');
+                const AuditLogService = require('./auditLogService');
+                const auditLogService = new AuditLogService();
+                
+                // Get user details for audit log
+                const userResult = await db.query(`
+                    SELECT id, username, branch_id, first_name, last_name
+                    FROM users
+                    WHERE id = $1
+                `, [result.user_id]);
+                
+                if (userResult.rows.length > 0) {
+                    const user = userResult.rows[0];
+                    await auditLogService.createAuditLog({
+                        user_id: user.id,
+                        branch_id: user.branch_id || null,
+                        action: 'forgot_password',
+                        resource: 'users',
+                        resource_id: user.id.toString(),
+                        details: {
+                            username: user.username,
+                            user_name: `${user.first_name} ${user.last_name}`,
+                            requested_via: username_or_email.includes('@') ? 'email' : 'username'
+                        },
+                        ip_address: req.ip || req.connection.remoteAddress || null,
+                        user_agent: req.get('User-Agent') || null,
+                        status: 'success'
+                    });
+                }
+            } catch (auditError) {
+                console.error('Error creating forgot_password audit log:', auditError);
+                // Don't fail the request if audit log fails
+            }
         }
         
         res.json(result);
