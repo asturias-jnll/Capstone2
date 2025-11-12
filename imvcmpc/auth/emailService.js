@@ -1,32 +1,30 @@
 const nodemailer = require('nodemailer');
-const { MailerSend, EmailParams, Sender, Recipient } = require("mailersend");
+const { Resend } = require('resend');
 const config = require('./config');
 
 class EmailService {
     constructor() {
         this.transporter = null;
-        this.mailerSend = null;
+        this.resend = null;
         this.useAPI = false;
         
-        // Try to initialize MailerSend API first (preferred for cloud hosting)
-        if (process.env.MAILERSEND_API_TOKEN) {
-            this.initializeMailerSendAPI();
+        // Try to initialize Resend API first (preferred for cloud hosting)
+        if (process.env.RESEND_API_KEY) {
+            this.initializeResendAPI();
         } else {
-            console.warn('MAILERSEND_API_TOKEN not set, using SMTP...');
+            console.warn('RESEND_API_KEY not set, using SMTP...');
             this.initializeTransporter();
         }
     }
 
-    initializeMailerSendAPI() {
+    initializeResendAPI() {
         try {
-            this.mailerSend = new MailerSend({
-                apiKey: process.env.MAILERSEND_API_TOKEN,
-            });
+            this.resend = new Resend(process.env.RESEND_API_KEY);
             this.useAPI = true;
-            console.log('✓ MailerSend API initialized successfully');
+            console.log('✓ Resend API initialized successfully');
             console.log('  Using API (HTTPS) - works on all cloud providers');
         } catch (error) {
-            console.error('Failed to initialize MailerSend API:', error);
+            console.error('Failed to initialize Resend API:', error);
             console.warn('Falling back to SMTP...');
             this.useAPI = false;
             this.initializeTransporter();
@@ -77,7 +75,7 @@ class EmailService {
                     if (error) {
                         console.error('SMTP configuration error:', error);
                         console.error('Note: Cloud providers often block SMTP ports.');
-                        console.error('Consider setting MAILERSEND_API_TOKEN to use API instead.');
+                        console.error('Consider setting RESEND_API_KEY to use API instead.');
                         console.error(`Current config: ${config.email.smtp.host}:${config.email.smtp.port}, secure=${config.email.smtp.secure}`);
                         // Don't throw - allow app to start, connection will be retried on send
                     } else {
@@ -185,8 +183,8 @@ class EmailService {
 
     // Send password reset email with retry logic
     async sendPasswordResetEmail(email, username, resetLink, retries = 2) {
-        // Use MailerSend API if available (preferred for cloud hosting)
-        if (this.useAPI && this.mailerSend) {
+        // Use Resend API if available (preferred for cloud hosting)
+        if (this.useAPI && this.resend) {
             return this.sendPasswordResetEmailViaAPI(email, username, resetLink);
         }
         
@@ -194,24 +192,29 @@ class EmailService {
         return this.sendPasswordResetEmailViaSMTP(email, username, resetLink, retries);
     }
 
-    // Send password reset email via MailerSend API
+    // Send password reset email via Resend API
     async sendPasswordResetEmailViaAPI(email, username, resetLink) {
         try {
-            const sentFrom = new Sender(config.email.from.match(/<(.+)>/)?.[1] || config.email.from, "IMVCMPC System");
-            const recipients = [new Recipient(email, username)];
+            // Extract email address from EMAIL_FROM (handles both formats)
+            const fromEmail = config.email.from.match(/<(.+)>/)?.[1] || config.email.from.split(' ').pop() || 'noreply@imvcmpc.org';
+            const fromName = config.email.from.match(/(.+?)\s*</)?.[1]?.trim() || 'IMVCMPC System';
 
-            const emailParams = new EmailParams()
-                .setFrom(sentFrom)
-                .setTo(recipients)
-                .setSubject("IMVCMPC - Password Reset Request")
-                .setHtml(this.generatePasswordResetEmail(resetLink, username))
-                .setText(`Hello ${username},\n\nWe received a request to reset your password. Please click the following link to reset your password:\n\n${resetLink}\n\nThis link will expire in 1 hour. If you did not request this, please ignore this email.\n\nBest regards,\nIMVCMPC System`);
+            const { data, error } = await this.resend.emails.send({
+                from: `${fromName} <${fromEmail}>`,
+                to: [email],
+                subject: 'IMVCMPC - Password Reset Request',
+                html: this.generatePasswordResetEmail(resetLink, username),
+                text: `Hello ${username},\n\nWe received a request to reset your password. Please click the following link to reset your password:\n\n${resetLink}\n\nThis link will expire in 1 hour. If you did not request this, please ignore this email.\n\nBest regards,\nIMVCMPC System`
+            });
 
-            const result = await this.mailerSend.email.send(emailParams);
-            console.log('Password reset email sent via API:', result.statusCode);
+            if (error) {
+                throw new Error(error.message || 'Failed to send email via Resend API');
+            }
+
+            console.log('Password reset email sent via Resend API:', data?.id);
             return {
                 success: true,
-                messageId: result.body?.id || 'mailersend-api'
+                messageId: data?.id || 'resend-api'
             };
         } catch (error) {
             console.error('Error sending password reset email via API:', error);
@@ -254,7 +257,7 @@ class EmailService {
             console.error('Error sending password reset email via SMTP:', error);
             // Provide more helpful error message
             if (error.code === 'ETIMEDOUT') {
-                throw new Error('Email service connection timeout. Cloud provider may be blocking SMTP. Consider using MAILERSEND_API_TOKEN.');
+                throw new Error('Email service connection timeout. Cloud provider may be blocking SMTP. Consider using RESEND_API_KEY.');
             } else if (error.code === 'EAUTH') {
                 throw new Error('Email authentication failed. Please verify SMTP_USER and SMTP_PASS are correct.');
             }
@@ -350,8 +353,8 @@ class EmailService {
 
     // Send reactivation verification code email with retry logic
     async sendReactivationCodeEmail(email, username, code, retries = 2) {
-        // Use MailerSend API if available (preferred for cloud hosting)
-        if (this.useAPI && this.mailerSend) {
+        // Use Resend API if available (preferred for cloud hosting)
+        if (this.useAPI && this.resend) {
             return this.sendReactivationCodeEmailViaAPI(email, username, code);
         }
         
@@ -359,24 +362,29 @@ class EmailService {
         return this.sendReactivationCodeEmailViaSMTP(email, username, code, retries);
     }
 
-    // Send reactivation code email via MailerSend API
+    // Send reactivation code email via Resend API
     async sendReactivationCodeEmailViaAPI(email, username, code) {
         try {
-            const sentFrom = new Sender(config.email.from.match(/<(.+)>/)?.[1] || config.email.from, "IMVCMPC System");
-            const recipients = [new Recipient(email, username)];
+            // Extract email address from EMAIL_FROM (handles both formats)
+            const fromEmail = config.email.from.match(/<(.+)>/)?.[1] || config.email.from.split(' ').pop() || 'noreply@imvcmpc.org';
+            const fromName = config.email.from.match(/(.+?)\s*</)?.[1]?.trim() || 'IMVCMPC System';
 
-            const emailParams = new EmailParams()
-                .setFrom(sentFrom)
-                .setTo(recipients)
-                .setSubject("IMVCMPC - Account Reactivation Verification Code")
-                .setHtml(this.generateReactivationCodeEmail(code, username))
-                .setText(`Hello ${username},\n\nYou have requested to reactivate your IMVCMPC Finance Management System account. Please use the verification code below to complete your reactivation request:\n\nVerification Code: ${code}\n\nThis code will expire in 15 minutes. If you did not request account reactivation, please ignore this email.\n\nBest regards,\nIMVCMPC System`);
+            const { data, error } = await this.resend.emails.send({
+                from: `${fromName} <${fromEmail}>`,
+                to: [email],
+                subject: 'IMVCMPC - Account Reactivation Verification Code',
+                html: this.generateReactivationCodeEmail(code, username),
+                text: `Hello ${username},\n\nYou have requested to reactivate your IMVCMPC Finance Management System account. Please use the verification code below to complete your reactivation request:\n\nVerification Code: ${code}\n\nThis code will expire in 15 minutes. If you did not request account reactivation, please ignore this email.\n\nBest regards,\nIMVCMPC System`
+            });
 
-            const result = await this.mailerSend.email.send(emailParams);
-            console.log('Reactivation code email sent via API:', result.statusCode);
+            if (error) {
+                throw new Error(error.message || 'Failed to send email via Resend API');
+            }
+
+            console.log('Reactivation code email sent via Resend API:', data?.id);
             return {
                 success: true,
-                messageId: result.body?.id || 'mailersend-api'
+                messageId: data?.id || 'resend-api'
             };
         } catch (error) {
             console.error('Error sending reactivation code email via API:', error);
@@ -419,7 +427,7 @@ class EmailService {
             console.error('Error sending reactivation code email via SMTP:', error);
             // Provide more helpful error message
             if (error.code === 'ETIMEDOUT') {
-                throw new Error('Email service connection timeout. Cloud provider may be blocking SMTP. Consider using MAILERSEND_API_TOKEN.');
+                throw new Error('Email service connection timeout. Cloud provider may be blocking SMTP. Consider using RESEND_API_KEY.');
             } else if (error.code === 'EAUTH') {
                 throw new Error('Email authentication failed. Please verify SMTP_USER and SMTP_PASS are correct.');
             }
