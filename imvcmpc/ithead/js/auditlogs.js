@@ -307,13 +307,25 @@ function formatAction(action) {
         .join(' ');
 }
 
-// Format timestamp with proper timezone handling for Philippine time (UTC+8)
+// Format timestamp with proper timezone handling
+// Converts UTC timestamps from database to local time
 function formatTimestamp(timestamp) {
     if (!timestamp) {
         return 'N/A';
     }
     
-    const logTime = new Date(timestamp);
+    // Parse the UTC timestamp from database
+    // Ensure it's treated as UTC by appending 'Z' if not present
+    let utcDateString = timestamp;
+    if (!utcDateString.endsWith('Z') && !utcDateString.includes('+') && !utcDateString.includes('-', 10)) {
+        // If no timezone info, assume it's UTC and append 'Z'
+        if (utcDateString.includes('T')) {
+            utcDateString = utcDateString.split('.')[0] + 'Z'; // Remove milliseconds if present
+        }
+    }
+    
+    // Create date object - JavaScript will automatically convert UTC to local time
+    const logTime = new Date(utcDateString);
     
     // Check if the date is valid
     if (isNaN(logTime.getTime())) {
@@ -321,26 +333,17 @@ function formatTimestamp(timestamp) {
         return 'N/A';
     }
     
-    // Handle timezone issue: if timestamp appears to be in the future,
-    // it's likely the database is storing Philippine time (UTC+8) as UTC
-    // Adjust by subtracting 8 hours (28800 seconds) from the log time
-    const now = new Date();
-    let adjustedTime = logTime;
-    
-    if (logTime > now) {
-        // Adjust for Philippine timezone (UTC+8 = 8 hours = 28800 seconds)
-        adjustedTime = new Date(logTime.getTime() - (8 * 60 * 60 * 1000));
-    }
-    
-    // Format as readable date/time string
-    return adjustedTime.toLocaleString('en-US', {
+    // Format as readable date/time string using local time
+    // toLocaleString automatically uses the browser's timezone
+    return logTime.toLocaleString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
         second: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Use browser's timezone
     });
 }
 

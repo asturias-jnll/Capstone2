@@ -1947,22 +1947,101 @@ function updateZoom(value) {
     }
 }
 
-// Search payee function
+// Search function - searches Date, Payee, and Reference columns
+// Enhanced to support month name searches (e.g., "January", "Jan", "01")
 function searchPayee() {
     const searchInput = document.getElementById('payeeSearch');
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = searchInput.value.toLowerCase().trim();
     const tableRows = document.querySelectorAll('.transaction-table tbody tr');
     
+    // If search term is empty, show all rows
+    if (!searchTerm) {
+        tableRows.forEach(row => {
+            row.style.display = '';
+        });
+        return;
+    }
+    
+    // Month name mapping for search
+    const monthMap = {
+        'january': '01', 'jan': '01',
+        'february': '02', 'feb': '02',
+        'march': '03', 'mar': '03',
+        'april': '04', 'apr': '04',
+        'may': '05',
+        'june': '06', 'jun': '06',
+        'july': '07', 'jul': '07',
+        'august': '08', 'aug': '08',
+        'september': '09', 'sep': '09', 'sept': '09',
+        'october': '10', 'oct': '10',
+        'november': '11', 'nov': '11',
+        'december': '12', 'dec': '12'
+    };
+    
+    // Check if search term is a month name
+    const monthNumber = monthMap[searchTerm];
+    
     tableRows.forEach(row => {
-        const payeeCell = row.cells[1]; // Payee is the second column (index 1)
-        if (payeeCell) {
-            const payeeText = payeeCell.textContent.toLowerCase();
-            if (payeeText.includes(searchTerm)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
+        // Get cells for Date (index 0), Payee (index 1), and Reference (index 2)
+        const dateCell = row.cells[0];
+        const payeeCell = row.cells[1];
+        const referenceCell = row.cells[2];
+        
+        let matches = false;
+        
+        // Check Date column
+        if (dateCell) {
+            const dateText = dateCell.textContent.trim();
+            const dateTextLower = dateText.toLowerCase();
+            
+            // Direct text match (e.g., "01/15/2024" contains "01" or "2024")
+            if (dateTextLower.includes(searchTerm)) {
+                matches = true;
+            }
+            // Month name match - check if search term is a month name
+            else if (monthNumber) {
+                // Parse MM/DD/YYYY format
+                const dateParts = dateText.split('/');
+                if (dateParts.length === 3) {
+                    const month = dateParts[0]; // MM (already padded, e.g., "01")
+                    if (month === monthNumber) {
+                        matches = true;
+                    }
+                }
+            }
+            // Month number match (e.g., "1" matches "01", "01" matches "01")
+            else if (/^\d{1,2}$/.test(searchTerm)) {
+                const monthNum = parseInt(searchTerm);
+                if (monthNum >= 1 && monthNum <= 12) {
+                    const dateParts = dateText.split('/');
+                    if (dateParts.length === 3) {
+                        const month = parseInt(dateParts[0]);
+                        if (month === monthNum) {
+                            matches = true;
+                        }
+                    }
+                }
             }
         }
+        
+        // Check Payee column
+        if (!matches && payeeCell) {
+            const payeeText = payeeCell.textContent.toLowerCase();
+            if (payeeText.includes(searchTerm)) {
+                matches = true;
+            }
+        }
+        
+        // Check Reference column
+        if (!matches && referenceCell) {
+            const referenceText = referenceCell.textContent.toLowerCase();
+            if (referenceText.includes(searchTerm)) {
+                matches = true;
+            }
+        }
+        
+        // Show or hide row based on match
+        row.style.display = matches ? '' : 'none';
     });
     
 }

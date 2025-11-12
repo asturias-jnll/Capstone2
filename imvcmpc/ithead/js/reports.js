@@ -2189,9 +2189,9 @@ function showAIRecommendationControls() {
     const ctrl = document.getElementById('aiRecommendationControls');
     if (!ctrl) return;
     
-    // Hide AI recommendation button for member reports
+    // Hide AI recommendation button for member, savings, and disbursement reports
     const reportType = window.currentReportType;
-    if (reportType === 'member') {
+    if (reportType === 'member' || reportType === 'savings' || reportType === 'disbursement') {
         ctrl.style.display = 'none';
     } else {
         ctrl.style.display = 'flex';
@@ -4063,32 +4063,42 @@ function formatReportDate(dateString) {
 }
 
 // Format smart timestamp (time for same day, date for older)
+// Properly handles UTC timestamps from database and converts to local time
 function formatSmartTimestamp(dateString) {
-    // Parse date string and handle timezone properly
-    // Replace 'Z' or timezone info to treat as local time
-    let localDateString = dateString.replace('Z', '').split('+')[0].split('-').slice(0, 3).join('-');
-    if (dateString.includes('T')) {
-        localDateString = dateString.split('T')[0];
+    if (!dateString) return 'N/A';
+    
+    // Parse the UTC timestamp from database
+    // Ensure it's treated as UTC by appending 'Z' if not present
+    let utcDateString = dateString;
+    if (!utcDateString.endsWith('Z') && !utcDateString.includes('+') && !utcDateString.includes('-', 10)) {
+        // If no timezone info, assume it's UTC and append 'Z'
+        if (utcDateString.includes('T')) {
+            utcDateString = utcDateString.split('.')[0] + 'Z'; // Remove milliseconds if present
+        }
     }
     
-    // Create date from YYYY-MM-DD format to avoid timezone issues
-    const [year, month, day] = localDateString.split('-').map(Number);
-    const reportDate = new Date(year, month - 1, day);
-    const today = new Date();
+    // Create date object - JavaScript will automatically convert UTC to local time
+    const fullDate = new Date(utcDateString);
     
-    // Check if same day
-    const isSameDay = reportDate.getDate() === today.getDate() &&
-                     reportDate.getMonth() === today.getMonth() &&
-                     reportDate.getFullYear() === today.getFullYear();
+    // Check if date is valid
+    if (isNaN(fullDate.getTime())) {
+        console.error('Invalid date string:', dateString);
+        return 'N/A';
+    }
+    
+    // Get local date components for comparison
+    const today = new Date();
+    const reportDate = new Date(fullDate.getFullYear(), fullDate.getMonth(), fullDate.getDate());
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    // Check if same day (using local dates)
+    const isSameDay = reportDate.getTime() === todayDate.getTime();
     
     if (isSameDay) {
-        // For same day, parse the timestamp
-        // The database stores UTC, but we want to display it as if it's local time
-        const fullDate = new Date(dateString);
-        
-        // Get the UTC time components
-        const hours = fullDate.getUTCHours();
-        const minutes = fullDate.getUTCMinutes();
+        // For same day, show local time (not UTC)
+        // Use local time methods to get the correct time in user's timezone
+        const hours = fullDate.getHours(); // Local hours, not UTC
+        const minutes = fullDate.getMinutes(); // Local minutes, not UTC
         
         // Convert to 12-hour format
         const period = hours >= 12 ? 'PM' : 'AM';
@@ -4097,8 +4107,8 @@ function formatSmartTimestamp(dateString) {
         
         return `${String(displayHours).padStart(2, '0')}:${displayMinutes} ${period}`;
     } else {
-        // Show date for different day
-        return reportDate.toLocaleDateString('en-US', {
+        // Show date for different day (using local date)
+        return fullDate.toLocaleDateString('en-US', {
             month: '2-digit',
             day: '2-digit',
             year: 'numeric'
