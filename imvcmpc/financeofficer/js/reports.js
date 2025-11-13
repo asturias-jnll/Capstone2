@@ -2441,6 +2441,9 @@ function showSendFinanceSection() {
         }
         
         sendFinanceSection.style.display = 'block';
+        sendFinanceSection.setAttribute('aria-hidden', 'false');
+        // Focus management: focus the button when it becomes visible
+        setTimeout(() => sendFinanceSection.focus(), 100);
     }
 }
 
@@ -2453,8 +2456,15 @@ function showAIRecommendationControls() {
     const reportType = window.currentReportType;
     if (reportType === 'member' || reportType === 'savings' || reportType === 'disbursement') {
         ctrl.style.display = 'none';
+        ctrl.setAttribute('aria-hidden', 'true');
     } else {
         ctrl.style.display = 'flex';
+        ctrl.setAttribute('aria-hidden', 'false');
+        // Focus management: focus the button when it becomes visible
+        const button = ctrl.querySelector('button');
+        if (button) {
+            setTimeout(() => button.focus(), 100);
+        }
     }
 }
 
@@ -4722,6 +4732,7 @@ function hideGenerateReportSection() {
     const aiRecommendationControls = document.getElementById('aiRecommendationControls');
     if (aiRecommendationControls) {
         aiRecommendationControls.style.display = 'none';
+        aiRecommendationControls.setAttribute('aria-hidden', 'true');
     }
     
     // Hide button container

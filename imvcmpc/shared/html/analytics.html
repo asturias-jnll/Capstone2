@@ -106,18 +106,18 @@
                 <!-- Date Filter Section -->
                 <div class="filter-section">
                         <div class="filter-container">
-                        <div class="quick-filters">
-                            <button class="filter-btn active" data-filter="last-7-days">Last 7 Days</button>
-                            <button class="filter-btn" data-filter="last-30-days">Last 30 Days</button>
-                            <button class="filter-btn" data-filter="custom">Custom</button>
+                        <div class="quick-filters" role="group" aria-label="Date filter selection">
+                            <button class="filter-btn active" data-filter="last-7-days" type="button" aria-pressed="true" aria-label="Filter by last 7 days">Last 7 Days</button>
+                            <button class="filter-btn" data-filter="last-30-days" type="button" aria-pressed="false" aria-label="Filter by last 30 days">Last 30 Days</button>
+                            <button class="filter-btn" data-filter="custom" type="button" aria-pressed="false" aria-label="Filter by custom date range">Custom</button>
                         </div>
                         
-                        <div class="custom-range" id="customRange" style="display: none;">
+                        <div class="custom-range" id="customRange" style="display: none;" aria-hidden="true">
                             <div class="custom-options">
-                                <div class="custom-type-selector">
-                                    <button class="custom-type-btn active" data-type="week">By Week</button>
-                                    <button class="custom-type-btn" data-type="month">By Month</button>
-                                    <button class="custom-type-btn" data-type="year">By Year</button>
+                                <div class="custom-type-selector" role="group" aria-label="Custom date range type">
+                                    <button class="custom-type-btn active" data-type="week" type="button" aria-pressed="true" aria-label="Filter by week">By Week</button>
+                                    <button class="custom-type-btn" data-type="month" type="button" aria-pressed="false" aria-label="Filter by month">By Month</button>
+                                    <button class="custom-type-btn" data-type="year" type="button" aria-pressed="false" aria-label="Filter by year">By Year</button>
                                 </div>
                                 <!-- Week picker for week custom type -->
                                 <div class="week-picker" id="weekPicker" style="display: none;">

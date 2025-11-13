@@ -16,6 +16,7 @@
     
     <!-- Login Screen -->
     <div id="loginScreen" class="screen active">
+        <main>
         <div class="login-container">
             <div class="login-card">
                 <div class="login-left">
@@ -59,8 +60,8 @@
                             <div class="input-group">
                                 <i class="fas fa-lock"></i>
                                 <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
-                                <button type="button" class="toggle-password" onclick="togglePassword()">
-                                    <i class="fas fa-eye"></i>
+                                <button type="button" class="toggle-password" onclick="togglePassword()" aria-label="Show password">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -76,6 +77,7 @@
                 </div>
             </div>
         </div>
+        </main>
     </div>
 
     <!-- Loading Dialog -->

@@ -348,13 +348,13 @@
                                 </div>
                                 <div class="transaction-type">
                                     <label>Transaction Type (Can Select Both)</label>
-                                    <div class="type-buttons">
-                                        <button class="type-btn" data-type="savings">
-                                            <i class="fas fa-piggy-bank"></i>
+                                    <div class="type-buttons" role="group" aria-label="Transaction type selection">
+                                        <button class="type-btn" data-type="savings" type="button" aria-pressed="false" aria-label="Select savings transactions">
+                                            <i class="fas fa-piggy-bank" aria-hidden="true"></i>
                                             <span>Savings</span>
                                         </button>
-                                        <button class="type-btn" data-type="disbursement">
-                                            <i class="fas fa-money-bill-wave"></i>
+                                        <button class="type-btn" data-type="disbursement" type="button" aria-pressed="false" aria-label="Select disbursement transactions">
+                                            <i class="fas fa-money-bill-wave" aria-hidden="true"></i>
                                             <span>Disbursement</span>
                                         </button>
                                     </div>

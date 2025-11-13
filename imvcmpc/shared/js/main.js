@@ -705,19 +705,30 @@ window.initializeDynamicUserHeader = function() {
 function initializeNavigationToggle() {
     const navToggle = document.getElementById('navToggle');
     const navigation = document.querySelector('.navigation');
+    const navItemsContainer = document.getElementById('nav-items-container');
     
     if (navToggle && navigation) {
         // Load saved state from localStorage immediately
         const isExpanded = localStorage.getItem('navExpanded') === 'true';
         if (isExpanded) {
             navigation.classList.add('expanded');
+            navToggle.setAttribute('aria-expanded', 'true');
         } else {
             navigation.classList.remove('expanded');
+            navToggle.setAttribute('aria-expanded', 'false');
         }
         
         // Add click event listener
         navToggle.addEventListener('click', function() {
             toggleNavigation();
+        });
+        
+        // Add keyboard support (Enter and Space)
+        navToggle.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleNavigation();
+            }
         });
         
         // Auto-collapse on smaller screens for better UX
@@ -743,15 +754,22 @@ function initializeNavigationToggle() {
 // Toggle navigation collapse state
 function toggleNavigation() {
     const navigation = document.querySelector('.navigation');
+    const navToggle = document.getElementById('navToggle');
     const isExpanded = navigation.classList.contains('expanded');
     
     if (isExpanded) {
         navigation.classList.remove('expanded');
         document.documentElement.classList.remove('nav-expanded');
         localStorage.setItem('navExpanded', 'false');
+        if (navToggle) {
+            navToggle.setAttribute('aria-expanded', 'false');
+        }
     } else {
         navigation.classList.add('expanded');
         document.documentElement.classList.add('nav-expanded');
         localStorage.setItem('navExpanded', 'true');
+        if (navToggle) {
+            navToggle.setAttribute('aria-expanded', 'true');
+        }
     }
 }

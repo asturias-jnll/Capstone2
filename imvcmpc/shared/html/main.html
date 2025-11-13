@@ -28,53 +28,53 @@
                     <img src="../../assets/logo.png" alt="IMVCMPC Logo">
                     <span class="logo-text">IMVCMPC</span>
                 </div>
-                <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
-                    <i class="fas fa-chevron-left"></i>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-items-container">
+                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
                 </button>
             </div>
             
-            <div class="nav-menu">
-                <a href="main.html" class="nav-item active">
-                    <i class="fas fa-home"></i>
+            <div class="nav-menu" id="nav-items-container" role="navigation" aria-label="Main navigation">
+                <a href="main.html" class="nav-item active" aria-current="page">
+                    <i class="fas fa-home" aria-hidden="true"></i>
                     <span>Dashboard</span>
                 </a>
                 <a href="memberdata.html" class="nav-item">
-                    <i class="fas fa-users"></i>
+                    <i class="fas fa-users" aria-hidden="true"></i>
                     <span>Member Data</span>
                 </a>
                 <a href="analytics.html" class="nav-item">
-                    <i class="fas fa-chart-bar"></i>
+                    <i class="fas fa-chart-bar" aria-hidden="true"></i>
                     <span>Analytics</span>
                 </a>
                 <a href="reports.html" class="nav-item">
-                    <i class="fas fa-file-alt"></i>
+                    <i class="fas fa-file-alt" aria-hidden="true"></i>
                     <span>Reports</span>
                 </a>
                 <a href="notifications.html" class="nav-item">
-                    <i class="fas fa-bell"></i>
+                    <i class="fas fa-bell" aria-hidden="true"></i>
                     <span>Notifications</span>
                 </a>
             </div>
             
             <div class="nav-account">
-                <a href="account.html" class="nav-item">
-                    <i class="fas fa-user-circle"></i>
+                <a href="account.html" class="nav-item" aria-label="View account settings">
+                    <i class="fas fa-user-circle" aria-hidden="true"></i>
                     <span>Account</span>
                 </a>
             </div>
             
             <div class="nav-footer">
-                <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i>
+                <button class="logout-btn" onclick="logout()" aria-label="Logout from account">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
                     <span>Logout</span>
                 </button>
             </div>
         </nav>
 
         <!-- Content Area -->
-        <main class="main-content">
+        <main class="main-content" role="main">
             <!-- Top Bar -->
-            <div class="top-bar">
+            <header class="top-bar" role="banner">
                 <div class="breadcrumb">
                     <div class="datetime-display">
                         <div class="date-display" id="currentDate"></div>
@@ -86,11 +86,11 @@
                         <span class="user-name" id="userName">User</span>
                         <span class="user-role" id="userRole">IMVCMPC - Main Branch</span>
                     </div>
-                    <div class="user-avatar" id="userAvatar">
-                        <i class="fas fa-user"></i>
-                    </div>
+                    <button class="user-avatar" id="userAvatar" aria-label="User profile menu" aria-expanded="false" aria-controls="userDropdown" aria-haspopup="true">
+                        <i class="fas fa-user" aria-hidden="true"></i>
+                    </button>
                     <!-- Mobile dropdown for user info -->
-                    <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown" id="userDropdown" role="menu" aria-label="User menu" aria-hidden="true">
                         <div class="dropdown-content">
                             <div class="dropdown-user-info">
                                 <span class="dropdown-user-name" id="dropdownUserName">User</span>
@@ -99,7 +99,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
             <!-- Dashboard Content -->
             <div class="dashboard-content">
@@ -205,7 +205,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </header>
         </main>
     </div>
 

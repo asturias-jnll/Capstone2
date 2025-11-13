@@ -138,11 +138,15 @@ function setupFilterButtons() {
     
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
-            // Remove active class from all buttons
-            filterButtons.forEach(btn => btn.classList.remove('active'));
+            // Remove active class and aria-pressed from all buttons
+            filterButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-pressed', 'false');
+            });
             
-            // Add active class to clicked button
+            // Add active class and set aria-pressed to true for clicked button
             this.classList.add('active');
+            this.setAttribute('aria-pressed', 'true');
             
             // Update current filter
             currentFilter = this.dataset.filter;
@@ -151,6 +155,7 @@ function setupFilterButtons() {
             const customRange = document.getElementById('customRange');
             if (currentFilter === 'custom') {
                 customRange.style.display = 'block';
+                customRange.setAttribute('aria-hidden', 'false');
                 // Auto-set date range based on current custom type
                 if (customType === 'month') {
                     setMonthRange();
@@ -161,6 +166,7 @@ function setupFilterButtons() {
                 }
             } else {
                 customRange.style.display = 'none';
+                customRange.setAttribute('aria-hidden', 'true');
                 // Remove auto-calculated styling when not in custom mode
                 const endDateInput = document.getElementById('endDate');
                 if (endDateInput) {
@@ -170,6 +176,14 @@ function setupFilterButtons() {
             
             // Auto-apply filters
             applyFilters();
+        });
+        
+        // Add keyboard support (Enter and Space)
+        button.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                button.click();
+            }
         });
     });
 }
@@ -185,11 +199,15 @@ function setupCustomTypeButtons() {
     
     customTypeButtons.forEach(button => {
         button.addEventListener('click', function() {
-            // Remove active class from all custom type buttons
-            customTypeButtons.forEach(btn => btn.classList.remove('active'));
+            // Remove active class and aria-pressed from all custom type buttons
+            customTypeButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-pressed', 'false');
+            });
             
-            // Add active class to clicked button
+            // Add active class and set aria-pressed to true for clicked button
             this.classList.add('active');
+            this.setAttribute('aria-pressed', 'true');
             
             // Update current custom type
             customType = this.dataset.type;
@@ -209,6 +227,14 @@ function setupCustomTypeButtons() {
             // Auto-apply filters if custom is selected
             if (currentFilter === 'custom') {
                 applyFilters();
+            }
+        });
+        
+        // Add keyboard support (Enter and Space)
+        button.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                button.click();
             }
         });
     });

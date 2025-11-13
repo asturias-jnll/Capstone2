@@ -892,12 +892,25 @@ function setupTransactionTypeButtons() {
             
             if (configId === 'branchConfig') {
                 // For branch config, toggle the clicked button (both can be selected)
-                this.classList.toggle('active');
+                const isActive = this.classList.toggle('active');
+                this.setAttribute('aria-pressed', isActive ? 'true' : 'false');
             } else {
                 // For other configs, only one can be selected
                 const typeButtons = configSection.querySelectorAll('.type-btn');
-                typeButtons.forEach(b => b.classList.remove('active'));
+                typeButtons.forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-pressed', 'false');
+                });
                 this.classList.add('active');
+                this.setAttribute('aria-pressed', 'true');
+            }
+        });
+        
+        // Add keyboard support (Enter and Space)
+        btn.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                btn.click();
             }
         });
     });
@@ -4336,6 +4349,7 @@ function hideGenerateReportSection() {
     const aiRecommendationControls = document.getElementById('aiRecommendationControls');
     if (aiRecommendationControls) {
         aiRecommendationControls.style.display = 'none';
+        aiRecommendationControls.setAttribute('aria-hidden', 'true');
     }
     
     // Hide button container

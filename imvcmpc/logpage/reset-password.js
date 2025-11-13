@@ -159,15 +159,22 @@ function checkPasswordMatch() {
 // Toggle password visibility
 function togglePassword(inputId) {
     const passwordInput = document.getElementById(inputId);
-    const toggleBtn = passwordInput.nextElementSibling;
+    const inputGroup = passwordInput.closest('.input-group');
+    const toggleBtn = inputGroup.querySelector('.toggle-password');
     const icon = toggleBtn.querySelector('i');
+    
+    if (!toggleBtn || !icon) return;
     
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
         icon.className = 'fas fa-eye-slash';
+        const labelText = inputId === 'newPassword' ? 'Hide new password' : 'Hide confirm password';
+        toggleBtn.setAttribute('aria-label', labelText);
     } else {
         passwordInput.type = 'password';
         icon.className = 'fas fa-eye';
+        const labelText = inputId === 'newPassword' ? 'Show new password' : 'Show confirm password';
+        toggleBtn.setAttribute('aria-label', labelText);
     }
 }
 

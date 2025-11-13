@@ -5,8 +5,8 @@
             <img src="../../assets/logo.png" alt="IMVCMPC Logo">
             <span class="logo-text">IMVCMPC</span>
         </div>
-        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
-            <i class="fas fa-chevron-left"></i>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-items-container">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
         </button>
     </div>
     
@@ -18,15 +18,15 @@
     </div>
     
     <div class="nav-account">
-        <a href="account.html" class="nav-item">
-            <i class="fas fa-user-circle"></i>
+        <a href="account.html" class="nav-item" aria-label="View account settings">
+            <i class="fas fa-user-circle" aria-hidden="true"></i>
             <span>Account</span>
         </a>
     </div>
     
     <div class="nav-footer">
-        <button class="logout-btn" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i>
+        <button class="logout-btn" onclick="logout()" aria-label="Logout from account">
+            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
             <span>Logout</span>
         </button>
     </div>

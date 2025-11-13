@@ -259,16 +259,20 @@ function checkExistingSession() {
 // Toggle password visibility
 function togglePassword() {
     const passwordInput = document.getElementById('password');
-    const toggleBtn = document.querySelector('#password').closest('.input-group').querySelector('.toggle-password i');
+    const inputGroup = passwordInput.closest('.input-group');
+    const toggleBtn = inputGroup.querySelector('.toggle-password');
+    const toggleIcon = inputGroup.querySelector('.toggle-password i');
     
-    if (!toggleBtn) return;
+    if (!toggleBtn || !toggleIcon) return;
     
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
-        toggleBtn.className = 'fas fa-eye-slash';
+        toggleIcon.className = 'fas fa-eye-slash';
+        toggleBtn.setAttribute('aria-label', 'Hide password');
     } else {
         passwordInput.type = 'password';
-        toggleBtn.className = 'fas fa-eye';
+        toggleIcon.className = 'fas fa-eye';
+        toggleBtn.setAttribute('aria-label', 'Show password');
     }
 }
 

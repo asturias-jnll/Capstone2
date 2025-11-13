@@ -272,9 +272,15 @@ body {
 }
 
 .forgot-password a {
-    color: var(--yellow-green);
+    color: var(--light-green);
     text-decoration: none;
     font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.forgot-password a:hover {
+    color: var(--green);
+    text-decoration: underline;
 }
 
 .login-btn {

@@ -440,13 +440,13 @@
                                 </div>
                                 <div class="transaction-type">
                                     <label>Transaction Type (Can Select Both)</label>
-                                    <div class="type-buttons">
-                                        <button class="type-btn" data-type="savings">
-                                            <i class="fas fa-piggy-bank"></i>
+                                    <div class="type-buttons" role="group" aria-label="Transaction type selection">
+                                        <button class="type-btn" data-type="savings" type="button" aria-pressed="false" aria-label="Select savings transactions">
+                                            <i class="fas fa-piggy-bank" aria-hidden="true"></i>
                                             <span>Savings</span>
                                         </button>
-                                        <button class="type-btn" data-type="disbursement">
-                                            <i class="fas fa-money-bill-wave"></i>
+                                        <button class="type-btn" data-type="disbursement" type="button" aria-pressed="false" aria-label="Select disbursement transactions">
+                                            <i class="fas fa-money-bill-wave" aria-hidden="true"></i>
                                             <span>Disbursement</span>
                                         </button>
                                     </div>
@@ -458,15 +458,15 @@
                 </div>
 
                 <!-- AI Recommendation Controls (will be inserted after canvas via JavaScript) -->
-                <div id="aiRecommendationControls" style="display:none;">
-                    <button class="generate-ai-btn" id="generateAIButton" onclick="generateAIRecommendation()">
-                        <i class="fas fa-brain"></i>
+                <div id="aiRecommendationControls" style="display:none;" aria-hidden="true">
+                    <button class="generate-ai-btn" id="generateAIButton" onclick="generateAIRecommendation()" aria-label="Generate AI recommendation for report">
+                        <i class="fas fa-brain" aria-hidden="true"></i>
                         <span>Generate AI Recommendation</span>
                     </button>
                 </div>
 
-                <button class="send-finance-btn" id="sendFinanceSection" onclick="sendToMarketingClerk()" style="display: none;">
-                    <i class="fas fa-paper-plane"></i>
+                <button class="send-finance-btn" id="sendFinanceSection" onclick="sendToMarketingClerk()" style="display: none;" aria-label="Send report to marketing clerk" aria-hidden="true">
+                    <i class="fas fa-paper-plane" aria-hidden="true"></i>
                     <span id="sendButtonText">SEND TO MARKETING CLERK</span>
                 </button>
 
