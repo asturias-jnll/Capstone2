@@ -230,7 +230,8 @@ body {
 
 .input-group input {
     width: 100%;
-    padding: 14px 56px 14px 48px;
+    padding: 14px 60px 14px 48px;
+    min-height: 48px;
     border: 2px solid var(--dark-green);
     border-radius: 10px;
     background: var(--gray-50);
@@ -251,18 +252,33 @@ body {
 
 .toggle-password {
     position: absolute;
-    right: 12px;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
     color: var(--dark-green);
     cursor: pointer;
     z-index: 1;
-    padding: 0;
-    width: 20px;
-    height: 20px;
+    padding: 12px;
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.toggle-password:hover {
+    background-color: rgba(11, 94, 28, 0.1);
+}
+
+.toggle-password:focus {
+    outline: 2px solid var(--dark-green);
+    outline-offset: 2px;
 }
 
 .forgot-password {
@@ -272,14 +288,14 @@ body {
 }
 
 .forgot-password a {
-    color: var(--light-green);
+    color: var(--green);
     text-decoration: none;
     font-weight: 500;
     transition: color 0.2s ease;
 }
 
 .forgot-password a:hover {
-    color: var(--green);
+    color: var(--dark-green);
     text-decoration: underline;
 }
 
