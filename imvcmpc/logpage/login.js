@@ -113,10 +113,17 @@ async function login() {
                 
                 // Show welcome for 2.5 seconds, then fade out before redirect
                 setTimeout(() => {
-                    // Add fade-out animation
+                    // Hide login screen immediately to prevent flash
+                    const loginScreen = document.getElementById('loginScreen');
+                    if (loginScreen) {
+                        loginScreen.style.display = 'none';
+                    }
+                    
+                    // Add fade-out animation to success dialog
                     successDialog.style.animation = 'fadeOut 0.5s ease-out forwards';
                     
                     // Redirect early during fade-out to prevent login page flash
+                    // Keep success dialog visible during redirect to maintain smooth transition
                     setTimeout(() => {
                         redirectBasedOnRole(data.user.role);
                     }, 100);
@@ -166,21 +173,28 @@ async function login() {
 
 // Redirect user based on their role
 function redirectBasedOnRole(role) {
+    // Use replace instead of href to prevent login page from appearing in history
+    // This also helps prevent the flash when redirecting
+    let redirectUrl;
     switch (role) {
         case 'marketing_clerk':
-            window.location.href = '../shared/html/memberdata.html';
+            redirectUrl = '../shared/html/memberdata.html';
             break;
         case 'finance_officer':
-            window.location.href = '../financeofficer/html/dashboard.html';
+            redirectUrl = '../financeofficer/html/dashboard.html';
             break;
         case 'it_head':
-            window.location.href = '../ithead/html/main.html'; // Adjust path if needed
+            redirectUrl = '../ithead/html/main.html';
             break;
         default:
             // Default to marketing clerk member data page
-            window.location.href = '../shared/html/memberdata.html';
+            redirectUrl = '../shared/html/memberdata.html';
             break;
     }
+    
+    // Use replace to prevent back button from going to login page
+    // This ensures smooth transition without flash
+    window.location.replace(redirectUrl);
 }
 
 // Refresh access token using refresh token
@@ -245,6 +259,11 @@ function checkExistingSession() {
             
             // If logged in less than 24 hours ago, redirect to appropriate dashboard
             if (hoursSinceLogin < 24) {
+                // Hide login screen before redirect to prevent flash
+                const loginScreen = document.getElementById('loginScreen');
+                if (loginScreen) {
+                    loginScreen.style.display = 'none';
+                }
                 redirectBasedOnRole(userData.role);
             } else {
                 // Token expired, clear session
