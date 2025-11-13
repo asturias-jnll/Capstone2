@@ -234,7 +234,8 @@ body {
     min-height: 48px;
     border: 2px solid var(--dark-green);
     border-radius: 10px;
-    background: var(--gray-50);
+    background: var(--white);
+    color: var(--gray-700);
     font-size: 16px;
     /* Only animate composited properties for better performance */
     transition: border-color 0.3s ease, border-width 0.3s ease, background-color 0.3s ease;
@@ -250,6 +251,7 @@ body {
 
 .input-group input::placeholder {
     color: var(--gray-600);
+    opacity: 1; /* Ensure full opacity for better contrast */
 }
 
 .toggle-password {
@@ -783,8 +785,14 @@ body {
         padding: 14px 56px 14px 48px;
         border: 2px solid var(--dark-green);
         border-radius: 10px;
-        background: var(--gray-50);
+        background: var(--white);
+        color: var(--gray-700);
         font-size: 14px;
+    }
+    
+    .input-group input::placeholder {
+        color: var(--gray-600);
+        opacity: 1;
     }
     
     .input-group input:focus {
@@ -800,9 +808,14 @@ body {
     }
     
     .forgot-password a {
-        color: var(--yellow-green);
+        color: var(--green);
         font-weight: 500;
         font-size: 14px;
+    }
+    
+    .forgot-password a:hover {
+        color: var(--dark-green);
+        text-decoration: underline;
     }
     
     .login-btn {
@@ -865,8 +878,14 @@ body {
         padding: 14px 56px 14px 48px;
         border: 2px solid var(--dark-green);
         border-radius: 10px;
-        background: var(--gray-50);
+        background: var(--white);
+        color: var(--gray-700);
         font-size: 13px;
+    }
+    
+    .input-group input::placeholder {
+        color: var(--gray-600);
+        opacity: 1;
     }
     
     .input-group input:focus {
@@ -877,7 +896,13 @@ body {
     }
     
     .forgot-password a {
+        color: var(--green);
         font-size: 12px;
+    }
+    
+    .forgot-password a:hover {
+        color: var(--dark-green);
+        text-decoration: underline;
     }
     
     .login-btn {
@@ -1283,6 +1308,7 @@ body {
 
 .forgot-password-form .input-group input::placeholder {
     color: var(--gray-600);
+    opacity: 1; /* Ensure full opacity for better contrast */
 }
 
 .forgot-password-status {
