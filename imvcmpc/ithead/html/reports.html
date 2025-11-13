@@ -230,11 +230,7 @@
                                 <div class="filter-group">
                                     <label for="savingsYear">YEAR</label>
                                     <select id="savingsYear">
-                                        <option value="2025">2025</option>
-                                        <option value="2024">2024</option>
-                                        <option value="2023">2023</option>
-                                        <option value="2022">2022</option>
-                                        <option value="2021">2021</option>
+                                        <!-- Year options will be populated dynamically -->
                                     </select>
                                 </div>
                                 <div class="filter-group">
@@ -276,11 +272,7 @@
                                 <div class="filter-group">
                                     <label for="disbursementYear">YEAR</label>
                                     <select id="disbursementYear">
-                                        <option value="2025">2025</option>
-                                        <option value="2024">2024</option>
-                                        <option value="2023">2023</option>
-                                        <option value="2022">2022</option>
-                                        <option value="2021">2021</option>
+                                        <!-- Year options will be populated dynamically -->
                                     </select>
                                 </div>
                                 <div class="filter-group">
@@ -337,11 +329,7 @@
                                 <div class="filter-group">
                                     <label for="memberYear">YEAR</label>
                                     <select id="memberYear">
-                                        <option value="2025">2025</option>
-                                        <option value="2024">2024</option>
-                                        <option value="2023">2023</option>
-                                        <option value="2022">2022</option>
-                                        <option value="2021">2021</option>
+                                        <!-- Year options will be populated dynamically -->
                                     </select>
                                 </div>
                                 <div class="filter-group">
@@ -384,11 +372,7 @@
                                 <div class="filter-group">
                                     <label for="branchYear">YEAR</label>
                                     <select id="branchYear">
-                                        <option value="2025">2025</option>
-                                        <option value="2024">2024</option>
-                                        <option value="2023">2023</option>
-                                        <option value="2022">2022</option>
-                                        <option value="2021">2021</option>
+                                        <!-- Year options will be populated dynamically -->
                                     </select>
                                 </div>
                                 <div class="filter-group">
@@ -558,10 +542,39 @@
             }
         }
 
+        // Populate year options for all year select elements
+        function populateYearOptionsForReports() {
+            const currentYear = new Date().getFullYear();
+            const startYear = 2023;
+            const endYear = currentYear;
+            
+            const yearSelectIds = ['savingsYear', 'disbursementYear', 'memberYear', 'branchYear'];
+            
+            yearSelectIds.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    // Clear existing options
+                    select.innerHTML = '';
+                    
+                    // Add year options from current year down to 2023
+                    for (let year = endYear; year >= startYear; year--) {
+                        const option = document.createElement('option');
+                        option.value = year;
+                        option.textContent = year;
+                        select.appendChild(option);
+                    }
+                    
+                    // Set current year as default
+                    select.value = currentYear;
+                }
+            });
+        }
+
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initializeTopBar();
             toggleBranchReports();
+            populateYearOptionsForReports();
         });
     </script>
 

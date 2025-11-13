@@ -502,7 +502,7 @@ class AnalyticsService {
     }
 
     // Get top members by net position
-    async getTopMembers(filters = {}, userRole = null, isMainBranch = false, branchId = '1') {
+    async getTopMembers(filters = {}, userRole = null, isMainBranch = false, branchId = '1', limit = 10) {
         try {
             const { startDate, endDate } = filters;
             let query, params;
@@ -510,6 +510,7 @@ class AnalyticsService {
             // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
+            const limitValue = parseInt(limit) || 10; // Default to 10 if not provided
             
             // Check if user is Finance Officer or IT Head to order by total_savings instead of net_position
             const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
@@ -529,7 +530,7 @@ class AnalyticsService {
                         WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                         GROUP BY payee
                         ORDER BY total_savings DESC
-                        LIMIT 10
+                        LIMIT ${limitValue}
                     `;
                 } else {
                     query = `
@@ -545,7 +546,7 @@ class AnalyticsService {
                         GROUP BY payee
                         HAVING SUM(savings_deposits - loan_receivables) > 0
                         ORDER BY net_position DESC
-                        LIMIT 10
+                        LIMIT ${limitValue}
                     `;
                 }
                 params = [startDateFormatted, endDateFormatted];
@@ -565,7 +566,7 @@ class AnalyticsService {
                         WHERE transaction_date::date >= $1::date AND transaction_date::date <= $2::date
                         GROUP BY payee
                         ORDER BY total_savings DESC
-                        LIMIT 10
+                        LIMIT ${limitValue}
                     `;
                 } else {
                     query = `
@@ -581,7 +582,7 @@ class AnalyticsService {
                         GROUP BY payee
                         HAVING SUM(savings_deposits - loan_receivables) > 0
                         ORDER BY net_position DESC
-                        LIMIT 10
+                        LIMIT ${limitValue}
                     `;
                 }
                 params = [startDateFormatted, endDateFormatted];
@@ -596,7 +597,7 @@ class AnalyticsService {
     }
 
     // Get top patrons by total loan receivables
-    async getTopPatrons(filters = {}, userRole = null, isMainBranch = false, branchId = '1', limit = 5) {
+    async getTopPatrons(filters = {}, userRole = null, isMainBranch = false, branchId = '1', limit = 10) {
         try {
             const { startDate, endDate } = filters;
             let query, params;
@@ -604,7 +605,7 @@ class AnalyticsService {
             // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
             const startDateFormatted = startDate; // YYYY-MM-DD format
             const endDateFormatted = endDate; // YYYY-MM-DD format
-            const limitValue = parseInt(limit) || 5; // Default to 5 if not provided
+            const limitValue = parseInt(limit) || 10; // Default to 10 if not provided
             
             if (isMainBranch) {
                 // Main branch users see top patrons from all branches

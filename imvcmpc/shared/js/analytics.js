@@ -298,8 +298,8 @@ function populateYearOptions(selectorId = 'yearSelect') {
     if (!yearSelect || yearSelect.children.length > 1) return; // Already populated
     
     const currentYear = new Date().getFullYear();
-    const startYear = currentYear - 5; // 5 years back
-    const endYear = currentYear + 1; // 1 year forward
+    const startYear = 2023; // Start from 2023
+    const endYear = currentYear; // Up to current year (removed +1 year forward)
     
     for (let year = endYear; year >= startYear; year--) {
         const option = document.createElement('option');

@@ -302,7 +302,7 @@ router.get('/top-members',
             const service = new analyticsService();
             
             // Extract parameters from query
-            const { filter, startDate, endDate, branchId, isMainBranch } = req.query;
+            const { filter, startDate, endDate, branchId, isMainBranch, limit } = req.query;
             const userRole = req.user?.role_display_name;
             const isMainBranchUser = isMainBranch === 'true';
             const userBranchId = branchId || '1';
@@ -313,7 +313,7 @@ router.get('/top-members',
                 endDate: endDate || new Date().toISOString().split('T')[0]
             };
             
-            const data = await service.getTopMembers(filters, userRole, isMainBranchUser, userBranchId);
+            const data = await service.getTopMembers(filters, userRole, isMainBranchUser, userBranchId, limit);
             
             res.json({
                 success: true,
