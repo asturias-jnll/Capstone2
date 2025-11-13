@@ -221,7 +221,7 @@ body {
     align-items: center;
 }
 
-.input-group i {
+.input-group > i:first-of-type {
     position: absolute;
     left: 16px;
     color: var(--dark-green);
@@ -251,7 +251,7 @@ body {
 
 .toggle-password {
     position: absolute;
-    right: 24px;
+    right: 12px;
     background: none;
     border: none;
     color: var(--dark-green);

@@ -259,7 +259,9 @@ function checkExistingSession() {
 // Toggle password visibility
 function togglePassword() {
     const passwordInput = document.getElementById('password');
-    const toggleBtn = document.querySelector('.toggle-password i');
+    const toggleBtn = document.querySelector('#password').closest('.input-group').querySelector('.toggle-password i');
+    
+    if (!toggleBtn) return;
     
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
