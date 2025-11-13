@@ -256,29 +256,52 @@
                                 <i class="fas fa-building"></i>
                                 <span>Viewing reports for: <strong id="savingsBranchName"></strong></span>
                             </div>
-                            <div class="filter-row">
-                                <div class="filter-group">
-                                    <label for="savingsYear">YEAR</label>
-                                    <select id="savingsYear">
-                                        <!-- Year options will be populated dynamically -->
-                                    </select>
+                            <!-- Month/Year Toggle -->
+                            <div class="toggle-container">
+                                <div class="month-year-toggle" id="savingsToggle">
+                                    <button class="toggle-option active" data-option="month" onclick="toggleMonthYear('savings', 'month')">
+                                        <span>Month</span>
+                                    </button>
+                                    <button class="toggle-option" data-option="year" onclick="toggleMonthYear('savings', 'year')">
+                                        <span>Year</span>
+                                    </button>
                                 </div>
-                                <div class="filter-group">
-                                    <label for="savingsMonth">MONTH</label>
-                                    <select id="savingsMonth">
-                                        <option value="1">January</option>
-                                        <option value="2">February</option>
-                                        <option value="3">March</option>
-                                        <option value="4">April</option>
-                                        <option value="5">May</option>
-                                        <option value="6">June</option>
-                                        <option value="7">July</option>
-                                        <option value="8">August</option>
-                                        <option value="9">September</option>
-                                        <option value="10">October</option>
-                                        <option value="11">November</option>
-                                        <option value="12">December</option>
-                                    </select>
+                            </div>
+                            
+                            <!-- Month Mode: Year (single) + Months (multiple) -->
+                            <div class="selection-container" id="savingsMonthMode">
+                                <div class="selection-group">
+                                    <label>YEAR (SELECT ONE ONLY)</label>
+                                    <div class="year-buttons-container" id="savingsYearButtonsSingle">
+                                        <!-- Year buttons will be populated dynamically -->
+                                    </div>
+                                </div>
+                                <div class="selection-group">
+                                    <label>MONTHS (MULTIPLE SELECTION)</label>
+                                    <div class="month-buttons-container" id="savingsMonthButtons">
+                                        <button class="selection-btn" data-value="1" onclick="toggleMonthSelection('savings', 1)">January</button>
+                                        <button class="selection-btn" data-value="2" onclick="toggleMonthSelection('savings', 2)">February</button>
+                                        <button class="selection-btn" data-value="3" onclick="toggleMonthSelection('savings', 3)">March</button>
+                                        <button class="selection-btn" data-value="4" onclick="toggleMonthSelection('savings', 4)">April</button>
+                                        <button class="selection-btn" data-value="5" onclick="toggleMonthSelection('savings', 5)">May</button>
+                                        <button class="selection-btn" data-value="6" onclick="toggleMonthSelection('savings', 6)">June</button>
+                                        <button class="selection-btn" data-value="7" onclick="toggleMonthSelection('savings', 7)">July</button>
+                                        <button class="selection-btn" data-value="8" onclick="toggleMonthSelection('savings', 8)">August</button>
+                                        <button class="selection-btn" data-value="9" onclick="toggleMonthSelection('savings', 9)">September</button>
+                                        <button class="selection-btn" data-value="10" onclick="toggleMonthSelection('savings', 10)">October</button>
+                                        <button class="selection-btn" data-value="11" onclick="toggleMonthSelection('savings', 11)">November</button>
+                                        <button class="selection-btn" data-value="12" onclick="toggleMonthSelection('savings', 12)">December</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Year Mode: Years (multiple) -->
+                            <div class="selection-container" id="savingsYearMode" style="display: none;">
+                                <div class="selection-group">
+                                    <label>CHOOSE YEAR (One or More)</label>
+                                    <div class="year-buttons-container" id="savingsYearButtonsMultiple">
+                                        <!-- Year buttons will be populated dynamically -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -298,29 +321,52 @@
                                 <i class="fas fa-building"></i>
                                 <span>Viewing reports for: <strong id="disbursementBranchName"></strong></span>
                             </div>
-                            <div class="filter-row">
-                                <div class="filter-group">
-                                    <label for="disbursementYear">YEAR</label>
-                                    <select id="disbursementYear">
-                                        <!-- Year options will be populated dynamically -->
-                                    </select>
+                            <!-- Month/Year Toggle -->
+                            <div class="toggle-container">
+                                <div class="month-year-toggle" id="disbursementToggle">
+                                    <button class="toggle-option active" data-option="month" onclick="toggleMonthYear('disbursement', 'month')">
+                                        <span>Month</span>
+                                    </button>
+                                    <button class="toggle-option" data-option="year" onclick="toggleMonthYear('disbursement', 'year')">
+                                        <span>Year</span>
+                                    </button>
                                 </div>
-                                <div class="filter-group">
-                                    <label for="disbursementMonth">MONTH</label>
-                                    <select id="disbursementMonth">
-                                        <option value="1">January</option>
-                                        <option value="2">February</option>
-                                        <option value="3">March</option>
-                                        <option value="4">April</option>
-                                        <option value="5">May</option>
-                                        <option value="6">June</option>
-                                        <option value="7">July</option>
-                                        <option value="8">August</option>
-                                        <option value="9">September</option>
-                                        <option value="10">October</option>
-                                        <option value="11">November</option>
-                                        <option value="12">December</option>
-                                    </select>
+                            </div>
+                            
+                            <!-- Month Mode: Year (single) + Months (multiple) -->
+                            <div class="selection-container" id="disbursementMonthMode">
+                                <div class="selection-group">
+                                    <label>YEAR (SELECT ONE ONLY)</label>
+                                    <div class="year-buttons-container" id="disbursementYearButtonsSingle">
+                                        <!-- Year buttons will be populated dynamically -->
+                                    </div>
+                                </div>
+                                <div class="selection-group">
+                                    <label>MONTHS (MULTIPLE SELECTION)</label>
+                                    <div class="month-buttons-container" id="disbursementMonthButtons">
+                                        <button class="selection-btn" data-value="1" onclick="toggleMonthSelection('disbursement', 1)">January</button>
+                                        <button class="selection-btn" data-value="2" onclick="toggleMonthSelection('disbursement', 2)">February</button>
+                                        <button class="selection-btn" data-value="3" onclick="toggleMonthSelection('disbursement', 3)">March</button>
+                                        <button class="selection-btn" data-value="4" onclick="toggleMonthSelection('disbursement', 4)">April</button>
+                                        <button class="selection-btn" data-value="5" onclick="toggleMonthSelection('disbursement', 5)">May</button>
+                                        <button class="selection-btn" data-value="6" onclick="toggleMonthSelection('disbursement', 6)">June</button>
+                                        <button class="selection-btn" data-value="7" onclick="toggleMonthSelection('disbursement', 7)">July</button>
+                                        <button class="selection-btn" data-value="8" onclick="toggleMonthSelection('disbursement', 8)">August</button>
+                                        <button class="selection-btn" data-value="9" onclick="toggleMonthSelection('disbursement', 9)">September</button>
+                                        <button class="selection-btn" data-value="10" onclick="toggleMonthSelection('disbursement', 10)">October</button>
+                                        <button class="selection-btn" data-value="11" onclick="toggleMonthSelection('disbursement', 11)">November</button>
+                                        <button class="selection-btn" data-value="12" onclick="toggleMonthSelection('disbursement', 12)">December</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Year Mode: Years (multiple) -->
+                            <div class="selection-container" id="disbursementYearMode" style="display: none;">
+                                <div class="selection-group">
+                                    <label>CHOOSE YEAR (One or More)</label>
+                                    <div class="year-buttons-container" id="disbursementYearButtonsMultiple">
+                                        <!-- Year buttons will be populated dynamically -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -604,39 +650,10 @@
             }
         }
 
-        // Populate year options for all year select elements
-        function populateYearOptionsForReports() {
-            const currentYear = new Date().getFullYear();
-            const startYear = 2023;
-            const endYear = currentYear;
-            
-            const yearSelectIds = ['savingsYear', 'disbursementYear', 'memberYear', 'branchYear'];
-            
-            yearSelectIds.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    // Clear existing options
-                    select.innerHTML = '';
-                    
-                    // Add year options from current year down to 2023
-                    for (let year = endYear; year >= startYear; year--) {
-                        const option = document.createElement('option');
-                        option.value = year;
-                        option.textContent = year;
-                        select.appendChild(option);
-                    }
-                    
-                    // Set current year as default
-                    select.value = currentYear;
-                }
-            });
-        }
-
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initializeTopBar();
             toggleBranchReports();
-            populateYearOptionsForReports();
         });
     </script>
 

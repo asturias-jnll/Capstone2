@@ -688,6 +688,177 @@
     border-color: #cbd5e1;
 }
 
+/* Month/Year Toggle Container */
+.toggle-container {
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.month-year-toggle {
+    display: flex;
+    width: 100%;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 4px;
+    border: 2px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.toggle-option {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+}
+
+.toggle-option:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.toggle-option:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.toggle-option.active {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    color: #0D5B11;
+    border: 2px solid #0D5B11 !important;
+    box-shadow: 0 4px 12px rgba(13, 91, 17, 0.2);
+    font-weight: 600;
+}
+
+.toggle-option:not(.active) {
+    color: #6b7280;
+    background: transparent;
+}
+
+.toggle-option:not(.active):hover {
+    color: #374151;
+    background: #f9fafb;
+}
+
+.toggle-option.active:hover {
+    background: linear-gradient(135deg, #dcfce7, #d1fae5);
+    box-shadow: 0 4px 12px rgba(13, 91, 17, 0.2);
+}
+
+.toggle-option span {
+    position: relative;
+    z-index: 2;
+}
+
+/* Selection Container */
+.selection-container {
+    margin-top: 20px;
+}
+
+.selection-group {
+    margin-bottom: 24px;
+}
+
+.selection-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Year Buttons Container */
+.year-buttons-container {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.year-buttons-container .selection-btn {
+    width: 100%;
+}
+
+/* Month Buttons Container */
+.month-buttons-container {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+}
+
+/* Responsive month buttons for small screens */
+@media (max-width: 768px) {
+    .month-buttons-container {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    
+    .month-buttons-container .selection-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .month-buttons-container {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+    
+    .month-buttons-container .selection-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+}
+
+/* Selection Buttons (Year and Month) */
+.selection-btn {
+    padding: 10px 20px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+    min-width: 80px;
+    text-align: center;
+}
+
+.selection-btn:hover {
+    border-color: #69B41E;
+    background: #f0f9ff;
+    transform: translateY(-1px);
+}
+
+.selection-btn.selected {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    color: #0D5B11;
+    border-color: #0D5B11 !important;
+    box-shadow: 0 4px 12px rgba(13, 91, 17, 0.2);
+    font-weight: 600;
+}
+
+.selection-btn.selected:hover {
+    background: linear-gradient(135deg, #dcfce7, #d1fae5);
+    border-color: #0D5B11 !important;
+    box-shadow: 0 4px 12px rgba(13, 91, 17, 0.25);
+}
+
 /* Member Config Row */
 .member-config-row {
     display: grid;

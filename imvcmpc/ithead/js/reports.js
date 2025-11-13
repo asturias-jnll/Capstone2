@@ -269,6 +269,9 @@ async function initializeReports() {
     // Initialize branch-specific reports
     initializeBranchSpecificReports();
     
+    // Initialize month/year toggle system
+    initializeMonthYearToggleSystem();
+    
     // Initialize report histories only if not in configuration mode
     // This prevents the history flash when arriving from notification
     if (!window.inConfigurationMode) {
@@ -302,6 +305,201 @@ async function initializeReports() {
 // Prefill the UI when arriving from a report_request notification
 // Removed: prefillFromReportRequest() - IT Head doesn't receive report requests
 // Removed: applyPrefillConfiguration() - No prefilling needed for IT Head
+
+// Initialize month/year toggle system
+function initializeMonthYearToggleSystem() {
+    const reportTypes = ['savings', 'disbursement']; // Member and Branch reports use old dropdown format
+    
+    reportTypes.forEach(reportType => {
+        // Populate year buttons for both single and multiple selection
+        populateYearButtons(reportType);
+        
+        // Set default mode to 'month' with visual highlight
+        const toggle = document.getElementById(reportType + 'Toggle');
+        if (toggle) {
+            const monthBtn = toggle.querySelector('[data-option="month"]');
+            const yearBtn = toggle.querySelector('[data-option="year"]');
+            if (monthBtn && yearBtn) {
+                // Month button is highlighted by default
+                monthBtn.classList.add('active');
+                yearBtn.classList.remove('active');
+            }
+        }
+        
+        // Show month mode by default, hide year mode
+        const monthMode = document.getElementById(reportType + 'MonthMode');
+        const yearMode = document.getElementById(reportType + 'YearMode');
+        if (monthMode) monthMode.style.display = 'block';
+        if (yearMode) yearMode.style.display = 'none';
+    });
+}
+
+// Populate year buttons dynamically (2023 to current year)
+function populateYearButtons(reportType) {
+    const currentYear = new Date().getFullYear();
+    const startYear = 2023;
+    
+    // Populate single selection year buttons (for month mode)
+    const singleContainer = document.getElementById(reportType + 'YearButtonsSingle');
+    if (singleContainer) {
+        singleContainer.innerHTML = '';
+        for (let year = currentYear; year >= startYear; year--) {
+            const btn = document.createElement('button');
+            btn.className = 'selection-btn';
+            btn.setAttribute('data-value', year);
+            btn.textContent = year;
+            btn.onclick = () => toggleYearSelection(reportType, year, true); // true = single selection
+            singleContainer.appendChild(btn);
+        }
+        // Year buttons start with no highlight initially
+    }
+    
+    // Populate multiple selection year buttons (for year mode)
+    const multipleContainer = document.getElementById(reportType + 'YearButtonsMultiple');
+    if (multipleContainer) {
+        multipleContainer.innerHTML = '';
+        for (let year = currentYear; year >= startYear; year--) {
+            const btn = document.createElement('button');
+            btn.className = 'selection-btn';
+            btn.setAttribute('data-value', year);
+            btn.textContent = year;
+            btn.onclick = () => toggleYearSelection(reportType, year, false); // false = multiple selection
+            multipleContainer.appendChild(btn);
+        }
+    }
+}
+
+// Toggle between month and year mode
+function toggleMonthYear(reportType, mode) {
+    const toggle = document.getElementById(reportType + 'Toggle');
+    if (!toggle) return;
+    
+    const monthBtn = toggle.querySelector('[data-option="month"]');
+    const yearBtn = toggle.querySelector('[data-option="year"]');
+    const monthMode = document.getElementById(reportType + 'MonthMode');
+    const yearMode = document.getElementById(reportType + 'YearMode');
+    
+    if (mode === 'month') {
+        if (monthBtn) monthBtn.classList.add('active');
+        if (yearBtn) yearBtn.classList.remove('active');
+        if (monthMode) monthMode.style.display = 'block';
+        if (yearMode) yearMode.style.display = 'none';
+        
+        // Clear year mode selections when switching to month mode
+        clearYearSelections(reportType, false);
+    } else {
+        if (monthBtn) monthBtn.classList.remove('active');
+        if (yearBtn) yearBtn.classList.add('active');
+        if (monthMode) monthMode.style.display = 'none';
+        if (yearMode) yearMode.style.display = 'block';
+        
+        // Clear month mode selections when switching to year mode
+        clearMonthSelections(reportType);
+        clearYearSelections(reportType, true);
+    }
+}
+
+// Toggle month selection (multiple selection, minimum 2)
+function toggleMonthSelection(reportType, month) {
+    const container = document.getElementById(reportType + 'MonthButtons');
+    if (!container) return;
+    
+    const btn = container.querySelector(`[data-value="${month}"]`);
+    if (!btn) return;
+    
+    const isSelected = btn.classList.contains('selected');
+    
+    if (isSelected) {
+        btn.classList.remove('selected');
+    } else {
+        btn.classList.add('selected');
+    }
+    
+    // Validate minimum 2 months selected
+    const selectedMonths = container.querySelectorAll('.selection-btn.selected');
+    if (selectedMonths.length < 2) {
+        // Show warning or prevent deselection if only 1 remains
+        if (selectedMonths.length === 1 && !isSelected) {
+            // Allow selection, but warn if they try to deselect
+        }
+    }
+}
+
+// Toggle year selection (single for month mode, multiple for year mode)
+function toggleYearSelection(reportType, year, isSingleSelection) {
+    const containerId = isSingleSelection 
+        ? reportType + 'YearButtonsSingle' 
+        : reportType + 'YearButtonsMultiple';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const btn = container.querySelector(`[data-value="${year}"]`);
+    if (!btn) return;
+    
+    if (isSingleSelection) {
+        // Single selection: deselect all others, toggle this one
+        container.querySelectorAll('.selection-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+    } else {
+        // Multiple selection: toggle this one
+        btn.classList.toggle('selected');
+    }
+}
+
+// Clear month selections
+function clearMonthSelections(reportType) {
+    const container = document.getElementById(reportType + 'MonthButtons');
+    if (container) {
+        container.querySelectorAll('.selection-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+    }
+}
+
+// Clear year selections
+function clearYearSelections(reportType, isSingleSelection) {
+    const containerId = isSingleSelection 
+        ? reportType + 'YearButtonsSingle' 
+        : reportType + 'YearButtonsMultiple';
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.querySelectorAll('.selection-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+    }
+}
+
+// Get selected months for a report type
+function getSelectedMonths(reportType) {
+    const container = document.getElementById(reportType + 'MonthButtons');
+    if (!container) return [];
+    
+    return Array.from(container.querySelectorAll('.selection-btn.selected'))
+        .map(btn => parseInt(btn.getAttribute('data-value'), 10))
+        .sort((a, b) => a - b);
+}
+
+// Get selected years for a report type
+function getSelectedYears(reportType, isSingleSelection) {
+    const containerId = isSingleSelection 
+        ? reportType + 'YearButtonsSingle' 
+        : reportType + 'YearButtonsMultiple';
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    
+    return Array.from(container.querySelectorAll('.selection-btn.selected'))
+        .map(btn => parseInt(btn.getAttribute('data-value'), 10))
+        .sort((a, b) => a - b);
+}
+
+// Get current toggle mode (month or year)
+function getToggleMode(reportType) {
+    const toggle = document.getElementById(reportType + 'Toggle');
+    if (!toggle) return 'month';
+    
+    const activeBtn = toggle.querySelector('.toggle-option.active');
+    return activeBtn ? activeBtn.getAttribute('data-option') : 'month';
+}
 
 // Initialize branch-specific reports
 function initializeBranchSpecificReports() {
@@ -585,17 +783,21 @@ function displaySentReports(reports) {
 
 // Clear all report configurations
 function clearAllConfigurations() {
-    // Savings
-    const savingsYear = document.getElementById('savingsYear');
-    const savingsMonth = document.getElementById('savingsMonth');
-    if (savingsYear) savingsYear.value = '2025';
-    if (savingsMonth) savingsMonth.value = '1';
+    // Savings - Clear toggle selections
+    if (typeof toggleMonthYear === 'function') {
+        toggleMonthYear('savings', 'month');
+        clearMonthSelections('savings');
+        clearYearSelections('savings', true);
+        clearYearSelections('savings', false);
+    }
     
-    // Disbursement
-    const disbursementYear = document.getElementById('disbursementYear');
-    const disbursementMonth = document.getElementById('disbursementMonth');
-    if (disbursementYear) disbursementYear.value = '2025';
-    if (disbursementMonth) disbursementMonth.value = '1';
+    // Disbursement - Clear toggle selections
+    if (typeof toggleMonthYear === 'function') {
+        toggleMonthYear('disbursement', 'month');
+        clearMonthSelections('disbursement');
+        clearYearSelections('disbursement', true);
+        clearYearSelections('disbursement', false);
+    }
     
     // Member
     const memberSearch = document.getElementById('memberSearch');
@@ -613,6 +815,13 @@ function clearAllConfigurations() {
     if (branchYear) branchYear.value = '2025';
     if (branchMonth) branchMonth.value = '1';
     document.querySelectorAll('#branchConfig .type-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Clear branch checkboxes for main branch users
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    if (isMainBranchUser) {
+        document.querySelectorAll('#savingsConfig input[type="checkbox"]').forEach(cb => cb.checked = false);
+        document.querySelectorAll('#disbursementConfig input[type="checkbox"]').forEach(cb => cb.checked = false);
+    }
 }
 
 // Show configuration section based on report type
@@ -635,6 +844,9 @@ function showConfigurationSection(reportType) {
     
     // Clear canvas and reset data when switching report types
     if (isSwitchingType) {
+        // Clear all configurations when switching report types
+        clearAllConfigurations();
+        
         clearReportCanvas();
         // Clear AI recommendations from canvas
         const reportCanvas = document.getElementById('reportCanvas');
@@ -1103,29 +1315,191 @@ async function generateReport() {
             const payload = await res.json();
             const rows = (payload && payload.data) || [];
 
-            // Create analytics-like custom-by-month weekly labels and aligned values
-            const monthNum = parseInt(periodLabel.split(' ')[0], 10);
-            const yearNum = parseInt(periodLabel.split(' ')[1], 10);
-            const labels = generateCustomMonthWeeklyLabels(yearNum, monthNum);
-            const values = alignDataWithCustomMonthWeekly(rows, reportType === 'savings' ? 'total_savings' : 'total_disbursements', yearNum, monthNum);
-            const total = values.reduce((a, b) => a + (parseFloat(b) || 0), 0);
-
-            // Also fetch active members via analytics summary for the same scope
-            let activeMembers = 0;
-            try {
-                const summaryUrl = `/api/auth/analytics/summary?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&branchId=${encodeURIComponent(userBranchId)}&isMainBranch=false`;
-                const sres = await fetch(summaryUrl, { headers: { 'Authorization': `Bearer ${token}` } });
-                if (sres.ok) {
-                    const sjson = await sres.json();
-                    activeMembers = (sjson && sjson.data && (parseInt(sjson.data.active_members, 10) || 0)) || 0;
+            // Get mode and date range info from computeDateRangeForReport
+            const mode = getToggleMode(reportType);
+            const dateRangeInfo = computeDateRangeForReport(reportType);
+            
+            // Build chart labels and values based on mode
+            let labels = [];
+            let values = [];
+            let total = 0;
+            let yearlyAggregates = [];
+            
+            if (mode === 'month') {
+                // Month mode: show selected months
+                const { year, months } = dateRangeInfo;
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                
+                labels = months.map(m => monthNames[m - 1]);
+                values = months.map(month => {
+                    // Aggregate data for this month
+                    const monthData = rows.filter(r => {
+                        const d = new Date(r.date);
+                        return d.getFullYear() === year && (d.getMonth() + 1) === month;
+                    });
+                    const valueKey = reportType === 'savings' ? 'total_savings' : 'total_disbursements';
+                    return monthData.reduce((sum, r) => sum + (parseFloat(r[valueKey]) || 0), 0);
+                });
+                total = values.reduce((a, b) => a + (parseFloat(b) || 0), 0);
+            } else {
+                // Year mode
+                const { years, isSingleYear } = dateRangeInfo;
+                
+                if (isSingleYear) {
+                    // Single year: show all 12 months
+                    const year = years[0];
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    
+                    labels = monthNames;
+                    values = monthNames.map((_, monthIndex) => {
+                        const month = monthIndex + 1;
+                        const monthData = rows.filter(r => {
+                            const d = new Date(r.date);
+                            return d.getFullYear() === year && (d.getMonth() + 1) === month;
+                        });
+                        const valueKey = reportType === 'savings' ? 'total_savings' : 'total_disbursements';
+                        return monthData.reduce((sum, r) => sum + (parseFloat(r[valueKey]) || 0), 0);
+                    });
+                    total = values.reduce((a, b) => a + (parseFloat(b) || 0), 0);
+                } else {
+                    // Multiple years: show yearly aggregated data
+                    yearlyAggregates = years.map(year => {
+                        const yearData = rows.filter(r => {
+                            const d = new Date(r.date);
+                            return d.getFullYear() === year;
+                        });
+                        const valueKey = reportType === 'savings' ? 'total_savings' : 'total_disbursements';
+                        const yearTotal = yearData.reduce((sum, r) => sum + (parseFloat(r[valueKey]) || 0), 0);
+                        return {
+                            year,
+                            total: yearTotal,
+                            transactionCount: yearData.length
+                        };
+                    });
+                    labels = yearlyAggregates.map(item => String(item.year));
+                    values = yearlyAggregates.map(item => item.total);
+                    total = values.reduce((a, b) => a + (parseFloat(b) || 0), 0);
                 }
-            } catch (_) {}
+            }
+
+            // Fetch monthly member counts and totals for month mode
+            let monthlyData = [];
+            if (mode === 'month') {
+                const { year, months } = dateRangeInfo;
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                
+                // Fetch data for each selected month
+                for (const month of months) {
+                    const monthStart = new Date(year, month - 1, 1);
+                    const monthEnd = new Date(year, month, 0);
+                    const monthStartDate = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}-${String(monthStart.getDate()).padStart(2, '0')}`;
+                    const monthEndDate = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth() + 1).padStart(2, '0')}-${String(monthEnd.getDate()).padStart(2, '0')}`;
+                    
+                    // Get monthly total
+                    const monthData = rows.filter(r => {
+                        const d = new Date(r.date);
+                        return d.getFullYear() === year && (d.getMonth() + 1) === month;
+                    });
+                    const valueKey = reportType === 'savings' ? 'total_savings' : 'total_disbursements';
+                    const monthTotal = monthData.reduce((sum, r) => sum + (parseFloat(r[valueKey]) || 0), 0);
+                    
+                    // Fetch member count for this month
+                    let monthMembers = 0;
+                    try {
+                        const summaryUrl = `/api/auth/analytics/summary?startDate=${encodeURIComponent(monthStartDate)}&endDate=${encodeURIComponent(monthEndDate)}&branchId=${encodeURIComponent(userBranchId)}&isMainBranch=false`;
+                        const sres = await fetch(summaryUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+                        if (sres.ok) {
+                            const sjson = await sres.json();
+                            monthMembers = (sjson && sjson.data && (parseInt(sjson.data.active_members, 10) || 0)) || 0;
+                        }
+                    } catch (_) {}
+                    
+                    monthlyData.push({
+                        month: month,
+                        monthName: monthNames[month - 1],
+                        total: monthTotal,
+                        members: monthMembers
+                    });
+                }
+            } else {
+                // Year mode
+                const { years, isSingleYear } = dateRangeInfo;
+                
+                if (isSingleYear) {
+                    // Single year: fetch member count for each month
+                    const year = years[0];
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    
+                    for (let monthIndex = 0; monthIndex < monthNames.length; monthIndex++) {
+                        const month = monthIndex + 1;
+                        const monthStart = new Date(year, month - 1, 1);
+                        const monthEnd = new Date(year, month, 0);
+                        const monthStartDate = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}-${String(monthStart.getDate()).padStart(2, '0')}`;
+                        const monthEndDate = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth() + 1).padStart(2, '0')}-${String(monthEnd.getDate()).padStart(2, '0')}`;
+                        
+                        // Get monthly total
+                        const monthData = rows.filter(r => {
+                            const d = new Date(r.date);
+                            return d.getFullYear() === year && (d.getMonth() + 1) === month;
+                        });
+                        const valueKey = reportType === 'savings' ? 'total_savings' : 'total_disbursements';
+                        const monthTotal = monthData.reduce((sum, r) => sum + (parseFloat(r[valueKey]) || 0), 0);
+                        
+                        // Fetch member count for this month
+                        let monthMembers = 0;
+                        try {
+                            const summaryUrl = `/api/auth/analytics/summary?startDate=${encodeURIComponent(monthStartDate)}&endDate=${encodeURIComponent(monthEndDate)}&branchId=${encodeURIComponent(userBranchId)}&isMainBranch=false`;
+                            const sres = await fetch(summaryUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+                            if (sres.ok) {
+                                const sjson = await sres.json();
+                                monthMembers = (sjson && sjson.data && (parseInt(sjson.data.active_members, 10) || 0)) || 0;
+                            }
+                        } catch (_) {}
+                        
+                        monthlyData.push({
+                            month: month,
+                            monthName: monthNames[monthIndex],
+                            total: monthTotal,
+                            members: monthMembers
+                        });
+                    }
+                } else {
+                    // Multiple years: create yearly data (not monthly)
+                    if (yearlyAggregates.length > 0) {
+                        for (const aggregate of yearlyAggregates) {
+                            let yearMembers = 0;
+                            if (aggregate.transactionCount > 0) {
+                                try {
+                                    const yearStartDate = `${aggregate.year}-01-01`;
+                                    const yearEndDate = `${aggregate.year}-12-31`;
+                                    const summaryUrl = `/api/auth/analytics/summary?startDate=${encodeURIComponent(yearStartDate)}&endDate=${encodeURIComponent(yearEndDate)}&branchId=${encodeURIComponent(userBranchId)}&isMainBranch=false`;
+                                    const sres = await fetch(summaryUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+                                    if (sres.ok) {
+                                        const sjson = await sres.json();
+                                        yearMembers = (sjson && sjson.data && (parseInt(sjson.data.active_members, 10) || 0)) || 0;
+                                    }
+                                } catch (_) {}
+                            }
+                            
+                            monthlyData.push({
+                                month: null,
+                                monthName: String(aggregate.year), // This will be the year label
+                                total: aggregate.total || 0,
+                                members: yearMembers
+                            });
+                        }
+                    }
+                }
+            }
 
             reportData = {
                 type: reportType === 'savings' ? 'Savings Report' : 'Disbursement Report',
                 period: periodLabel,
                 total,
-                activeMembers,
+                activeMembers: mode === 'month' ? monthlyData.reduce((sum, m) => sum + m.members, 0) : (monthlyData[0]?.members || 0),
+                monthlyData: monthlyData,
+                mode: mode,
+                dateRangeInfo: dateRangeInfo,
                 chartType: 'bar',
                 chart: {
                     labels,
@@ -1362,40 +1736,130 @@ async function generateReport() {
 }
 
 function computeDateRangeForReport(reportType) {
-    let year = '2025';
-    let month = '1';
-    if (reportType === 'savings') {
-        const y = document.getElementById('savingsYear');
-        const m = document.getElementById('savingsMonth');
-        if (y) year = y.value || year;
-        if (m) month = m.value || month;
-    } else if (reportType === 'disbursement') {
-        const y = document.getElementById('disbursementYear');
-        const m = document.getElementById('disbursementMonth');
-        if (y) year = y.value || year;
-        if (m) month = m.value || month;
-    } else if (reportType === 'member') {
-        const y = document.getElementById('memberYear');
-        const m = document.getElementById('memberMonth');
-        if (y) year = y.value || year;
-        if (m) month = m.value || month;
-    } else if (reportType === 'branch') {
-        const y = document.getElementById('branchYear');
-        const m = document.getElementById('branchMonth');
-        if (y) year = y.value || year;
-        if (m) month = m.value || month;
+    // Member report uses old dropdown format
+    if (reportType === 'member') {
+        const yearElement = document.getElementById('memberYear');
+        const monthElement = document.getElementById('memberMonth');
+        
+        if (!yearElement || !monthElement) {
+            const currentYear = new Date().getFullYear();
+            const start = new Date(currentYear, 0, 1);
+            const end = new Date(currentYear, 0, 0);
+            const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+            const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            return { startDate, endDate, periodLabel: `${monthNames[0]} ${currentYear}`, year: currentYear, month: 1 };
+        }
+        
+        const year = yearElement.value || String(new Date().getFullYear());
+        const month = monthElement.value || '1';
+        const start = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+        const end = new Date(parseInt(year, 10), parseInt(month, 10), 0);
+        const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+        const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const periodLabel = `${monthNames[parseInt(month, 10) - 1]} ${year}`;
+        return { startDate, endDate, periodLabel, year: parseInt(year, 10), month: parseInt(month, 10) };
     }
-    const start = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
-    const end = new Date(parseInt(year, 10), parseInt(month, 10), 0); // Last day of the selected month
     
-    // Format dates properly
-    const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
-    const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+    // Branch report uses old dropdown format
+    if (reportType === 'branch') {
+        const yearElement = document.getElementById('branchYear');
+        const monthElement = document.getElementById('branchMonth');
+        
+        if (!yearElement || !monthElement) {
+            const currentYear = new Date().getFullYear();
+            const start = new Date(currentYear, 0, 1);
+            const end = new Date(currentYear, 0, 0);
+            const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+            const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            return { startDate, endDate, periodLabel: `${monthNames[0]} ${currentYear}` };
+        }
+        
+        const year = yearElement.value || String(new Date().getFullYear());
+        const month = monthElement.value || '1';
+        const start = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+        const end = new Date(parseInt(year, 10), parseInt(month, 10), 0);
+        const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+        const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        return { startDate, endDate, periodLabel: `${monthNames[parseInt(month, 10) - 1]} ${year}` };
+    }
     
-    // Debug: Log to verify date calculation
-    console.log(`Date range for ${month}/${year}:`, startDate, 'to', endDate);
+    // Savings and Disbursement use toggle system
+    const mode = getToggleMode(reportType);
     
-    return { startDate, endDate, periodLabel: `${month} ${year}` };
+    if (mode === 'month') {
+        // Month mode: single year + multiple months
+        const selectedYears = getSelectedYears(reportType, true);
+        const selectedMonths = getSelectedMonths(reportType);
+        
+        if (selectedYears.length === 0 || selectedMonths.length < 2) {
+            // Default to current year and first two months if nothing selected
+            const currentYear = new Date().getFullYear();
+            const start = new Date(currentYear, 0, 1); // January 1
+            const end = new Date(currentYear, 1, 0); // Last day of February
+            const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+            const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+            return { startDate, endDate, periodLabel: `Year ${currentYear} for the Months of January, February`, mode: 'month', year: currentYear, months: [1, 2] };
+        }
+        
+        const year = selectedYears[0];
+        const sortedMonths = selectedMonths.sort((a, b) => a - b);
+        const firstMonth = sortedMonths[0];
+        const lastMonth = sortedMonths[sortedMonths.length - 1];
+        
+        // Start from first day of first selected month
+        const start = new Date(year, firstMonth - 1, 1);
+        // End at last day of last selected month
+        const end = new Date(year, lastMonth, 0);
+        
+        const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+        const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+        
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthLabels = sortedMonths.map(m => monthNames[m - 1]).join(', ');
+        const periodLabel = `Year ${year} for the Months of ${monthLabels}`;
+        
+        return { startDate, endDate, periodLabel, mode: 'month', year, months: sortedMonths };
+    } else {
+        // Year mode: multiple years
+        const selectedYears = getSelectedYears(reportType, false);
+        
+        if (selectedYears.length === 0) {
+            // Default to current year if nothing selected
+            const currentYear = new Date().getFullYear();
+            const start = new Date(currentYear, 0, 1);
+            const end = new Date(currentYear, 11, 31);
+            const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+            const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+            return { startDate, endDate, periodLabel: `Year ${currentYear} in All Months`, mode: 'year', years: [currentYear], isSingleYear: true };
+        }
+        
+        const sortedYears = selectedYears.sort((a, b) => a - b);
+        const firstYear = sortedYears[0];
+        const lastYear = sortedYears[sortedYears.length - 1];
+        
+        if (sortedYears.length === 1) {
+            // Single year: all months
+            const start = new Date(firstYear, 0, 1);
+            const end = new Date(firstYear, 11, 31);
+            const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+            const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+            return { startDate, endDate, periodLabel: `Year ${firstYear} in All Months`, mode: 'year', years: sortedYears, isSingleYear: true };
+        } else {
+            // Multiple years: yearly aggregation
+            const start = new Date(firstYear, 0, 1);
+            const end = new Date(lastYear, 11, 31);
+            const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+            const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+            const periodLabel = sortedYears.length === 2 
+                ? `Year ${firstYear} to ${lastYear}`
+                : `Year ${firstYear} to ${lastYear}`;
+            return { startDate, endDate, periodLabel, mode: 'year', years: sortedYears, isSingleYear: false };
+        }
+    }
 }
 
 function tryMarkRequestCompleted() {
@@ -1470,13 +1934,30 @@ function validateConfiguration(reportType) {
 
 // Validate savings/disbursement configuration
 function validateSavingsDisbursementConfig(reportType) {
-    // Check if form elements exist
-    const yearElement = document.getElementById(reportType + 'Year');
-    const monthElement = document.getElementById(reportType + 'Month');
+    const mode = getToggleMode(reportType);
     
-    if (!yearElement || !monthElement) {
-        showMessage('Report configuration form not found.', 'error');
-        return false;
+    if (mode === 'month') {
+        // Month mode: need 1 year and at least 2 months
+        const selectedYears = getSelectedYears(reportType, true);
+        const selectedMonths = getSelectedMonths(reportType);
+        
+        if (selectedYears.length === 0) {
+            showMessage('Please select a year.', 'error');
+            return false;
+        }
+        
+        if (selectedMonths.length < 2) {
+            showMessage('Please select at least 2 months.', 'error');
+            return false;
+        }
+    } else {
+        // Year mode: need at least 1 year
+        const selectedYears = getSelectedYears(reportType, false);
+        
+        if (selectedYears.length === 0) {
+            showMessage('Please select at least one year.', 'error');
+            return false;
+        }
     }
     
     return true;
@@ -1929,16 +2410,57 @@ function generateSavingsDisbursementHTML(reportData) {
         day: 'numeric' 
     });
     
+    // Get branch information
+    const userBranchName = localStorage.getItem('user_branch_name');
+    const userBranchLocation = localStorage.getItem('user_branch_location');
+    const branchDisplay = (userBranchName && userBranchLocation) ? `${userBranchName} - ${userBranchLocation}` : (userBranchName || 'Branch');
+    
+    // Get number of months/years
+    const monthlyData = reportData.monthlyData || [];
+    const mode = reportData.mode || 'month';
+    let count = 0;
+    let countLabel = '';
+    
+    if (mode === 'month') {
+        count = monthlyData.length;
+        countLabel = count === 1 ? 'Month' : 'Months';
+    } else {
+        // Year mode
+        if (reportData.dateRangeInfo && reportData.dateRangeInfo.years) {
+            count = reportData.dateRangeInfo.years.length;
+            countLabel = count === 1 ? 'Year' : 'Years';
+        } else {
+            count = monthlyData.length;
+            countLabel = count === 1 ? 'Month' : 'Months';
+        }
+    }
+    
+    // Extract year from period label
+    let year = '';
+    if (mode === 'month' && reportData.dateRangeInfo) {
+        year = reportData.dateRangeInfo.year || '';
+    } else if (mode === 'year' && reportData.dateRangeInfo && reportData.dateRangeInfo.years) {
+        year = reportData.dateRangeInfo.years.length === 1 
+            ? String(reportData.dateRangeInfo.years[0])
+            : `${reportData.dateRangeInfo.years[0]} - ${reportData.dateRangeInfo.years[reportData.dateRangeInfo.years.length - 1]}`;
+    } else {
+        // Fallback: try to extract from period label
+        const periodParts = reportData.period.split(' ');
+        year = periodParts[periodParts.length - 1] || '';
+    }
+    
+    const showYearColumn = mode === 'month';
+
     let html = `
         <div class="report-content">
             <div class="report-stats">
                 <div class="stat-card">
-                    <div class="stat-value">${(reportData.chart && reportData.chart.labels ? 1 : 0)}</div>
-                    <div class="stat-label">Branches</div>
+                    <div class="stat-value">${branchDisplay}</div>
+                    <div class="stat-label">Branch</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${getMonthName(reportData.period.split(' ')[0])}</div>
-                    <div class="stat-label">Month</div>
+                    <div class="stat-value">${count}</div>
+                    <div class="stat-label">${countLabel}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">₱${Number(reportData.total || 0).toLocaleString('en-PH')}</div>
@@ -1954,27 +2476,43 @@ function generateSavingsDisbursementHTML(reportData) {
                 <table>
                     <thead>
                         <tr>
-                            <th>Branch</th>
+                            <th>${mode === 'year' && reportData.dateRangeInfo && !reportData.dateRangeInfo.isSingleYear ? 'Year' : 'Month'}</th>
                             <th>${isSavings ? 'Total Savings Deposits' : 'Total Disbursements'}</th>
                             <th>Total Members</th>
-                            <th>Year</th>
+                            ${showYearColumn ? '<th>Year</th>' : ''}
                         </tr>
                     </thead>
                     <tbody>
         `;
         
-    // Minimal single-row summary using the logged-in user's branch only
-    const userBranchName = localStorage.getItem('user_branch_name');
-    const userBranchLocation = localStorage.getItem('user_branch_location');
-    const branchDisplay = (userBranchName && userBranchLocation) ? `${userBranchName} - ${userBranchLocation}` : (userBranchName || 'Branch');
-    html += `
+    // Generate rows for each month/year
+    if (monthlyData.length > 0) {
+        monthlyData.forEach((monthData, index) => {
+            const rowYear = showYearColumn
+                ? (reportData.dateRangeInfo?.year || year || '')
+                : '';
+            const yearCell = showYearColumn ? `<td>${rowYear}</td>` : '';
+
+            html += `
                 <tr>
-                    <td>${branchDisplay}</td>
-                    <td>₱${Number(reportData.total || 0).toLocaleString('en-PH')}</td>
-                    <td>${Number(reportData.activeMembers || 0).toLocaleString('en-PH')}</td>
-                    <td>${reportData.period.split(' ')[1]}</td>
+                    <td>${monthData.monthName}</td>
+                    <td>₱${Number(monthData.total || 0).toLocaleString('en-PH')}</td>
+                    <td>${Number(monthData.members || 0).toLocaleString('en-PH')}</td>
+                    ${yearCell}
                 </tr>
             `;
+        });
+    } else {
+        // Fallback if no monthly data
+        html += `
+                <tr>
+                    <td colspan="${showYearColumn ? 4 : 3}" style="text-align: center; padding: 40px; color: #9ca3af;">
+                        <i class="fas fa-database" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+                        No data available
+                    </td>
+                </tr>
+            `;
+    }
         
         html += `
                     </tbody>
@@ -2477,12 +3015,15 @@ function clearSavingsConfig() {
         }
     }
     
-    // Clear year and month fields
-    const yearElement = document.getElementById('savingsYear');
-    const monthElement = document.getElementById('savingsMonth');
+    // Reset toggle to month mode
+    toggleMonthYear('savings', 'month');
     
-    if (yearElement) yearElement.value = '2025';
-    if (monthElement) monthElement.value = '1';
+    // Clear month and year selections
+    clearMonthSelections('savings');
+    clearYearSelections('savings', true);
+    clearYearSelections('savings', false);
+    
+    // Year buttons start with no highlight initially
 }
 
 // Clear disbursement configuration
@@ -2500,13 +3041,17 @@ function clearDisbursementConfig() {
         }
     }
     
-    // Clear year and month fields
-    const yearElement = document.getElementById('disbursementYear');
-    const monthElement = document.getElementById('disbursementMonth');
+    // Reset toggle to month mode
+    toggleMonthYear('disbursement', 'month');
     
-    if (yearElement) yearElement.value = '2025';
-    if (monthElement) monthElement.value = '1';
+    // Clear month and year selections
+    clearMonthSelections('disbursement');
+    clearYearSelections('disbursement', true);
+    clearYearSelections('disbursement', false);
+    
+    // Year buttons start with no highlight initially
 }
+
 
 // Clear member configuration
 function clearMemberConfig() {
@@ -3388,9 +3933,22 @@ function collectReportConfig(reportType) {
         switch (reportType) {
             case 'savings':
             case 'disbursement': {
-                const year = document.getElementById(reportType + 'Year')?.value;
-                const month = document.getElementById(reportType + 'Month')?.value;
-                return { year, month };
+                const mode = getToggleMode(reportType);
+                if (mode === 'month') {
+                    const selectedYears = getSelectedYears(reportType, true);
+                    const selectedMonths = getSelectedMonths(reportType);
+                    return { 
+                        mode: 'month',
+                        year: selectedYears.length > 0 ? selectedYears[0] : null,
+                        months: selectedMonths
+                    };
+                } else {
+                    const selectedYears = getSelectedYears(reportType, false);
+                    return { 
+                        mode: 'year',
+                        years: selectedYears
+                    };
+                }
             }
             case 'member': {
                 const member = document.getElementById('memberSearch')?.value?.trim();

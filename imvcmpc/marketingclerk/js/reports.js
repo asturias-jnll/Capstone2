@@ -25,6 +25,9 @@ async function initializeFOReports() {
     // Initialize branch-specific reports
     initializeBranchSpecificReports();
     
+    // Initialize month/year toggle system
+    initializeMonthYearToggleSystem();
+    
     // Initialize report histories
     initializeReportHistories();
     
@@ -347,6 +350,201 @@ function hideBranchReportsOption() {
     }
 }
 
+// Initialize month/year toggle system
+function initializeMonthYearToggleSystem() {
+    const reportTypes = ['savings', 'disbursement']; // Member and Branch reports use old dropdown format
+    
+    reportTypes.forEach(reportType => {
+        // Populate year buttons for both single and multiple selection
+        populateYearButtons(reportType);
+        
+        // Set default mode to 'month' with visual highlight
+        const toggle = document.getElementById(reportType + 'Toggle');
+        if (toggle) {
+            const monthBtn = toggle.querySelector('[data-option="month"]');
+            const yearBtn = toggle.querySelector('[data-option="year"]');
+            if (monthBtn && yearBtn) {
+                // Month button is highlighted by default
+                monthBtn.classList.add('active');
+                yearBtn.classList.remove('active');
+            }
+        }
+        
+        // Show month mode by default, hide year mode
+        const monthMode = document.getElementById(reportType + 'MonthMode');
+        const yearMode = document.getElementById(reportType + 'YearMode');
+        if (monthMode) monthMode.style.display = 'block';
+        if (yearMode) yearMode.style.display = 'none';
+    });
+}
+
+// Populate year buttons dynamically (2023 to current year)
+function populateYearButtons(reportType) {
+    const currentYear = new Date().getFullYear();
+    const startYear = 2023;
+    
+    // Populate single selection year buttons (for month mode)
+    const singleContainer = document.getElementById(reportType + 'YearButtonsSingle');
+    if (singleContainer) {
+        singleContainer.innerHTML = '';
+        for (let year = currentYear; year >= startYear; year--) {
+            const btn = document.createElement('button');
+            btn.className = 'selection-btn';
+            btn.setAttribute('data-value', year);
+            btn.textContent = year;
+            btn.onclick = () => toggleYearSelection(reportType, year, true); // true = single selection
+            singleContainer.appendChild(btn);
+        }
+        // Year buttons start with no highlight initially
+    }
+    
+    // Populate multiple selection year buttons (for year mode)
+    const multipleContainer = document.getElementById(reportType + 'YearButtonsMultiple');
+    if (multipleContainer) {
+        multipleContainer.innerHTML = '';
+        for (let year = currentYear; year >= startYear; year--) {
+            const btn = document.createElement('button');
+            btn.className = 'selection-btn';
+            btn.setAttribute('data-value', year);
+            btn.textContent = year;
+            btn.onclick = () => toggleYearSelection(reportType, year, false); // false = multiple selection
+            multipleContainer.appendChild(btn);
+        }
+    }
+}
+
+// Toggle between month and year mode
+function toggleMonthYear(reportType, mode) {
+    const toggle = document.getElementById(reportType + 'Toggle');
+    if (!toggle) return;
+    
+    const monthBtn = toggle.querySelector('[data-option="month"]');
+    const yearBtn = toggle.querySelector('[data-option="year"]');
+    const monthMode = document.getElementById(reportType + 'MonthMode');
+    const yearMode = document.getElementById(reportType + 'YearMode');
+    
+    if (mode === 'month') {
+        if (monthBtn) monthBtn.classList.add('active');
+        if (yearBtn) yearBtn.classList.remove('active');
+        if (monthMode) monthMode.style.display = 'block';
+        if (yearMode) yearMode.style.display = 'none';
+        
+        // Clear year mode selections when switching to month mode
+        clearYearSelections(reportType, false);
+    } else {
+        if (monthBtn) monthBtn.classList.remove('active');
+        if (yearBtn) yearBtn.classList.add('active');
+        if (monthMode) monthMode.style.display = 'none';
+        if (yearMode) yearMode.style.display = 'block';
+        
+        // Clear month mode selections when switching to year mode
+        clearMonthSelections(reportType);
+        clearYearSelections(reportType, true);
+    }
+}
+
+// Toggle month selection (multiple selection, minimum 2)
+function toggleMonthSelection(reportType, month) {
+    const container = document.getElementById(reportType + 'MonthButtons');
+    if (!container) return;
+    
+    const btn = container.querySelector(`[data-value="${month}"]`);
+    if (!btn) return;
+    
+    const isSelected = btn.classList.contains('selected');
+    
+    if (isSelected) {
+        btn.classList.remove('selected');
+    } else {
+        btn.classList.add('selected');
+    }
+    
+    // Validate minimum 2 months selected
+    const selectedMonths = container.querySelectorAll('.selection-btn.selected');
+    if (selectedMonths.length < 2) {
+        // Show warning or prevent deselection if only 1 remains
+        if (selectedMonths.length === 1 && !isSelected) {
+            // Allow selection, but warn if they try to deselect
+        }
+    }
+}
+
+// Toggle year selection (single for month mode, multiple for year mode)
+function toggleYearSelection(reportType, year, isSingleSelection) {
+    const containerId = isSingleSelection 
+        ? reportType + 'YearButtonsSingle' 
+        : reportType + 'YearButtonsMultiple';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const btn = container.querySelector(`[data-value="${year}"]`);
+    if (!btn) return;
+    
+    if (isSingleSelection) {
+        // Single selection: deselect all others, toggle this one
+        container.querySelectorAll('.selection-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+    } else {
+        // Multiple selection: toggle this one
+        btn.classList.toggle('selected');
+    }
+}
+
+// Clear month selections
+function clearMonthSelections(reportType) {
+    const container = document.getElementById(reportType + 'MonthButtons');
+    if (container) {
+        container.querySelectorAll('.selection-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+    }
+}
+
+// Clear year selections
+function clearYearSelections(reportType, isSingleSelection) {
+    const containerId = isSingleSelection 
+        ? reportType + 'YearButtonsSingle' 
+        : reportType + 'YearButtonsMultiple';
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.querySelectorAll('.selection-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+    }
+}
+
+// Get selected months for a report type
+function getSelectedMonths(reportType) {
+    const container = document.getElementById(reportType + 'MonthButtons');
+    if (!container) return [];
+    
+    return Array.from(container.querySelectorAll('.selection-btn.selected'))
+        .map(btn => parseInt(btn.getAttribute('data-value'), 10))
+        .sort((a, b) => a - b);
+}
+
+// Get selected years for a report type
+function getSelectedYears(reportType, isSingleSelection) {
+    const containerId = isSingleSelection 
+        ? reportType + 'YearButtonsSingle' 
+        : reportType + 'YearButtonsMultiple';
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    
+    return Array.from(container.querySelectorAll('.selection-btn.selected'))
+        .map(btn => parseInt(btn.getAttribute('data-value'), 10))
+        .sort((a, b) => a - b);
+}
+
+// Get current toggle mode (month or year)
+function getToggleMode(reportType) {
+    const toggle = document.getElementById(reportType + 'Toggle');
+    if (!toggle) return 'month';
+    
+    const activeBtn = toggle.querySelector('.toggle-option.active');
+    return activeBtn ? activeBtn.getAttribute('data-option') : 'month';
+}
+
 // Setup report type dropdown selector
 function setupReportTypeDropdown() {
     // Close menu when clicking outside
@@ -448,17 +646,45 @@ function hideAllConfigurations() {
     // Also remove any existing generate sections
     const existingSections = document.querySelectorAll('.generate-section');
     existingSections.forEach(section => section.remove());
+    
+    // Clear all toggle selections when hiding configurations
+    // Savings - Clear toggle selections
+    if (typeof toggleMonthYear === 'function') {
+        toggleMonthYear('savings', 'month');
+        clearMonthSelections('savings');
+        clearYearSelections('savings', true);
+        clearYearSelections('savings', false);
+    }
+    
+    // Disbursement - Clear toggle selections
+    if (typeof toggleMonthYear === 'function') {
+        toggleMonthYear('disbursement', 'month');
+        clearMonthSelections('disbursement');
+        clearYearSelections('disbursement', true);
+        clearYearSelections('disbursement', false);
+    }
+    
+    // Clear branch checkboxes for main branch users
+    const isMainBranchUser = localStorage.getItem('is_main_branch_user') === 'true';
+    if (isMainBranchUser) {
+        document.querySelectorAll('#savingsConfig input[type="checkbox"]').forEach(cb => cb.checked = false);
+        document.querySelectorAll('#disbursementConfig input[type="checkbox"]').forEach(cb => cb.checked = false);
+    }
 }
 
 // Show configuration section based on report type
 function showConfigurationSection(reportType) {
+    // Check if we're switching to a different report type
+    const previousReportType = localStorage.getItem('currentReportType');
+    const isSwitchingType = previousReportType && previousReportType !== reportType;
+    
     // Hide initial state
     const initialState = document.getElementById('initialState');
     if (initialState) {
         initialState.style.display = 'none';
     }
     
-    // Hide all configuration sections
+    // Hide all configuration sections and clear selections when switching
     hideAllConfigurations();
     
     // Show selected configuration section
@@ -475,6 +701,9 @@ function showConfigurationSection(reportType) {
     
     // Hide received reports section when in configuration mode
     hideReceivedReportsSection();
+    
+    // Update current report type
+    localStorage.setItem('currentReportType', reportType);
 }
 
 // Add request button (no canvas)
@@ -661,13 +890,30 @@ async function validateConfiguration(reportType) {
 
 // Validate savings/disbursement configuration
 function validateSavingsDisbursementConfig(reportType) {
-    // Check if form elements exist
-    const yearElement = document.getElementById(reportType + 'Year');
-    const monthElement = document.getElementById(reportType + 'Month');
+    const mode = getToggleMode(reportType);
     
-    if (!yearElement || !monthElement) {
-        showMessage('Report configuration form not found.', 'error');
-        return false;
+    if (mode === 'month') {
+        // Month mode: need 1 year and at least 2 months
+        const selectedYears = getSelectedYears(reportType, true);
+        const selectedMonths = getSelectedMonths(reportType);
+        
+        if (selectedYears.length === 0) {
+            showValidationDialog('Please select a year.');
+            return false;
+        }
+        
+        if (selectedMonths.length < 2) {
+            showValidationDialog('Please select at least 2 months.');
+            return false;
+        }
+    } else {
+        // Year mode: need at least 1 year
+        const selectedYears = getSelectedYears(reportType, false);
+        
+        if (selectedYears.length === 0) {
+            showValidationDialog('Please select at least one year.');
+            return false;
+        }
     }
     
     return true;
@@ -1154,9 +1400,22 @@ function collectReportConfig(reportType) {
         switch (reportType) {
             case 'savings':
             case 'disbursement': {
-                const year = document.getElementById(reportType + 'Year')?.value;
-                const month = document.getElementById(reportType + 'Month')?.value;
-                return { year, month };
+                const mode = getToggleMode(reportType);
+                if (mode === 'month') {
+                    const selectedYears = getSelectedYears(reportType, true);
+                    const selectedMonths = getSelectedMonths(reportType);
+                    return { 
+                        mode: 'month',
+                        year: selectedYears.length > 0 ? selectedYears[0] : null,
+                        months: selectedMonths
+                    };
+                } else {
+                    const selectedYears = getSelectedYears(reportType, false);
+                    return { 
+                        mode: 'year',
+                        years: selectedYears
+                    };
+                }
             }
             case 'member': {
                 const member = document.getElementById('memberSearch')?.value?.trim();
@@ -1231,12 +1490,15 @@ function clearSavingsConfig() {
         }
     }
     
-    // Clear year and month fields
-    const yearElement = document.getElementById('savingsYear');
-    const monthElement = document.getElementById('savingsMonth');
+    // Reset toggle to month mode
+    toggleMonthYear('savings', 'month');
     
-    if (yearElement) yearElement.value = '2025';
-    if (monthElement) monthElement.value = '1';
+    // Clear month and year selections
+    clearMonthSelections('savings');
+    clearYearSelections('savings', true);
+    clearYearSelections('savings', false);
+    
+    // Year buttons start with no highlight initially
 }
 
 // Clear disbursement configuration
@@ -1254,12 +1516,15 @@ function clearDisbursementConfig() {
         }
     }
     
-    // Clear year and month fields
-    const yearElement = document.getElementById('disbursementYear');
-    const monthElement = document.getElementById('disbursementMonth');
+    // Reset toggle to month mode
+    toggleMonthYear('disbursement', 'month');
     
-    if (yearElement) yearElement.value = '2025';
-    if (monthElement) monthElement.value = '1';
+    // Clear month and year selections
+    clearMonthSelections('disbursement');
+    clearYearSelections('disbursement', true);
+    clearYearSelections('disbursement', false);
+    
+    // Year buttons start with no highlight initially
 }
 
 // Clear member configuration
@@ -1367,8 +1632,138 @@ function getReportTypeDisplayName(reportType) {
     }
 }
 
+// Show error dialog (centered modal)
+function showErrorDialog(message) {
+    // Remove existing dialogs
+    hideLoadingDialog();
+    hideErrorDialog();
+    
+    // Create dialog overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'errorDialog';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+    `;
+    
+    // Create dialog content
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.2s ease;
+    `;
+    
+    // Trigger animation after element is added to DOM
+    setTimeout(() => {
+        dialog.style.opacity = '1';
+        dialog.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Create error icon
+    const icon = document.createElement('div');
+    icon.style.cssText = `
+        width: 40px;
+        height: 40px;
+        background: #fef2f2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    `;
+    icon.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 18px;"></i>';
+    
+    // Create message
+    const messageEl = document.createElement('p');
+    messageEl.style.cssText = `
+        color: #374151;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 0 20px 0;
+        line-height: 1.5;
+    `;
+    messageEl.textContent = message;
+    
+    // Create OK button
+    const button = document.createElement('button');
+    button.textContent = 'OK';
+    button.style.cssText = `
+        background: #0D5B11;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    `;
+    button.onmouseover = () => button.style.background = '#0a4a0e';
+    button.onmouseout = () => button.style.background = '#0D5B11';
+    button.onclick = () => {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEscape);
+    };
+    
+    // Add click outside to close
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    
+    // Add escape key to close
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            overlay.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Assemble dialog
+    dialog.appendChild(icon);
+    dialog.appendChild(messageEl);
+    dialog.appendChild(button);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+}
+
+// Hide error dialog
+function hideErrorDialog() {
+    const dialog = document.getElementById('errorDialog');
+    if (dialog) {
+        dialog.remove();
+    }
+}
+
 // Show message
 function showMessage(message, type = 'info') {
+    // Use error dialog for error messages
+    if (type === 'error') {
+        showErrorDialog(message);
+        return;
+    }
+    
+    // For other message types, use the original notification style
     // Create message element
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
