@@ -236,13 +236,15 @@ body {
     border-radius: 10px;
     background: var(--gray-50);
     font-size: 16px;
-    transition: all 0.3s ease;
+    /* Only animate composited properties for better performance */
+    transition: border-color 0.3s ease, border-width 0.3s ease, background-color 0.3s ease;
 }
 
 .input-group input:focus {
     outline: none;
     border-color: var(--dark-green);
     border-width: 2.2px;
+    /* Use static box-shadow (not animated) to avoid non-composited animation */
     box-shadow: 0 0 0 3px rgba(11, 94, 28, 0.1);
 }
 
@@ -255,8 +257,9 @@ body {
     right: 8px;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
-    border: none;
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
     color: var(--dark-green);
     cursor: pointer;
     z-index: 1;
@@ -268,12 +271,27 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .toggle-password:hover {
-    background-color: rgba(11, 94, 28, 0.1);
+    background: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    outline: none !important;
+}
+
+.toggle-password:active {
+    background: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    outline: none !important;
 }
 
 .toggle-password:focus {
@@ -537,10 +555,11 @@ body {
 @keyframes introFadeOut {
     0% {
         opacity: 1;
+        transform: scale(1);
     }
     100% {
         opacity: 0;
-        visibility: hidden;
+        transform: scale(0.95);
     }
 }
 

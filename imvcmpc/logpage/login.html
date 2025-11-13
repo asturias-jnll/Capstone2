@@ -4,14 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMVCMPC - Login</title>
+    <!-- Preconnect to external domains for faster resource loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <!-- Critical CSS loaded first -->
     <link rel="stylesheet" href="login.css">
+    <!-- External stylesheets with display=swap already set -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"></noscript>
 </head>
 <body>
     <!-- Intro Logo Animation -->
     <div id="introLogo" class="intro-logo">
-        <img src="../assets/logo.png" alt="IMVCMPC Logo">
+        <img src="../assets/logo.png" alt="IMVCMPC Logo" fetchpriority="high" width="200" height="200">
     </div>
     
     <!-- Login Screen -->
@@ -29,7 +36,7 @@
                 <div class="login-right">
                     <div class="login-form">
                         <div class="logo-container">
-                            <img src="../assets/logo.png" alt="IMVCMPC Logo" class="logo">
+                            <img src="../assets/logo.png" alt="IMVCMPC Logo" class="logo" fetchpriority="high" width="120" height="120">
                         </div>
                         <h2 class="mobile-title">Finance Management System</h2>
                         <div class="divider"></div>

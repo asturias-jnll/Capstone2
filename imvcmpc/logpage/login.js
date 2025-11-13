@@ -6,7 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         const introLogo = document.getElementById('introLogo');
         if (introLogo) {
-            introLogo.classList.add('hidden');
+            // Use display: none instead of visibility for better performance
+            introLogo.style.display = 'none';
         }
     }, 2300);
 });
