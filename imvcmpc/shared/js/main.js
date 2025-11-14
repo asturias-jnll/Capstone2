@@ -250,10 +250,17 @@ async function updateNotificationCount() {
                 return true;
             }).length;
             
-            console.log('🔢 Total unactioned notifications:', unactionedCount);
-            console.log('🎯 Updating badge with count:', unactionedCount);
+            // Count unread system notifications (including reactivation notifications)
+            const systemUnreadCount = notifications.filter(n => n.category === 'system' && !n.isRead).length;
             
-            updateNotificationBadge(unactionedCount);
+            // Navbar badge should show unactioned + unread system notifications
+            const navbarBadgeCount = unactionedCount + systemUnreadCount;
+            
+            console.log('🔢 Total unactioned notifications:', unactionedCount);
+            console.log('🔢 Total unread system notifications:', systemUnreadCount);
+            console.log('🎯 Updating badge with count:', navbarBadgeCount);
+            
+            updateNotificationBadge(navbarBadgeCount);
         }
     } catch (error) {
         console.error('❌ Error updating notification count:', error);

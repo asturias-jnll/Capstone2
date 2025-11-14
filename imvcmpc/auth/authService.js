@@ -376,8 +376,31 @@ class AuthService {
                 SET first_name = $1, last_name = $2, username = $3, email = $4, 
                     last_profile_update = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $5
-                RETURNING id, username, email, first_name, last_name, last_profile_update, updated_at
+                RETURNING id, username, email, first_name, last_name, last_profile_update, updated_at, branch_id
             `, [first_name, last_name, username, email, userId]);
+
+            // Create notification for profile update
+            try {
+                const NotificationService = require('./notificationService');
+                const notificationService = new NotificationService();
+                
+                await notificationService.createNotification({
+                    user_id: userId,
+                    branch_id: result.rows[0].branch_id,
+                    title: 'Personal Information Updated',
+                    content: 'Your personal information has been successfully updated. If you did not make this change, please contact your IT Head immediately.',
+                    category: 'system',
+                    type: 'success',
+                    status: 'pending',
+                    reference_type: 'profile_update',
+                    reference_id: userId.toString(),
+                    is_highlighted: true,
+                    priority: 'important'
+                });
+            } catch (notificationError) {
+                console.error('Error creating profile update notification:', notificationError);
+                // Don't fail the request if notification creation fails
+            }
 
             return {
                 success: true,
@@ -435,6 +458,11 @@ class AuthService {
             // Hash new password
             const newPasswordHash = await bcrypt.hash(newPassword, this.bcryptRounds);
 
+            // Get user branch_id before updating
+            const userInfoResult = await db.query(`
+                SELECT branch_id FROM users WHERE id = $1
+            `, [userId]);
+
             // Update password with timestamp
             await db.query(`
                 UPDATE users 
@@ -442,6 +470,29 @@ class AuthService {
                     password_changed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $2
             `, [newPasswordHash, userId]);
+
+            // Create notification for password change
+            try {
+                const NotificationService = require('./notificationService');
+                const notificationService = new NotificationService();
+                
+                await notificationService.createNotification({
+                    user_id: userId,
+                    branch_id: userInfoResult.rows[0]?.branch_id || null,
+                    title: 'Password Changed Successfully',
+                    content: 'Your password has been successfully changed. If you did not perform this action, please contact your IT Head immediately.',
+                    category: 'system',
+                    type: 'success',
+                    status: 'pending',
+                    reference_type: 'password_change',
+                    reference_id: userId.toString(),
+                    is_highlighted: true,
+                    priority: 'important'
+                });
+            } catch (notificationError) {
+                console.error('Error creating password change notification:', notificationError);
+                // Don't fail the request if notification creation fails
+            }
 
             return {
                 success: true,
@@ -546,6 +597,28 @@ class AuthService {
     // Update user
     async updateUser(userId, updateData) {
         try {
+            // Get current user status before update to detect deactivation
+            const currentUserResult = await db.query(`
+                SELECT id, username, email, first_name, last_name, branch_id, is_active
+                FROM users
+                WHERE id = $1
+            `, [userId]);
+
+            if (currentUserResult.rows.length === 0) {
+                throw new Error('User not found');
+            }
+
+            const currentUser = currentUserResult.rows[0];
+            const wasActive = currentUser.is_active;
+            const isBeingDeactivated = updateData.hasOwnProperty('is_active') && updateData.is_active === false && wasActive === true;
+            const isBeingReactivated = updateData.hasOwnProperty('is_active') && updateData.is_active === true && wasActive === false;
+            
+            console.log('UpdateUser - User ID:', userId);
+            console.log('UpdateUser - Was Active:', wasActive);
+            console.log('UpdateUser - New Active Status:', updateData.is_active);
+            console.log('UpdateUser - Is Being Reactivated:', isBeingReactivated);
+            console.log('UpdateUser - Is Being Deactivated:', isBeingDeactivated);
+
             const allowedFields = ['first_name', 'last_name', 'email', 'phone_number', 'role_id', 'branch_id', 'is_active'];
             const updateFields = [];
             const updateValues = [];
@@ -575,10 +648,97 @@ class AuthService {
                 throw new Error('User not found');
             }
 
+            const updatedUser = result.rows[0];
+
+            // Create notification and send email if user is being deactivated
+            if (isBeingDeactivated) {
+                try {
+                    const NotificationService = require('./notificationService');
+                    const notificationService = new NotificationService();
+                    const emailService = require('./emailService');
+                    
+                    // Create notification for account deactivation
+                    await notificationService.createNotification({
+                        user_id: userId,
+                        branch_id: currentUser.branch_id,
+                        title: 'Account Deactivated',
+                        content: 'Your account has been deactivated by the IT Head.',
+                        category: 'system',
+                        type: 'warning',
+                        status: 'pending',
+                        reference_type: 'account_deactivation',
+                        reference_id: userId.toString(),
+                        is_highlighted: true,
+                        priority: 'important'
+                    });
+
+                    // Send email notification
+                    if (currentUser.email && !currentUser.email.includes('@placeholder.com') && currentUser.email.trim() !== '') {
+                        try {
+                            await emailService.sendAccountDeactivationEmail(currentUser.email, currentUser.username);
+                            console.log('Account deactivation email sent to:', currentUser.email);
+                        } catch (emailError) {
+                            console.error('Error sending account deactivation email:', emailError);
+                            // Don't fail the request if email fails
+                        }
+                    } else {
+                        console.warn('Cannot send deactivation email: invalid email address for user', userId);
+                    }
+                } catch (notificationError) {
+                    console.error('Error creating account deactivation notification:', notificationError);
+                    // Don't fail the request if notification creation fails
+                }
+            }
+
+            // Create notification and send email if user is being reactivated directly (without request)
+            // Note: The reactivation request route directly updates the user, so it won't call this method
+            // Therefore, if this method is called for reactivation, it's always a direct reactivation
+            if (isBeingReactivated) {
+                try {
+                    console.log('Creating direct reactivation notification for user:', userId);
+                    const NotificationService = require('./notificationService');
+                    const notificationService = new NotificationService();
+                    const emailService = require('./emailService');
+                    
+                    // Create notification for direct account reactivation
+                    await notificationService.createNotification({
+                        user_id: userId,
+                        branch_id: currentUser.branch_id,
+                        title: 'Account Reactivated',
+                        content: 'Your account has been reactivated by the IT Head. You can now access all system features.',
+                        category: 'system',
+                        type: 'success',
+                        status: 'pending',
+                        reference_type: 'account_reactivation',
+                        reference_id: userId.toString(),
+                        is_highlighted: true,
+                        priority: 'important'
+                    });
+
+                    console.log('Direct reactivation notification created for user:', userId);
+
+                    // Send email notification
+                    if (currentUser.email && !currentUser.email.includes('@placeholder.com') && currentUser.email.trim() !== '') {
+                        try {
+                            await emailService.sendAccountReactivationDirectEmail(currentUser.email, currentUser.username);
+                            console.log('Account reactivation direct email sent to:', currentUser.email);
+                        } catch (emailError) {
+                            console.error('Error sending account reactivation direct email:', emailError);
+                            // Don't fail the request if email fails
+                        }
+                    } else {
+                        console.warn('Cannot send reactivation direct email: invalid email address for user', userId);
+                    }
+                } catch (notificationError) {
+                    console.error('Error creating account reactivation notification:', notificationError);
+                    // Don't fail the request if notification creation fails
+                }
+            }
+
             return {
                 success: true,
                 message: 'User updated successfully',
-                user: result.rows[0]
+                user: updatedUser
             };
 
         } catch (error) {

@@ -14,8 +14,25 @@ const COMPLETED_KEY = 'completed_notifications';
 
 // Map backend type 'warning' (any case) to display as 'important'
 // Map 'error' to 'rejected' and 'success' to 'approved'
-function mapTypeForDisplay(type) {
+// For specific system notifications, return 'system' instead of 'approved'
+function mapTypeForDisplay(type, notification = null) {
     const t = (type || '').toString().toLowerCase();
+    
+    // Check if this is a system notification that should display as "System"
+    if (notification && notification.category === 'system') {
+        const systemReferenceTypes = [
+            'reactivation_request',
+            'password_reset',
+            'profile_update',
+            'password_change',
+            'account_deactivation',
+            'account_reactivation'
+        ];
+        if (systemReferenceTypes.includes(notification.reference_type)) {
+            return 'system';
+        }
+    }
+    
     if (t === 'warning') return 'important';
     if (t === 'error') return 'rejected';
     if (t === 'success') return 'approved';
@@ -351,11 +368,11 @@ function createNotificationItem(notification) {
     notificationItem.className = classString;
     notificationItem.setAttribute('data-id', notification.id);
     notificationItem.setAttribute('data-category', notification.category);
-    notificationItem.setAttribute('data-type', mapTypeForDisplay(notification.type));
+    notificationItem.setAttribute('data-type', mapTypeForDisplay(notification.type, notification));
     notificationItem.setAttribute('data-timestamp', notification.timestamp);
     
     const timeAgo = getTimeAgo(notification.timestamp);
-    const typeClass = mapTypeForDisplay(notification.type);
+    const typeClass = mapTypeForDisplay(notification.type, notification);
     
     notificationItem.innerHTML = `
         <div class="notification-header">
@@ -383,7 +400,8 @@ function getTypeIcon(type) {
         'warning': 'exclamation-triangle',
         'important': 'exclamation-triangle',
         'rejected': 'times-circle',
-        'approved': 'check-circle'
+        'approved': 'check-circle',
+        'system': 'cog'
     };
     return icons[type] || 'bell';
 }
@@ -566,9 +584,12 @@ function updateNotificationCounts() {
         importantBadgeLegacy.style.display = 'none';
     }
     
-    // Update navbar badge with unactioned count
+    // Count unread notifications for navbar badge (include unactioned + unread system notifications)
+    const navbarBadgeCount = unactionedCount + systemUnreadCount;
+    
+    // Update navbar badge with unactioned count + unread system notifications
     if (typeof updateNotificationBadge === 'function') {
-        updateNotificationBadge(unactionedCount);
+        updateNotificationBadge(navbarBadgeCount);
     }
     
     // Return unactioned count for navbar badge update
@@ -601,7 +622,7 @@ function showNotificationModal(notification) {
         if (modalDetailTitle) {
             modalDetailTitle.style.display = 'none';
         }
-        const mappedType = mapTypeForDisplay(notification.type);
+        const mappedType = mapTypeForDisplay(notification.type, notification);
         modalType.textContent = mappedType;
         modalType.className = `notification-detail-type ${mappedType}`;
         modalTime.textContent = getTimeAgo(notification.timestamp);

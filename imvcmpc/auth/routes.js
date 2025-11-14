@@ -824,7 +824,7 @@ router.put('/reactivation-requests/:requestId',
                 ? 'Account Reactivation Approved' 
                 : 'Account Reactivation Rejected';
             const notificationContent = action === 'approve'
-                ? `Your account reactivation request has been approved. You can now log in to your account.${notes ? ` Note: ${notes}` : ''}`
+                ? `Your account reactivation request has been approved.${notes ? ` Note: ${notes}` : ''}`
                 : `Your account reactivation request has been rejected.${notes ? ` Reason: ${notes}` : ' Please contact your IT Head for more information.'}`;
             
             await notificationService.createNotification({
@@ -840,6 +840,30 @@ router.put('/reactivation-requests/:requestId',
                 is_highlighted: true,
                 priority: 'important'
             });
+
+            // Send email notification if approved
+            if (action === 'approve') {
+                try {
+                    const emailService = require('./emailService');
+                    // Get user email
+                    const userEmailResult = await db.query(`
+                        SELECT email FROM users WHERE id = $1
+                    `, [request.user_id]);
+                    
+                    if (userEmailResult.rows.length > 0) {
+                        const userEmail = userEmailResult.rows[0].email;
+                        if (userEmail && !userEmail.includes('@placeholder.com') && userEmail.trim() !== '') {
+                            await emailService.sendAccountReactivationApprovedEmail(userEmail, request.username, notes);
+                            console.log('Account reactivation approved email sent to:', userEmail);
+                        } else {
+                            console.warn('Cannot send reactivation approved email: invalid email address for user', request.user_id);
+                        }
+                    }
+                } catch (emailError) {
+                    console.error('Error sending account reactivation approved email:', emailError);
+                    // Don't fail the request if email fails
+                }
+            }
             
             res.json({
                 success: true,

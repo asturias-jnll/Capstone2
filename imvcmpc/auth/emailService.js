@@ -434,6 +434,469 @@ class EmailService {
             throw new Error('Failed to send reactivation code email: ' + error.message);
         }
     }
+
+    // Generate HTML email template for account deactivation
+    generateAccountDeactivationEmail(username) {
+        return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Deactivated - IMVCMPC</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #E9EEF3;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background: linear-gradient(135deg, #E9EEF3 0%, #B8D53D 100%); padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" style="max-width: 600px; width: 100%; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #0B5E1C 0%, #187C19 100%); padding: 40px 32px; text-align: center;">
+                            <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">IMVCMPC</h1>
+                            <p style="margin: 8px 0 0 0; color: #B8D53D; font-size: 14px; font-weight: 500;">Ibaan Market Vendors & Community Multi-Purpose Cooperative</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 32px;">
+                            <h2 style="margin: 0 0 16px 0; color: #0B5E1C; font-size: 24px; font-weight: 600;">Account Deactivated</h2>
+                            
+                            <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Hello <strong>${username}</strong>,
+                            </p>
+                            
+                            <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Your IMVCMPC Finance Management System account has been deactivated by the IT Head. You will no longer be able to access the system until your account is reactivated.
+                            </p>
+                            
+                            <!-- Important Notice -->
+                            <div style="background: #FEE2E2; border-left: 4px solid #EF4444; padding: 16px; border-radius: 8px; margin: 24px 0;">
+                                <p style="margin: 0; color: #991B1B; font-size: 14px; line-height: 1.6;">
+                                    <strong>Important:</strong> If you believe this deactivation was made in error, please contact your IT Head immediately to request account reactivation.
+                                </p>
+                            </div>
+                            
+                            <p style="margin: 24px 0 0 0; color: #6B7280; font-size: 14px; line-height: 1.6;">
+                                To request account reactivation, you can use the reactivation request feature on the login page. You will need to verify your identity using your password and a verification code sent to your email.
+                            </p>
+                            
+                            <p style="margin: 24px 0 0 0; color: #6B7280; font-size: 14px; line-height: 1.6;">
+                                Best regards,<br>
+                                <strong style="color: #0B5E1C;">IMVCMPC System</strong>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background: #F9FAFB; padding: 24px 32px; text-align: center; border-top: 1px solid #E5E7EB;">
+                            <p style="margin: 0 0 8px 0; color: #6B7280; font-size: 12px;">
+                                This is an automated message. Please do not reply to this email.
+                            </p>
+                            <p style="margin: 0; color: #9CA3AF; font-size: 12px;">
+                                © ${new Date().getFullYear()} IMVCMPC. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+        `;
+    }
+
+    // Send account deactivation email
+    async sendAccountDeactivationEmail(email, username, retries = 2) {
+        // Use Resend API if available (preferred for cloud hosting)
+        if (this.useAPI && this.resend) {
+            return this.sendAccountDeactivationEmailViaAPI(email, username);
+        }
+        // Fallback to SMTP
+        return this.sendAccountDeactivationEmailViaSMTP(email, username, retries);
+    }
+
+    // Send account deactivation email via Resend API
+    async sendAccountDeactivationEmailViaAPI(email, username) {
+        try {
+            // Extract email address from EMAIL_FROM (handles both formats)
+            const fromEmail = config.email.from.match(/<(.+)>/)?.[1] || config.email.from.split(' ').pop() || 'noreply@imvcmpc.org';
+            const fromName = config.email.from.match(/(.+?)\s*</)?.[1]?.trim() || 'IMVCMPC System';
+
+            const { data, error } = await this.resend.emails.send({
+                from: `${fromName} <${fromEmail}>`,
+                to: [email],
+                subject: 'IMVCMPC - Account Deactivated',
+                html: this.generateAccountDeactivationEmail(username),
+                text: `Hello ${username},\n\nYour IMVCMPC Finance Management System account has been deactivated by the IT Head. You will no longer be able to access the system until your account is reactivated.\n\nIf you believe this deactivation was made in error, please contact your IT Head immediately to request account reactivation.\n\nBest regards,\nIMVCMPC System`
+            });
+
+            if (error) {
+                throw new Error(error.message || 'Failed to send email via Resend API');
+            }
+
+            console.log('Account deactivation email sent via Resend API:', data?.id);
+            return {
+                success: true,
+                messageId: data?.id || 'resend-api'
+            };
+        } catch (error) {
+            console.error('Error sending account deactivation email via API:', error);
+            throw new Error('Failed to send account deactivation email: ' + (error.message || 'Unknown error'));
+        }
+    }
+
+    // Send account deactivation email via SMTP
+    async sendAccountDeactivationEmailViaSMTP(email, username, retries = 2) {
+        try {
+            if (!this.transporter) {
+                throw new Error('Email transporter not initialized');
+            }
+
+            const mailOptions = {
+                from: config.email.from,
+                to: email,
+                subject: 'IMVCMPC - Account Deactivated',
+                html: this.generateAccountDeactivationEmail(username),
+                text: `Hello ${username},\n\nYour IMVCMPC Finance Management System account has been deactivated by the IT Head. You will no longer be able to access the system until your account is reactivated.\n\nIf you believe this deactivation was made in error, please contact your IT Head immediately to request account reactivation.\n\nBest regards,\nIMVCMPC System`
+            };
+
+            try {
+                const info = await this.transporter.sendMail(mailOptions);
+                console.log('Account deactivation email sent via SMTP:', info.messageId);
+                return {
+                    success: true,
+                    messageId: info.messageId
+                };
+            } catch (sendError) {
+                // Retry on timeout or connection errors
+                if (retries > 0 && (sendError.code === 'ETIMEDOUT' || sendError.code === 'ECONNRESET' || sendError.code === 'ESOCKET')) {
+                    console.warn(`Email send failed, retrying... (${retries} attempts left)`, sendError.message);
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                    return this.sendAccountDeactivationEmailViaSMTP(email, username, retries - 1);
+                }
+                throw sendError;
+            }
+        } catch (error) {
+            console.error('Error sending account deactivation email via SMTP:', error);
+            if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+                throw new Error('Email service connection timeout. Cloud provider may be blocking SMTP. Consider using RESEND_API_KEY.');
+            } else if (error.code === 'EAUTH') {
+                throw new Error('Email authentication failed. Please verify SMTP_USER and SMTP_PASS are correct.');
+            }
+            throw new Error('Failed to send account deactivation email: ' + error.message);
+        }
+    }
+
+    // Generate HTML email template for account reactivation (user-requested)
+    generateAccountReactivationApprovedEmail(username, notes = null) {
+        return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Reactivation Approved - IMVCMPC</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #E9EEF3;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background: linear-gradient(135deg, #E9EEF3 0%, #B8D53D 100%); padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" style="max-width: 600px; width: 100%; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #0B5E1C 0%, #187C19 100%); padding: 40px 32px; text-align: center;">
+                            <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">IMVCMPC</h1>
+                            <p style="margin: 8px 0 0 0; color: #B8D53D; font-size: 14px; font-weight: 500;">Ibaan Market Vendors & Community Multi-Purpose Cooperative</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 32px;">
+                            <h2 style="margin: 0 0 16px 0; color: #0B5E1C; font-size: 24px; font-weight: 600;">Account Reactivation Approved</h2>
+                            
+                            <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Hello <strong>${username}</strong>,
+                            </p>
+                            
+                            <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Your account reactivation request has been approved by the IT Head. You can now log in to your IMVCMPC Finance Management System account.
+                            </p>
+                            ${notes ? `
+                            <div style="background: #F0FDF4; border-left: 4px solid #22C55E; padding: 16px; border-radius: 8px; margin: 24px 0;">
+                                <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
+                                    <strong>Note from IT Head:</strong> ${notes}
+                                </p>
+                            </div>
+                            ` : ''}
+                            
+                            <p style="margin: 24px 0 0 0; color: #6B7280; font-size: 14px; line-height: 1.6;">
+                                You can now access the system using your username and password. If you have any issues logging in, please contact your IT Head.
+                            </p>
+                            
+                            <p style="margin: 24px 0 0 0; color: #6B7280; font-size: 14px; line-height: 1.6;">
+                                Best regards,<br>
+                                <strong style="color: #0B5E1C;">IMVCMPC System</strong>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background: #F9FAFB; padding: 24px 32px; text-align: center; border-top: 1px solid #E5E7EB;">
+                            <p style="margin: 0 0 8px 0; color: #6B7280; font-size: 12px;">
+                                This is an automated message. Please do not reply to this email.
+                            </p>
+                            <p style="margin: 0; color: #9CA3AF; font-size: 12px;">
+                                © ${new Date().getFullYear()} IMVCMPC. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+        `;
+    }
+
+    // Generate HTML email template for account reactivation (IT Head direct)
+    generateAccountReactivationDirectEmail(username) {
+        return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Reactivated - IMVCMPC</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #E9EEF3;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background: linear-gradient(135deg, #E9EEF3 0%, #B8D53D 100%); padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" style="max-width: 600px; width: 100%; background: #FFFFFF; border-radius: 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #0B5E1C 0%, #187C19 100%); padding: 40px 32px; text-align: center;">
+                            <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">IMVCMPC</h1>
+                            <p style="margin: 8px 0 0 0; color: #B8D53D; font-size: 14px; font-weight: 500;">Ibaan Market Vendors & Community Multi-Purpose Cooperative</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 32px;">
+                            <h2 style="margin: 0 0 16px 0; color: #0B5E1C; font-size: 24px; font-weight: 600;">Account Reactivated</h2>
+                            
+                            <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Hello <strong>${username}</strong>,
+                            </p>
+                            
+                            <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                                Your IMVCMPC Finance Management System account has been reactivated by the IT Head. You can now log in to your account and access all system features.
+                            </p>
+                            
+                            <div style="background: #F0FDF4; border-left: 4px solid #22C55E; padding: 16px; border-radius: 8px; margin: 24px 0;">
+                                <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
+                                    <strong>Welcome back!</strong> Your account access has been restored. You can now use the system normally.
+                                </p>
+                            </div>
+                            
+                            <p style="margin: 24px 0 0 0; color: #6B7280; font-size: 14px; line-height: 1.6;">
+                                If you have any questions or need assistance, please contact your IT Head.
+                            </p>
+                            
+                            <p style="margin: 24px 0 0 0; color: #6B7280; font-size: 14px; line-height: 1.6;">
+                                Best regards,<br>
+                                <strong style="color: #0B5E1C;">IMVCMPC System</strong>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background: #F9FAFB; padding: 24px 32px; text-align: center; border-top: 1px solid #E5E7EB;">
+                            <p style="margin: 0 0 8px 0; color: #6B7280; font-size: 12px;">
+                                This is an automated message. Please do not reply to this email.
+                            </p>
+                            <p style="margin: 0; color: #9CA3AF; font-size: 12px;">
+                                © ${new Date().getFullYear()} IMVCMPC. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+        `;
+    }
+
+    // Send account reactivation email (user-requested)
+    async sendAccountReactivationApprovedEmail(email, username, notes = null, retries = 2) {
+        // Use Resend API if available (preferred for cloud hosting)
+        if (this.useAPI && this.resend) {
+            return this.sendAccountReactivationApprovedEmailViaAPI(email, username, notes);
+        }
+        // Fallback to SMTP
+        return this.sendAccountReactivationApprovedEmailViaSMTP(email, username, notes, retries);
+    }
+
+    // Send account reactivation email via Resend API (user-requested)
+    async sendAccountReactivationApprovedEmailViaAPI(email, username, notes = null) {
+        try {
+            const fromEmail = config.email.from.match(/<(.+)>/)?.[1] || config.email.from.split(' ').pop() || 'noreply@imvcmpc.org';
+            const fromName = config.email.from.match(/(.+?)\s*</)?.[1]?.trim() || 'IMVCMPC System';
+
+            const { data, error } = await this.resend.emails.send({
+                from: `${fromName} <${fromEmail}>`,
+                to: [email],
+                subject: 'IMVCMPC - Account Reactivation Approved',
+                html: this.generateAccountReactivationApprovedEmail(username, notes),
+                text: `Hello ${username},\n\nYour account reactivation request has been approved by the IT Head. You can now log in to your IMVCMPC Finance Management System account.${notes ? `\n\nNote from IT Head: ${notes}` : ''}\n\nBest regards,\nIMVCMPC System`
+            });
+
+            if (error) {
+                throw new Error(error.message || 'Failed to send email via Resend API');
+            }
+
+            console.log('Account reactivation approved email sent via Resend API:', data?.id);
+            return {
+                success: true,
+                messageId: data?.id || 'resend-api'
+            };
+        } catch (error) {
+            console.error('Error sending account reactivation approved email via API:', error);
+            throw new Error('Failed to send account reactivation approved email: ' + (error.message || 'Unknown error'));
+        }
+    }
+
+    // Send account reactivation email via SMTP (user-requested)
+    async sendAccountReactivationApprovedEmailViaSMTP(email, username, notes = null, retries = 2) {
+        try {
+            if (!this.transporter) {
+                throw new Error('Email transporter not initialized');
+            }
+
+            const mailOptions = {
+                from: config.email.from,
+                to: email,
+                subject: 'IMVCMPC - Account Reactivation Approved',
+                html: this.generateAccountReactivationApprovedEmail(username, notes),
+                text: `Hello ${username},\n\nYour account reactivation request has been approved by the IT Head. You can now log in to your IMVCMPC Finance Management System account.${notes ? `\n\nNote from IT Head: ${notes}` : ''}\n\nBest regards,\nIMVCMPC System`
+            };
+
+            try {
+                const info = await this.transporter.sendMail(mailOptions);
+                console.log('Account reactivation approved email sent via SMTP:', info.messageId);
+                return {
+                    success: true,
+                    messageId: info.messageId
+                };
+            } catch (sendError) {
+                if (retries > 0 && (sendError.code === 'ETIMEDOUT' || sendError.code === 'ECONNRESET' || sendError.code === 'ESOCKET')) {
+                    console.warn(`Email send failed, retrying... (${retries} attempts left)`, sendError.message);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    return this.sendAccountReactivationApprovedEmailViaSMTP(email, username, notes, retries - 1);
+                }
+                throw sendError;
+            }
+        } catch (error) {
+            console.error('Error sending account reactivation approved email via SMTP:', error);
+            if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+                throw new Error('Email service connection timeout. Cloud provider may be blocking SMTP. Consider using RESEND_API_KEY.');
+            } else if (error.code === 'EAUTH') {
+                throw new Error('Email authentication failed. Please verify SMTP_USER and SMTP_PASS are correct.');
+            }
+            throw new Error('Failed to send account reactivation approved email: ' + error.message);
+        }
+    }
+
+    // Send account reactivation email (IT Head direct)
+    async sendAccountReactivationDirectEmail(email, username, retries = 2) {
+        // Use Resend API if available (preferred for cloud hosting)
+        if (this.useAPI && this.resend) {
+            return this.sendAccountReactivationDirectEmailViaAPI(email, username);
+        }
+        // Fallback to SMTP
+        return this.sendAccountReactivationDirectEmailViaSMTP(email, username, retries);
+    }
+
+    // Send account reactivation email via Resend API (IT Head direct)
+    async sendAccountReactivationDirectEmailViaAPI(email, username) {
+        try {
+            const fromEmail = config.email.from.match(/<(.+)>/)?.[1] || config.email.from.split(' ').pop() || 'noreply@imvcmpc.org';
+            const fromName = config.email.from.match(/(.+?)\s*</)?.[1]?.trim() || 'IMVCMPC System';
+
+            const { data, error } = await this.resend.emails.send({
+                from: `${fromName} <${fromEmail}>`,
+                to: [email],
+                subject: 'IMVCMPC - Account Reactivated',
+                html: this.generateAccountReactivationDirectEmail(username),
+                text: `Hello ${username},\n\nYour IMVCMPC Finance Management System account has been reactivated by the IT Head. You can now log in to your account and access all system features.\n\nBest regards,\nIMVCMPC System`
+            });
+
+            if (error) {
+                throw new Error(error.message || 'Failed to send email via Resend API');
+            }
+
+            console.log('Account reactivation direct email sent via Resend API:', data?.id);
+            return {
+                success: true,
+                messageId: data?.id || 'resend-api'
+            };
+        } catch (error) {
+            console.error('Error sending account reactivation direct email via API:', error);
+            throw new Error('Failed to send account reactivation direct email: ' + (error.message || 'Unknown error'));
+        }
+    }
+
+    // Send account reactivation email via SMTP (IT Head direct)
+    async sendAccountReactivationDirectEmailViaSMTP(email, username, retries = 2) {
+        try {
+            if (!this.transporter) {
+                throw new Error('Email transporter not initialized');
+            }
+
+            const mailOptions = {
+                from: config.email.from,
+                to: email,
+                subject: 'IMVCMPC - Account Reactivated',
+                html: this.generateAccountReactivationDirectEmail(username),
+                text: `Hello ${username},\n\nYour IMVCMPC Finance Management System account has been reactivated by the IT Head. You can now log in to your account and access all system features.\n\nBest regards,\nIMVCMPC System`
+            };
+
+            try {
+                const info = await this.transporter.sendMail(mailOptions);
+                console.log('Account reactivation direct email sent via SMTP:', info.messageId);
+                return {
+                    success: true,
+                    messageId: info.messageId
+                };
+            } catch (sendError) {
+                if (retries > 0 && (sendError.code === 'ETIMEDOUT' || sendError.code === 'ECONNRESET' || sendError.code === 'ESOCKET')) {
+                    console.warn(`Email send failed, retrying... (${retries} attempts left)`, sendError.message);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    return this.sendAccountReactivationDirectEmailViaSMTP(email, username, retries - 1);
+                }
+                throw sendError;
+            }
+        } catch (error) {
+            console.error('Error sending account reactivation direct email via SMTP:', error);
+            if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+                throw new Error('Email service connection timeout. Cloud provider may be blocking SMTP. Consider using RESEND_API_KEY.');
+            } else if (error.code === 'EAUTH') {
+                throw new Error('Email authentication failed. Please verify SMTP_USER and SMTP_PASS are correct.');
+            }
+            throw new Error('Failed to send account reactivation direct email: ' + error.message);
+        }
+    }
 }
 
 // Create singleton instance

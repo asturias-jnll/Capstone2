@@ -391,6 +391,11 @@
     color: var(--green-700);
 }
 
+.notification-type.system {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
 .notification-branch {
     background: var(--gray-100);
     color: var(--gray-600);
@@ -940,6 +945,11 @@
 .notification-detail-type.approved {
     background: var(--green-100);
     color: var(--green-700);
+}
+
+.notification-detail-type.system {
+    background: var(--gray-100);
+    color: var(--gray-700);
 }
 
 .notification-detail-time {
