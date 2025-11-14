@@ -709,16 +709,28 @@ function selectReportType(type) {
         showInitialState();
         hideAllConfigurations();
         hideAllReportHistories();
-            hideSendFinanceSection();
+        hideSendFinanceSection();
         
         // Show received reports section when on main page
         showReceivedReportsSection();
+        
+        // Show report type filter and hide back button
+        const reportTypeFilter = document.getElementById('reportTypeFilter');
+        const backContainer = document.getElementById('backToHistoryContainer');
+        if (reportTypeFilter) reportTypeFilter.style.display = 'block';
+        if (backContainer) backContainer.style.display = 'none';
     } else {
         // Show corresponding configuration section
         showConfigurationSection(type);
         
         // Hide send finance section (not applicable for MC request flow)
         hideSendFinanceSection();
+        
+        // Hide report type filter and show back button
+        const reportTypeFilter = document.getElementById('reportTypeFilter');
+        const backContainer = document.getElementById('backToHistoryContainer');
+        if (reportTypeFilter) reportTypeFilter.style.display = 'none';
+        if (backContainer) backContainer.style.display = 'flex';
     }
 }
 
@@ -1465,28 +1477,10 @@ async function requestReport() {
             console.error('Error clearing configuration:', error);
         }
         
-        // 2. Hide all configuration sections
-        hideAllConfigurations();
+        // 2. Reset to "Request Report" view (this handles all UI updates including button visibility)
+        selectReportType('');
         
-        // 3. Reset report type selection to default (Request Report)
-        localStorage.setItem('currentReportType', '');
-        const btnText = document.getElementById('reportTypeText');
-        if (btnText) btnText.textContent = 'Request Report';
-        
-        // Hide all checkmarks
-        const allOptions = document.querySelectorAll('.menu-option');
-        allOptions.forEach(option => {
-            const checkIcon = option.querySelector('.check-icon');
-            if (checkIcon) checkIcon.style.display = 'none';
-        });
-        
-        // 4. Show initial state
-        showInitialState();
-        
-        // 5. Show received reports section (history view)
-        showReceivedReportsSection();
-        
-        // 6. Reload received reports to show updated history
+        // 3. Reload received reports to show updated history
         loadReceivedReports();
         
     }).catch((err) => {
@@ -2433,6 +2427,15 @@ function hideDateRangeFilter() {
         console.log('Hiding date range filter');
     }
 }
+
+// Hide report configuration and show history (for returning to history view)
+function hideReportConfiguration() {
+    // Reset report type selection to "Request Report" (this will handle all the UI updates)
+    selectReportType('');
+}
+
+// Make hideReportConfiguration globally available
+window.hideReportConfiguration = hideReportConfiguration;
 
 // Show minimalist dialog for report type selection
 function showReportTypeDialog() {

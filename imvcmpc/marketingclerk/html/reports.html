@@ -94,7 +94,7 @@
                     </div>
                     <div class="header-right">
                         <!-- Report Type Filter -->
-                        <div class="report-type-filter">
+                        <div class="report-type-filter" id="reportTypeFilter">
                             <button class="report-type-btn" onclick="toggleReportTypeMenu()" id="reportTypeBtn">
                                 <span id="reportTypeText">Request Report</span>
                                 <i class="fas fa-chevron-down"></i>
@@ -123,6 +123,13 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <!-- Back to History Button (Hidden by default) -->
+                        <div class="back-to-history-container" id="backToHistoryContainer" style="display: none;">
+                            <button class="back-to-history-btn" onclick="hideReportConfiguration()">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Back to Report History</span>
+                            </button>
                         </div>
                     </div>
                 </div>
