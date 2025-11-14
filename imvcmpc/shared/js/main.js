@@ -236,13 +236,24 @@ async function updateNotificationCount() {
                 console.log(`  [${index}] Title: "${n.title}" | Type: ${n.reference_type} | Read: ${n.isRead} | Status: ${n.status}`);
             });
             
-            // Count all unread notifications (including system notifications like reactivation and password reset)
-            const unreadCount = notifications.filter(n => !n.isRead).length;
+            // Count unactioned notifications (not completed, exclude system and change request approved/rejected)
+            const unactionedCount = notifications.filter(n => {
+                // Exclude completed notifications
+                if (n.status === 'completed') return false;
+                // Exclude system notifications (reactivation, password reset)
+                if (n.category === 'system') return false;
+                // Exclude change request approved/rejected notifications
+                if (n.reference_type === 'change_request' && 
+                    (n.title.includes('Approved') || n.title.includes('Rejected'))) {
+                    return false;
+                }
+                return true;
+            }).length;
             
-            console.log('🔢 Total unread notifications:', unreadCount);
-            console.log('🎯 Updating badge with count:', unreadCount);
+            console.log('🔢 Total unactioned notifications:', unactionedCount);
+            console.log('🎯 Updating badge with count:', unactionedCount);
             
-            updateNotificationBadge(unreadCount);
+            updateNotificationBadge(unactionedCount);
         }
     } catch (error) {
         console.error('❌ Error updating notification count:', error);

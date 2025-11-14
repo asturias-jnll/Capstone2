@@ -509,9 +509,13 @@ function filterNotifications(filterType) {
 
 // Update notification counts
 function updateNotificationCounts() {
-    // Count unread notifications for "To Do" filter (exclude system and change request approved/rejected)
-    const unreadCount = allNotifications.filter(n => {
-        if (n.isRead) return false;
+    // Count unread notifications for "All" filter
+    const allUnreadCount = allNotifications.filter(n => !n.isRead).length;
+    
+    // Count unactioned notifications for "To Do" filter (not completed, exclude system and change request approved/rejected)
+    const unactionedCount = allNotifications.filter(n => {
+        // Exclude completed notifications
+        if (n.status === 'completed') return false;
         // Exclude system notifications (reactivation, password reset)
         if (n.category === 'system') return false;
         // Exclude change request approved/rejected notifications
@@ -528,11 +532,18 @@ function updateNotificationCounts() {
     // Count unread important notifications
     const importantUnreadCount = allNotifications.filter(n => n.category === 'important' && !n.isRead).length;
     
-    // Update To Do filter badge (show count of unread notifications)
+    // Update All filter badge (show count of unread notifications)
+    const allBadge = document.getElementById('allFilterBadge');
+    if (allBadge) {
+        allBadge.textContent = allUnreadCount;
+        allBadge.style.display = allUnreadCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    // Update To Do filter badge (show count of unactioned notifications)
     const unreadBadge = document.getElementById('unreadFilterBadge');
     if (unreadBadge) {
-        unreadBadge.textContent = unreadCount;
-        unreadBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+        unreadBadge.textContent = unactionedCount;
+        unreadBadge.style.display = unactionedCount > 0 ? 'inline-block' : 'none';
     }
     
     // Update Important filter badge
@@ -554,6 +565,14 @@ function updateNotificationCounts() {
     if (importantBadgeLegacy) {
         importantBadgeLegacy.style.display = 'none';
     }
+    
+    // Update navbar badge with unactioned count
+    if (typeof updateNotificationBadge === 'function') {
+        updateNotificationBadge(unactionedCount);
+    }
+    
+    // Return unactioned count for navbar badge update
+    return unactionedCount;
 }
 
 // Show notification modal

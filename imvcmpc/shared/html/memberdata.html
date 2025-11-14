@@ -212,9 +212,10 @@
                                 <label for="transactionDate">Date *</label>
                                 <input type="date" id="transactionDate" required>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" style="position: relative;">
                                 <label for="payee">Payee *</label>
                                 <input type="text" id="payee" placeholder="Enter payee name" required>
+                                <div id="payeeAutocompleteContainer" class="member-autocomplete-container"></div>
                             </div>
                         </div>
                         <div class="form-row">
@@ -244,11 +245,11 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="debitAmount">Debit Amount</label>
-                                <input type="number" id="debitAmount" step="0.01" min="0" placeholder="0.00">
+                                <input type="text" id="debitAmount" inputmode="decimal" placeholder="0.00">
                             </div>
                             <div class="form-group">
                                 <label for="creditAmount">Credit Amount</label>
-                                <input type="number" id="creditAmount" step="0.01" min="0" placeholder="0.00">
+                                <input type="text" id="creditAmount" inputmode="decimal" placeholder="0.00">
                             </div>
                         </div>
                     </div>
@@ -258,31 +259,31 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="cashInBank">Cash in Bank</label>
-                                <input type="number" id="cashInBank" step="0.01" min="0" placeholder="0.00">
+                                <input type="text" id="cashInBank" inputmode="decimal" placeholder="0.00">
                             </div>
                             <div class="form-group">
                                 <label for="loanReceivables">Loan Receivables</label>
-                                <input type="number" id="loanReceivables" step="0.01" min="0" placeholder="0.00">
+                                <input type="text" id="loanReceivables" inputmode="decimal" placeholder="0.00">
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="savingsDeposits">Savings Deposits</label>
-                                <input type="number" id="savingsDeposits" step="0.01" min="0" placeholder="0.00">
+                                <input type="text" id="savingsDeposits" inputmode="decimal" placeholder="0.00">
                             </div>
                             <div class="form-group">
                                 <label for="interestIncome">Interest Income</label>
-                                <input type="number" id="interestIncome" step="0.01" min="0" placeholder="0.00">
+                                <input type="text" id="interestIncome" inputmode="decimal" placeholder="0.00">
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="serviceCharge">Service Charge</label>
-                                <input type="number" id="serviceCharge" step="0.01" min="0" placeholder="0.00">
+                                <input type="text" id="serviceCharge" inputmode="decimal" placeholder="0.00">
                             </div>
                             <div class="form-group">
                                 <label for="sundries">Sundries</label>
-                                <input type="number" id="sundries" step="0.01" min="0" placeholder="0.00">
+                                <input type="text" id="sundries" inputmode="decimal" placeholder="0.00">
                             </div>
                         </div>
                     </div>

@@ -1569,6 +1569,452 @@ function showDeleteSuccessMessage(payeeName) {
     }, 2000);
 }
 
+// ============================================
+// Input Validation and Formatting Functions
+// ============================================
+
+// Debounce function for search optimization
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Number field validation - only allow digits and single period
+function validateNumberField(input) {
+    // Skip if already validated
+    if (input.dataset.validated === 'true') return;
+    input.dataset.validated = 'true';
+
+    const sanitizeValue = (value) => {
+        if (!value) return '';
+        const cleaned = value.replace(/[^0-9.]/g, '');
+        if (!cleaned.includes('.')) {
+            return cleaned;
+        }
+        
+        const firstDotIndex = cleaned.indexOf('.');
+        const beforeDot = cleaned.slice(0, firstDotIndex);
+        const afterDot = cleaned
+            .slice(firstDotIndex + 1)
+            .replace(/\./g, '')
+            .substring(0, 2); // Limit to 2 decimal places
+        
+        if (afterDot.length > 0) {
+            return `${beforeDot}.${afterDot}`;
+        }
+        
+        if (!beforeDot.length && cleaned.startsWith('.')) {
+            return '.';
+        }
+        
+        return `${beforeDot}.`;
+    };
+
+    const allowedControlKeys = [
+        'Backspace', 'Tab', 'ArrowLeft', 'ArrowRight',
+        'Delete', 'Home', 'End'
+    ];
+
+    input.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) return;
+        if (allowedControlKeys.includes(e.key)) return;
+        const selectionStart = input.selectionStart || 0;
+        const selectionEnd = input.selectionEnd || 0;
+        const hasSelection = selectionStart !== selectionEnd;
+        const selectedText = hasSelection ? input.value.substring(selectionStart, selectionEnd) : '';
+
+        if (e.key === '.') {
+            const dotExists = input.value.includes('.');
+            const selectionHasDot = hasSelection && selectedText.includes('.');
+            if (dotExists && !selectionHasDot) {
+                e.preventDefault();
+            }
+            return;
+        }
+
+        if (/^[0-9]$/.test(e.key)) {
+            // Check if we're trying to add a digit after 2 decimal places
+            const currentValue = input.value;
+            const dotIndex = currentValue.indexOf('.');
+            if (dotIndex !== -1) {
+                const afterDot = currentValue.substring(dotIndex + 1);
+                const cursorPos = input.selectionStart || 0;
+                // If cursor is after the decimal point and we already have 2 digits, prevent input
+                if (cursorPos > dotIndex && afterDot.length >= 2 && !hasSelection) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+            return;
+        }
+
+        e.preventDefault();
+    });
+
+    input.addEventListener('input', function(e) {
+        const sanitized = sanitizeValue(e.target.value);
+        if (sanitized !== e.target.value) {
+            const cursorPos = e.target.selectionStart || sanitized.length;
+            e.target.value = sanitized;
+            const newCursorPos = Math.min(cursorPos, sanitized.length);
+            e.target.setSelectionRange(newCursorPos, newCursorPos);
+        }
+    });
+
+    input.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData('text');
+        const sanitizedPaste = sanitizeValue(pasted);
+        const { selectionStart, selectionEnd, value } = input;
+        const nextValue = sanitizeValue(
+            value.substring(0, selectionStart) +
+            sanitizedPaste +
+            value.substring(selectionEnd)
+        );
+        input.value = nextValue;
+        const newCursorPos = Math.min(
+            (selectionStart || 0) + sanitizedPaste.length,
+            nextValue.length
+        );
+        input.setSelectionRange(newCursorPos, newCursorPos);
+    });
+}
+
+// Letter field validation - only allow letters, spaces, hyphens, and periods
+function validateLetterField(input) {
+    // Skip if already validated
+    if (input.dataset.validated === 'true') return;
+    input.dataset.validated = 'true';
+    
+    input.addEventListener('input', function(e) {
+        const value = e.target.value;
+        const filtered = value.replace(/[^a-zA-Z\s\-.]/g, '');
+        if (value !== filtered) {
+            e.target.value = filtered;
+        }
+    });
+}
+
+// Payee autocomplete variables
+let payeeAutocompleteInitialized = false;
+let isPayeeProgrammaticSelection = false;
+
+// Fetch member suggestions from API for payee field
+async function searchPayeeMembers(searchTerm) {
+    const token = await ensureAuthToken();
+    if (!token) {
+        throw new Error('Authentication required');
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/transactions/search/payee/${encodeURIComponent(searchTerm)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to search members');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            // Extract unique member names from transactions
+            const uniqueMembers = [...new Set(result.data.map(t => t.payee))];
+            return uniqueMembers.slice(0, 10); // Limit to 10 suggestions
+        }
+        
+        return [];
+    } catch (error) {
+        console.error('Error fetching member suggestions:', error);
+        return [];
+    }
+}
+
+// Display payee autocomplete suggestions
+function showPayeeSuggestions(members) {
+    const container = document.getElementById('payeeAutocompleteContainer');
+    if (!container) return;
+    
+    if (members.length === 0) {
+        container.innerHTML = `
+            <div class="autocomplete-suggestion no-results">
+                <i class="fas fa-search"></i>
+                <span>No members found</span>
+            </div>
+        `;
+        container.style.display = 'block';
+        return;
+    }
+    
+    container.innerHTML = members.map(member => `
+        <div class="autocomplete-suggestion" onclick="selectPayeeMember('${member.replace(/'/g, "\\'")}')">
+            <i class="fas fa-user"></i>
+            <span>${member}</span>
+        </div>
+    `).join('');
+    
+    container.style.display = 'block';
+}
+
+// Hide payee autocomplete suggestions
+function hidePayeeSuggestions() {
+    const container = document.getElementById('payeeAutocompleteContainer');
+    if (container) {
+        container.style.display = 'none';
+    }
+}
+
+// Select payee member from autocomplete
+function selectPayeeMember(memberName) {
+    const payeeInput = document.getElementById('payee');
+    if (payeeInput) {
+        isPayeeProgrammaticSelection = true;
+        payeeInput.value = memberName;
+        hidePayeeSuggestions();
+        // Trigger input event to ensure form validation recognizes the value
+        payeeInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}
+
+// Initialize payee autocomplete
+function initializePayeeAutocomplete() {
+    if (payeeAutocompleteInitialized) return;
+    payeeAutocompleteInitialized = true;
+    
+    const payeeInput = document.getElementById('payee');
+    if (!payeeInput) return;
+    
+    // Debounced search function
+    const debouncedSearch = debounce(async (searchTerm) => {
+        // Don't show suggestions if we just programmatically selected a member
+        if (isPayeeProgrammaticSelection) {
+            isPayeeProgrammaticSelection = false;
+            return;
+        }
+        
+        if (!searchTerm || searchTerm.trim().length < 2) {
+            hidePayeeSuggestions();
+            return;
+        }
+        
+        try {
+            const members = await searchPayeeMembers(searchTerm);
+            // Check if there's an exact match with the current input value
+            const inputValue = payeeInput.value.trim().toLowerCase();
+            const exactMatch = members.find(m => m.toLowerCase() === inputValue);
+            
+            // If there's only one result and it exactly matches what's in the input field, don't show suggestions
+            if (exactMatch && members.length === 1 && inputValue === exactMatch.toLowerCase()) {
+                hidePayeeSuggestions();
+                return;
+            }
+            
+            showPayeeSuggestions(members);
+        } catch (error) {
+            console.error('Error searching members:', error);
+            hidePayeeSuggestions();
+        }
+    }, 300);
+    
+    // Handle input changes
+    payeeInput.addEventListener('input', function(e) {
+        // Skip if this was a programmatic selection
+        if (isPayeeProgrammaticSelection) {
+            isPayeeProgrammaticSelection = false;
+            return;
+        }
+        const searchTerm = e.target.value.trim();
+        debouncedSearch(searchTerm);
+    });
+    
+    // Handle focus - show recent suggestions if any
+    payeeInput.addEventListener('focus', function(e) {
+        // Don't show suggestions if we just programmatically selected a member
+        if (isPayeeProgrammaticSelection) {
+            isPayeeProgrammaticSelection = false;
+            return;
+        }
+        const searchTerm = e.target.value.trim();
+        if (searchTerm.length >= 2) {
+            debouncedSearch(searchTerm);
+        }
+    });
+    
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('payeeAutocompleteContainer');
+        if (payeeInput && container &&
+            !payeeInput.contains(e.target) && 
+            !container.contains(e.target)) {
+            hidePayeeSuggestions();
+        }
+    });
+    
+    // Handle escape key to close suggestions
+    payeeInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hidePayeeSuggestions();
+        }
+    });
+}
+
+// Reference field prefix protection
+function setupReferenceFieldPrefix(fieldId, prefix, maxDigits) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    // Skip if already set up
+    if (field.dataset.prefixSetup === 'true') {
+        // Still ensure prefix is present
+        if (!field.value || !field.value.startsWith(prefix)) {
+            field.value = prefix;
+        }
+        return;
+    }
+    field.dataset.prefixSetup = 'true';
+    
+    // Set initial prefix value if field is empty or doesn't start with prefix
+    if (!field.value || !field.value.startsWith(prefix)) {
+        field.value = prefix;
+    }
+    
+    // Prevent deletion of prefix
+    field.addEventListener('keydown', function(e) {
+        const cursorPos = field.selectionStart;
+        const prefixLength = prefix.length;
+        
+        // Prevent backspace/delete when cursor is at or before prefix end
+        if ((e.key === 'Backspace' || e.key === 'Delete') && cursorPos <= prefixLength) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Prevent arrow keys from moving cursor into prefix area
+        if (e.key === 'ArrowLeft' && cursorPos <= prefixLength) {
+            e.preventDefault();
+            field.setSelectionRange(prefixLength, prefixLength);
+            return false;
+        }
+        
+        // Prevent Home key from moving cursor before prefix
+        if (e.key === 'Home') {
+            e.preventDefault();
+            field.setSelectionRange(prefixLength, prefixLength);
+            return false;
+        }
+    });
+    
+    // Handle input to ensure prefix is always present and enforce digit limit
+    field.addEventListener('input', function(e) {
+        let value = e.target.value;
+        const cursorPos = e.target.selectionStart;
+        
+        // Ensure prefix is always present
+        if (!value.startsWith(prefix)) {
+            // If user somehow removed prefix, restore it
+            if (value.length === 0) {
+                value = prefix;
+            } else {
+                // Try to restore prefix
+                value = prefix + value.replace(/[^0-9]/g, '');
+            }
+        }
+        
+        // Extract only the numeric part after prefix
+        const numericPart = value.substring(prefix.length).replace(/[^0-9]/g, '');
+        
+        // Enforce maximum digit limit
+        const limitedNumericPart = numericPart.substring(0, maxDigits);
+        
+        // Reconstruct value with prefix
+        value = prefix + limitedNumericPart;
+        
+        // Update field value
+        e.target.value = value;
+        
+        // Restore cursor position (adjust for any removed characters)
+        const newCursorPos = Math.min(cursorPos, value.length);
+        e.target.setSelectionRange(newCursorPos, newCursorPos);
+    });
+    
+    // Prevent paste that might remove prefix
+    field.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const numericPart = pastedText.replace(/[^0-9]/g, '').substring(0, maxDigits);
+        const cursorPos = field.selectionStart;
+        const prefixLength = prefix.length;
+        
+        if (cursorPos >= prefixLength) {
+            // Insert numeric part at cursor position
+            const currentValue = field.value;
+            const beforeCursor = currentValue.substring(0, cursorPos);
+            const afterCursor = currentValue.substring(cursorPos);
+            const beforeNumeric = beforeCursor.substring(prefixLength);
+            const newNumeric = (beforeNumeric + numericPart).substring(0, maxDigits);
+            field.value = prefix + newNumeric;
+            const newCursorPos = Math.min(prefixLength + newNumeric.length, field.value.length);
+            field.setSelectionRange(newCursorPos, newCursorPos);
+        }
+    });
+    
+    // Ensure prefix on focus
+    field.addEventListener('focus', function(e) {
+        if (!e.target.value.startsWith(prefix)) {
+            e.target.value = prefix;
+        }
+        // Move cursor to end of prefix if it's at the start
+        if (e.target.selectionStart < prefix.length) {
+            e.target.setSelectionRange(prefix.length, prefix.length);
+        }
+    });
+}
+
+// Initialize all input validations and formatting
+function initializeTransactionFormValidations() {
+    // Hide any existing autocomplete suggestions
+    hidePayeeSuggestions();
+    
+    // Number field validations
+    const numberFields = [
+        'debitAmount', 'creditAmount', 'cashInBank', 'loanReceivables',
+        'savingsDeposits', 'interestIncome', 'serviceCharge', 'sundries'
+    ];
+    
+    numberFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            validateNumberField(field);
+        }
+    });
+    
+    // Letter field validations
+    const letterFields = ['payee', 'particulars'];
+    letterFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            validateLetterField(field);
+        }
+    });
+    
+    // Initialize payee autocomplete
+    initializePayeeAutocomplete();
+    
+    // Setup reference field prefixes
+    setupReferenceFieldPrefix('reference', 'REF-', 6);
+    setupReferenceFieldPrefix('crossReference', 'XREF-', 4);
+    setupReferenceFieldPrefix('checkNumber', 'CHK-', 4);
+}
+
 // Open add transaction form
 function openAddTransactionForm() {
     const userRole = localStorage.getItem('user_role');
@@ -1585,6 +2031,11 @@ function openAddTransactionForm() {
     
     // Clear any validation errors
     clearValidationErrors();
+    
+    // Initialize input validations and formatting
+    setTimeout(() => {
+        initializeTransactionFormValidations();
+    }, 100);
     
     document.getElementById('transactionFormDialog').style.display = 'flex';
 }
@@ -1603,6 +2054,11 @@ function openAddTransactionFormWithoutReset() {
     
     // Clear any validation errors
     clearValidationErrors();
+    
+    // Initialize input validations and formatting
+    setTimeout(() => {
+        initializeTransactionFormValidations();
+    }, 100);
     
     document.getElementById('transactionFormDialog').style.display = 'flex';
 }
@@ -1719,6 +2175,8 @@ async function saveTransaction() {
 function closeTransactionForm() {
     document.getElementById('transactionFormDialog').style.display = 'none';
     editingTransactionId = null;
+    // Hide autocomplete suggestions when closing form
+    hidePayeeSuggestions();
 }
 
 // Initialize Excel-like scroll controls
