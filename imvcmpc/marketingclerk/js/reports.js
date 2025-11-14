@@ -375,6 +375,9 @@ function initializeMonthYearToggleSystem() {
         const yearMode = document.getElementById(reportType + 'YearMode');
         if (monthMode) monthMode.style.display = 'block';
         if (yearMode) yearMode.style.display = 'none';
+        
+        // Initialize month button states (all enabled initially)
+        updateMonthButtonStates(reportType);
     });
 }
 
@@ -387,7 +390,7 @@ function populateYearButtons(reportType) {
     const singleContainer = document.getElementById(reportType + 'YearButtonsSingle');
     if (singleContainer) {
         singleContainer.innerHTML = '';
-        for (let year = currentYear; year >= startYear; year--) {
+        for (let year = startYear; year <= currentYear; year++) {
             const btn = document.createElement('button');
             btn.className = 'selection-btn';
             btn.setAttribute('data-value', year);
@@ -402,7 +405,7 @@ function populateYearButtons(reportType) {
     const multipleContainer = document.getElementById(reportType + 'YearButtonsMultiple');
     if (multipleContainer) {
         multipleContainer.innerHTML = '';
-        for (let year = currentYear; year >= startYear; year--) {
+        for (let year = startYear; year <= currentYear; year++) {
             const btn = document.createElement('button');
             btn.className = 'selection-btn';
             btn.setAttribute('data-value', year);
@@ -431,6 +434,8 @@ function toggleMonthYear(reportType, mode) {
         
         // Clear year mode selections when switching to month mode
         clearYearSelections(reportType, false);
+        // Update month button states when switching back to month mode
+        updateMonthButtonStates(reportType);
     } else {
         if (monthBtn) monthBtn.classList.remove('active');
         if (yearBtn) yearBtn.classList.add('active');
@@ -443,7 +448,7 @@ function toggleMonthYear(reportType, mode) {
     }
 }
 
-// Toggle month selection (multiple selection, minimum 2)
+// Toggle month selection (multiple selection, minimum 2, range-based)
 function toggleMonthSelection(reportType, month) {
     const container = document.getElementById(reportType + 'MonthButtons');
     if (!container) return;
@@ -452,12 +457,45 @@ function toggleMonthSelection(reportType, month) {
     if (!btn) return;
     
     const isSelected = btn.classList.contains('selected');
+    const monthValue = parseInt(month, 10);
+    
+    // Get all month buttons
+    const allButtons = Array.from(container.querySelectorAll('.selection-btn'))
+        .map(b => ({ btn: b, value: parseInt(b.getAttribute('data-value'), 10) }))
+        .sort((a, b) => a.value - b.value);
     
     if (isSelected) {
-        btn.classList.remove('selected');
+        // Deselecting: clear all selections and start fresh
+        allButtons.forEach(b => b.btn.classList.remove('selected'));
     } else {
-        btn.classList.add('selected');
+        // Selecting: implement range selection
+        const selectedMonths = Array.from(container.querySelectorAll('.selection-btn.selected'))
+            .map(b => parseInt(b.getAttribute('data-value'), 10))
+            .sort((a, b) => a - b);
+        
+        if (selectedMonths.length === 0) {
+            // First selection: just select this month
+            btn.classList.add('selected');
+        } else {
+            // Second or subsequent selection: select range from first to this month
+            const firstSelected = selectedMonths[0];
+            const startMonth = Math.min(firstSelected, monthValue);
+            const endMonth = Math.max(firstSelected, monthValue);
+            
+            // Clear all selections first
+            allButtons.forEach(b => b.btn.classList.remove('selected'));
+            
+            // Select all months in the range (inclusive)
+            allButtons.forEach(b => {
+                if (b.value >= startMonth && b.value <= endMonth) {
+                    b.btn.classList.add('selected');
+                }
+            });
+        }
     }
+    
+    // Update disabled states based on range logic
+    updateMonthButtonStates(reportType);
     
     // Validate minimum 2 months selected
     const selectedMonths = container.querySelectorAll('.selection-btn.selected');
@@ -466,6 +504,66 @@ function toggleMonthSelection(reportType, month) {
         if (selectedMonths.length === 1 && !isSelected) {
             // Allow selection, but warn if they try to deselect
         }
+    }
+}
+
+// Update month button disabled states based on range logic
+function updateMonthButtonStates(reportType) {
+    const container = document.getElementById(reportType + 'MonthButtons');
+    if (!container) return;
+    
+    const selectedMonths = Array.from(container.querySelectorAll('.selection-btn.selected'))
+        .map(b => parseInt(b.getAttribute('data-value'), 10))
+        .sort((a, b) => a - b);
+    
+    // Get all month buttons
+    const allButtons = container.querySelectorAll('.selection-btn');
+    
+    if (selectedMonths.length === 0) {
+        // No selection: enable all buttons
+        allButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        });
+    } else if (selectedMonths.length === 1) {
+        // One month selected: disable months before it, enable months after it
+        const firstSelected = selectedMonths[0];
+        allButtons.forEach(btn => {
+            const monthValue = parseInt(btn.getAttribute('data-value'), 10);
+            const isSelected = btn.classList.contains('selected');
+            
+            if (monthValue < firstSelected && !isSelected) {
+                // Disable months before the first selected month
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            } else {
+                // Enable months from first selected onwards
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        });
+    } else {
+        // Range selected: disable months before the first selected month, enable rest
+        const firstSelected = selectedMonths[0];
+        allButtons.forEach(btn => {
+            const monthValue = parseInt(btn.getAttribute('data-value'), 10);
+            const isSelected = btn.classList.contains('selected');
+            
+            if (monthValue < firstSelected && !isSelected) {
+                // Disable months before the first selected month in the range
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            } else {
+                // Enable months from first selected onwards
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        });
     }
 }
 
@@ -496,6 +594,9 @@ function clearMonthSelections(reportType) {
     if (container) {
         container.querySelectorAll('.selection-btn').forEach(btn => {
             btn.classList.remove('selected');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
         });
     }
 }
