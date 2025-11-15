@@ -130,26 +130,26 @@ function initializeRoleBasedNavigation() {
     if (userRole === 'Finance Officer') {
         // Finance Officer: Include Dashboard
         navItems = [
-            { href: 'dashboard.html', icon: 'fas fa-home', text: 'Dashboard' },
-            { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
-            { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
-            { href: '/financeofficer/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-            { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
+            { href: '/financeofficer/dashboard', icon: 'fas fa-home', text: 'Dashboard' },
+            { href: '/financeofficer/memberdata', icon: 'fas fa-users', text: 'Member Data' },
+            { href: '/financeofficer/analytics', icon: 'fas fa-chart-bar', text: 'Analytics' },
+            { href: '/financeofficer/reports', icon: 'fas fa-file-alt', text: 'Reports' },
+            { href: '/financeofficer/notifications', icon: 'fas fa-bell', text: 'Notifications' }
         ];
     } else if (userRole === 'IT Head') {
         // IT Head: User Management, Analytics, Reports, Audit Logs (no notifications, no member data)
         navItems = [
-            { href: '/ithead/html/usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
-            { href: '/ithead/html/analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
-            { href: '/ithead/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-            { href: '/ithead/html/auditlogs.html', icon: 'fas fa-history', text: 'Audit Logs' }
+            { href: '/ithead/usermanagement', icon: 'fas fa-users-cog', text: 'User Management' },
+            { href: '/ithead/analytics', icon: 'fas fa-chart-bar', text: 'Analytics' },
+            { href: '/ithead/reports', icon: 'fas fa-file-alt', text: 'Reports' },
+            { href: '/ithead/auditlogs', icon: 'fas fa-history', text: 'Audit Logs' }
         ];
     } else {
         // Marketing Clerk and other roles: No Dashboard, No Analytics, starts with Member Data
         navItems = [
-            { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
-            { href: '/marketingclerk/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-            { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
+            { href: '/marketingclerk/memberdata', icon: 'fas fa-users', text: 'Member Data' },
+            { href: '/marketingclerk/reports', icon: 'fas fa-file-alt', text: 'Reports' },
+            { href: '/marketingclerk/notifications', icon: 'fas fa-bell', text: 'Notifications' }
         ];
     }
     
@@ -527,7 +527,7 @@ async function performLogout() {
     setTimeout(() => {
         // Clear user session data before redirect
         clearUserSession();
-        window.location.href = '../../logpage/login.html';
+        window.location.href = '/login';
     }, 3000);
 }
 
@@ -561,7 +561,7 @@ function handleAccountDeactivation(message) {
     sessionStorage.setItem('deactivationMessage', deactivationMessage);
     
     // Redirect to login page
-    window.location.href = '../../logpage/login.html?deactivated=true';
+    window.location.href = '/login?deactivated=true';
 }
 
 // Global fetch interceptor to catch deactivated account errors

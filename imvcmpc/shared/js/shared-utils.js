@@ -6,20 +6,20 @@ class SharedUtils {
                 name: 'Marketing Clerk',
                 navItems: [
                     // Dashboard and Analytics removed for Marketing Clerk
-                    { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
-                    { href: '/marketingclerk/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-                    { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
+                    { href: '/marketingclerk/memberdata', icon: 'fas fa-users', text: 'Member Data' },
+                    { href: '/marketingclerk/reports', icon: 'fas fa-file-alt', text: 'Reports' },
+                    { href: '/marketingclerk/notifications', icon: 'fas fa-bell', text: 'Notifications' }
                 ]
             },
             'finance-officer': {
                 name: 'Finance Officer',
                 navItems: [
                     // Dashboard is now available for Finance Officer
-                    { href: 'dashboard.html', icon: 'fas fa-home', text: 'Dashboard' },
-                    { href: 'memberdata.html', icon: 'fas fa-users', text: 'Member Data' },
-                    { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
-                    { href: '/financeofficer/html/reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-                    { href: 'notifications.html', icon: 'fas fa-bell', text: 'Notifications' }
+                    { href: '/financeofficer/dashboard', icon: 'fas fa-home', text: 'Dashboard' },
+                    { href: '/financeofficer/memberdata', icon: 'fas fa-users', text: 'Member Data' },
+                    { href: '/financeofficer/analytics', icon: 'fas fa-chart-bar', text: 'Analytics' },
+                    { href: '/financeofficer/reports', icon: 'fas fa-file-alt', text: 'Reports' },
+                    { href: '/financeofficer/notifications', icon: 'fas fa-bell', text: 'Notifications' }
                 ]
             }
         };
@@ -386,7 +386,7 @@ class SharedUtils {
         
         // Redirect to login page after showing loading
         setTimeout(() => {
-            window.location.href = '../../logpage/login.html';
+            window.location.href = '/login';
         }, 3000);
     }
 

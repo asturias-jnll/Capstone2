@@ -110,7 +110,7 @@ const config = {
             }
         },
         from: process.env.EMAIL_FROM || 'IMVCMPC System <capstone.imvcmpc.system@gmail.com>',
-        resetLinkBaseUrl: process.env.RESET_LINK_BASE_URL || 'http://localhost:8080/logpage/reset-password.html'
+        resetLinkBaseUrl: process.env.RESET_LINK_BASE_URL || 'http://localhost:8080/reset-password'
     }
 };
 

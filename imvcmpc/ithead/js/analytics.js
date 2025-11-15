@@ -31,7 +31,7 @@ function checkAuthentication() {
     const user = localStorage.getItem('user');
     
     if (!accessToken || !user) {
-        window.location.href = '../../logpage/login.html';
+        window.location.href = '/login';
         return;
     }
     
@@ -709,10 +709,10 @@ function initializeITHeadNavigation() {
     navMenu.innerHTML = '';
     
     const navItems = [
-        { href: 'usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
-        { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
-        { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-        { href: 'auditlogs.html', icon: 'fas fa-history', text: 'Audit Logs' }
+        { href: '/ithead/usermanagement', icon: 'fas fa-users-cog', text: 'User Management' },
+        { href: '/ithead/analytics', icon: 'fas fa-chart-bar', text: 'Analytics' },
+        { href: '/ithead/reports', icon: 'fas fa-file-alt', text: 'Reports' },
+        { href: '/ithead/auditlogs', icon: 'fas fa-history', text: 'Audit Logs' }
     ];
     
     navItems.forEach(item => {

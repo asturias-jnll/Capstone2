@@ -18,17 +18,17 @@
         
         if (!userBranchId || !userBranchName || isMainBranchUser === null) {
             // Redirect to login if branch information is not available
-            window.location.href = '../../logpage/login.html';
+            window.location.href = '/login';
         } else {
             // Redirect to dashboard page (dashboard is now available for Finance Officer)
-            window.location.href = '../../shared/html/dashboard.html';
+            window.location.href = '/financeofficer/dashboard';
         }
     </script>
     
     <!-- Fallback content in case JavaScript is disabled -->
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
         <h2>Redirecting to Dashboard...</h2>
-        <p>If you are not redirected automatically, <a href="../../shared/html/dashboard.html">click here</a>.</p>
+        <p>If you are not redirected automatically, <a href="/financeofficer/dashboard">click here</a>.</p>
     </div>
 
     <!-- Live Reload for Development -->

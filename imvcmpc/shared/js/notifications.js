@@ -710,7 +710,17 @@ async function handleTakeAction() {
         await markAsRead(notificationId, false);
         
         // Redirect to member data page with the request ID
-        window.location.href = `memberdata.html?highlightRequest=${requestId}`;
+        // Determine correct memberdata URL based on user role
+        const userRole = localStorage.getItem('user_role');
+        let memberdataUrl;
+        if (userRole === 'Finance Officer') {
+            memberdataUrl = `/financeofficer/memberdata?highlightRequest=${requestId}`;
+        } else if (userRole === 'Marketing Clerk') {
+            memberdataUrl = `/marketingclerk/memberdata?highlightRequest=${requestId}`;
+        } else {
+            memberdataUrl = `/marketingclerk/memberdata?highlightRequest=${requestId}`;
+        }
+        window.location.href = memberdataUrl;
     } else if (currentNotification && currentNotification.reference_type === 'report_request') {
         const notificationId = currentNotification.id;
         const requestId = currentNotification.reference_id;
@@ -727,12 +737,17 @@ async function handleTakeAction() {
         // Finance Officer receives report requests from Marketing Clerk
         let redirectUrl;
         if (metadata && metadata.redirect_url) {
-            redirectUrl = metadata.redirect_url;
+            // Update old redirect URLs to clean URLs
+            redirectUrl = metadata.redirect_url
+                .replace(/\.\.\/\.\.\/marketingclerk\/html\/reports\.html/, '/marketingclerk/reports')
+                .replace(/\.\.\/\.\.\/financeofficer\/html\/reports\.html/, '/financeofficer/reports')
+                .replace(/\/marketingclerk\/html\/reports\.html/, '/marketingclerk/reports')
+                .replace(/\/financeofficer\/html\/reports\.html/, '/financeofficer/reports');
         } else if (userRole === 'Finance Officer') {
-            redirectUrl = `/financeofficer/html/reports.html?from=report_request&requestId=${encodeURIComponent(requestId)}`;
+            redirectUrl = `/financeofficer/reports?from=report_request&requestId=${encodeURIComponent(requestId)}`;
         } else {
             // Fallback for Marketing Clerk (shouldn't happen, but just in case)
-            redirectUrl = `/marketingclerk/html/reports.html?from=report_request&requestId=${encodeURIComponent(requestId)}`;
+            redirectUrl = `/marketingclerk/reports?from=report_request&requestId=${encodeURIComponent(requestId)}`;
         }
 
         // Persist minimal prefill so Reports can hydrate if metadata lacks details
@@ -788,12 +803,19 @@ async function handleViewReport() {
         // If no redirect URL in metadata, determine based on role
         if (!redirectUrl) {
             if (userRole === 'Marketing Clerk') {
-                redirectUrl = `../../marketingclerk/html/reports.html?reportId=${reportId}`;
+                redirectUrl = `/marketingclerk/reports?reportId=${reportId}`;
             } else if (userRole === 'Finance Officer') {
-                redirectUrl = `../../financeofficer/html/reports.html?reportId=${reportId}`;
+                redirectUrl = `/financeofficer/reports?reportId=${reportId}`;
             } else {
-                redirectUrl = `../../financeofficer/html/reports.html?reportId=${reportId}`;
+                redirectUrl = `/financeofficer/reports?reportId=${reportId}`;
             }
+        } else {
+            // Update old redirect URLs to clean URLs
+            redirectUrl = redirectUrl
+                .replace(/\.\.\/\.\.\/marketingclerk\/html\/reports\.html/, '/marketingclerk/reports')
+                .replace(/\.\.\/\.\.\/financeofficer\/html\/reports\.html/, '/financeofficer/reports')
+                .replace(/\/marketingclerk\/html\/reports\.html/, '/marketingclerk/reports')
+                .replace(/\/financeofficer\/html\/reports\.html/, '/financeofficer/reports');
         }
         
         console.log('🔗 Redirecting to:', redirectUrl);

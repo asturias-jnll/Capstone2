@@ -38,10 +38,10 @@ function initializeITHeadNavigation() {
     
     // IT Head navigation items
     const navItems = [
-        { href: 'usermanagement.html', icon: 'fas fa-users-cog', text: 'User Management' },
-        { href: 'analytics.html', icon: 'fas fa-chart-bar', text: 'Analytics' },
-        { href: 'reports.html', icon: 'fas fa-file-alt', text: 'Reports' },
-        { href: 'auditlogs.html', icon: 'fas fa-history', text: 'Audit Logs' }
+        { href: '/ithead/usermanagement', icon: 'fas fa-users-cog', text: 'User Management' },
+        { href: '/ithead/analytics', icon: 'fas fa-chart-bar', text: 'Analytics' },
+        { href: '/ithead/reports', icon: 'fas fa-file-alt', text: 'Reports' },
+        { href: '/ithead/auditlogs', icon: 'fas fa-history', text: 'Audit Logs' }
     ];
     
     // Generate navigation HTML (no count badges)
@@ -188,7 +188,7 @@ function checkAuthentication() {
     const user = localStorage.getItem('user');
     
     if (!accessToken || !user) {
-        window.location.href = '../../logpage/login.html';
+        window.location.href = '/login';
         return;
     }
     
@@ -202,10 +202,10 @@ function checkAuthentication() {
             return;
         }
         
-        // Redirect to user management page if on main.html
-        const currentPage = window.location.pathname.split('/').pop();
-        if (currentPage === 'main.html') {
-            window.location.href = 'usermanagement.html';
+        // Redirect to user management page if on main page
+        const currentPath = window.location.pathname;
+        if (currentPath === '/ithead/main' || currentPath.endsWith('/ithead/main.html')) {
+            window.location.href = '/ithead/usermanagement';
         }
     } catch (error) {
         console.error('Error parsing user data:', error);

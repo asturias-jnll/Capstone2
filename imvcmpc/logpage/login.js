@@ -178,17 +178,17 @@ function redirectBasedOnRole(role) {
     let redirectUrl;
     switch (role) {
         case 'marketing_clerk':
-            redirectUrl = '../shared/html/memberdata.html';
+            redirectUrl = '/marketingclerk/memberdata';
             break;
         case 'finance_officer':
-            redirectUrl = '../financeofficer/html/dashboard.html';
+            redirectUrl = '/financeofficer/dashboard';
             break;
         case 'it_head':
-            redirectUrl = '../ithead/html/main.html';
+            redirectUrl = '/ithead/main';
             break;
         default:
             // Default to marketing clerk member data page
-            redirectUrl = '../shared/html/memberdata.html';
+            redirectUrl = '/marketingclerk/memberdata';
             break;
     }
     
@@ -226,7 +226,7 @@ async function refreshAccessToken() {
         console.error('Token refresh error:', error);
         // Clear stored tokens and redirect to login
         clearUserSession();
-        window.location.href = 'login.html';
+        window.location.href = '/login';
         throw error;
     }
 }

@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const userRole = localStorage.getItem('user_role');
     if (userRole !== 'IT Head') {
         alert('Access denied. Only IT Head can access audit logs.');
-        window.location.href = '../../logpage/login.html';
+        window.location.href = '/login';
         return;
     }
 
@@ -117,7 +117,7 @@ async function loadAuditLogs() {
         const token = localStorage.getItem('access_token');
         if (!token) {
             alert('Authentication required. Please login again.');
-            window.location.href = '../../logpage/login.html';
+            window.location.href = '/login';
             return;
         }
 

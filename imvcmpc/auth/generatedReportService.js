@@ -152,7 +152,7 @@ class GeneratedReportService {
                                 report_id: report.id,
                                 file_name: fileName,
                                 file_size: fileSize,
-                                redirect_url: `../../marketingclerk/html/reports.html?reportId=${report.id}`
+                                redirect_url: `/marketingclerk/reports?reportId=${report.id}`
                             }
                         });
                         console.log('✅ Notification created successfully:', notification ? notification.id : 'null');
