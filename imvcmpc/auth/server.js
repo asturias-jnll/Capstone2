@@ -91,10 +91,39 @@ app.get('/health', async (req, res) => {
 // Helper function to serve HTML files
 const serveHtml = (filePath) => {
     return (req, res) => {
-        const fullPath = path.join(__dirname, '..', filePath);
-        if (fs.existsSync(fullPath)) {
-            res.sendFile(path.resolve(fullPath));
+        // Try multiple possible paths to handle different deployment structures
+        const possiblePaths = [
+            path.join(__dirname, filePath),           // Standard: /app/static/logpage/login.html
+            path.join(__dirname, '..', filePath),    // Alternative: /app/../static/logpage/login.html
+            path.join(process.cwd(), filePath),     // Using cwd: /app/static/logpage/login.html
+            path.join(process.cwd(), '..', filePath)  // Alternative cwd
+        ];
+        
+        let resolvedPath = null;
+        for (const possiblePath of possiblePaths) {
+            const resolved = path.resolve(possiblePath);
+            if (fs.existsSync(resolved)) {
+                resolvedPath = resolved;
+                break;
+            }
+        }
+        
+        // Debug logging
+        console.log(`[serveHtml] Requested: ${req.originalUrl}`);
+        console.log(`[serveHtml] __dirname: ${__dirname}`);
+        console.log(`[serveHtml] process.cwd(): ${process.cwd()}`);
+        console.log(`[serveHtml] filePath: ${filePath}`);
+        
+        if (resolvedPath) {
+            console.log(`[serveHtml] Serving: ${resolvedPath}`);
+            res.sendFile(resolvedPath);
         } else {
+            // Log all attempted paths for debugging
+            console.error(`[serveHtml] File not found. Tried paths:`);
+            possiblePaths.forEach(p => {
+                const resolved = path.resolve(p);
+                console.error(`  - ${resolved} (exists: ${fs.existsSync(resolved)})`);
+            });
             res.status(404).json({
                 success: false,
                 error: 'Page not found',
