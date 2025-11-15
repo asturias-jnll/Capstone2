@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const authRoutes = require('./routes');
@@ -86,6 +88,66 @@ app.get('/health', async (req, res) => {
     }
 });
 
+// Helper function to serve HTML files
+const serveHtml = (filePath) => {
+    return (req, res) => {
+        const fullPath = path.join(__dirname, '..', filePath);
+        if (fs.existsSync(fullPath)) {
+            res.sendFile(path.resolve(fullPath));
+        } else {
+            res.status(404).json({
+                success: false,
+                error: 'Page not found',
+                path: req.originalUrl
+            });
+        }
+    };
+};
+
+// Clean URL routing - must be before static file serving
+// Root redirect to login
+app.get('/', (req, res) => {
+    res.redirect('/login');
+});
+
+// Login page routes
+app.get('/login', serveHtml('static/logpage/login.html'));
+app.get('/reset-password', serveHtml('static/logpage/reset-password.html'));
+
+// Finance Officer routes
+app.get('/financeofficer/dashboard', serveHtml('static/financeofficer/html/dashboard.html'));
+app.get('/financeofficer/account', serveHtml('static/financeofficer/html/account.html'));
+app.get('/financeofficer/analytics', serveHtml('static/financeofficer/html/analytics.html'));
+app.get('/financeofficer/main', serveHtml('static/financeofficer/html/main.html'));
+app.get('/financeofficer/memberdata', serveHtml('static/financeofficer/html/memberdata.html'));
+app.get('/financeofficer/notifications', serveHtml('static/financeofficer/html/notifications.html'));
+app.get('/financeofficer/reports', serveHtml('static/financeofficer/html/reports.html'));
+
+// Marketing Clerk routes
+app.get('/marketingclerk/dashboard', serveHtml('static/marketingclerk/html/dashboard.html'));
+app.get('/marketingclerk/account', serveHtml('static/marketingclerk/html/account.html'));
+app.get('/marketingclerk/analytics', serveHtml('static/marketingclerk/html/analytics.html'));
+app.get('/marketingclerk/main', serveHtml('static/marketingclerk/html/main.html'));
+app.get('/marketingclerk/memberdata', serveHtml('static/marketingclerk/html/memberdata.html'));
+app.get('/marketingclerk/notifications', serveHtml('static/marketingclerk/html/notifications.html'));
+app.get('/marketingclerk/reports', serveHtml('static/marketingclerk/html/reports.html'));
+
+// IT Head routes
+app.get('/ithead/account', serveHtml('static/ithead/html/account.html'));
+app.get('/ithead/analytics', serveHtml('static/ithead/html/analytics.html'));
+app.get('/ithead/auditlogs', serveHtml('static/ithead/html/auditlogs.html'));
+app.get('/ithead/main', serveHtml('static/ithead/html/main.html'));
+app.get('/ithead/reports', serveHtml('static/ithead/html/reports.html'));
+app.get('/ithead/usermanagement', serveHtml('static/ithead/html/usermanagement.html'));
+
+// Shared routes (if needed)
+app.get('/shared/account', serveHtml('static/shared/html/account.html'));
+app.get('/shared/analytics', serveHtml('static/shared/html/analytics.html'));
+app.get('/shared/dashboard', serveHtml('static/shared/html/dashboard.html'));
+app.get('/shared/main', serveHtml('static/shared/html/main.html'));
+app.get('/shared/memberdata', serveHtml('static/shared/html/memberdata.html'));
+app.get('/shared/notifications', serveHtml('static/shared/html/notifications.html'));
+
 // Serve static files
 app.use('/shared', express.static('static/shared'));
 app.use('/financeofficer', express.static('static/financeofficer'));
@@ -93,11 +155,6 @@ app.use('/marketingclerk', express.static('static/marketingclerk'));
 app.use('/ithead', express.static('static/ithead'));
 app.use('/logpage', express.static('static/logpage'));
 app.use('/assets', express.static('static/assets'));
-
-// Root redirect to login page
-app.get('/', (req, res) => {
-    res.redirect('/logpage/login.html');
-});
 
 // API routes
 app.use('/api/auth', authRoutes);
