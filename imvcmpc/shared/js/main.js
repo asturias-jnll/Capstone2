@@ -279,8 +279,23 @@ async function updateNotificationCount() {
         console.log('📋 Full API response:', data);
         
         if (data.success) {
-            const notifications = data.data || [];
-            console.log('📬 Total notifications received:', notifications.length);
+            let notifications = data.data || [];
+            console.log('📬 Total notifications received from API:', notifications.length);
+            
+            // Apply completed status from localStorage (for notifications marked as completed client-side)
+            const COMPLETED_KEY = 'completed_notifications';
+            const completedIds = JSON.parse(localStorage.getItem(COMPLETED_KEY) || '[]');
+            if (completedIds.length > 0) {
+                console.log('📋 Found', completedIds.length, 'completed notifications in localStorage');
+                notifications = notifications.map(notification => {
+                    if (completedIds.includes(notification.id)) {
+                        return { ...notification, status: 'completed', is_highlighted: false };
+                    }
+                    return notification;
+                });
+            }
+            
+            console.log('📬 Total notifications after applying localStorage status:', notifications.length);
             
             // Log all notifications for debugging
             notifications.forEach((n, index) => {
@@ -289,23 +304,58 @@ async function updateNotificationCount() {
             
             // Count unactioned notifications (not completed, exclude system and change request approved/rejected)
             const unactionedCount = notifications.filter(n => {
-                // Exclude completed notifications
+                // Exclude completed notifications (handle null/undefined status)
                 if (n.status === 'completed') return false;
-                // Exclude system notifications (reactivation, password reset)
+                
+                // Exclude system notifications (reactivation, password reset) - these are counted separately
                 if (n.category === 'system') return false;
+                
                 // Exclude change request approved/rejected notifications
                 if (n.reference_type === 'change_request' && 
                     (n.title.includes('Approved') || n.title.includes('Rejected'))) {
                     return false;
                 }
+                
+                // Include all other notifications (pending, null, undefined, or any other status)
+                // This includes: report_request, generated_report, change_request (pending), etc.
                 return true;
             }).length;
             
             // Count unread system notifications (including reactivation notifications)
-            const systemUnreadCount = notifications.filter(n => n.category === 'system' && !n.isRead).length;
+            const systemUnreadCount = notifications.filter(n => {
+                return n.category === 'system' && !n.isRead;
+            }).length;
             
             // Navbar badge should show unactioned + unread system notifications
             const navbarBadgeCount = unactionedCount + systemUnreadCount;
+            
+            // Debug logging for Marketing Clerk
+            if (userRole === 'Marketing Clerk') {
+                console.log('📊 Marketing Clerk Notification Breakdown:');
+                console.log('  Total notifications:', notifications.length);
+                console.log('  By status:', {
+                    completed: notifications.filter(n => n.status === 'completed').length,
+                    pending: notifications.filter(n => n.status === 'pending').length,
+                    null_undefined: notifications.filter(n => !n.status || n.status === null).length,
+                    other: notifications.filter(n => n.status && n.status !== 'completed' && n.status !== 'pending').length
+                });
+                console.log('  By category:', {
+                    system: notifications.filter(n => n.category === 'system').length,
+                    important: notifications.filter(n => n.category === 'important').length,
+                    other: notifications.filter(n => n.category && n.category !== 'system' && n.category !== 'important').length
+                });
+                console.log('  By reference_type:', {
+                    report_request: notifications.filter(n => n.reference_type === 'report_request').length,
+                    generated_report: notifications.filter(n => n.reference_type === 'generated_report').length,
+                    change_request: notifications.filter(n => n.reference_type === 'change_request').length,
+                    other: notifications.filter(n => n.reference_type && !['report_request', 'generated_report', 'change_request'].includes(n.reference_type)).length,
+                    null: notifications.filter(n => !n.reference_type).length
+                });
+                console.log('  Unread count:', notifications.filter(n => !n.isRead).length);
+                console.log('  Unactioned count:', unactionedCount);
+                console.log('  System unread count:', systemUnreadCount);
+                console.log('  Final badge count:', navbarBadgeCount);
+            }
             
             console.log('🔢 Total unactioned notifications:', unactionedCount);
             console.log('🔢 Total unread system notifications:', systemUnreadCount);
