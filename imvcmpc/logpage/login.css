@@ -184,15 +184,18 @@ body {
 }
 
 .error-message {
-    background: #FFE0E0;
+    background: transparent;
     border-radius: 8px;
     padding: 8px 12px;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     color: var(--red);
-    font-weight: 600;
+    font-weight: 400;
+    font-size: 13px;
+    text-align: center;
 }
 
 .form-group {
@@ -766,8 +769,10 @@ body {
     }
     
     .error-message {
-        font-size: 14px;
+        background: transparent;
+        font-size: 13px;
         padding: 6px 10px;
+        font-weight: 400;
     }
     
     .form-group {
@@ -866,8 +871,10 @@ body {
     }
     
     .error-message {
+        background: transparent;
         font-size: 12px;
         padding: 5px 8px;
+        font-weight: 400;
     }
     
     .form-group label {
