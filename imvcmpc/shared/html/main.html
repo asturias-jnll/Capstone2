@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMVCMPC - Dashboard</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="/shared/css/main.css">
+    <link rel="stylesheet" href="/shared/css/dashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -25,7 +25,7 @@
         <nav class="navigation">
             <div class="nav-header">
                 <div class="nav-logo">
-                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <img src="/assets/logo.png" alt="IMVCMPC Logo">
                     <span class="logo-text">IMVCMPC</span>
                 </div>
                 <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-items-container">
@@ -34,30 +34,30 @@
             </div>
             
             <div class="nav-menu" id="nav-items-container" role="navigation" aria-label="Main navigation">
-                <a href="main.html" class="nav-item active" aria-current="page">
+                <a href="#" class="nav-item active" aria-current="page" onclick="window.location.href=getMainUrl(); return false;">
                     <i class="fas fa-home" aria-hidden="true"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="memberdata.html" class="nav-item">
+                <a href="#" class="nav-item" onclick="window.location.href=getMemberdataUrl(); return false;">
                     <i class="fas fa-users" aria-hidden="true"></i>
                     <span>Member Data</span>
                 </a>
-                <a href="analytics.html" class="nav-item">
+                <a href="#" class="nav-item" onclick="window.location.href=getAnalyticsUrl(); return false;">
                     <i class="fas fa-chart-bar" aria-hidden="true"></i>
                     <span>Analytics</span>
                 </a>
-                <a href="reports.html" class="nav-item">
+                <a href="#" class="nav-item" onclick="window.location.href=getReportsUrl(); return false;">
                     <i class="fas fa-file-alt" aria-hidden="true"></i>
                     <span>Reports</span>
                 </a>
-                <a href="notifications.html" class="nav-item">
+                <a href="#" class="nav-item" onclick="window.location.href=getNotificationsUrl(); return false;">
                     <i class="fas fa-bell" aria-hidden="true"></i>
                     <span>Notifications</span>
                 </a>
             </div>
             
             <div class="nav-account">
-                <a href="account.html" class="nav-item" aria-label="View account settings">
+                <a href="#" class="nav-item" aria-label="View account settings" onclick="window.location.href=getAccountUrl(); return false;">
                     <i class="fas fa-user-circle" aria-hidden="true"></i>
                     <span>Account</span>
                 </a>
@@ -209,8 +209,8 @@
         </main>
     </div>
 
-    <script src="../js/main.js"></script>
-    <script src="../js/dashboard.js"></script>
+    <script src="/shared/js/main.js"></script>
+    <script src="/shared/js/dashboard.js"></script>
     <script>
         // Update date and time
         function updateDateTime() {
@@ -244,8 +244,72 @@
         </script>
     
     <!-- Load shared dashboard JavaScript -->
-    <script src="../js/shared-utils.js"></script>
-    <script src="../js/dashboard.js"></script>
+    <script src="/shared/js/shared-utils.js"></script>
+    <script>
+        // Helper functions to get URLs based on role
+        function getAccountUrl() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                return '/financeofficer/account';
+            } else if (userRole === 'Marketing Clerk') {
+                return '/marketingclerk/account';
+            } else if (userRole === 'IT Head') {
+                return '/ithead/account';
+            }
+            return '/marketingclerk/account'; // default
+        }
+        function getMainUrl() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                return '/financeofficer/dashboard';
+            } else if (userRole === 'Marketing Clerk') {
+                return '/marketingclerk/memberdata';
+            } else if (userRole === 'IT Head') {
+                return '/ithead/main';
+            }
+            return '/marketingclerk/memberdata'; // default
+        }
+        function getMemberdataUrl() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                return '/financeofficer/memberdata';
+            } else if (userRole === 'Marketing Clerk') {
+                return '/marketingclerk/memberdata';
+            }
+            return '/marketingclerk/memberdata'; // default
+        }
+        function getAnalyticsUrl() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                return '/financeofficer/analytics';
+            } else if (userRole === 'Marketing Clerk') {
+                return '/marketingclerk/analytics';
+            } else if (userRole === 'IT Head') {
+                return '/ithead/analytics';
+            }
+            return '/marketingclerk/analytics'; // default
+        }
+        function getReportsUrl() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                return '/financeofficer/reports';
+            } else if (userRole === 'Marketing Clerk') {
+                return '/marketingclerk/reports';
+            } else if (userRole === 'IT Head') {
+                return '/ithead/reports';
+            }
+            return '/marketingclerk/reports'; // default
+        }
+        function getNotificationsUrl() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                return '/financeofficer/notifications';
+            } else if (userRole === 'Marketing Clerk') {
+                return '/marketingclerk/notifications';
+            }
+            return '/marketingclerk/notifications'; // default
+        }
+    </script>
 
     <!-- Live Reload for Development -->
     <script src="/shared/js/live-reload.js"></script>

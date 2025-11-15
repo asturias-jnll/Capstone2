@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IMVCMPC - Dashboard</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="/shared/css/main.css">
+    <link rel="stylesheet" href="/shared/css/dashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -26,7 +26,7 @@
         <nav class="navigation">
             <div class="nav-header">
                 <div class="nav-logo">
-                    <img src="../../assets/logo.png" alt="IMVCMPC Logo">
+                    <img src="/assets/logo.png" alt="IMVCMPC Logo">
                     <span class="logo-text">IMVCMPC</span>
                 </div>
                 <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
@@ -42,7 +42,7 @@
             </div>
             
             <div class="nav-account">
-                <a href="account.html" class="nav-item">
+                <a href="#" class="nav-item" onclick="window.location.href=getAccountUrl(); return false;">
                     <i class="fas fa-user-circle"></i>
                     <span>Account</span>
                 </a>
@@ -158,7 +158,7 @@
 
                 <!-- Quick Actions -->
                 <div class="quick-actions">
-                    <a href="analytics.html" class="action-btn primary">
+                    <a href="#" class="action-btn primary" onclick="window.location.href=getAnalyticsUrl(); return false;">
                         <i class="fas fa-chart-bar"></i>
                         <span>View Full Analytics</span>
                     </a>
@@ -177,7 +177,7 @@
                         <div class="insight-card">
                             <div class="insight-header">
                                 <h3>Top Members</h3>
-                                <a href="analytics.html" class="view-all">View All</a>
+                                <a href="#" class="view-all" onclick="window.location.href=getAnalyticsUrl(); return false;">View All</a>
                             </div>
                             <div class="insight-content">
                                 <div class="no-data-message">
@@ -191,7 +191,7 @@
                         <div class="insight-card" id="topPatronsCard" style="display: none;">
                             <div class="insight-header">
                                 <h3>Top Patrons</h3>
-                                <a href="analytics.html" class="view-all">View All</a>
+                                <a href="#" class="view-all" onclick="window.location.href=getAnalyticsUrl(); return false;">View All</a>
                             </div>
                             <div class="insight-content">
                                 <div class="no-data-message">
@@ -208,7 +208,7 @@
                         <div class="insight-card" id="branchRankingsCard" style="display: none;">
                             <div class="insight-header">
                                 <h3>Branch Rankings</h3>
-                                <a href="analytics.html" class="view-all">View All</a>
+                                <a href="#" class="view-all" onclick="window.location.href=getAnalyticsUrl(); return false;">View All</a>
                             </div>
                             <div class="insight-content">
                                 <div class="no-data-message">
@@ -224,11 +224,36 @@
         </main>
     </div>
 
-    <script src="../js/audit-logger.js"></script>
-    <script src="../js/main.js"></script>
-    <script src="../js/shared-utils.js"></script>
-    <script src="../js/dashboard.js"></script>
-    <script src="../js/topbar.js"></script>
+    <script src="/shared/js/audit-logger.js"></script>
+    <script src="/shared/js/main.js"></script>
+    <script src="/shared/js/shared-utils.js"></script>
+    <script src="/shared/js/dashboard.js"></script>
+    <script src="/shared/js/topbar.js"></script>
+    <script>
+        // Helper functions to get URLs based on role
+        function getAccountUrl() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                return '/financeofficer/account';
+            } else if (userRole === 'Marketing Clerk') {
+                return '/marketingclerk/account';
+            } else if (userRole === 'IT Head') {
+                return '/ithead/account';
+            }
+            return '/marketingclerk/account'; // default
+        }
+        function getAnalyticsUrl() {
+            const userRole = localStorage.getItem('user_role');
+            if (userRole === 'Finance Officer') {
+                return '/financeofficer/analytics';
+            } else if (userRole === 'Marketing Clerk') {
+                return '/marketingclerk/analytics';
+            } else if (userRole === 'IT Head') {
+                return '/ithead/analytics';
+            }
+            return '/marketingclerk/analytics'; // default
+        }
+    </script>
     <script>
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
