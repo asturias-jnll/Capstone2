@@ -302,32 +302,57 @@ async function updateNotificationCount() {
                 console.log(`  [${index}] Title: "${n.title}" | Type: ${n.reference_type} | Read: ${n.isRead} | Status: ${n.status}`);
             });
             
-            // Count unactioned notifications (not completed, exclude system and change request approved/rejected)
-            const unactionedCount = notifications.filter(n => {
-                // Exclude completed notifications (handle null/undefined status)
+            // Count notifications that require action (always count until completed, regardless of read status)
+            // These include: generated_report, report_request, change_request (pending)
+            const actionRequiredCount = notifications.filter(n => {
+                // Exclude completed notifications
                 if (n.status === 'completed') return false;
                 
-                // Exclude system notifications (reactivation, password reset) - these are counted separately
+                // Exclude system notifications (these don't require action, counted separately)
                 if (n.category === 'system') return false;
                 
-                // Exclude change request approved/rejected notifications
+                // Exclude change request approved/rejected (these don't require action)
                 if (n.reference_type === 'change_request' && 
                     (n.title.includes('Approved') || n.title.includes('Rejected'))) {
                     return false;
                 }
                 
-                // Include all other notifications (pending, null, undefined, or any other status)
-                // This includes: report_request, generated_report, change_request (pending), etc.
-                return true;
+                // Include notifications that require action: generated_report, report_request, change_request (pending)
+                // These should be counted regardless of read status until completed
+                if (n.reference_type === 'generated_report' || 
+                    n.reference_type === 'report_request' || 
+                    (n.reference_type === 'change_request' && n.status !== 'completed')) {
+                    return true;
+                }
+                
+                // For other important notifications, count them if they're not completed
+                if (n.category === 'important' && n.status !== 'completed') {
+                    return true;
+                }
+                
+                return false;
             }).length;
             
-            // Count unread system notifications (including reactivation notifications)
-            const systemUnreadCount = notifications.filter(n => {
-                return n.category === 'system' && !n.isRead;
+            // Count unread notifications that don't require action (system notifications, informational)
+            // These should only be counted if unread
+            const unreadNoActionCount = notifications.filter(n => {
+                // System notifications (reactivation, password reset) - only count if unread
+                if (n.category === 'system' && !n.isRead) {
+                    return true;
+                }
+                
+                // Change request approved/rejected - only count if unread
+                if (n.reference_type === 'change_request' && 
+                    (n.title.includes('Approved') || n.title.includes('Rejected')) && 
+                    !n.isRead) {
+                    return true;
+                }
+                
+                return false;
             }).length;
             
-            // Navbar badge should show unactioned + unread system notifications
-            const navbarBadgeCount = unactionedCount + systemUnreadCount;
+            // Navbar badge should show: notifications requiring action + unread notifications without action
+            const navbarBadgeCount = actionRequiredCount + unreadNoActionCount;
             
             // Debug logging for Marketing Clerk
             if (userRole === 'Marketing Clerk') {
@@ -352,13 +377,25 @@ async function updateNotificationCount() {
                     null: notifications.filter(n => !n.reference_type).length
                 });
                 console.log('  Unread count:', notifications.filter(n => !n.isRead).length);
-                console.log('  Unactioned count:', unactionedCount);
-                console.log('  System unread count:', systemUnreadCount);
+                console.log('  Action required count:', actionRequiredCount);
+                console.log('  Unread no-action count:', unreadNoActionCount);
                 console.log('  Final badge count:', navbarBadgeCount);
+                
+                // Detailed breakdown by type
+                console.log('  Action required breakdown:', {
+                    generated_report: notifications.filter(n => n.reference_type === 'generated_report' && n.status !== 'completed').length,
+                    report_request: notifications.filter(n => n.reference_type === 'report_request' && n.status !== 'completed').length,
+                    change_request_pending: notifications.filter(n => n.reference_type === 'change_request' && n.status !== 'completed' && !n.title.includes('Approved') && !n.title.includes('Rejected')).length,
+                    other_important: notifications.filter(n => n.category === 'important' && !['generated_report', 'report_request', 'change_request'].includes(n.reference_type) && n.status !== 'completed').length
+                });
+                console.log('  Unread no-action breakdown:', {
+                    system_unread: notifications.filter(n => n.category === 'system' && !n.isRead).length,
+                    change_request_approved_rejected_unread: notifications.filter(n => n.reference_type === 'change_request' && (n.title.includes('Approved') || n.title.includes('Rejected')) && !n.isRead).length
+                });
             }
             
-            console.log('🔢 Total unactioned notifications:', unactionedCount);
-            console.log('🔢 Total unread system notifications:', systemUnreadCount);
+            console.log('🔢 Notifications requiring action:', actionRequiredCount);
+            console.log('🔢 Unread notifications without action:', unreadNoActionCount);
             console.log('🎯 Updating badge with count:', navbarBadgeCount);
             
             updateNotificationBadge(navbarBadgeCount);
