@@ -144,21 +144,23 @@ app.get('/login', serveHtml('static/logpage/login.html'));
 app.get('/reset-password', serveHtml('static/logpage/reset-password.html'));
 
 // Finance Officer routes
-app.get('/financeofficer/dashboard', serveHtml('static/financeofficer/html/dashboard.html'));
-app.get('/financeofficer/account', serveHtml('static/financeofficer/html/account.html'));
-app.get('/financeofficer/analytics', serveHtml('static/financeofficer/html/analytics.html'));
+// Dashboard is shared page, others are also shared pages
+app.get('/financeofficer/dashboard', serveHtml('static/shared/html/dashboard.html'));
+app.get('/financeofficer/account', serveHtml('static/shared/html/account.html'));
+app.get('/financeofficer/analytics', serveHtml('static/shared/html/analytics.html'));
 app.get('/financeofficer/main', serveHtml('static/financeofficer/html/main.html'));
-app.get('/financeofficer/memberdata', serveHtml('static/financeofficer/html/memberdata.html'));
-app.get('/financeofficer/notifications', serveHtml('static/financeofficer/html/notifications.html'));
+app.get('/financeofficer/memberdata', serveHtml('static/shared/html/memberdata.html'));
+app.get('/financeofficer/notifications', serveHtml('static/shared/html/notifications.html'));
 app.get('/financeofficer/reports', serveHtml('static/financeofficer/html/reports.html'));
 
 // Marketing Clerk routes
-app.get('/marketingclerk/dashboard', serveHtml('static/marketingclerk/html/dashboard.html'));
-app.get('/marketingclerk/account', serveHtml('static/marketingclerk/html/account.html'));
-app.get('/marketingclerk/analytics', serveHtml('static/marketingclerk/html/analytics.html'));
+// All pages are shared except reports
+app.get('/marketingclerk/dashboard', serveHtml('static/shared/html/dashboard.html'));
+app.get('/marketingclerk/account', serveHtml('static/shared/html/account.html'));
+app.get('/marketingclerk/analytics', serveHtml('static/shared/html/analytics.html'));
 app.get('/marketingclerk/main', serveHtml('static/marketingclerk/html/main.html'));
-app.get('/marketingclerk/memberdata', serveHtml('static/marketingclerk/html/memberdata.html'));
-app.get('/marketingclerk/notifications', serveHtml('static/marketingclerk/html/notifications.html'));
+app.get('/marketingclerk/memberdata', serveHtml('static/shared/html/memberdata.html'));
+app.get('/marketingclerk/notifications', serveHtml('static/shared/html/notifications.html'));
 app.get('/marketingclerk/reports', serveHtml('static/marketingclerk/html/reports.html'));
 
 // IT Head routes
