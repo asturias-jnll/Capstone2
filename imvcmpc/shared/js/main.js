@@ -23,7 +23,50 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize role-based navigation
     initializeRoleBasedNavigation();
+    
+    // Ensure notification badge is created for Marketing Clerk and Finance Officer
+    const userRole = localStorage.getItem('user_role');
+    if (userRole === 'Marketing Clerk' || userRole === 'Finance Officer') {
+        // Wait a bit for navigation to be created, then ensure badge exists
+        setTimeout(() => {
+            ensureNotificationBadgeExists();
+        }, 500);
+    }
 });
+
+// Ensure notification badge exists in navigation
+function ensureNotificationBadgeExists() {
+    const userRole = localStorage.getItem('user_role');
+    if (userRole !== 'Marketing Clerk' && userRole !== 'Finance Officer') {
+        return; // Only for Marketing Clerk and Finance Officer
+    }
+    
+    // Check if badge already exists
+    let badge = document.getElementById('navNotificationBadge');
+    if (badge) {
+        return; // Badge already exists
+    }
+    
+    // Find notifications nav item
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (href && (href.includes('notifications') || href === 'notifications.html')) {
+            // Check if badge already exists in this item
+            let existingBadge = item.querySelector('.notification-badge');
+            if (!existingBadge) {
+                // Create badge
+                const badgeSpan = document.createElement('span');
+                badgeSpan.className = 'notification-badge';
+                badgeSpan.id = 'navNotificationBadge';
+                badgeSpan.style.display = 'none';
+                badgeSpan.textContent = '0';
+                item.appendChild(badgeSpan);
+                console.log('✅ Created notification badge element');
+            }
+        }
+    });
+}
 
 // Update date and time display
 function updateDateTime() {
@@ -160,7 +203,8 @@ function initializeRoleBasedNavigation() {
         navItem.className = 'nav-item';
         
         // Add notification badge for both Marketing Clerk and Finance Officer (not IT Head)
-        if (item.href === 'notifications.html' && (userRole === 'Marketing Clerk' || userRole === 'Finance Officer')) {
+        // Check if href includes 'notifications' (works for both old 'notifications.html' and new clean URLs)
+        if ((item.href.includes('notifications') || item.href === 'notifications.html') && (userRole === 'Marketing Clerk' || userRole === 'Finance Officer')) {
             navItem.innerHTML = `
                 <i class="${item.icon}"></i>
                 <span>${item.text}</span>
@@ -187,7 +231,14 @@ function initializeRoleBasedNavigation() {
     // Initialize notification count for both Marketing Clerk and Finance Officer (not IT Head)
     if (userRole === 'Marketing Clerk' || userRole === 'Finance Officer') {
         console.log('🔄 Initializing notification count for', userRole);
+        
+        // Initial update
         updateNotificationCount();
+        
+        // Also try after a delay to ensure navigation is fully loaded
+        setTimeout(() => {
+            updateNotificationCount();
+        }, 1000);
         
         // Refresh notification count every 10 seconds
         setInterval(() => {
@@ -274,7 +325,36 @@ async function updateMarketingClerkNotificationCount() {
 
 // Update the notification badge display
 function updateNotificationBadge(count) {
-    const badge = document.getElementById('navNotificationBadge');
+    // Try to find the badge element - check multiple possible locations
+    let badge = document.getElementById('navNotificationBadge');
+    
+    // If not found, try to find it by class in the notifications nav item
+    if (!badge) {
+        const userRole = localStorage.getItem('user_role');
+        if (userRole === 'Marketing Clerk' || userRole === 'Finance Officer') {
+            // Find the notifications nav item
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href && (href.includes('notifications') || href === 'notifications.html')) {
+                    // Check if badge already exists
+                    let existingBadge = item.querySelector('.notification-badge');
+                    if (existingBadge) {
+                        badge = existingBadge;
+                    } else {
+                        // Create badge if it doesn't exist
+                        const badgeSpan = document.createElement('span');
+                        badgeSpan.className = 'notification-badge';
+                        badgeSpan.id = 'navNotificationBadge';
+                        badgeSpan.style.display = 'none';
+                        badgeSpan.textContent = '0';
+                        item.appendChild(badgeSpan);
+                        badge = badgeSpan;
+                    }
+                }
+            });
+        }
+    }
     
     console.log('🏷️ Updating badge element...');
     console.log('  Badge element found:', !!badge);
@@ -298,6 +378,10 @@ function updateNotificationBadge(count) {
         }
     } else {
         console.error('  ❌ Badge element not found in DOM!');
+        // Retry after a short delay in case navigation hasn't loaded yet
+        setTimeout(() => {
+            updateNotificationBadge(count);
+        }, 500);
     }
 }
 
