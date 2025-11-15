@@ -453,7 +453,27 @@ router.post('/send-reactivation-code', async (req, res) => {
         `, [user.id, code, expiresAt]);
         
         // Send email
-        await emailService.sendReactivationCodeEmail(user.email, user.username, code);
+        try {
+            await emailService.sendReactivationCodeEmail(user.email, user.username, code);
+        } catch (emailError) {
+            console.error('Email sending error:', emailError);
+            // Check if it's a missing API key error
+            if (emailError.message && emailError.message.includes('RESEND_API_KEY')) {
+                return res.status(500).json({
+                    success: false,
+                    error: 'Email service is not configured. RESEND_API_KEY environment variable is required.',
+                    details: 'Please contact your system administrator to configure the email service.'
+                });
+            }
+            // For other email errors, still return success but log the error
+            // The code was generated and stored, so the user can still use it if they contact support
+            console.error('Failed to send email, but verification code was generated:', emailError);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to send verification code email',
+                details: emailError.message || 'Please contact your IT Head for assistance.'
+            });
+        }
         
         res.json({
             success: true,
@@ -464,7 +484,8 @@ router.post('/send-reactivation-code', async (req, res) => {
         console.error('Send reactivation code error:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to send verification code'
+            error: 'Failed to process reactivation code request',
+            details: error.message || 'An unexpected error occurred'
         });
     }
 });
