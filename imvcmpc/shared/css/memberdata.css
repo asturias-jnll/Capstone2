@@ -1030,6 +1030,15 @@ body {
     padding: 24px;
     border-top: 1px solid var(--gray-100);
     background: var(--gray-50);
+    flex-wrap: nowrap !important;
+}
+
+/* Ensure transaction modal footer buttons maintain their size */
+.transaction-details-modal .modal-footer .btn,
+#modalFooter .btn {
+    flex-shrink: 0 !important;
+    min-width: 100px !important;
+    white-space: nowrap !important;
 }
 
 /* Hide upload button when no file is selected */

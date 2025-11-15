@@ -1198,7 +1198,7 @@ function showDeleteConfirmation() {
         </div>
     `;
     
-    // Add simple styles
+    // Add simple styles - scoped to confirmation modal only
     const style = document.createElement('style');
     style.textContent = `
         .simple-message-modal {
@@ -1248,7 +1248,8 @@ function showDeleteConfirmation() {
             justify-content: center;
         }
         
-        .btn {
+        /* Scope button styles to confirmation modal only */
+        .simple-message-modal .btn {
             padding: 8px 16px;
             border: none;
             border-radius: 6px;
@@ -1258,17 +1259,17 @@ function showDeleteConfirmation() {
             transition: all 0.3s ease;
         }
         
-        .btn-secondary {
+        .simple-message-modal .btn-secondary {
             background: #F3F4F6;
             color: #374151;
         }
         
-        .btn-danger {
+        .simple-message-modal .btn-danger {
             background: #EF4444;
             color: white;
         }
         
-        .btn:hover {
+        .simple-message-modal .btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
