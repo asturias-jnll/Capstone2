@@ -132,26 +132,51 @@ function initializeBranchDisplay() {
 
 // Set active navigation item based on current page
 function setActiveNavigation() {
-    const currentPage = window.location.pathname.split('/').pop();
+    const currentPath = window.location.pathname;
+    const currentPage = currentPath.split('/').pop();
     const navItems = document.querySelectorAll('.nav-item');
+    
+    // Check if we're on an account page
+    const isAccountPage = currentPath.includes('/account');
     
     navItems.forEach(item => {
         item.classList.remove('active');
         
         // Check if this nav item corresponds to current page
         const href = item.getAttribute('href');
-        if (!href) return;
         
-        // Extract filename from href (handle both relative and absolute paths)
+        // Special handling for Account link (has href="#" and uses onclick)
+        if (isAccountPage && (href === '#' || item.textContent.trim().toLowerCase() === 'account')) {
+            item.classList.add('active');
+            return;
+        }
+        
+        if (!href || href === '#') return;
+        
+        // First, check for exact path match (for clean URLs like /ithead/analytics)
+        // Normalize paths by removing trailing slashes for comparison
+        const normalizedHref = href.replace(/\/$/, '');
+        const normalizedCurrentPath = currentPath.replace(/\/$/, '');
+        
+        if (normalizedHref === normalizedCurrentPath) {
+            item.classList.add('active');
+            return;
+        }
+        
+        // Extract last segment from href (handle both relative and absolute paths)
         const cleanHref = href.replace(/^\.\//, '').split('/').pop();
         const cleanCurrent = currentPage.replace(/^\.\//, '');
         
-        // Match by filename (works for any path structure)
-        if (cleanHref === cleanCurrent) {
+        // Match by last segment (works for any path structure)
+        if (cleanHref === cleanCurrent && cleanCurrent !== '') {
             item.classList.add('active');
         } 
         // Also check if href ends with the current page filename (for absolute paths like /ithead/html/analytics.html)
         else if (cleanCurrent !== '' && (href.endsWith(cleanCurrent) || href.endsWith('/' + cleanCurrent))) {
+            item.classList.add('active');
+        }
+        // Check if current path starts with the href (for nested paths, but avoid false positives)
+        else if (normalizedCurrentPath.startsWith(normalizedHref + '/') && normalizedHref !== '') {
             item.classList.add('active');
         }
     });
@@ -786,15 +811,42 @@ function showLogoutLoading() {
 
     // Get user role before creating the content
     let userRole = localStorage.getItem('user_role');
-    if (!userRole) {
+    
+    // If role not found in localStorage, try to get from user data
+    if (!userRole || userRole === 'null' || userRole === 'undefined') {
         const userData = localStorage.getItem('user');
         if (userData) {
             try {
                 const user = JSON.parse(userData);
-                userRole = user.role_display_name || user.role || 'User';
+                // Check role_display_name first, then role, and map database roles to display names
+                const roleFromUser = user.role_display_name || user.role;
+                if (roleFromUser) {
+                    // Map database role names to display names
+                    if (roleFromUser.toLowerCase() === 'it_head' || roleFromUser === 'IT Head') {
+                        userRole = 'IT Head';
+                    } else if (roleFromUser.toLowerCase() === 'finance_officer' || roleFromUser === 'Finance Officer') {
+                        userRole = 'Finance Officer';
+                    } else if (roleFromUser.toLowerCase() === 'marketing_clerk' || roleFromUser === 'Marketing Clerk') {
+                        userRole = 'Marketing Clerk';
+                    } else {
+                        userRole = roleFromUser;
+                    }
+                }
             } catch (e) {
-                userRole = 'User';
+                console.warn('Error parsing user data:', e);
             }
+        }
+    }
+    
+    // Fallback: try to determine role from current URL path
+    if (!userRole || userRole === 'null' || userRole === 'undefined') {
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('ithead')) {
+            userRole = 'IT Head';
+        } else if (currentPath.includes('financeofficer')) {
+            userRole = 'Finance Officer';
+        } else if (currentPath.includes('marketingclerk')) {
+            userRole = 'Marketing Clerk';
         } else {
             userRole = 'User';
         }

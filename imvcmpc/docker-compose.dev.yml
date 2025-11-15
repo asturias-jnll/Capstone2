@@ -22,6 +22,9 @@ services:
       - "9229:9229"  # Debug port
 
   web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
     volumes:
       - ./shared:/usr/share/nginx/html/shared
       - ./financeofficer:/usr/share/nginx/html/financeofficer
@@ -30,3 +33,5 @@ services:
       - ./logpage:/usr/share/nginx/html/logpage
       - ./assets:/usr/share/nginx/html/assets
       - ./nginx.dev.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api

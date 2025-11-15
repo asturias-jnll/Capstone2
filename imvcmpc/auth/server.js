@@ -165,7 +165,7 @@ app.get('/marketingclerk/reports', serveHtml('static/marketingclerk/html/reports
 
 // IT Head routes
 app.get('/ithead/account', serveHtml('static/ithead/html/account.html'));
-app.get('/ithead/analytics', serveHtml('static/ithead/html/analytics.html'));
+app.get('/ithead/analytics', serveHtml('static/shared/html/analytics.html')); // IT Head uses shared analytics page
 app.get('/ithead/auditlogs', serveHtml('static/ithead/html/auditlogs.html'));
 app.get('/ithead/main', serveHtml('static/ithead/html/main.html'));
 app.get('/ithead/reports', serveHtml('static/ithead/html/reports.html'));

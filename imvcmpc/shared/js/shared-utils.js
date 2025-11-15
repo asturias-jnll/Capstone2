@@ -21,6 +21,15 @@ class SharedUtils {
                     { href: '/financeofficer/reports', icon: 'fas fa-file-alt', text: 'Reports' },
                     { href: '/financeofficer/notifications', icon: 'fas fa-bell', text: 'Notifications' }
                 ]
+            },
+            'it-head': {
+                name: 'IT Head',
+                navItems: [
+                    { href: '/ithead/usermanagement', icon: 'fas fa-users-cog', text: 'User Management' },
+                    { href: '/ithead/analytics', icon: 'fas fa-chart-bar', text: 'Analytics' },
+                    { href: '/ithead/reports', icon: 'fas fa-file-alt', text: 'Reports' },
+                    { href: '/ithead/auditlogs', icon: 'fas fa-history', text: 'Audit Logs' }
+                ]
             }
         };
     }
@@ -149,14 +158,31 @@ class SharedUtils {
         // Try to get from localStorage first
         const userRole = localStorage.getItem('user_role');
         if (userRole) {
-            if (userRole.toLowerCase().includes('marketing')) return 'marketing-clerk';
-            if (userRole.toLowerCase().includes('finance')) return 'finance-officer';
+            const roleLower = userRole.toLowerCase();
+            if (roleLower.includes('marketing')) return 'marketing-clerk';
+            if (roleLower.includes('finance')) return 'finance-officer';
+            if (roleLower.includes('it') || roleLower.includes('head')) return 'it-head';
         }
 
         // Fallback to URL path
         const currentPath = window.location.pathname;
         if (currentPath.includes('marketingclerk')) return 'marketing-clerk';
         if (currentPath.includes('financeofficer')) return 'finance-officer';
+        if (currentPath.includes('ithead')) return 'it-head';
+        
+        // Final fallback: try to get from user data
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                const roleFromUser = (user.role_display_name || user.role || '').toLowerCase();
+                if (roleFromUser.includes('marketing')) return 'marketing-clerk';
+                if (roleFromUser.includes('finance')) return 'finance-officer';
+                if (roleFromUser.includes('it') || roleFromUser.includes('head')) return 'it-head';
+            } catch (e) {
+                console.warn('Error parsing user data:', e);
+            }
+        }
         
         return 'marketing-clerk'; // default
     }
@@ -420,8 +446,43 @@ class SharedUtils {
         const loadingContent = document.createElement('div');
         loadingContent.className = 'logout-loading-content';
 
+        // Get role name with fallback logic
+        let roleName = 'User';
         const currentRole = this.getCurrentRole();
-        const roleName = this.roleConfigs[currentRole].name;
+        
+        if (currentRole && this.roleConfigs[currentRole]) {
+            roleName = this.roleConfigs[currentRole].name;
+        } else {
+            // Fallback: try to get role directly from localStorage
+            const userRole = localStorage.getItem('user_role');
+            if (userRole && userRole !== 'null' && userRole !== 'undefined') {
+                roleName = userRole;
+            } else {
+                // Try to get from user data
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        const roleFromUser = user.role_display_name || user.role;
+                        if (roleFromUser) {
+                            // Map database role names to display names
+                            const roleLower = roleFromUser.toLowerCase();
+                            if (roleLower === 'it_head' || roleFromUser === 'IT Head') {
+                                roleName = 'IT Head';
+                            } else if (roleLower === 'finance_officer' || roleFromUser === 'Finance Officer') {
+                                roleName = 'Finance Officer';
+                            } else if (roleLower === 'marketing_clerk' || roleFromUser === 'Marketing Clerk') {
+                                roleName = 'Marketing Clerk';
+                            } else {
+                                roleName = roleFromUser;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing user data:', e);
+                    }
+                }
+            }
+        }
 
         loadingContent.innerHTML = `
             <div class="logout-loading-spinner">

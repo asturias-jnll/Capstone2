@@ -18,10 +18,10 @@
         
         if (!userBranchId || !userBranchName || isMainBranchUser === null) {
             // Redirect to login if branch information is not available
-            window.location.href = '../../logpage/login.html';
+            window.location.href = '/login';
         } else {
-            // Redirect to shared analytics page with proper branch information
-            window.location.href = '../../shared/html/analytics.html';
+            // Redirect to clean URL analytics page
+            window.location.href = '/ithead/analytics';
         }
     </script>
     
