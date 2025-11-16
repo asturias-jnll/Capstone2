@@ -765,10 +765,9 @@ function clearMonthSelections(reportType) {
     if (container) {
         container.querySelectorAll('.selection-btn').forEach(btn => {
             btn.classList.remove('selected');
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
         });
+        // Update button states after clearing to ensure future months are properly disabled
+        updateMonthButtonStates(reportType);
     }
 }
 
