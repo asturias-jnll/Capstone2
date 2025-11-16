@@ -89,6 +89,81 @@ router.post('/reports/generate-ai-recommendations',
         hasApiKey: !!aiService.config.apiKey
       });
 
+      // Validate restrictions for AI recommendations
+      if (reportType === 'savings' || reportType === 'disbursement') {
+        // For savings/disbursement: only current year
+        const currentYear = new Date().getFullYear();
+        // Extract year from period string or monthlyData
+        let selectedYear = null;
+        
+        // Try to extract year from period string (e.g., "Year 2024 for the Months of January, February")
+        if (reportData.period) {
+          const yearMatch = reportData.period.match(/Year\s+(\d{4})/);
+          if (yearMatch) {
+            selectedYear = parseInt(yearMatch[1], 10);
+          }
+        }
+        
+        // If not found in period, try to extract from monthlyData
+        if (!selectedYear && reportData.monthlyData && reportData.monthlyData.length > 0) {
+          // monthlyData might have year info, or we can infer from the data structure
+          // For now, we'll rely on period string or check if all months are in the past
+          // But the safest approach is to check the period string
+        }
+        
+        // If we still don't have a year, check if the report data suggests a previous year
+        // by checking if all data points are in the past relative to current month
+        if (!selectedYear) {
+          // Default: if we can't determine, allow it (frontend should have caught this)
+          // But log a warning
+          console.warn('⚠️ [AI-RECO] Could not determine year from report data, allowing request');
+        } else if (selectedYear !== currentYear) {
+          console.warn(`⚠️ [AI-RECO] AI recommendations requested for year ${selectedYear}, but only current year (${currentYear}) is allowed`);
+          return res.status(400).json({ 
+            success: false, 
+            error: 'AI recommendations are only available for the current year to provide actionable, forward-looking insights.' 
+          });
+        }
+      } else if (reportType === 'branch') {
+        // For branch reports: only current month
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+        
+        let selectedYear = null;
+        let selectedMonth = null;
+        
+        // Extract year and month from period string (e.g., "January 2025")
+        if (reportData.period) {
+          const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'];
+          
+          // Try to match "MonthName YYYY" format
+          const periodMatch = reportData.period.match(/(\w+)\s+(\d{4})/);
+          if (periodMatch) {
+            const monthName = periodMatch[1];
+            const yearStr = periodMatch[2];
+            const monthIndex = monthNames.findIndex(m => m.toLowerCase() === monthName.toLowerCase());
+            
+            if (monthIndex !== -1) {
+              selectedMonth = monthIndex + 1; // Convert to 1-based month
+              selectedYear = parseInt(yearStr, 10);
+            }
+          }
+        }
+        
+        // If we couldn't extract from period, log a warning but allow (frontend should have caught this)
+        if (!selectedYear || !selectedMonth) {
+          console.warn('⚠️ [AI-RECO] Could not determine month/year from branch report data, allowing request');
+        } else if (selectedYear !== currentYear || selectedMonth !== currentMonth) {
+          console.warn(`⚠️ [AI-RECO] AI recommendations requested for ${monthNames[selectedMonth - 1]} ${selectedYear}, but only current month (${monthNames[currentMonth - 1]} ${currentYear}) is allowed`);
+          return res.status(400).json({ 
+            success: false, 
+            error: 'AI recommendations are only available for the current month to provide actionable, forward-looking insights based on the most recent data.' 
+          });
+        }
+      }
+
       // STEP 1: Generate cache key based on report configuration
       const cacheConfig = {
         reportType,
@@ -99,13 +174,22 @@ router.post('/reports/generate-ai-recommendations',
           hasSavings: !!reportData.charts?.savings,
           hasDisbursement: !!reportData.charts?.disbursement
         },
+        // For branch reports: use rows data
         rows: reportData.rows?.map(r => ({
           branch_id: r.branch_id,
           total_savings: parseFloat(r.total_savings || 0),
           total_disbursements: parseFloat(r.total_disbursements || 0),
           net_interest_income: parseFloat(r.net_interest_income || 0),
           active_members: parseInt(r.active_members || 0, 10)
-        }))
+        })),
+        // For savings/disbursement reports: use monthlyData
+        monthlyData: (reportType === 'savings' || reportType === 'disbursement') && reportData.monthlyData ? 
+          reportData.monthlyData.map(m => ({
+            month: m.month,
+            monthName: m.monthName,
+            total: parseFloat(m.total || 0),
+            members: parseInt(m.members || 0, 10)
+          })) : null
       };
       const cacheKey = crypto.createHash('md5')
         .update(JSON.stringify(cacheConfig))
@@ -141,6 +225,8 @@ router.post('/reports/generate-ai-recommendations',
             WHERE cache_key = $1
           `, [cacheKey]);
 
+          // Return appropriate data structure based on report type
+          if (reportType === 'branch') {
           return res.json({
             success: true,
             data: {
@@ -157,6 +243,25 @@ router.post('/reports/generate-ai-recommendations',
               }
             }
           });
+          } else {
+            // Savings/Disbursement: return trend analysis instead of MCDA
+            return res.json({
+              success: true,
+              data: {
+                trendAnalysis: cached.mcda_results, // Stored in mcda_results column for compatibility
+                ai: {
+                  ...cached.ai_recommendations,
+                  cached: true,
+                  cacheInfo: {
+                    created: cached.created_at,
+                    accessCount: cached.access_count + 1,
+                    source: cached.source,
+                    model: cached.model
+                  }
+                }
+              }
+            });
+          }
         }
       } catch (cacheError) {
         console.warn('⚠️ [AI-RECO] Cache lookup error:', cacheError.message);
@@ -165,10 +270,12 @@ router.post('/reports/generate-ai-recommendations',
 
       console.log('❌ [AI-RECO] Cache MISS! Generating new recommendation...');
 
-      // STEP 3: Prepare data and run MCDA
-      let branchesData = [];
+      // STEP 3: Prepare data and run analysis (MCDA for branch, trend analysis for savings/disbursement)
+      let analysisResults = null;
+      
       if (reportType === 'branch' && reportData && Array.isArray(reportData.rows)) {
-        branchesData = reportData.rows.map(r => ({
+        // Branch report: use MCDA
+        const branchesData = reportData.rows.map(r => ({
           branch_id: r.branch_id || null,
           branch_name: r.branch_location_only || r.branch_location || r.branch_name, // Use location only for AI
           active_members: r.active_members,
@@ -177,30 +284,23 @@ router.post('/reports/generate-ai-recommendations',
           net_interest_income: r.net_interest_income,
           performancePct: r.performancePct
         }));
+        
+        console.log('📊 [AI-RECO] Running MCDA analysis for branch report...');
+        analysisResults = mcdaService.analyzeBranchPerformance(branchesData);
+        console.log('📊 [AI-RECO] MCDA completed. Branches analyzed:', analysisResults.rankedBranches?.length);
       } else if ((reportType === 'savings' || reportType === 'disbursement') && reportData) {
-        // Treat single-branch report as a one-element array for MCDA consistency
-        branchesData = [{
-          branch_id: null,
-          branch_name: 'Current Branch',
-          active_members: reportData.activeMembers || 0,
-          total_savings: reportType === 'savings' ? (reportData.total || 0) : 0,
-          total_disbursements: reportType === 'disbursement' ? (reportData.total || 0) : 0,
-          net_interest_income: 0,
-          performancePct: 0
-        }];
+        // Savings/Disbursement report: use trend analysis (no MCDA)
+        console.log('📊 [AI-RECO] Using trend analysis for savings/disbursement report (skipping MCDA)...');
+        // Trend analysis will be done inside generateTrendRecommendations
+        analysisResults = null; // Will be generated by AI service
       } else {
         return res.status(400).json({ success: false, error: 'Unsupported report type or missing data' });
       }
 
-      // Run MCDA (TOPSIS)
-      console.log('📊 [AI-RECO] Running MCDA analysis...');
-      const mcdaResults = mcdaService.analyzeBranchPerformance(branchesData);
-      console.log('📊 [AI-RECO] MCDA completed. Branches analyzed:', mcdaResults.rankedBranches?.length);
-
-      // Generate AI (or fallback) recommendations
+      // Generate AI recommendations (AI API required - no fallback)
       console.log('🧠 [AI-RECO] Generating recommendations...');
       const startTime = Date.now();
-      const aiResult = await aiService.generateRecommendations(mcdaResults, reportData, reportType);
+      const aiResult = await aiService.generateRecommendations(analysisResults, reportData, reportType);
       const duration = Date.now() - startTime;
       
       console.log('✅ [AI-RECO] Recommendations generated successfully');
@@ -208,13 +308,12 @@ router.post('/reports/generate-ai-recommendations',
       console.log('✅ [AI-RECO] Provider:', aiResult.metadata?.provider || 'N/A');
       console.log('✅ [AI-RECO] Model:', aiResult.metadata?.model || 'N/A');
       console.log('✅ [AI-RECO] Duration:', duration, 'ms');
-      if (aiResult.error) {
-        console.warn('⚠️ [AI-RECO] Fallback reason:', aiResult.metadata?.fallbackReason);
-        console.warn('⚠️ [AI-RECO] Error:', aiResult.error);
-      }
 
       // STEP 4: Store in cache
       try {
+        // For branch reports, store MCDA results; for savings/disbursement, store trend analysis
+        const analysisData = reportType === 'branch' ? analysisResults : (aiResult.trendAnalysis || null);
+        
         await db.query(`
           INSERT INTO ai_recommendation_cache (
             cache_key, 
@@ -232,7 +331,7 @@ router.post('/reports/generate-ai-recommendations',
           cacheKey,
           reportType,
           cacheConfig,
-          mcdaResults,
+          analysisData, // MCDA for branch, trend analysis for savings/disbursement
           aiResult,
           aiResult.source,
           aiResult.metadata?.model || null
@@ -243,16 +342,31 @@ router.post('/reports/generate-ai-recommendations',
         // Don't fail the request if caching fails
       }
 
+      // Return appropriate data structure based on report type
+      if (reportType === 'branch') {
+        return res.json({ 
+          success: true, 
+          data: { 
+            mcda: analysisResults, 
+            ai: {
+              ...aiResult,
+              cached: false
+            }
+          } 
+        });
+      } else {
+        // Savings/Disbursement: return trend analysis instead of MCDA
       return res.json({ 
         success: true, 
         data: { 
-          mcda: mcdaResults, 
+            trendAnalysis: aiResult.trendAnalysis || null,
           ai: {
             ...aiResult,
             cached: false
           }
         } 
       });
+      }
     } catch (error) {
       console.error('❌ [AI-RECO] Error:', error.message);
       console.error('❌ [AI-RECO] Stack:', error.stack);

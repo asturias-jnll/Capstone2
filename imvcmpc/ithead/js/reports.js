@@ -227,10 +227,43 @@ function selectMember(memberName) {
     if (memberSearchInput) {
         // Set flag to prevent showing suggestions after programmatic selection
         isProgrammaticSelection = true;
+        const previousValue = memberSearchInput.value;
         memberSearchInput.value = memberName;
         hideMemberSuggestions();
+        
+        // Clear report if member changed
+        if (previousValue !== memberName && window.currentReportType === 'member' && window.currentReportData) {
+            handleMemberConfigChange();
+        }
+        
         // Trigger input event to validate (but suggestions won't show due to flag)
         memberSearchInput.dispatchEvent(new Event('input'));
+    }
+}
+
+// Handle member report configuration changes (year, month, or member)
+function handleMemberConfigChange() {
+    // Clear report canvas when member report configuration changes
+    if (window.currentReportType === 'member' && window.currentReportData) {
+        // Clear the report canvas
+        clearReportCanvas();
+        // Clear AI recommendations from canvas
+        const reportCanvas = document.getElementById('reportCanvas');
+        if (reportCanvas) {
+            const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+            if (aiContainer) {
+                aiContainer.remove();
+            }
+        }
+        // Reset report data
+        window.currentReportData = null;
+        // Hide AI recommendation controls
+        const aiControls = document.getElementById('aiRecommendationControls');
+        if (aiControls) {
+            aiControls.style.display = 'none';
+        }
+        // Hide send finance section
+        hideSendFinanceSection();
     }
 }
 
@@ -272,6 +305,9 @@ async function initializeReports() {
     // Initialize month/year toggle system
     initializeMonthYearToggleSystem();
     
+    // Setup member report configuration change listeners
+    setupMemberConfigListeners();
+    
     // Initialize report histories only if not in configuration mode
     // This prevents the history flash when arriving from notification
     if (!window.inConfigurationMode) {
@@ -300,6 +336,85 @@ async function initializeReports() {
     
     // Return a resolved promise for chaining
     return Promise.resolve();
+}
+
+// Setup event listeners for member report configuration changes
+function setupMemberConfigListeners() {
+    // Add listener for member year dropdown
+    const memberYearSelect = document.getElementById('memberYear');
+    if (memberYearSelect) {
+        memberYearSelect.removeEventListener('change', handleMemberConfigChange);
+        memberYearSelect.addEventListener('change', handleMemberConfigChange);
+        
+        // Update month dropdown to disable future months when year changes
+        memberYearSelect.addEventListener('change', updateMemberMonthDropdown);
+    }
+    
+    // Add listener for member month dropdown
+    const memberMonthSelect = document.getElementById('memberMonth');
+    if (memberMonthSelect) {
+        memberMonthSelect.removeEventListener('change', handleMemberConfigChange);
+        memberMonthSelect.addEventListener('change', handleMemberConfigChange);
+        
+        // Disable future months in member report
+        updateMemberMonthDropdown();
+    }
+    
+    // Add listener for member search input
+    const memberSearchInput = document.getElementById('memberSearch');
+    if (memberSearchInput) {
+        // Use a debounced handler to avoid clearing on every keystroke
+        let searchTimeout;
+        memberSearchInput.addEventListener('input', function(e) {
+            // Clear any existing timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            // Only clear report if member is actually selected (not just typing)
+            searchTimeout = setTimeout(() => {
+                if (memberSearchInput.value.trim().length >= 2 && window.currentReportType === 'member' && window.currentReportData) {
+                    // Check if this is a complete member selection (not just partial typing)
+                    // We'll only clear if the value changed significantly
+                    handleMemberConfigChange();
+                }
+            }, 1000); // Wait 1 second after typing stops
+        });
+    }
+}
+
+// Update member month dropdown to disable future months
+function updateMemberMonthDropdown() {
+    const memberYearSelect = document.getElementById('memberYear');
+    const memberMonthSelect = document.getElementById('memberMonth');
+    
+    if (!memberYearSelect || !memberMonthSelect) return;
+    
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const selectedYear = parseInt(memberYearSelect.value, 10);
+    
+    // Get all month options
+    const monthOptions = memberMonthSelect.querySelectorAll('option');
+    
+    monthOptions.forEach((option, index) => {
+        const monthValue = parseInt(option.value, 10);
+        
+        // Disable if it's a future month
+        if (selectedYear > currentYear || (selectedYear === currentYear && monthValue > currentMonth)) {
+            option.disabled = true;
+            // If the currently selected month becomes disabled, reset to current month
+            if (memberMonthSelect.value === option.value) {
+                if (selectedYear === currentYear) {
+                    memberMonthSelect.value = String(currentMonth);
+                } else {
+                    memberMonthSelect.value = '1'; // Default to January for past years
+                }
+            }
+        } else {
+            option.disabled = false;
+        }
+    });
 }
 
 // Prefill the UI when arriving from a report_request notification
@@ -382,6 +497,10 @@ function toggleMonthYear(reportType, mode) {
     const monthMode = document.getElementById(reportType + 'MonthMode');
     const yearMode = document.getElementById(reportType + 'YearMode');
     
+    // Check if we're switching modes (not just initializing)
+    const wasMonthMode = monthBtn && monthBtn.classList.contains('active');
+    const isSwitchingMode = (mode === 'month' && !wasMonthMode) || (mode === 'year' && wasMonthMode);
+    
     if (mode === 'month') {
         if (monthBtn) monthBtn.classList.add('active');
         if (yearBtn) yearBtn.classList.remove('active');
@@ -402,6 +521,30 @@ function toggleMonthYear(reportType, mode) {
         clearMonthSelections(reportType);
         clearYearSelections(reportType, true);
     }
+    
+    // Clear report canvas when switching modes for savings/disbursement reports
+    const isSavingsOrDisbursement = reportType === 'savings' || reportType === 'disbursement';
+    if (isSavingsOrDisbursement && isSwitchingMode && window.currentReportType === reportType && window.currentReportData) {
+        // Clear the report canvas
+        clearReportCanvas();
+        // Clear AI recommendations from canvas
+        const reportCanvas = document.getElementById('reportCanvas');
+        if (reportCanvas) {
+            const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+            if (aiContainer) {
+                aiContainer.remove();
+            }
+        }
+        // Reset report data
+        window.currentReportData = null;
+        // Hide AI recommendation controls
+        const aiControls = document.getElementById('aiRecommendationControls');
+        if (aiControls) {
+            aiControls.style.display = 'none';
+        }
+        // Hide send finance section
+        hideSendFinanceSection();
+    }
 }
 
 // Toggle month selection (multiple selection, minimum 2, range-based)
@@ -411,6 +554,48 @@ function toggleMonthSelection(reportType, month) {
     
     const btn = container.querySelector(`[data-value="${month}"]`);
     if (!btn) return;
+    
+    // Check if this is a savings or disbursement report
+    const isSavingsOrDisbursement = reportType === 'savings' || reportType === 'disbursement';
+    
+    // For savings/disbursement reports, check if selecting a future month as end month
+    if (isSavingsOrDisbursement && !btn.disabled) {
+        const monthValue = parseInt(month, 10);
+        const selectedMonths = Array.from(container.querySelectorAll('.selection-btn.selected'))
+            .map(b => parseInt(b.getAttribute('data-value'), 10))
+            .sort((a, b) => a - b);
+        
+        // If we're selecting a second month (creating a range), check if it's a future month
+        if (selectedMonths.length > 0) {
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+            
+            const selectedYears = getSelectedYears(reportType, true);
+            const selectedYear = selectedYears.length > 0 ? selectedYears[0] : currentYear;
+            
+            // If selected year is current year and the month being selected is after current month
+            if (selectedYear === currentYear && monthValue > currentMonth) {
+                // This would be the end month in a range, prevent it
+                showMessage('Cannot select a future month as the end month. Please select a month up to the current month only.', 'error');
+                return;
+            }
+            
+            // If selected year is in the future, prevent all selections
+            if (selectedYear > currentYear) {
+                showMessage('Cannot select months from a future year. Please select a year up to the current year.', 'error');
+                return;
+            }
+        }
+    }
+    
+    // Store previous month selection BEFORE toggle (for clearing canvas)
+    let previousSelectedMonths = [];
+    if (isSavingsOrDisbursement && window.currentReportType === reportType && window.currentReportData) {
+        previousSelectedMonths = Array.from(container.querySelectorAll('.selection-btn.selected'))
+            .map(b => parseInt(b.getAttribute('data-value'), 10))
+            .sort((a, b) => a - b);
+    }
     
     const isSelected = btn.classList.contains('selected');
     const monthValue = parseInt(month, 10);
@@ -453,6 +638,40 @@ function toggleMonthSelection(reportType, month) {
     // Update disabled states based on range logic
     updateMonthButtonStates(reportType);
     
+    // Clear report canvas when month selection changes for savings/disbursement reports
+    if (isSavingsOrDisbursement && window.currentReportType === reportType && window.currentReportData) {
+        // Get new month selection after the toggle
+        const newSelectedMonths = Array.from(container.querySelectorAll('.selection-btn.selected'))
+            .map(b => parseInt(b.getAttribute('data-value'), 10))
+            .sort((a, b) => a - b);
+        
+        // Compare if selection changed (different length or different months)
+        const monthSelectionChanged = previousSelectedMonths.length !== newSelectedMonths.length ||
+            previousSelectedMonths.some((m, i) => m !== newSelectedMonths[i]);
+        
+        if (monthSelectionChanged) {
+            // Clear the report canvas
+            clearReportCanvas();
+            // Clear AI recommendations from canvas
+            const reportCanvas = document.getElementById('reportCanvas');
+            if (reportCanvas) {
+                const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+                if (aiContainer) {
+                    aiContainer.remove();
+                }
+            }
+            // Reset report data
+            window.currentReportData = null;
+            // Hide AI recommendation controls
+            const aiControls = document.getElementById('aiRecommendationControls');
+            if (aiControls) {
+                aiControls.style.display = 'none';
+            }
+            // Hide send finance section
+            hideSendFinanceSection();
+        }
+    }
+    
     // Validate minimum 2 months selected
     const selectedMonths = container.querySelectorAll('.selection-btn.selected');
     if (selectedMonths.length < 2) {
@@ -475,15 +694,50 @@ function updateMonthButtonStates(reportType) {
     // Get all month buttons
     const allButtons = container.querySelectorAll('.selection-btn');
     
+    // Check if this is a savings or disbursement report
+    const isSavingsOrDisbursement = reportType === 'savings' || reportType === 'disbursement';
+    
+    // Get current date for savings/disbursement reports
+    let currentYear = null;
+    let currentMonth = null;
+    if (isSavingsOrDisbursement) {
+        const currentDate = new Date();
+        currentYear = currentDate.getFullYear();
+        currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    }
+    
     if (selectedMonths.length === 0) {
-        // No selection: enable all buttons
+        // No selection: enable all buttons (but disable future months for savings/disbursement)
         allButtons.forEach(btn => {
+            const monthValue = parseInt(btn.getAttribute('data-value'), 10);
+            
+            if (isSavingsOrDisbursement) {
+                const selectedYears = getSelectedYears(reportType, true);
+                const selectedYear = selectedYears.length > 0 ? selectedYears[0] : currentYear;
+                
+                // Disable future months if selected year is current year
+                if (selectedYear === currentYear && monthValue > currentMonth) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                } else if (selectedYear > currentYear) {
+                    // Disable all months if selected year is in the future
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                } else {
             btn.disabled = false;
             btn.style.opacity = '1';
             btn.style.cursor = 'pointer';
+                }
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
         });
     } else if (selectedMonths.length === 1) {
-        // One month selected: disable months before it, enable months after it
+        // One month selected: disable months before it, enable months after it (but respect future month limit for savings/disbursement)
         const firstSelected = selectedMonths[0];
         allButtons.forEach(btn => {
             const monthValue = parseInt(btn.getAttribute('data-value'), 10);
@@ -495,14 +749,35 @@ function updateMonthButtonStates(reportType) {
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
             } else {
-                // Enable months from first selected onwards
+                // Enable months from first selected onwards, but check future month limit for savings/disbursement
+                if (isSavingsOrDisbursement) {
+                    const selectedYears = getSelectedYears(reportType, true);
+                    const selectedYear = selectedYears.length > 0 ? selectedYears[0] : currentYear;
+                    
+                    // Disable future months if selected year is current year
+                    if (selectedYear === currentYear && monthValue > currentMonth) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else if (selectedYear > currentYear) {
+                        // Disable all months if selected year is in the future
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else {
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';
+                    }
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
             }
         });
     } else {
-        // Range selected: disable months before the first selected month, enable rest
+        // Range selected: disable months before the first selected month, enable rest (but respect future month limit for savings/disbursement)
         const firstSelected = selectedMonths[0];
         allButtons.forEach(btn => {
             const monthValue = parseInt(btn.getAttribute('data-value'), 10);
@@ -514,10 +789,31 @@ function updateMonthButtonStates(reportType) {
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
             } else {
-                // Enable months from first selected onwards
+                // Enable months from first selected onwards, but check future month limit for savings/disbursement
+                if (isSavingsOrDisbursement) {
+                    const selectedYears = getSelectedYears(reportType, true);
+                    const selectedYear = selectedYears.length > 0 ? selectedYears[0] : currentYear;
+                    
+                    // Disable future months if selected year is current year
+                    if (selectedYear === currentYear && monthValue > currentMonth) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else if (selectedYear > currentYear) {
+                        // Disable all months if selected year is in the future
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else {
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';
+                    }
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
             }
         });
     }
@@ -534,6 +830,13 @@ function toggleYearSelection(reportType, year, isSingleSelection) {
     const btn = container.querySelector(`[data-value="${year}"]`);
     if (!btn) return;
     
+    // Store previous selection state for comparison
+    const isSavingsOrDisbursement = reportType === 'savings' || reportType === 'disbursement';
+    let previousSelectedYears = null;
+    if (isSavingsOrDisbursement && window.currentReportType === reportType && window.currentReportData) {
+        previousSelectedYears = getSelectedYears(reportType, isSingleSelection).sort((a, b) => a - b);
+    }
+    
     if (isSingleSelection) {
         // Single selection: deselect all others, toggle this one
         container.querySelectorAll('.selection-btn').forEach(b => b.classList.remove('selected'));
@@ -541,6 +844,75 @@ function toggleYearSelection(reportType, year, isSingleSelection) {
     } else {
         // Multiple selection: toggle this one
         btn.classList.toggle('selected');
+    }
+    
+    // Update month button states when year changes (important for savings/disbursement reports)
+    if (isSavingsOrDisbursement && isSingleSelection) {
+        updateMonthButtonStates(reportType);
+        
+        // Clear report canvas when year changes (if report was already generated)
+        if (window.currentReportType === reportType && window.currentReportData) {
+            const newSelectedYears = getSelectedYears(reportType, true).sort((a, b) => a - b);
+            const yearChanged = previousSelectedYears && (
+                previousSelectedYears.length !== newSelectedYears.length ||
+                previousSelectedYears.some((y, i) => y !== newSelectedYears[i])
+            );
+            
+            if (yearChanged || !previousSelectedYears) {
+                // Clear the report canvas
+                clearReportCanvas();
+                // Clear AI recommendations from canvas
+                const reportCanvas = document.getElementById('reportCanvas');
+                if (reportCanvas) {
+                    const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+                    if (aiContainer) {
+                        aiContainer.remove();
+                    }
+                }
+                // Reset report data
+                window.currentReportData = null;
+                // Hide AI recommendation controls
+                const aiControls = document.getElementById('aiRecommendationControls');
+                if (aiControls) {
+                    aiControls.style.display = 'none';
+                }
+                // Hide send finance section
+                hideSendFinanceSection();
+                // Update AI recommendation controls visibility based on new year
+                showAIRecommendationControls();
+            }
+        }
+    } else if (isSavingsOrDisbursement && !isSingleSelection) {
+        // Year mode (multiple selection): clear canvas when selection changes
+        if (window.currentReportType === reportType && window.currentReportData) {
+            const newSelectedYears = getSelectedYears(reportType, false).sort((a, b) => a - b);
+            const yearChanged = previousSelectedYears && (
+                previousSelectedYears.length !== newSelectedYears.length ||
+                previousSelectedYears.some((y, i) => y !== newSelectedYears[i])
+            );
+            
+            if (yearChanged || !previousSelectedYears) {
+                // Clear the report canvas
+                clearReportCanvas();
+                // Clear AI recommendations from canvas
+                const reportCanvas = document.getElementById('reportCanvas');
+                if (reportCanvas) {
+                    const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+                    if (aiContainer) {
+                        aiContainer.remove();
+                    }
+                }
+                // Reset report data
+                window.currentReportData = null;
+                // Hide AI recommendation controls
+                const aiControls = document.getElementById('aiRecommendationControls');
+                if (aiControls) {
+                    aiControls.style.display = 'none';
+                }
+                // Hide send finance section
+                hideSendFinanceSection();
+            }
+        }
     }
 }
 
@@ -1000,6 +1372,11 @@ function showConfigurationSection(reportType) {
         // Add report canvas and generate button after the configuration
         addReportCanvas();
     }
+    
+    // Update month button states for savings/disbursement reports when configuration is shown
+    if (reportType === 'savings' || reportType === 'disbursement') {
+        updateMonthButtonStates(reportType);
+    }
 }
 
 // Add report canvas and generate button
@@ -1202,8 +1579,96 @@ function setupBranchSelection() {
         document.addEventListener('change', function(e) {
             if (e.target && e.target.name === 'branchSelection' && e.target.type === 'checkbox') {
                 console.log('Branch selection changed for main branch user');
+                // Clear report when branch selection changes
+                handleBranchConfigChange();
             }
         });
+    }
+    
+    // Setup branch year dropdown listener
+    const branchYearSelect = document.getElementById('branchYear');
+    if (branchYearSelect) {
+        branchYearSelect.removeEventListener('change', handleBranchConfigChange);
+        branchYearSelect.addEventListener('change', handleBranchConfigChange);
+        
+        // Update month dropdown to disable future months when year changes
+        branchYearSelect.addEventListener('change', updateBranchMonthDropdown);
+    }
+    
+    // Setup branch month dropdown listener and disable future months
+    const branchMonthSelect = document.getElementById('branchMonth');
+    if (branchMonthSelect) {
+        branchMonthSelect.removeEventListener('change', handleBranchConfigChange);
+        branchMonthSelect.addEventListener('change', handleBranchConfigChange);
+        
+        // Disable future months in branch report
+        updateBranchMonthDropdown();
+    }
+}
+
+// Update branch month dropdown to disable future months
+function updateBranchMonthDropdown() {
+    const branchYearSelect = document.getElementById('branchYear');
+    const branchMonthSelect = document.getElementById('branchMonth');
+    
+    if (!branchYearSelect || !branchMonthSelect) return;
+    
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const selectedYear = parseInt(branchYearSelect.value, 10);
+    
+    // Get all month options
+    const monthOptions = branchMonthSelect.querySelectorAll('option');
+    
+    monthOptions.forEach((option, index) => {
+        const monthValue = parseInt(option.value, 10);
+        
+        // Disable if it's a future month
+        if (selectedYear > currentYear || (selectedYear === currentYear && monthValue > currentMonth)) {
+            option.disabled = true;
+            // If the currently selected month becomes disabled, reset to current month
+            if (branchMonthSelect.value === option.value) {
+                if (selectedYear === currentYear) {
+                    branchMonthSelect.value = String(currentMonth);
+                } else {
+                    branchMonthSelect.value = '1'; // Default to January for past years
+                }
+            }
+        } else {
+            option.disabled = false;
+        }
+    });
+}
+
+// Handle branch report configuration changes (year, month, branch selection, or transaction type)
+function handleBranchConfigChange() {
+    // Clear report canvas when branch report configuration changes
+    if (window.currentReportType === 'branch' && window.currentReportData) {
+        // Clear the report canvas
+        clearReportCanvas();
+        // Clear AI recommendations from canvas
+        const reportCanvas = document.getElementById('reportCanvas');
+        if (reportCanvas) {
+            const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+            if (aiContainer) {
+                aiContainer.remove();
+            }
+        }
+        // Reset report data
+        window.currentReportData = null;
+        // Hide AI recommendation controls
+        const aiControls = document.getElementById('aiRecommendationControls');
+        if (aiControls) {
+            aiControls.style.display = 'none';
+        }
+        // Hide send finance section
+        hideSendFinanceSection();
+    }
+    
+    // Update AI recommendation controls visibility when configuration changes
+    if (window.currentReportType === 'branch') {
+        showAIRecommendationControls();
     }
 }
 
@@ -1220,6 +1685,8 @@ function setupTransactionTypeButtons() {
                 // For branch config, toggle the clicked button (both can be selected)
                 const isActive = this.classList.toggle('active');
                 this.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                // Clear report when transaction type changes for branch reports
+                handleBranchConfigChange();
             } else {
                 // For other configs, only one can be selected
                 const typeButtons = configSection.querySelectorAll('.type-btn');
@@ -2661,9 +3128,9 @@ function generateMemberReportHTML(reportData) {
     const transactions = reportData.data || [];
     const totalTransactions = transactions.length;
     const totalAmount = transactions.reduce((sum, t) => {
-        const debit = parseFloat(t.debit_amount || 0);
-        const credit = parseFloat(t.credit_amount || 0);
-        return sum + Math.max(debit, credit);
+        const savingsDeposits = parseFloat(t.savings_deposits || 0);
+        const loanReceivables = parseFloat(t.loan_receivables || 0);
+        return sum + savingsDeposits + loanReceivables;
     }, 0);
     
     let html = `
@@ -2699,8 +3166,8 @@ function generateMemberReportHTML(reportData) {
                             <th>Payee</th>
                             <th>Particulars</th>
                             <th>Reference</th>
-                            <th>Debit</th>
-                            <th>Credit</th>
+                            <th>Savings Deposits</th>
+                            <th>Loan Receivables</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2719,8 +3186,8 @@ function generateMemberReportHTML(reportData) {
     } else {
         transactions.forEach(transaction => {
             const date = new Date(transaction.transaction_date).toLocaleDateString('en-US');
-            const debit = parseFloat(transaction.debit_amount || 0);
-            const credit = parseFloat(transaction.credit_amount || 0);
+            const savingsDeposits = parseFloat(transaction.savings_deposits || 0);
+            const loanReceivables = parseFloat(transaction.loan_receivables || 0);
             
             html += `
                 <tr>
@@ -2728,8 +3195,8 @@ function generateMemberReportHTML(reportData) {
                     <td>${transaction.payee || ''}</td>
                     <td>${transaction.particulars || ''}</td>
                     <td>${transaction.reference || ''}</td>
-                    <td>${debit > 0 ? '₱' + debit.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
-                    <td>${credit > 0 ? '₱' + credit.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+                    <td>${savingsDeposits > 0 ? '₱' + savingsDeposits.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
+                    <td>${loanReceivables > 0 ? '₱' + loanReceivables.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</td>
                 </tr>
             `;
         });
@@ -2865,12 +3332,72 @@ function showAIRecommendationControls() {
     const ctrl = document.getElementById('aiRecommendationControls');
     if (!ctrl) return;
     
-    // Hide AI recommendation button for member, savings, and disbursement reports
-    const reportType = window.currentReportType;
-    if (reportType === 'member' || reportType === 'savings' || reportType === 'disbursement') {
+    // Hide AI recommendation button if no report has been generated yet
+    if (!window.currentReportData) {
         ctrl.style.display = 'none';
-    } else {
-        ctrl.style.display = 'flex';
+        ctrl.setAttribute('aria-hidden', 'true');
+        return;
+    }
+    
+    const reportType = window.currentReportType;
+    
+    // Hide AI recommendation button for member reports
+    if (reportType === 'member') {
+        ctrl.style.display = 'none';
+        ctrl.setAttribute('aria-hidden', 'true');
+        return;
+    }
+    
+    // For savings and disbursement reports, only show AI recommendations for current year
+    if (reportType === 'savings' || reportType === 'disbursement') {
+        const selectedYears = getSelectedYears(reportType, true);
+        const currentYear = new Date().getFullYear();
+        const selectedYear = selectedYears.length > 0 ? selectedYears[0] : null;
+        
+        // Hide AI recommendations if selected year is not current year
+        if (selectedYear !== currentYear) {
+            ctrl.style.display = 'none';
+            ctrl.setAttribute('aria-hidden', 'true');
+            return;
+        }
+    }
+    
+    // For branch reports, only show AI recommendations for current month
+    if (reportType === 'branch') {
+        const branchYearSelect = document.getElementById('branchYear');
+        const branchMonthSelect = document.getElementById('branchMonth');
+        
+        if (branchYearSelect && branchMonthSelect) {
+            const selectedYear = parseInt(branchYearSelect.value, 10);
+            const selectedMonth = parseInt(branchMonthSelect.value, 10);
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+            
+            // Hide AI recommendations if selected month/year is not current month
+            if (selectedYear !== currentYear || selectedMonth !== currentMonth) {
+                ctrl.style.display = 'none';
+                ctrl.setAttribute('aria-hidden', 'true');
+                return;
+            }
+        }
+    }
+    
+    // Show for current month branch reports and current year savings/disbursement reports
+    ctrl.style.display = 'flex';
+    ctrl.setAttribute('aria-hidden', 'false');
+    
+    // Enable button and restore original text
+    const button = ctrl.querySelector('button');
+    if (button) {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-brain"></i><span>Generate AI Recommendation</span>';
+        button.title = '';
+    }
+    
+    // Focus management: focus the button when it becomes visible
+    if (button) {
+        setTimeout(() => button.focus(), 100);
     }
 }
 
@@ -2884,10 +3411,52 @@ async function generateAIRecommendation() {
             return;
         }
 
+        // Validate restrictions for AI recommendations
+        const reportType = window.currentReportType;
+        
+        // For savings/disbursement reports: only current year
+        if (reportType === 'savings' || reportType === 'disbursement') {
+            const selectedYears = getSelectedYears(reportType, true);
+            const currentYear = new Date().getFullYear();
+            const selectedYear = selectedYears.length > 0 ? selectedYears[0] : null;
+            
+            if (selectedYear !== currentYear) {
+                showMessage('AI recommendations are only available for the current year to provide actionable, forward-looking insights.', 'error');
+                return;
+            }
+        }
+        
+        // For branch reports: only current month
+        if (reportType === 'branch') {
+            const branchYearSelect = document.getElementById('branchYear');
+            const branchMonthSelect = document.getElementById('branchMonth');
+            
+            if (branchYearSelect && branchMonthSelect) {
+                const selectedYear = parseInt(branchYearSelect.value, 10);
+                const selectedMonth = parseInt(branchMonthSelect.value, 10);
+                const currentDate = new Date();
+                const currentYear = currentDate.getFullYear();
+                const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+                
+                if (selectedYear !== currentYear || selectedMonth !== currentMonth) {
+                    showMessage('AI recommendations are only available for the current month to provide actionable, forward-looking insights based on the most recent data.', 'error');
+                    return;
+                }
+            }
+        }
+
         const btn = document.getElementById('generateAIButton');
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading...</span>';
+        }
+        
+        // Disable save/send report button while AI is generating
+        const sendFinanceBtn = document.getElementById('sendFinanceSection');
+        if (sendFinanceBtn) {
+            sendFinanceBtn.disabled = true;
+            sendFinanceBtn.style.opacity = '0.6';
+            sendFinanceBtn.style.cursor = 'not-allowed';
         }
 
         const body = {
@@ -2953,6 +3522,14 @@ async function generateAIRecommendation() {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-brain"></i><span>Generate AI Recommendation</span>';
         }
+        
+        // Re-enable save/send report button after AI generation completes
+        const sendFinanceBtn = document.getElementById('sendFinanceSection');
+        if (sendFinanceBtn) {
+            sendFinanceBtn.disabled = false;
+            sendFinanceBtn.style.opacity = '1';
+            sendFinanceBtn.style.cursor = 'pointer';
+        }
     }
 }
 
@@ -2960,6 +3537,15 @@ function renderAIRecommendations(payload) {
     const reportCanvas = document.getElementById('reportCanvas');
     if (!reportCanvas) return;
 
+    const reportType = window.currentReportType;
+    
+    // Route to appropriate renderer based on report type
+    if (reportType === 'savings' || reportType === 'disbursement') {
+        renderTrendAIRecommendations(payload);
+        return;
+    }
+    
+    // Existing branch report rendering logic (unchanged)
     // Get strategic recommendations
     const strategic = (payload.ai && payload.ai.recommendations && payload.ai.recommendations.strategic) ||
                       (payload.mcda && payload.mcda.recommendations && payload.mcda.recommendations.strategic) ||
@@ -3064,6 +3650,243 @@ function renderAIRecommendations(payload) {
     // Append AI recommendations to the existing canvas content (don't replace the report)
     const existingContent = reportCanvas.innerHTML;
     // Check if AI recommendations already exist in canvas
+    if (reportCanvas.querySelector('.ai-recommendation-container')) {
+        // Replace existing AI recommendations
+        const existingAI = reportCanvas.querySelector('.ai-recommendation-container');
+        existingAI.outerHTML = aiContent;
+    } else {
+        // Append new AI recommendations
+        reportCanvas.insertAdjacentHTML('beforeend', aiContent);
+    }
+
+    // Scroll to AI recommendations
+    const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+    if (aiContainer) {
+        aiContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+// Render trend-based AI recommendations for savings/disbursement reports
+function renderTrendAIRecommendations(payload) {
+    const reportCanvas = document.getElementById('reportCanvas');
+    if (!reportCanvas) return;
+
+    const recommendations = payload.ai?.recommendations || {};
+    const trendAnalysis = payload.trendAnalysis || payload.ai?.trendAnalysis || null;
+    const reportType = window.currentReportType;
+    const isSavings = reportType === 'savings';
+
+    // Create clean, minimalist white container for AI recommendations
+    let aiContent = `
+        <div class="ai-recommendation-container" style="background: #ffffff; border-radius: 8px; padding: 24px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+                <i class="fas fa-brain" style="color: #106F2C; font-size: 20px;"></i>
+                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">AI-Powered Recommendations</h3>
+                <span style="background: #f3f4f6; color: #6b7280; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;">BETA</span>
+            </div>
+    `;
+
+    // Strategic Insights Section
+    if (recommendations.strategic && recommendations.strategic !== 'No strategic recommendations available.') {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Strategic Insights</h4>
+                <p style="margin: 0; color: #111827; line-height: 1.6; font-size: 14px;">${recommendations.strategic}</p>
+            </div>
+        `;
+    }
+
+    // Trend Insights Section
+    if (recommendations.trendInsights) {
+        const insights = recommendations.trendInsights;
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Trend Analysis</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                    ${insights.overallTrend ? `
+                        <div style="background: #f9fafb; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Overall Trend</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #111827;">${insights.overallTrend}</div>
+                        </div>
+                    ` : ''}
+                </div>
+                ${insights.keyPatterns && insights.keyPatterns.length > 0 ? `
+                    <ul style="margin: 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;">
+                        ${insights.keyPatterns.map(p => `<li style="margin-bottom: 6px;">${p}</li>`).join('')}
+                    </ul>
+                ` : ''}
+                ${insights.seasonalNotes ? `
+                    <p style="margin: 12px 0 0 0; color: #6b7280; font-size: 13px; font-style: italic;">${insights.seasonalNotes}</p>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    // Monthly Analysis Section
+    if (recommendations.monthlyAnalysis && recommendations.monthlyAnalysis.length > 0) {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Monthly Changes</h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Month</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Change</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151;">Insight</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        recommendations.monthlyAnalysis.forEach(item => {
+            const changeColor = item.change.startsWith('+') ? '#106F2C' : item.change.startsWith('-') ? '#dc2626' : '#6b7280';
+            aiContent += `
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px; color: #111827;">${item.month || 'N/A'}</td>
+                    <td style="padding: 12px; color: ${changeColor}; font-weight: 500;">${item.change || 'N/A'}</td>
+                    <td style="padding: 12px; color: #111827;">${item.insight || 'N/A'}</td>
+                </tr>
+            `;
+        });
+        
+        aiContent += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    // Anomalies Section
+    if (recommendations.anomalies && recommendations.anomalies.length > 0) {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Anomalies Detected</h4>
+        `;
+        
+        recommendations.anomalies.forEach(anomaly => {
+            const severityColor = anomaly.severity === 'high' ? '#dc2626' : '#f59e0b';
+            const typeIcon = anomaly.type === 'drop' ? 'fa-arrow-down' : 'fa-arrow-up';
+            aiContent += `
+                <div style="border-left: 4px solid ${severityColor}; padding: 16px; margin-bottom: 12px; background: #fef2f2; border-radius: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <i class="fas ${typeIcon}" style="color: ${severityColor};"></i>
+                        <span style="font-weight: 600; color: #111827; font-size: 15px;">${anomaly.month || 'Unknown Month'}</span>
+                        <span style="background: ${severityColor === '#dc2626' ? '#fee2e2' : '#fef3c7'}; color: ${severityColor}; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${anomaly.severity?.toUpperCase() || 'MEDIUM'} SEVERITY</span>
+                    </div>
+                    <div style="font-size: 13px; color: #374151; margin-bottom: 8px;">${anomaly.explanation || 'Anomaly detected'}</div>
+                    <div style="font-size: 12px; color: #6b7280;">
+                        <strong>Action:</strong> ${anomaly.recommendation || 'Investigate root causes'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        aiContent += `</div>`;
+    }
+
+    // Peak and Low Section
+    if (recommendations.peakAndLow && (recommendations.peakAndLow.highestMonth || recommendations.peakAndLow.lowestMonth)) {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Peak and Low Months</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+        `;
+        
+        if (recommendations.peakAndLow.highestMonth) {
+            aiContent += `
+                <div style="border: 1px solid #10b981; border-radius: 6px; padding: 16px; background: #f0fdf4;">
+                    <div style="font-weight: 600; color: #111827; font-size: 15px; margin-bottom: 8px;">
+                        <i class="fas fa-arrow-up" style="color: #10b981; margin-right: 6px;"></i>Highest: ${recommendations.peakAndLow.highestMonth.month || 'N/A'}
+                    </div>
+                    <div style="font-size: 13px; color: #374151;">${recommendations.peakAndLow.highestMonth.insight || 'Peak performance month'}</div>
+                </div>
+            `;
+        }
+        
+        if (recommendations.peakAndLow.lowestMonth) {
+            aiContent += `
+                <div style="border: 1px solid #ef4444; border-radius: 6px; padding: 16px; background: #fef2f2;">
+                    <div style="font-weight: 600; color: #111827; font-size: 15px; margin-bottom: 8px;">
+                        <i class="fas fa-arrow-down" style="color: #ef4444; margin-right: 6px;"></i>Lowest: ${recommendations.peakAndLow.lowestMonth.month || 'N/A'}
+                    </div>
+                    <div style="font-size: 13px; color: #374151;">${recommendations.peakAndLow.lowestMonth.insight || 'Lowest performance month'}</div>
+                </div>
+            `;
+        }
+        
+        aiContent += `</div>`;
+        
+        if (recommendations.peakAndLow.recommendations && recommendations.peakAndLow.recommendations.length > 0) {
+            aiContent += `
+                <ul style="margin: 12px 0 0 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;">
+                    ${recommendations.peakAndLow.recommendations.map(r => `<li style="margin-bottom: 6px;">${r}</li>`).join('')}
+                </ul>
+            `;
+        }
+        
+        aiContent += `</div>`;
+    }
+
+    // Forecast Section
+    if (recommendations.forecast && recommendations.forecast.nextMonthPrediction) {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Next Month Forecast</h4>
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 16px;">
+                    <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 8px;">
+                        Predicted: ${recommendations.forecast.nextMonthPrediction}
+                    </div>
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">
+                        Confidence: <span style="font-weight: 500; color: #374151;">${recommendations.forecast.confidence || 'medium'}</span>
+                    </div>
+                    ${recommendations.forecast.preparationStrategies && recommendations.forecast.preparationStrategies.length > 0 ? `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #bfdbfe;">
+                            <div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 8px;">Preparation Strategies:</div>
+                            <ul style="margin: 0; padding-left: 20px; color: #374151; font-size: 13px; line-height: 1.8;">
+                                ${recommendations.forecast.preparationStrategies.map(s => `<li style="margin-bottom: 4px;">${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    // Actionable Recommendations Section
+    if (recommendations.actionableRecommendations && recommendations.actionableRecommendations.length > 0) {
+        aiContent += `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Actionable Recommendations</h4>
+        `;
+        
+        recommendations.actionableRecommendations.forEach(rec => {
+            const priorityColor = rec.priority === 'High' ? '#dc2626' : rec.priority === 'Medium' ? '#f59e0b' : '#3b82f6';
+            const priorityBg = rec.priority === 'High' ? '#fee2e2' : rec.priority === 'Medium' ? '#fef3c7' : '#dbeafe';
+            
+            aiContent += `
+                <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-bottom: 12px; background: #f9fafb;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="background: ${priorityBg}; color: ${priorityColor}; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${rec.priority || 'MEDIUM'} PRIORITY</span>
+                        <span style="background: #e5e7eb; color: #374151; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;">${rec.category || 'General'}</span>
+                    </div>
+                    <div style="font-size: 14px; color: #111827; line-height: 1.6; margin-bottom: 8px;">${rec.recommendation || 'No recommendation provided'}</div>
+                    ${rec.rationale ? `
+                        <div style="font-size: 12px; color: #6b7280; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+                            <span style="font-weight: 500;">Reason:</span> ${rec.rationale}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        aiContent += `</div>`;
+    }
+
+    aiContent += `</div>`;
+
+    // Append AI recommendations to the existing canvas content (don't replace the report)
     if (reportCanvas.querySelector('.ai-recommendation-container')) {
         // Replace existing AI recommendations
         const existingAI = reportCanvas.querySelector('.ai-recommendation-container');

@@ -1,4 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const TrendAnalysisService = require('./trendAnalysisService');
 
 class AIRecommendationService {
     constructor(config = {}) {
@@ -6,7 +7,7 @@ class AIRecommendationService {
             enabled: config.AI_ENABLED === 'true' || config.AI_ENABLED === true,
             provider: config.AI_PROVIDER || 'anthropic',
             apiKey: config.ANTHROPIC_API_KEY || config.AI_API_KEY,
-            model: config.AI_MODEL || 'claude-3-5-sonnet-20241022',
+            model: config.AI_MODEL || 'claude-sonnet-4-20250514',
             maxTokens: parseInt(config.AI_MAX_TOKENS) || 2000,
             temperature: parseFloat(config.AI_TEMPERATURE) || 0.7,
             timeout: parseInt(config.AI_TIMEOUT) || 30000
@@ -14,6 +15,7 @@ class AIRecommendationService {
         
         this.anthropic = null;
         this.Anthropic = Anthropic; // Store class reference
+        this.trendAnalysisService = new TrendAnalysisService();
         
         // Initialize AI client if enabled
         if (this.config.enabled && this.config.apiKey) {
@@ -52,23 +54,30 @@ class AIRecommendationService {
     }
 
     /**
-     * Generate AI-powered recommendations using MCDA results
-     * @param {Object} mcdaResults - Results from MCDA analysis
+     * Generate AI-powered recommendations using MCDA results or trend analysis
+     * @param {Object} mcdaResults - Results from MCDA analysis (for branch reports) or trend analysis (for savings/disbursement)
      * @param {Object} reportData - Original report data
      * @param {String} reportType - Type of report (branch, savings, disbursement, member)
      * @returns {Object} AI-generated recommendations
      */
     async generateRecommendations(mcdaResults, reportData, reportType = 'branch') {
+        // Route to appropriate analysis method based on report type
+        if (reportType === 'savings' || reportType === 'disbursement') {
+            return this.generateTrendRecommendations(reportData, reportType);
+        }
+        
+        // Existing branch report logic (unchanged)
         try {
-            // If AI is disabled or not available, use rule-based recommendations
+            // If AI is disabled or not available, throw error
             if (!this.config.enabled || !this.anthropic) {
-                console.log('ℹ️ [AI-SERVICE] AI disabled or not configured, using rule-based recommendations');
-                console.log('ℹ️ [AI-SERVICE] Config:', {
+                const errorMsg = 'AI is disabled or not configured. Please enable AI and provide API credentials.';
+                console.error('❌ [AI-SERVICE]', errorMsg);
+                console.error('❌ [AI-SERVICE] Config:', {
                     enabled: this.config.enabled,
                     hasAnthropic: !!this.anthropic,
                     provider: this.config.provider
                 });
-                return this.generateRuleBasedRecommendations(mcdaResults, reportData, reportType);
+                throw new Error(errorMsg);
             }
 
             console.log('🚀 [AI-SERVICE] AI is enabled, generating recommendations with', this.config.provider);
@@ -140,30 +149,25 @@ class AIRecommendationService {
             console.error('❌ [AI-SERVICE] Error type:', error.constructor.name);
             console.error('❌ [AI-SERVICE] Stack:', error.stack);
             
-            // Fallback to rule-based recommendations
-            console.log('🔄 [AI-SERVICE] Falling back to rule-based recommendations');
-            return {
-                success: false,
-                source: 'rule-based-fallback',
-                error: error.message,
-                recommendations: this.generateRuleBasedRecommendations(mcdaResults, reportData, reportType),
-                metadata: {
-                    fallbackReason: 'AI API error',
-                    errorType: error.constructor.name,
-                    timestamp: new Date().toISOString()
-                }
-            };
+            // Re-throw error - no fallback to hardcoded recommendations
+            throw error;
         }
     }
 
     /**
-     * Build AI prompt based on MCDA results and report data
-     * @param {Object} mcdaResults - MCDA analysis results
+     * Build AI prompt based on MCDA results or trend analysis
+     * @param {Object} mcdaResults - MCDA analysis results (for branch) or trend analysis (for savings/disbursement)
      * @param {Object} reportData - Report data
      * @param {String} reportType - Report type
      * @returns {String} Formatted prompt for AI
      */
     buildAIPrompt(mcdaResults, reportData, reportType) {
+        // Route to appropriate prompt builder based on report type
+        if (reportType === 'savings' || reportType === 'disbursement') {
+            return this.buildTrendPrompt(reportData, reportType, mcdaResults);
+        }
+        
+        // Existing branch report prompt (unchanged)
         const rankedBranches = mcdaResults.rankedBranches || [];
         const criteria = mcdaResults.analysisMetadata?.criteriaUsed || [];
         const weights = mcdaResults.analysisMetadata?.weightsUsed || {};
@@ -290,103 +294,336 @@ Ensure recommendations are:
      * @returns {Object} Structured recommendations
      */
     parseAIResponse(aiResponse, mcdaResults) {
+        if (!aiResponse || aiResponse.trim().length === 0) {
+            throw new Error('AI API returned empty response');
+        }
+        
         try {
             // Try to extract JSON from the response
             const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
+                
+                // Validate required fields
+                if (!parsed.strategic) {
+                    throw new Error('AI response missing required "strategic" field');
+                }
+                
                 return {
-                    strategic: parsed.strategic || "Strategic recommendations not provided.",
+                    strategic: parsed.strategic,
                     branchLevel: parsed.branchLevel || [],
                     keyInsights: parsed.keyInsights || [],
                     nextSteps: parsed.nextSteps || []
                 };
             } else {
-                // Fallback: treat entire response as strategic recommendation
-                return {
-                    strategic: aiResponse,
-                    branchLevel: [],
-                    keyInsights: [],
-                    nextSteps: []
-                };
+                // If no JSON found, throw error - we require structured JSON response
+                throw new Error('AI response is not in valid JSON format. Expected structured JSON with strategic recommendations.');
             }
         } catch (error) {
-            console.error('Failed to parse AI response:', error);
-            return {
-                strategic: aiResponse || "Unable to generate AI recommendations.",
-                branchLevel: [],
-                keyInsights: [],
-                nextSteps: []
-            };
+            console.error('❌ [AI-SERVICE] Failed to parse AI response:', error.message);
+            console.error('❌ [AI-SERVICE] Response preview:', aiResponse.substring(0, 200));
+            throw new Error(`Failed to parse AI response: ${error.message}`);
         }
     }
 
     /**
-     * Generate rule-based recommendations as fallback
-     * @param {Object} mcdaResults - MCDA analysis results
-     * @param {Object} reportData - Report data
-     * @param {String} reportType - Report type
-     * @returns {Object} Rule-based recommendations
+     * Generate trend-based recommendations for savings/disbursement reports
+     * @param {Object} reportData - Report data with monthlyData
+     * @param {String} reportType - Report type (savings or disbursement)
+     * @returns {Object} AI-generated or rule-based recommendations
      */
-    generateRuleBasedRecommendations(mcdaResults, reportData, reportType) {
-        const rankedBranches = mcdaResults.rankedBranches || [];
-        const excellentBranches = rankedBranches.filter(b => b.category === 'Excellent');
-        const needsImprovementBranches = rankedBranches.filter(b => b.category === 'Needs Improvement');
-        
-        // Strategic recommendations
-        let strategic = "Based on TOPSIS analysis of branch performance: ";
-        
-        if (excellentBranches.length > 0) {
-            const excellentNames = excellentBranches.map(b => b.branch_name).join(', ');
-            strategic += `Top-performing branches (${excellentNames}) demonstrate strong performance across all criteria. `;
-        }
-        
-        if (needsImprovementBranches.length > 0) {
-            const improvementNames = needsImprovementBranches.map(b => b.branch_name).join(', ');
-            strategic += `Branches requiring attention (${improvementNames}) need targeted interventions to improve performance. `;
-        }
-        
-        strategic += "Focus on replicating successful strategies from high performers while addressing specific gaps in underperforming branches.";
-        
-        // Branch-level recommendations
-        const branchLevel = rankedBranches.map(branch => {
-            const recommendations = [];
-            const priority = branch.topsisScore < 0.5 ? 'High' : branch.topsisScore < 0.75 ? 'Medium' : 'Low';
+    async generateTrendRecommendations(reportData, reportType) {
+        try {
+            // Run trend analysis
+            const monthlyData = reportData.monthlyData || [];
+            const trendAnalysis = this.trendAnalysisService.analyzeTrends(monthlyData);
             
-            if (branch.topsisScore < 0.5) {
-                recommendations.push("Develop comprehensive improvement plan");
-                recommendations.push("Increase member engagement activities");
-                recommendations.push("Review operational efficiency");
-            } else if (branch.topsisScore < 0.75) {
-                recommendations.push("Focus on specific performance gaps");
-                recommendations.push("Implement best practices from top performers");
-            } else {
-                recommendations.push("Maintain current successful strategies");
-                recommendations.push("Share best practices with other branches");
+            if (!trendAnalysis.success) {
+                const errorMsg = `Trend analysis failed: ${trendAnalysis.error || 'Unknown error'}`;
+                console.error('❌ [AI-SERVICE]', errorMsg);
+                throw new Error(errorMsg);
             }
             
+            // If AI is disabled or not available, throw error
+            if (!this.config.enabled || !this.anthropic) {
+                const errorMsg = 'AI is disabled or not configured. Please enable AI and provide API credentials.';
+                console.error('❌ [AI-SERVICE]', errorMsg);
+                throw new Error(errorMsg);
+            }
+            
+            console.log('🚀 [AI-SERVICE] AI is enabled, generating trend recommendations with', this.config.provider);
+            
+            // Prepare prompt for AI
+            const prompt = this.buildTrendPrompt(reportData, reportType, trendAnalysis);
+            console.log('📝 [AI-SERVICE] Trend prompt prepared, length:', prompt.length, 'characters');
+            
+            // Call AI API
+            console.log('📡 [AI-SERVICE] Calling', this.config.provider, 'API with model', this.config.model);
+            const startTime = Date.now();
+            let aiResponse;
+            try {
+                aiResponse = await this.callAIAPI(prompt);
+            } catch (error) {
+                console.error('❌ [AI-SERVICE] AI API call failed:', error.message);
+                throw error;
+            }
+            const apiDuration = Date.now() - startTime;
+            console.log('✅ [AI-SERVICE] API call completed in', apiDuration, 'ms');
+            console.log('✅ [AI-SERVICE] Response length:', aiResponse?.length || 0, 'characters');
+            
+            // Parse and structure AI response
+            const recommendations = this.parseTrendAIResponse(aiResponse, trendAnalysis);
+            console.log('✅ [AI-SERVICE] Trend response parsed successfully');
+            
             return {
-                branchName: branch.branch_name,
-                priority,
+                success: true,
+                source: 'ai',
                 recommendations,
-                rationale: `Based on TOPSIS score of ${(branch.topsisScore * 100).toFixed(1)}% and ${branch.category} category classification.`
+                trendAnalysis: trendAnalysis,
+                metadata: {
+                    model: this.config.model,
+                    provider: this.config.provider,
+                    timestamp: new Date().toISOString(),
+                    apiDuration: apiDuration,
+                    responseLength: aiResponse?.length || 0,
+                    analysisType: 'time-series-trend'
+                }
             };
+            
+        } catch (error) {
+            console.error('❌ [AI-SERVICE] Trend recommendation generation failed:', error.message);
+            console.error('❌ [AI-SERVICE] Error type:', error.constructor.name);
+            console.error('❌ [AI-SERVICE] Stack:', error.stack);
+            
+            // Re-throw error - no fallback to hardcoded recommendations
+            throw error;
+        }
+    }
+
+    /**
+     * Build AI prompt for trend-based analysis
+     * @param {Object} reportData - Report data with monthlyData
+     * @param {String} reportType - Report type (savings or disbursement)
+     * @param {Object} trendAnalysis - Trend analysis results
+     * @returns {String} Formatted prompt for AI
+     */
+    buildTrendPrompt(reportData, reportType, trendAnalysis) {
+        const monthlyData = reportData.monthlyData || [];
+        const isSavings = reportType === 'savings';
+        const reportTypeName = isSavings ? 'Savings' : 'Disbursement';
+        
+        let prompt = `You are a financial analyst providing prescriptive recommendations for a cooperative's ${reportTypeName.toLowerCase()} performance analysis.
+
+CONTEXT:
+- Report Type: ${reportTypeName} Report
+- Analysis Method: Time-Series Trend Analysis
+- Period: ${reportData.period || 'N/A'}
+- Total ${reportTypeName}: ₱${Number(reportData.total || 0).toLocaleString('en-PH')}
+- Active Members: ${reportData.activeMembers || 0}
+- Data Points: ${monthlyData.length} months
+
+${this.formatTrendDataForAI(monthlyData, trendAnalysis)}
+
+TREND ANALYSIS RESULTS:
+${this.formatTrendAnalysisForAI(trendAnalysis)}
+
+TASK:
+Provide strategic and actionable recommendations based on this time-series analysis. Focus on:
+1. Strategic insights about overall ${reportTypeName.toLowerCase()} performance trends
+2. Analysis of monthly increases/decreases and their implications
+3. Identification and explanation of unusual drops or spikes
+4. Comparison of highest vs lowest months and what factors may have contributed
+5. Next month prediction and preparation strategies
+6. Specific actionable recommendations to improve ${reportTypeName.toLowerCase()} performance
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "strategic": "Strategic recommendation text here...",
+  "trendInsights": {
+    "overallTrend": "Description of overall trend (increasing/decreasing/stable)",
+    "keyPatterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
+    "seasonalNotes": "Any seasonal patterns observed"
+  },
+  "monthlyAnalysis": [
+    {
+      "month": "Month Name",
+      "change": "+X% or -X%",
+      "insight": "Brief insight about this month's performance"
+    }
+  ],
+  "anomalies": [
+    {
+      "month": "Month Name",
+      "type": "drop or spike",
+      "severity": "high or medium",
+      "explanation": "Why this anomaly occurred",
+      "recommendation": "What to do about it"
+    }
+  ],
+  "peakAndLow": {
+    "highestMonth": {
+      "month": "Month Name",
+      "insight": "Why this month performed best"
+    },
+    "lowestMonth": {
+      "month": "Month Name",
+      "insight": "Why this month performed worst"
+    },
+    "recommendations": ["Recommendation 1", "Recommendation 2"]
+  },
+  "forecast": {
+    "nextMonthPrediction": "Predicted amount or range",
+    "confidence": "high/medium/low",
+    "preparationStrategies": ["Strategy 1", "Strategy 2"]
+  },
+  "actionableRecommendations": [
+    {
+      "priority": "High/Medium/Low",
+      "category": "Marketing Strategy/Investigation/Product Development/etc",
+      "recommendation": "Specific actionable recommendation",
+      "rationale": "Why this recommendation is important"
+    }
+  ],
+  "nextSteps": ["Next step 1", "Next step 2", "Next step 3"]
+}
+
+Ensure recommendations are:
+- Specific and actionable
+- Based on the actual trend data provided
+- Appropriate for a financial cooperative context
+- Prioritized by urgency and impact
+- Focused on improving ${reportTypeName.toLowerCase()} performance`;
+
+        return prompt;
+    }
+
+    /**
+     * Format trend data for AI consumption
+     * @param {Array} monthlyData - Monthly data array
+     * @param {Object} trendAnalysis - Trend analysis results
+     * @returns {String} Formatted trend data
+     */
+    formatTrendDataForAI(monthlyData, trendAnalysis) {
+        // Determine report type from data context (savings or disbursement)
+        const isSavings = monthlyData.length > 0 && monthlyData[0].total !== undefined;
+        let formatted = `MONTHLY ${isSavings ? 'SAVINGS' : 'DISBURSEMENT'} DATA:\n\n`;
+        
+        monthlyData.forEach((month, index) => {
+            formatted += `${index + 1}. ${month.monthName || month.month || 'Unknown'}\n`;
+            formatted += `   - Amount: ₱${Number(month.total || 0).toLocaleString('en-PH')}\n`;
+            formatted += `   - Active Members: ${Number(month.members || 0).toLocaleString('en-PH')}\n`;
+            if (index > 0) {
+                const change = trendAnalysis.monthlyChanges?.[index - 1];
+                if (change) {
+                    formatted += `   - Change from ${change.previousMonth}: ${change.changePercent > 0 ? '+' : ''}${change.changePercent.toFixed(2)}% (${change.direction})\n`;
+                }
+            }
+            formatted += '\n';
         });
         
-        return {
-            strategic,
-            branchLevel,
-            keyInsights: [
-                `${excellentBranches.length} branches achieved 'Excellent' status`,
-                `${needsImprovementBranches.length} branches need improvement`,
-                `Average TOPSIS score: ${(rankedBranches.reduce((sum, b) => sum + b.topsisScore, 0) / rankedBranches.length * 100).toFixed(1)}%`
-            ],
-            nextSteps: [
-                "Review detailed branch performance metrics",
-                "Develop action plans for underperforming branches",
-                "Document and share best practices from top performers"
-            ]
-        };
+        return formatted;
+    }
+
+    /**
+     * Format trend analysis results for AI consumption
+     * @param {Object} trendAnalysis - Trend analysis results
+     * @returns {String} Formatted analysis
+     */
+    formatTrendAnalysisForAI(trendAnalysis) {
+        if (!trendAnalysis.success) {
+            return 'Trend analysis incomplete or failed.';
+        }
+        
+        let formatted = '';
+        
+        // Metrics
+        if (trendAnalysis.metrics) {
+            formatted += `OVERALL METRICS:\n`;
+            formatted += `- Total: ₱${Number(trendAnalysis.metrics.total || 0).toLocaleString('en-PH')}\n`;
+            formatted += `- Average per month: ₱${Number(trendAnalysis.metrics.average || 0).toLocaleString('en-PH')}\n`;
+            formatted += `- Overall growth: ${trendAnalysis.metrics.overallGrowth > 0 ? '+' : ''}${trendAnalysis.metrics.overallGrowth.toFixed(2)}%\n`;
+            formatted += `- Trend direction: ${trendAnalysis.metrics.trendDirection}\n`;
+            formatted += `- Volatility: ${trendAnalysis.metrics.volatility.toFixed(2)}%\n\n`;
+        }
+        
+        // Peaks and lows
+        if (trendAnalysis.peaksAndLows) {
+            formatted += `PEAK AND LOW MONTHS:\n`;
+            formatted += `- Highest: ${trendAnalysis.peaksAndLows.highest.month} (₱${Number(trendAnalysis.peaksAndLows.highest.amount || 0).toLocaleString('en-PH')})\n`;
+            formatted += `- Lowest: ${trendAnalysis.peaksAndLows.lowest.month} (₱${Number(trendAnalysis.peaksAndLows.lowest.amount || 0).toLocaleString('en-PH')})\n`;
+            formatted += `- Difference: ₱${Number(trendAnalysis.peaksAndLows.difference || 0).toLocaleString('en-PH')} (${trendAnalysis.peaksAndLows.differencePercent.toFixed(2)}%)\n\n`;
+        }
+        
+        // Anomalies
+        if (trendAnalysis.anomalies && trendAnalysis.anomalies.hasAnomalies) {
+            formatted += `ANOMALIES DETECTED:\n`;
+            if (trendAnalysis.anomalies.drops.length > 0) {
+                formatted += `Unusual Drops:\n`;
+                trendAnalysis.anomalies.drops.forEach(drop => {
+                    formatted += `- ${drop.month}: ₱${Number(drop.amount || 0).toLocaleString('en-PH')} (${drop.deviation}% below average, ${drop.severity} severity)\n`;
+                });
+            }
+            if (trendAnalysis.anomalies.spikes.length > 0) {
+                formatted += `Unusual Spikes:\n`;
+                trendAnalysis.anomalies.spikes.forEach(spike => {
+                    formatted += `- ${spike.month}: ₱${Number(spike.amount || 0).toLocaleString('en-PH')} (${spike.deviation}% above average, ${spike.severity} severity)\n`;
+                });
+            }
+            formatted += '\n';
+        }
+        
+        // Forecast
+        if (trendAnalysis.forecast) {
+            formatted += `NEXT MONTH FORECAST:\n`;
+            formatted += `- Predicted: ₱${Number(trendAnalysis.forecast.predicted || 0).toLocaleString('en-PH')}\n`;
+            formatted += `- Confidence: ${trendAnalysis.forecast.confidence}\n`;
+            formatted += `- Range: ₱${Number(trendAnalysis.forecast.range?.min || 0).toLocaleString('en-PH')} - ₱${Number(trendAnalysis.forecast.range?.max || 0).toLocaleString('en-PH')}\n\n`;
+        }
+        
+        return formatted;
+    }
+
+    /**
+     * Parse AI response for trend recommendations
+     * @param {String} aiResponse - Raw AI response
+     * @param {Object} trendAnalysis - Trend analysis results
+     * @returns {Object} Structured recommendations
+     */
+    parseTrendAIResponse(aiResponse, trendAnalysis) {
+        if (!aiResponse || aiResponse.trim().length === 0) {
+            throw new Error('AI API returned empty response');
+        }
+        
+        try {
+            // Try to extract JSON from the response
+            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                
+                // Validate required fields
+                if (!parsed.strategic) {
+                    throw new Error('AI response missing required "strategic" field');
+                }
+                
+                return {
+                    strategic: parsed.strategic,
+                    trendInsights: parsed.trendInsights || {},
+                    monthlyAnalysis: parsed.monthlyAnalysis || [],
+                    anomalies: parsed.anomalies || [],
+                    peakAndLow: parsed.peakAndLow || {},
+                    forecast: parsed.forecast || {},
+                    actionableRecommendations: parsed.actionableRecommendations || [],
+                    nextSteps: parsed.nextSteps || []
+                };
+            } else {
+                // If no JSON found, throw error - we require structured JSON response
+                throw new Error('AI response is not in valid JSON format. Expected structured JSON with strategic recommendations.');
+            }
+        } catch (error) {
+            console.error('❌ [AI-SERVICE] Failed to parse trend AI response:', error.message);
+            console.error('❌ [AI-SERVICE] Response preview:', aiResponse.substring(0, 200));
+            throw new Error(`Failed to parse AI response: ${error.message}`);
+        }
     }
 
     /**
