@@ -497,7 +497,7 @@ function updateBranchRankingsInsight(data) {
     const userRole = localStorage.getItem('user_role');
     const isFinanceOfficer = userRole === 'Finance Officer';
     
-    const branchesList = data.slice(0, 5).map((branch, index) => {
+    const branchesList = data.slice(0, 6).map((branch, index) => {
         // Determine branch display name - Main Branch for Ibaan (branch_id '1'), otherwise Branch [number]
         const branchDisplayName = branch.branch_id === '1' ? 'Main Branch' : `Branch ${branch.branch_id || (index + 1)}`;
         
