@@ -40,19 +40,35 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // limit each IP to 1000 requests per windowMs (increased for analytics)
-    message: {
-        error: 'Too many requests from this IP, please try again later.',
-        code: 'RATE_LIMIT_EXCEEDED'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// Rate limiting - disabled in local development, enabled in production
+const isLocal = process.env.NODE_ENV !== 'production';
 
-app.use(limiter);
+if (!isLocal) {
+    // Production rate limiting
+    const rateLimitWindowMs = process.env.RATE_LIMIT_WINDOW_MS 
+        ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) 
+        : 900000; // 15 minutes
+    const rateLimitMaxRequests = process.env.RATE_LIMIT_MAX_REQUESTS 
+        ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) 
+        : 100; // 100 requests per window
+
+    console.log(`🔒 Rate limiting ENABLED: ${rateLimitMaxRequests} requests per ${rateLimitWindowMs / 1000 / 60} minutes (PRODUCTION mode)`);
+
+    const limiter = rateLimit({
+        windowMs: rateLimitWindowMs,
+        max: rateLimitMaxRequests,
+        message: {
+            error: 'Too many requests from this IP, please try again later.',
+            code: 'RATE_LIMIT_EXCEEDED'
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+    });
+
+    app.use(limiter);
+} else {
+    console.log('🔓 Rate limiting DISABLED (LOCAL development mode)');
+}
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
