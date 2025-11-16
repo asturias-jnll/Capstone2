@@ -1976,6 +1976,26 @@ div[style*="height: 260px"] h4 {
         max-width: 100%;
     }
     
+    .modal-content {
+        width: 95%;
+        max-width: 100%;
+    }
+    
+    .modal-body {
+        padding: 12px;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn-close,
+    .btn-download {
+        width: 100%;
+        justify-content: center;
+    }
+    
     .reports-header h1 {
         font-size: 16px;
         margin-bottom: 6px;
@@ -2246,6 +2266,17 @@ div[style*="height: 260px"] h4 {
 @media (max-width: 480px) {
     .reports-content {
         padding: 75px 10px 80px 10px;
+    }
+    
+    .modal-footer {
+        padding: 12px 16px;
+        flex-direction: column;
+    }
+    
+    .btn-close,
+    .btn-download {
+        width: 100%;
+        justify-content: center;
     }
     
     .reports-header {
@@ -3038,6 +3069,8 @@ div[style*="height: 260px"] h4 {
     max-height: calc(100vh - 40px);
     overflow: hidden;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-header {
@@ -3071,8 +3104,9 @@ div[style*="height: 260px"] h4 {
 
 .modal-body {
     padding: 16px;
-    max-height: calc(100vh - 120px);
-    overflow: hidden;
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
 }
 
 .modal-footer {

@@ -456,6 +456,40 @@ function toggleMonthSelection(reportType, month) {
     const btn = container.querySelector(`[data-value="${month}"]`);
     if (!btn) return;
     
+    // Check if this is a savings or disbursement report
+    const isSavingsOrDisbursement = reportType === 'savings' || reportType === 'disbursement';
+    
+    // For savings/disbursement reports, check if selecting a future month as end month
+    if (isSavingsOrDisbursement && !btn.disabled) {
+        const monthValue = parseInt(month, 10);
+        const selectedMonths = Array.from(container.querySelectorAll('.selection-btn.selected'))
+            .map(b => parseInt(b.getAttribute('data-value'), 10))
+            .sort((a, b) => a - b);
+        
+        // If we're selecting a second month (creating a range), check if it's a future month
+        if (selectedMonths.length > 0) {
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+            
+            const selectedYears = getSelectedYears(reportType, true);
+            const selectedYear = selectedYears.length > 0 ? selectedYears[0] : currentYear;
+            
+            // If selected year is current year and the month being selected is after current month
+            if (selectedYear === currentYear && monthValue > currentMonth) {
+                // This would be the end month in a range, prevent it
+                showMessage('Cannot select a future month as the end month. Please select a month up to the current month only.', 'error');
+                return;
+            }
+            
+            // If selected year is in the future, prevent all selections
+            if (selectedYear > currentYear) {
+                showMessage('Cannot select months from a future year. Please select a year up to the current year.', 'error');
+                return;
+            }
+        }
+    }
+    
     const isSelected = btn.classList.contains('selected');
     const monthValue = parseInt(month, 10);
     
@@ -516,18 +550,53 @@ function updateMonthButtonStates(reportType) {
         .map(b => parseInt(b.getAttribute('data-value'), 10))
         .sort((a, b) => a - b);
     
+    // Check if this is a savings or disbursement report
+    const isSavingsOrDisbursement = reportType === 'savings' || reportType === 'disbursement';
+    
+    // Get current date for future month checking
+    let currentYear = null;
+    let currentMonth = null;
+    if (isSavingsOrDisbursement) {
+        const currentDate = new Date();
+        currentYear = currentDate.getFullYear();
+        currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    }
+    
     // Get all month buttons
     const allButtons = container.querySelectorAll('.selection-btn');
     
     if (selectedMonths.length === 0) {
-        // No selection: enable all buttons
+        // No selection: enable all buttons (but disable future months for savings/disbursement)
         allButtons.forEach(btn => {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
+            const monthValue = parseInt(btn.getAttribute('data-value'), 10);
+            
+            if (isSavingsOrDisbursement) {
+                const selectedYears = getSelectedYears(reportType, true);
+                const selectedYear = selectedYears.length > 0 ? selectedYears[0] : currentYear;
+                
+                // Disable future months if selected year is current year
+                if (selectedYear === currentYear && monthValue > currentMonth) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                } else if (selectedYear > currentYear) {
+                    // Disable all months if selected year is in the future
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
         });
     } else if (selectedMonths.length === 1) {
-        // One month selected: disable months before it, enable months after it
+        // One month selected: disable months before it, enable months after it (but respect future month limit for savings/disbursement)
         const firstSelected = selectedMonths[0];
         allButtons.forEach(btn => {
             const monthValue = parseInt(btn.getAttribute('data-value'), 10);
@@ -539,14 +608,35 @@ function updateMonthButtonStates(reportType) {
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
             } else {
-                // Enable months from first selected onwards
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
+                // Enable months from first selected onwards, but check future month limit for savings/disbursement
+                if (isSavingsOrDisbursement) {
+                    const selectedYears = getSelectedYears(reportType, true);
+                    const selectedYear = selectedYears.length > 0 ? selectedYears[0] : currentYear;
+                    
+                    // Disable future months if selected year is current year
+                    if (selectedYear === currentYear && monthValue > currentMonth) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else if (selectedYear > currentYear) {
+                        // Disable all months if selected year is in the future
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
             }
         });
     } else {
-        // Range selected: disable months before the first selected month, enable rest
+        // Range selected: disable months before the first selected month, enable rest (but respect future month limit for savings/disbursement)
         const firstSelected = selectedMonths[0];
         allButtons.forEach(btn => {
             const monthValue = parseInt(btn.getAttribute('data-value'), 10);
@@ -558,10 +648,31 @@ function updateMonthButtonStates(reportType) {
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
             } else {
-                // Enable months from first selected onwards
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
+                // Enable months from first selected onwards, but check future month limit for savings/disbursement
+                if (isSavingsOrDisbursement) {
+                    const selectedYears = getSelectedYears(reportType, true);
+                    const selectedYear = selectedYears.length > 0 ? selectedYears[0] : currentYear;
+                    
+                    // Disable future months if selected year is current year
+                    if (selectedYear === currentYear && monthValue > currentMonth) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else if (selectedYear > currentYear) {
+                        // Disable all months if selected year is in the future
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
             }
         });
     }
@@ -578,13 +689,73 @@ function toggleYearSelection(reportType, year, isSingleSelection) {
     const btn = container.querySelector(`[data-value="${year}"]`);
     if (!btn) return;
     
+    // Check if this is a savings/disbursement report
+    const isSavingsOrDisbursement = reportType === 'savings' || reportType === 'disbursement';
+    
     if (isSingleSelection) {
         // Single selection: deselect all others, toggle this one
         container.querySelectorAll('.selection-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
+        
+        // Update month button states when year changes (important for savings/disbursement reports)
+        if (isSavingsOrDisbursement) {
+            updateMonthButtonStates(reportType);
+        }
+        
+        // Clear report canvas when year changes in month mode (if report was already generated)
+        if (isSavingsOrDisbursement && localStorage.getItem('currentReportType') === reportType) {
+            const previousSelectedYears = Array.from(container.querySelectorAll('.selection-btn.selected'))
+                .map(b => parseInt(b.getAttribute('data-value'), 10))
+                .sort((a, b) => a - b);
+            const newSelectedYear = parseInt(year, 10);
+            const yearChanged = previousSelectedYears.length === 0 || previousSelectedYears[0] !== newSelectedYear;
+            
+            if (yearChanged) {
+                // Clear the report canvas
+                clearReportCanvas();
+                // Clear AI recommendations from canvas if they exist
+                const reportCanvas = document.getElementById('reportCanvas');
+                if (reportCanvas) {
+                    const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+                    if (aiContainer) {
+                        aiContainer.remove();
+                    }
+                }
+                // Hide send finance section
+                hideSendFinanceSection();
+            }
+        }
     } else {
         // Multiple selection: toggle this one
         btn.classList.toggle('selected');
+        
+        // Year mode (multiple selection): clear canvas when selection changes
+        if (isSavingsOrDisbursement && localStorage.getItem('currentReportType') === reportType) {
+            const previousSelectedYears = Array.from(container.querySelectorAll('.selection-btn.selected'))
+                .map(b => parseInt(b.getAttribute('data-value'), 10))
+                .sort((a, b) => a - b);
+            const newSelectedYears = Array.from(container.querySelectorAll('.selection-btn.selected'))
+                .map(b => parseInt(b.getAttribute('data-value'), 10))
+                .sort((a, b) => a - b);
+            
+            const yearChanged = previousSelectedYears.length !== newSelectedYears.length ||
+                previousSelectedYears.some((y, i) => y !== newSelectedYears[i]);
+            
+            if (yearChanged) {
+                // Clear the report canvas
+                clearReportCanvas();
+                // Clear AI recommendations from canvas if they exist
+                const reportCanvas = document.getElementById('reportCanvas');
+                if (reportCanvas) {
+                    const aiContainer = reportCanvas.querySelector('.ai-recommendation-container');
+                    if (aiContainer) {
+                        aiContainer.remove();
+                    }
+                }
+                // Hide send finance section
+                hideSendFinanceSection();
+            }
+        }
     }
 }
 
@@ -807,6 +978,13 @@ function showConfigurationSection(reportType) {
         
         // Add request button after the configuration (only if not already exists)
         addReportCanvas();
+    }
+    
+    // Setup member or branch year/month dropdowns if needed
+    if (reportType === 'member') {
+        setupMemberYearMonthDropdowns();
+    } else if (reportType === 'branch') {
+        setupBranchYearMonthDropdowns();
     }
     
     // Hide date range picker when in configuration mode
@@ -1635,10 +1813,142 @@ function clearBranchConfig() {
     document.querySelectorAll('input[name="branchSelection"]').forEach(radio => {
         radio.checked = false;
     });
-    document.getElementById('branchYear').value = '2025';
-    document.getElementById('branchMonth').value = '1';
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    document.getElementById('branchYear').value = String(currentYear);
+    document.getElementById('branchMonth').value = String(currentMonth);
     document.querySelectorAll('#branchConfig .type-btn').forEach(btn => {
         btn.classList.remove('active');
+    });
+    // Update month dropdown after clearing
+    updateBranchMonthDropdown();
+}
+
+// Setup member year and month dropdowns
+function setupMemberYearMonthDropdowns() {
+    const memberYearSelect = document.getElementById('memberYear');
+    if (!memberYearSelect) return;
+    
+    // Always populate year dropdown to ensure it only has years up to current year
+    const currentYear = new Date().getFullYear();
+    const startYear = 2023;
+    
+    memberYearSelect.innerHTML = '';
+    for (let year = currentYear; year >= startYear; year--) {
+        const option = document.createElement('option');
+        option.value = String(year);
+        option.textContent = year;
+        memberYearSelect.appendChild(option);
+    }
+    memberYearSelect.value = String(currentYear);
+    
+    // Remove existing listeners to avoid duplicates
+    const newYearSelect = memberYearSelect.cloneNode(true);
+    memberYearSelect.parentNode.replaceChild(newYearSelect, memberYearSelect);
+    
+    // Add event listener to update month dropdown when year changes
+    newYearSelect.addEventListener('change', updateMemberMonthDropdown);
+    
+    // Initial update of month dropdown
+    updateMemberMonthDropdown();
+}
+
+// Update member month dropdown to disable future months
+function updateMemberMonthDropdown() {
+    const memberYearSelect = document.getElementById('memberYear');
+    const memberMonthSelect = document.getElementById('memberMonth');
+    
+    if (!memberYearSelect || !memberMonthSelect) return;
+    
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const selectedYear = parseInt(memberYearSelect.value, 10);
+    
+    // Get all month options
+    const monthOptions = memberMonthSelect.querySelectorAll('option');
+    
+    monthOptions.forEach((option) => {
+        const monthValue = parseInt(option.value, 10);
+        
+        // Disable if it's a future month
+        if (selectedYear > currentYear || (selectedYear === currentYear && monthValue > currentMonth)) {
+            option.disabled = true;
+            // If the currently selected month becomes disabled, reset to current month
+            if (memberMonthSelect.value === option.value) {
+                if (selectedYear === currentYear) {
+                    memberMonthSelect.value = String(currentMonth);
+                } else {
+                    memberMonthSelect.value = '1'; // Default to January for past years
+                }
+            }
+        } else {
+            option.disabled = false;
+        }
+    });
+}
+
+// Setup branch year and month dropdowns
+function setupBranchYearMonthDropdowns() {
+    const branchYearSelect = document.getElementById('branchYear');
+    if (!branchYearSelect) return;
+    
+    // Always populate year dropdown to ensure it only has years up to current year
+    const currentYear = new Date().getFullYear();
+    const startYear = 2023;
+    
+    branchYearSelect.innerHTML = '';
+    for (let year = currentYear; year >= startYear; year--) {
+        const option = document.createElement('option');
+        option.value = String(year);
+        option.textContent = year;
+        branchYearSelect.appendChild(option);
+    }
+    branchYearSelect.value = String(currentYear);
+    
+    // Remove existing listeners to avoid duplicates
+    const newYearSelect = branchYearSelect.cloneNode(true);
+    branchYearSelect.parentNode.replaceChild(newYearSelect, branchYearSelect);
+    
+    // Add event listener to update month dropdown when year changes
+    newYearSelect.addEventListener('change', updateBranchMonthDropdown);
+    
+    // Initial update of month dropdown
+    updateBranchMonthDropdown();
+}
+
+// Update branch month dropdown to disable future months
+function updateBranchMonthDropdown() {
+    const branchYearSelect = document.getElementById('branchYear');
+    const branchMonthSelect = document.getElementById('branchMonth');
+    
+    if (!branchYearSelect || !branchMonthSelect) return;
+    
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const selectedYear = parseInt(branchYearSelect.value, 10);
+    
+    // Get all month options
+    const monthOptions = branchMonthSelect.querySelectorAll('option');
+    
+    monthOptions.forEach((option) => {
+        const monthValue = parseInt(option.value, 10);
+        
+        // Disable if it's a future month
+        if (selectedYear > currentYear || (selectedYear === currentYear && monthValue > currentMonth)) {
+            option.disabled = true;
+            // If the currently selected month becomes disabled, reset to current month
+            if (branchMonthSelect.value === option.value) {
+                if (selectedYear === currentYear) {
+                    branchMonthSelect.value = String(currentMonth);
+                } else {
+                    branchMonthSelect.value = '1'; // Default to January for past years
+                }
+            }
+        } else {
+            option.disabled = false;
+        }
     });
 }
 

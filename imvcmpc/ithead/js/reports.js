@@ -3740,11 +3740,10 @@ function renderTrendAIRecommendations(payload) {
         `;
         
         recommendations.monthlyAnalysis.forEach(item => {
-            const changeColor = item.change.startsWith('+') ? '#106F2C' : item.change.startsWith('-') ? '#dc2626' : '#6b7280';
             aiContent += `
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                     <td style="padding: 12px; color: #111827;">${item.month || 'N/A'}</td>
-                    <td style="padding: 12px; color: ${changeColor}; font-weight: 500;">${item.change || 'N/A'}</td>
+                    <td style="padding: 12px; color: #374151; font-weight: 500;">${item.change || 'N/A'}</td>
                     <td style="padding: 12px; color: #111827;">${item.insight || 'N/A'}</td>
                 </tr>
             `;
@@ -3766,14 +3765,13 @@ function renderTrendAIRecommendations(payload) {
         `;
         
         recommendations.anomalies.forEach(anomaly => {
-            const severityColor = anomaly.severity === 'high' ? '#dc2626' : '#f59e0b';
             const typeIcon = anomaly.type === 'drop' ? 'fa-arrow-down' : 'fa-arrow-up';
             aiContent += `
-                <div style="border-left: 4px solid ${severityColor}; padding: 16px; margin-bottom: 12px; background: #fef2f2; border-radius: 4px;">
+                <div style="border-left: 4px solid #e5e7eb; padding: 16px; margin-bottom: 12px; background: #f9fafb; border-radius: 4px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <i class="fas ${typeIcon}" style="color: ${severityColor};"></i>
+                        <i class="fas ${typeIcon}" style="color: #6b7280;"></i>
                         <span style="font-weight: 600; color: #111827; font-size: 15px;">${anomaly.month || 'Unknown Month'}</span>
-                        <span style="background: ${severityColor === '#dc2626' ? '#fee2e2' : '#fef3c7'}; color: ${severityColor}; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${anomaly.severity?.toUpperCase() || 'MEDIUM'} SEVERITY</span>
+                        <span style="background: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;">${anomaly.severity?.toUpperCase() || 'MEDIUM'} SEVERITY</span>
                     </div>
                     <div style="font-size: 13px; color: #374151; margin-bottom: 8px;">${anomaly.explanation || 'Anomaly detected'}</div>
                     <div style="font-size: 12px; color: #6b7280;">
@@ -3796,9 +3794,9 @@ function renderTrendAIRecommendations(payload) {
         
         if (recommendations.peakAndLow.highestMonth) {
             aiContent += `
-                <div style="border: 1px solid #10b981; border-radius: 6px; padding: 16px; background: #f0fdf4;">
+                <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; background: #f9fafb;">
                     <div style="font-weight: 600; color: #111827; font-size: 15px; margin-bottom: 8px;">
-                        <i class="fas fa-arrow-up" style="color: #10b981; margin-right: 6px;"></i>Highest: ${recommendations.peakAndLow.highestMonth.month || 'N/A'}
+                        <i class="fas fa-arrow-up" style="color: #6b7280; margin-right: 6px;"></i>Highest: ${recommendations.peakAndLow.highestMonth.month || 'N/A'}
                     </div>
                     <div style="font-size: 13px; color: #374151;">${recommendations.peakAndLow.highestMonth.insight || 'Peak performance month'}</div>
                 </div>
@@ -3807,9 +3805,9 @@ function renderTrendAIRecommendations(payload) {
         
         if (recommendations.peakAndLow.lowestMonth) {
             aiContent += `
-                <div style="border: 1px solid #ef4444; border-radius: 6px; padding: 16px; background: #fef2f2;">
+                <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; background: #f9fafb;">
                     <div style="font-weight: 600; color: #111827; font-size: 15px; margin-bottom: 8px;">
-                        <i class="fas fa-arrow-down" style="color: #ef4444; margin-right: 6px;"></i>Lowest: ${recommendations.peakAndLow.lowestMonth.month || 'N/A'}
+                        <i class="fas fa-arrow-down" style="color: #6b7280; margin-right: 6px;"></i>Lowest: ${recommendations.peakAndLow.lowestMonth.month || 'N/A'}
                     </div>
                     <div style="font-size: 13px; color: #374151;">${recommendations.peakAndLow.lowestMonth.insight || 'Lowest performance month'}</div>
                 </div>
@@ -3834,7 +3832,7 @@ function renderTrendAIRecommendations(payload) {
         aiContent += `
             <div style="margin-bottom: 24px;">
                 <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Next Month Forecast</h4>
-                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 16px;">
+                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px;">
                     <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 8px;">
                         Predicted: ${recommendations.forecast.nextMonthPrediction}
                     </div>
@@ -3842,7 +3840,7 @@ function renderTrendAIRecommendations(payload) {
                         Confidence: <span style="font-weight: 500; color: #374151;">${recommendations.forecast.confidence || 'medium'}</span>
                     </div>
                     ${recommendations.forecast.preparationStrategies && recommendations.forecast.preparationStrategies.length > 0 ? `
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #bfdbfe;">
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
                             <div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 8px;">Preparation Strategies:</div>
                             <ul style="margin: 0; padding-left: 20px; color: #374151; font-size: 13px; line-height: 1.8;">
                                 ${recommendations.forecast.preparationStrategies.map(s => `<li style="margin-bottom: 4px;">${s}</li>`).join('')}
@@ -3862,13 +3860,10 @@ function renderTrendAIRecommendations(payload) {
         `;
         
         recommendations.actionableRecommendations.forEach(rec => {
-            const priorityColor = rec.priority === 'High' ? '#dc2626' : rec.priority === 'Medium' ? '#f59e0b' : '#3b82f6';
-            const priorityBg = rec.priority === 'High' ? '#fee2e2' : rec.priority === 'Medium' ? '#fef3c7' : '#dbeafe';
-            
             aiContent += `
                 <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-bottom: 12px; background: #f9fafb;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="background: ${priorityBg}; color: ${priorityColor}; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${rec.priority || 'MEDIUM'} PRIORITY</span>
+                        <span style="background: #e5e7eb; color: #374151; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${rec.priority || 'MEDIUM'} PRIORITY</span>
                         <span style="background: #e5e7eb; color: #374151; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;">${rec.category || 'General'}</span>
                     </div>
                     <div style="font-size: 14px; color: #111827; line-height: 1.6; margin-bottom: 8px;">${rec.recommendation || 'No recommendation provided'}</div>
@@ -5958,18 +5953,12 @@ async function displayReportContent(report) {
             </div>
         `;
         document.body.appendChild(modal);
-    } else {
-        // Reset modal body if it already exists
-        const modalBody = document.getElementById('reportModalBody');
-        if (modalBody) {
-            modalBody.innerHTML = `<iframe id="reportPdfFrame" title="Report PDF" style="width: 100%; height: calc(100vh - 200px); border: none;" src="about:blank"></iframe>`;
-        }
     }
 
     // Update title
     const titleEl = document.getElementById('reportModalTitle');
     if (titleEl) {
-        titleEl.textContent = `${report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)} Report`;
+        titleEl.textContent = `${report.report_type} Report`;
     }
 
     // Fetch PDF blob and display in iframe
@@ -6012,26 +6001,15 @@ async function displayReportContent(report) {
         const modalBody = document.getElementById('reportModalBody');
         if (modalBody) {
             modalBody.innerHTML = `
-                <div style="padding: 16px; text-align: center;">
-                    <p style="color: #b91c1c; font-weight: 600; margin-bottom: 8px;">Failed to load PDF preview.</p>
-                    <p style="color: #6b7280; margin-bottom: 16px;">You can try downloading the report instead.</p>
-                    <button onclick="downloadReportPDF('${report.id}')" class="btn-download" style="margin: 0 auto;">
-                        <i class="fas fa-download"></i> Download PDF
-                    </button>
+                <div style="padding: 16px;">
+                    <p style="color: #b91c1c; font-weight: 600;">Failed to load PDF preview.</p>
+                    <p>You can try downloading the report instead.</p>
                 </div>
             `;
         }
     }
 
-    // Always show the modal, even if there was an error
     modal.style.display = 'block';
-    
-    // Close modal when clicking outside of it
-    modal.onclick = function(event) {
-        if (event.target === modal) {
-            closeReportModal();
-        }
-    };
 }
 
 // Close report modal - make globally accessible
