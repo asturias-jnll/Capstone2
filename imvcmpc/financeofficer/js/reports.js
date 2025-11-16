@@ -4120,7 +4120,7 @@ function renderTrendAIRecommendations(payload) {
         recommendations.anomalies.forEach(anomaly => {
             const typeIcon = anomaly.type === 'drop' ? 'fa-arrow-down' : 'fa-arrow-up';
             aiContent += `
-                <div style="border-left: 4px solid #e5e7eb; padding: 16px; margin-bottom: 12px; background: #f9fafb; border-radius: 4px;">
+                <div style="border: 1px solid #e5e7eb; padding: 16px; margin-bottom: 12px; background: #f9fafb; border-radius: 4px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                         <i class="fas ${typeIcon}" style="color: #6b7280;"></i>
                         <span style="font-weight: 600; color: #111827; font-size: 15px;">${anomaly.month || 'Unknown Month'}</span>
