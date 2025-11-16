@@ -1343,42 +1343,24 @@ function applyPrefillConfiguration(reportType, cfg) {
         }
         case 'member': {
             if (document.getElementById('memberSearch')) document.getElementById('memberSearch').value = cfg.member || '';
+
+            // Member report uses old dropdown format
+            const yearEl = document.getElementById('memberYear');
+            const monthEl = document.getElementById('memberMonth');
             
-            // Set toggle mode if provided
-            if (cfg.mode) {
-                toggleMonthYear('member', cfg.mode);
+            if (cfg.year != null && yearEl) {
+                // Use setSelectValueByNormalized to handle zero-padded and numeric forms
+                setSelectValueByNormalized(yearEl, String(cfg.year));
             }
             
-            if (cfg.mode === 'month') {
-                if (cfg.year != null) {
-                    const container = document.getElementById('memberYearButtonsSingle');
-                    if (container) {
-                        const btn = container.querySelector(`[data-value="${cfg.year}"]`);
-                        if (btn) {
-                            container.querySelectorAll('.selection-btn').forEach(b => b.classList.remove('selected'));
-                            btn.classList.add('selected');
-                        }
-                    }
-                }
-                if (Array.isArray(cfg.months) && cfg.months.length >= 2) {
-                    const container = document.getElementById('memberMonthButtons');
-                    if (container) {
-                        cfg.months.forEach(month => {
-                            const btn = container.querySelector(`[data-value="${month}"]`);
-                            if (btn) btn.classList.add('selected');
-                        });
-                    }
-                }
-            } else {
-                if (Array.isArray(cfg.years) && cfg.years.length > 0) {
-                    const container = document.getElementById('memberYearButtonsMultiple');
-                    if (container) {
-                        cfg.years.forEach(year => {
-                            const btn = container.querySelector(`[data-value="${year}"]`);
-                            if (btn) btn.classList.add('selected');
-                        });
-                    }
-                }
+            if (cfg.month != null && monthEl) {
+                // Use setSelectValueByNormalized to handle zero-padded and numeric forms
+                setSelectValueByNormalized(monthEl, String(cfg.month));
+            }
+            
+            // Update month dropdown to disable future months after setting year
+            if (yearEl && monthEl) {
+                updateMemberMonthDropdown();
             }
             break;
         }
