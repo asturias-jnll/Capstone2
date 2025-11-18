@@ -808,6 +808,11 @@ function startEditMode() {
     // Convert editable fields to input elements
     convertFieldsToInputs();
     
+    // Setup change detection after inputs are created
+    setTimeout(() => {
+        setupChangeDetection();
+    }, 50);
+    
     // Update modal footer with edit buttons
     updateModalFooterForEdit();
 }
@@ -824,13 +829,67 @@ function convertFieldsToInputs() {
     editableFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
-            const currentValue = field.textContent;
+            const currentValue = field.textContent.trim();
             const inputType = fieldId.includes('Amount') || fieldId.includes('Bank') || 
                             fieldId.includes('Receivables') || fieldId.includes('Deposits') || 
                             fieldId.includes('Income') || fieldId.includes('Charge') || 
-                            fieldId.includes('Sundries') ? 'number' : 'text';
+                            fieldId.includes('Sundries') || fieldId.includes('Debit') || 
+                            fieldId.includes('Credit') ? 'number' : 'text';
             
-            field.innerHTML = `<input type="${inputType}" value="${currentValue}" class="edit-input" step="0.01" min="0">`;
+            // Create input element
+            const input = document.createElement('input');
+            input.type = inputType;
+            // Normalize numeric values - remove leading zeros and format properly
+            let normalizedValue = currentValue;
+            if (inputType === 'number' && currentValue) {
+                const numValue = parseFloat(currentValue.replace(/[^0-9.]/g, ''));
+                if (!isNaN(numValue)) {
+                    normalizedValue = numValue.toString();
+                }
+            }
+            input.value = normalizedValue;
+            input.className = 'edit-input';
+            if (inputType === 'number') {
+                input.step = '0.01';
+                input.min = '0';
+            }
+            input.id = `${fieldId}Input`;
+            
+            // Clear field and append input
+            field.innerHTML = '';
+            field.appendChild(input);
+            
+            // Apply validation based on field type
+            setTimeout(() => {
+                if (inputType === 'number') {
+                    // Apply number field validation
+                    validateNumberField(input);
+                    
+                    // Add additional handler to normalize leading zeros on blur
+                    input.addEventListener('blur', function() {
+                        const value = this.value.trim();
+                        if (value !== '') {
+                            const numValue = parseFloat(value);
+                            if (!isNaN(numValue)) {
+                                // Remove leading zeros by converting to number and back to string
+                                this.value = numValue.toString();
+                            }
+                        }
+                    });
+                } else if (fieldId === 'modalParticulars') {
+                    // Apply letter field validation for particulars
+                    validateLetterField(input);
+                } else if (fieldId === 'modalReference' || fieldId === 'modalCrossReference' || fieldId === 'modalCheckNumber') {
+                    // Setup reference field prefixes
+                    if (fieldId === 'modalReference') {
+                        setupReferenceFieldPrefix(`${fieldId}Input`, 'REF-', 6);
+                    } else if (fieldId === 'modalCrossReference') {
+                        setupReferenceFieldPrefix(`${fieldId}Input`, 'XREF-', 4);
+                    } else if (fieldId === 'modalCheckNumber') {
+                        setupReferenceFieldPrefix(`${fieldId}Input`, 'CHK-', 4);
+                    }
+                }
+            }, 10);
         }
     });
 }
@@ -847,7 +906,7 @@ function setupChangeDetection() {
     // Store original values for comparison
     const originalValues = {};
     editableFields.forEach(fieldId => {
-        const input = document.querySelector(`#${fieldId} input`);
+        const input = document.getElementById(`${fieldId}Input`);
         if (input) {
             originalValues[fieldId] = input.value;
         }
@@ -855,7 +914,7 @@ function setupChangeDetection() {
     
     // Add event listeners to all input fields
     editableFields.forEach(fieldId => {
-        const input = document.querySelector(`#${fieldId} input`);
+        const input = document.getElementById(`${fieldId}Input`);
         if (input) {
             input.addEventListener('input', () => {
                 checkForChanges(originalValues);
@@ -873,12 +932,32 @@ function checkForChanges(originalValues) {
         'modalInterestIncome', 'modalServiceCharge', 'modalSundries'
     ];
     
+    // Helper function to normalize values for comparison
+    const normalizeValue = (value, isNumeric) => {
+        if (!value || value === '') return '';
+        if (isNumeric) {
+            const num = parseFloat(value);
+            return isNaN(num) ? '' : num.toString();
+        }
+        return value.toString().trim();
+    };
+    
     let hasChanges = false;
     
     editableFields.forEach(fieldId => {
-        const input = document.querySelector(`#${fieldId} input`);
-        if (input && input.value !== originalValues[fieldId]) {
-            hasChanges = true;
+        const input = document.getElementById(`${fieldId}Input`);
+        if (input) {
+            const isNumeric = fieldId.includes('Debit') || fieldId.includes('Credit') || 
+                            fieldId.includes('Bank') || fieldId.includes('Receivables') || 
+                            fieldId.includes('Deposits') || fieldId.includes('Income') || 
+                            fieldId.includes('Charge') || fieldId.includes('Sundries');
+            
+            const currentValue = normalizeValue(input.value, isNumeric);
+            const originalValue = normalizeValue(originalValues[fieldId], isNumeric);
+            
+            if (currentValue !== originalValue) {
+                hasChanges = true;
+            }
         }
     });
     
@@ -911,9 +990,6 @@ function updateModalFooterForEdit() {
                 Request Changes
             </button>
         `;
-        
-        // Add event listeners to input fields for change detection
-        setupChangeDetection();
     }
 }
 
@@ -976,6 +1052,9 @@ function resetModalFooterToNormal() {
 
 // Cancel edit mode
 function cancelEdit() {
+    // Clear any validation errors
+    clearModalValidationErrors();
+    
     // Remove edit mode class from modal
     const modal = document.getElementById('transactionModal');
     if (modal) {
@@ -999,6 +1078,106 @@ async function requestChanges() {
         return; // Do nothing if button is disabled
     }
     
+    // Clear previous validation errors
+    clearModalValidationErrors();
+    
+    // Collect and validate edited values
+    const particulars = document.getElementById('modalParticularsInput')?.value.trim() || '';
+    const debit = parseFloat(document.getElementById('modalDebitInput')?.value) || 0;
+    const credit = parseFloat(document.getElementById('modalCreditInput')?.value) || 0;
+    const cashInBank = parseFloat(document.getElementById('modalCashInBankInput')?.value) || 0;
+    const loanReceivables = parseFloat(document.getElementById('modalLoanReceivablesInput')?.value) || 0;
+    const savingsDeposits = parseFloat(document.getElementById('modalSavingsDepositsInput')?.value) || 0;
+    const interestIncome = parseFloat(document.getElementById('modalInterestIncomeInput')?.value) || 0;
+    const serviceCharge = parseFloat(document.getElementById('modalServiceChargeInput')?.value) || 0;
+    const sundries = parseFloat(document.getElementById('modalSundriesInput')?.value) || 0;
+    
+    // Validate required fields (same validation as previewTransaction)
+    let hasErrors = false;
+    
+    if (!particulars) {
+        showModalFieldError('modalParticularsInput', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (debit === 0 && credit === 0) {
+        showModalFieldError('modalDebitInput', 'Please enter either a debit or credit amount');
+        showModalFieldError('modalCreditInput', 'Please enter either a debit or credit amount');
+        hasErrors = true;
+    }
+    
+    if (debit < 0 || credit < 0) {
+        if (debit < 0) {
+            showModalFieldError('modalDebitInput', 'Debit amount cannot be negative');
+            hasErrors = true;
+        }
+        if (credit < 0) {
+            showModalFieldError('modalCreditInput', 'Credit amount cannot be negative');
+            hasErrors = true;
+        }
+    }
+    
+    // Validate all account balance fields
+    if (cashInBank === 0) {
+        showModalFieldError('modalCashInBankInput', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (loanReceivables === 0) {
+        showModalFieldError('modalLoanReceivablesInput', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (savingsDeposits === 0) {
+        showModalFieldError('modalSavingsDepositsInput', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (interestIncome === 0) {
+        showModalFieldError('modalInterestIncomeInput', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (serviceCharge === 0) {
+        showModalFieldError('modalServiceChargeInput', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    if (sundries === 0) {
+        showModalFieldError('modalSundriesInput', 'Please fill out this field');
+        hasErrors = true;
+    }
+    
+    // Validate that account balance fields are not negative
+    if (cashInBank < 0) {
+        showModalFieldError('modalCashInBankInput', 'Amount cannot be negative');
+        hasErrors = true;
+    }
+    if (loanReceivables < 0) {
+        showModalFieldError('modalLoanReceivablesInput', 'Amount cannot be negative');
+        hasErrors = true;
+    }
+    if (savingsDeposits < 0) {
+        showModalFieldError('modalSavingsDepositsInput', 'Amount cannot be negative');
+        hasErrors = true;
+    }
+    if (interestIncome < 0) {
+        showModalFieldError('modalInterestIncomeInput', 'Amount cannot be negative');
+        hasErrors = true;
+    }
+    if (serviceCharge < 0) {
+        showModalFieldError('modalServiceChargeInput', 'Amount cannot be negative');
+        hasErrors = true;
+    }
+    if (sundries < 0) {
+        showModalFieldError('modalSundriesInput', 'Amount cannot be negative');
+        hasErrors = true;
+    }
+    
+    if (hasErrors) {
+        return; // Stop if validation fails
+    }
+    
     // Check if there's already a pending change request for this transaction
     try {
         const userBranchId = localStorage.getItem('user_branch_id');
@@ -1016,8 +1195,17 @@ async function requestChanges() {
     try {
         showLoadingState();
         
-        // Collect edited values
+        // Collect edited values (only includes fields that actually changed)
         const editedData = collectEditedValues();
+        
+        // Check if there are any actual changes
+        const changedFields = Object.keys(editedData).filter(key => key !== 'branch_id');
+        if (changedFields.length === 0) {
+            showError('No changes detected. Please modify at least one field before requesting changes.');
+            hideLoadingState();
+            return;
+        }
+        
         const originalData = {
             payee: window.currentTransaction.payee,
             reference: window.currentTransaction.reference || '',
@@ -1144,25 +1332,94 @@ async function requestChanges() {
     }
 }
 
-// Collect edited values from input fields
+// Collect edited values from input fields - only include fields that actually changed
 function collectEditedValues() {
-    const userBranchId = localStorage.getItem('user_branch_id');
+    if (!window.currentTransaction) return {};
     
-    return {
-        reference: document.querySelector('#modalReference input')?.value || '',
-        cross_reference: document.querySelector('#modalCrossReference input')?.value || '',
-        check_number: document.querySelector('#modalCheckNumber input')?.value || '',
-        particulars: document.querySelector('#modalParticulars input')?.value || '',
-        debit_amount: parseFloat(document.querySelector('#modalDebit input')?.value) || 0,
-        credit_amount: parseFloat(document.querySelector('#modalCredit input')?.value) || 0,
-        cash_in_bank: parseFloat(document.querySelector('#modalCashInBank input')?.value) || 0,
-        loan_receivables: parseFloat(document.querySelector('#modalLoanReceivables input')?.value) || 0,
-        savings_deposits: parseFloat(document.querySelector('#modalSavingsDeposits input')?.value) || 0,
-        interest_income: parseFloat(document.querySelector('#modalInterestIncome input')?.value) || 0,
-        service_charge: parseFloat(document.querySelector('#modalServiceCharge input')?.value) || 0,
-        sundries: parseFloat(document.querySelector('#modalSundries input')?.value) || 0,
-        branch_id: parseInt(userBranchId)
+    const userBranchId = localStorage.getItem('user_branch_id');
+    const editedData = {};
+    
+    // Helper function to normalize numeric values for comparison
+    const normalizeNumeric = (value) => {
+        const num = parseFloat(value);
+        return isNaN(num) ? 0 : num;
     };
+    
+    // Helper function to normalize string values for comparison
+    const normalizeString = (value) => {
+        return (value || '').toString().trim();
+    };
+    
+    // Get current values from inputs
+    const currentReference = normalizeString(document.getElementById('modalReferenceInput')?.value);
+    const currentCrossReference = normalizeString(document.getElementById('modalCrossReferenceInput')?.value);
+    const currentCheckNumber = normalizeString(document.getElementById('modalCheckNumberInput')?.value);
+    const currentParticulars = normalizeString(document.getElementById('modalParticularsInput')?.value);
+    const currentDebit = normalizeNumeric(document.getElementById('modalDebitInput')?.value);
+    const currentCredit = normalizeNumeric(document.getElementById('modalCreditInput')?.value);
+    const currentCashInBank = normalizeNumeric(document.getElementById('modalCashInBankInput')?.value);
+    const currentLoanReceivables = normalizeNumeric(document.getElementById('modalLoanReceivablesInput')?.value);
+    const currentSavingsDeposits = normalizeNumeric(document.getElementById('modalSavingsDepositsInput')?.value);
+    const currentInterestIncome = normalizeNumeric(document.getElementById('modalInterestIncomeInput')?.value);
+    const currentServiceCharge = normalizeNumeric(document.getElementById('modalServiceChargeInput')?.value);
+    const currentSundries = normalizeNumeric(document.getElementById('modalSundriesInput')?.value);
+    
+    // Get original values
+    const originalReference = normalizeString(window.currentTransaction.reference);
+    const originalCrossReference = normalizeString(window.currentTransaction.cross_reference);
+    const originalCheckNumber = normalizeString(window.currentTransaction.check_number);
+    const originalParticulars = normalizeString(window.currentTransaction.particulars);
+    const originalDebit = normalizeNumeric(window.currentTransaction.debit_amount);
+    const originalCredit = normalizeNumeric(window.currentTransaction.credit_amount);
+    const originalCashInBank = normalizeNumeric(window.currentTransaction.cash_in_bank);
+    const originalLoanReceivables = normalizeNumeric(window.currentTransaction.loan_receivables);
+    const originalSavingsDeposits = normalizeNumeric(window.currentTransaction.savings_deposits);
+    const originalInterestIncome = normalizeNumeric(window.currentTransaction.interest_income);
+    const originalServiceCharge = normalizeNumeric(window.currentTransaction.service_charge);
+    const originalSundries = normalizeNumeric(window.currentTransaction.sundries);
+    
+    // Only include fields that have actually changed
+    if (currentReference !== originalReference) {
+        editedData.reference = currentReference;
+    }
+    if (currentCrossReference !== originalCrossReference) {
+        editedData.cross_reference = currentCrossReference;
+    }
+    if (currentCheckNumber !== originalCheckNumber) {
+        editedData.check_number = currentCheckNumber;
+    }
+    if (currentParticulars !== originalParticulars) {
+        editedData.particulars = currentParticulars;
+    }
+    if (currentDebit !== originalDebit) {
+        editedData.debit_amount = currentDebit;
+    }
+    if (currentCredit !== originalCredit) {
+        editedData.credit_amount = currentCredit;
+    }
+    if (currentCashInBank !== originalCashInBank) {
+        editedData.cash_in_bank = currentCashInBank;
+    }
+    if (currentLoanReceivables !== originalLoanReceivables) {
+        editedData.loan_receivables = currentLoanReceivables;
+    }
+    if (currentSavingsDeposits !== originalSavingsDeposits) {
+        editedData.savings_deposits = currentSavingsDeposits;
+    }
+    if (currentInterestIncome !== originalInterestIncome) {
+        editedData.interest_income = currentInterestIncome;
+    }
+    if (currentServiceCharge !== originalServiceCharge) {
+        editedData.service_charge = currentServiceCharge;
+    }
+    if (currentSundries !== originalSundries) {
+        editedData.sundries = currentSundries;
+    }
+    
+    // Always include branch_id for reference
+    editedData.branch_id = parseInt(userBranchId);
+    
+    return editedData;
 }
 
 // Delete transaction
@@ -2636,6 +2893,56 @@ function clearValidationErrors() {
     errorMessages.forEach(error => error.remove());
 }
 
+// Show field error in modal context
+function showModalFieldError(inputId, message) {
+    const input = document.getElementById(inputId);
+    if (input) {
+        // Add error styling
+        input.style.borderColor = '#EF4444';
+        input.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+        
+        // Find the parent detail-item container
+        const detailItem = input.closest('.detail-item');
+        if (detailItem) {
+            // Remove existing error message
+            const existingError = detailItem.querySelector('.field-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'field-error';
+            errorDiv.textContent = message;
+            errorDiv.style.cssText = `
+                color: #EF4444;
+                font-size: 12px;
+                margin-top: 4px;
+                font-weight: 500;
+            `;
+            
+            detailItem.appendChild(errorDiv);
+        }
+    }
+}
+
+// Clear validation errors in modal context
+function clearModalValidationErrors() {
+    // Remove all error styling from modal inputs
+    const modalInputs = document.querySelectorAll('#transactionModal .edit-input');
+    modalInputs.forEach(input => {
+        input.style.borderColor = '';
+        input.style.boxShadow = '';
+    });
+    
+    // Remove all error messages from modal
+    const modal = document.getElementById('transactionModal');
+    if (modal) {
+        const errorMessages = modal.querySelectorAll('.field-error');
+        errorMessages.forEach(error => error.remove());
+    }
+}
+
 
 // Show transaction preview modal
 function showTransactionPreview(transactionData) {
@@ -3291,38 +3598,59 @@ function createChangeDetails(originalData, requestedChanges) {
     
     const changes = [];
     
+    // Helper function to normalize values for comparison
+    const normalizeValue = (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value === 'number') return value;
+        const str = value.toString().trim();
+        if (str === '') return null;
+        const num = parseFloat(str);
+        return isNaN(num) ? str : num;
+    };
+    
+    // Helper function to check if two values are equal
+    const valuesEqual = (val1, val2) => {
+        const norm1 = normalizeValue(val1);
+        const norm2 = normalizeValue(val2);
+        
+        // Both null/undefined/empty
+        if (norm1 === null && norm2 === null) return true;
+        
+        // One is null, other is not
+        if (norm1 === null || norm2 === null) return false;
+        
+        // Both are numbers - compare numerically
+        if (typeof norm1 === 'number' && typeof norm2 === 'number') {
+            return Math.abs(norm1 - norm2) < 0.01; // Account for floating point precision
+        }
+        
+        // String comparison
+        return norm1.toString() === norm2.toString();
+    };
+    
     // Only show fields that have actual changes
     Object.keys(requestedChanges).forEach(field => {
+        // Skip branch_id as it's not a user-visible change
+        if (field === 'branch_id') return;
+        
         if (requestedChanges[field] !== undefined && requestedChanges[field] !== null) {
             const originalValue = originalData[field];
             const newValue = requestedChanges[field];
             
-            // Convert both values to numbers for comparison if they are numeric
-            const originalNum = parseFloat(originalValue);
-            const newNum = parseFloat(newValue);
-            const isNumeric = !isNaN(originalNum) && !isNaN(newNum);
-            
-            // Only show if the value is actually different
-            // For numeric values, compare the parsed numbers
-            // For non-numeric values, do string comparison
-            const hasChanged = isNumeric ? 
-                (originalNum !== newNum) : 
-                (originalValue !== newValue);
-            
-            if (hasChanged) {
+            // Check if values are actually different
+            if (!valuesEqual(originalValue, newValue)) {
                 const fieldLabel = fieldLabels[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                 const formatValue = (value) => {
-                    if (value === null || value === undefined || value === '') return 'N/A';
-                    if (typeof value === 'number') {
-                        return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const normalized = normalizeValue(value);
+                    if (normalized === null) return 'N/A';
+                    if (typeof normalized === 'number') {
+                        return normalized.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
-                    return value.toString();
+                    return normalized.toString();
                 };
                 
-                // Handle the case where original data might not exist (new transactions)
-                const displayOriginalValue = (originalValue === null || originalValue === undefined || originalValue === '') 
-                    ? 'N/A' 
-                    : formatValue(originalValue);
+                const displayOriginalValue = formatValue(originalValue);
+                const displayNewValue = formatValue(newValue);
                 
                 changes.push(`
                     <div class="change-item">
@@ -3330,7 +3658,7 @@ function createChangeDetails(originalData, requestedChanges) {
                         <div class="change-values">
                             <span class="change-from">From: ${displayOriginalValue}</span>
                             <span class="change-arrow">→</span>
-                            <span class="change-to">To: ${formatValue(newValue)}</span>
+                            <span class="change-to">To: ${displayNewValue}</span>
                         </div>
                     </div>
                 `);
