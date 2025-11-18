@@ -14,10 +14,8 @@ class AIRecommendationService {
         };
         
         this.anthropic = null;
-        this.Anthropic = Anthropic; // Store class reference
+        this.Anthropic = Anthropic;
         this.trendAnalysisService = new TrendAnalysisService();
-        
-        // Initialize AI client if enabled
         if (this.config.enabled && this.config.apiKey) {
             this.initializeAIClient();
         }
@@ -61,14 +59,11 @@ class AIRecommendationService {
      * @returns {Object} AI-generated recommendations
      */
     async generateRecommendations(mcdaResults, reportData, reportType = 'branch') {
-        // Route to appropriate analysis method based on report type
         if (reportType === 'savings' || reportType === 'disbursement') {
             return this.generateTrendRecommendations(reportData, reportType);
         }
         
-        // Existing branch report logic (unchanged)
         try {
-            // If AI is disabled or not available, throw error
             if (!this.config.enabled || !this.anthropic) {
                 const errorMsg = 'AI is disabled or not configured. Please enable AI and provide API credentials.';
                 console.error('❌ [AI-SERVICE]', errorMsg);
@@ -82,29 +77,20 @@ class AIRecommendationService {
 
             console.log('🚀 [AI-SERVICE] AI is enabled, generating recommendations with', this.config.provider);
             
-            // Prepare prompt for AI
             const prompt = this.buildAIPrompt(mcdaResults, reportData, reportType);
             console.log('📝 [AI-SERVICE] Prompt prepared, length:', prompt.length, 'characters');
             
-            // Calculate dynamic timeout based on dataset size
-            // For branch reports with many branches, increase timeout
             const rankedBranches = mcdaResults.rankedBranches || [];
             const branchCount = rankedBranches.length;
-            // Base timeout: 30s, add 10s per 5 branches (max 120s for 50+ branches)
             const dynamicTimeout = Math.min(
                 this.config.timeout + Math.floor(branchCount / 5) * 10000,
                 120000 // Max 120 seconds
             );
             console.log('⏱️ [AI-SERVICE] Using timeout:', dynamicTimeout, 'ms (branches:', branchCount + ', base:', this.config.timeout + 'ms)');
             
-            // Temporarily override timeout for this request
             const originalTimeout = this.config.timeout;
             this.config.timeout = dynamicTimeout;
-            
-            // Temporarily store original client
             const originalAnthropic = this.anthropic;
-            
-            // Reinitialize client with new timeout if needed
             if (this.anthropic) {
                 this.anthropic = new this.Anthropic({
                     apiKey: this.config.apiKey,
@@ -112,14 +98,12 @@ class AIRecommendationService {
                 });
             }
             
-            // Call AI API
             console.log('📡 [AI-SERVICE] Calling', this.config.provider, 'API with model', this.config.model);
             const startTime = Date.now();
             let aiResponse;
             try {
                 aiResponse = await this.callAIAPI(prompt);
             } finally {
-                // Restore original timeout and client
                 this.config.timeout = originalTimeout;
                 this.anthropic = originalAnthropic;
             }
@@ -127,7 +111,6 @@ class AIRecommendationService {
             console.log('✅ [AI-SERVICE] API call completed in', apiDuration, 'ms');
             console.log('✅ [AI-SERVICE] Response length:', aiResponse?.length || 0, 'characters');
             
-            // Parse and structure AI response
             const recommendations = this.parseAIResponse(aiResponse, mcdaResults);
             console.log('✅ [AI-SERVICE] Response parsed successfully');
             
@@ -149,7 +132,6 @@ class AIRecommendationService {
             console.error('❌ [AI-SERVICE] Error type:', error.constructor.name);
             console.error('❌ [AI-SERVICE] Stack:', error.stack);
             
-            // Re-throw error - no fallback to hardcoded recommendations
             throw error;
         }
     }
@@ -162,12 +144,9 @@ class AIRecommendationService {
      * @returns {String} Formatted prompt for AI
      */
     buildAIPrompt(mcdaResults, reportData, reportType) {
-        // Route to appropriate prompt builder based on report type
         if (reportType === 'savings' || reportType === 'disbursement') {
             return this.buildTrendPrompt(reportData, reportType, mcdaResults);
         }
-        
-        // Existing branch report prompt (unchanged)
         const rankedBranches = mcdaResults.rankedBranches || [];
         const criteria = mcdaResults.analysisMetadata?.criteriaUsed || [];
         const weights = mcdaResults.analysisMetadata?.weightsUsed || {};
@@ -254,7 +233,6 @@ Ensure recommendations are:
      */
     async callAIAPI(prompt) {
         if (this.config.provider === 'anthropic' && this.anthropic) {
-            // Call Claude API
             console.log('🤖 [AI-SERVICE] Calling Anthropic Claude API...');
             try {
                 const response = await this.anthropic.messages.create({
@@ -334,7 +312,6 @@ Ensure recommendations are:
      */
     async generateTrendRecommendations(reportData, reportType) {
         try {
-            // Run trend analysis
             const monthlyData = reportData.monthlyData || [];
             const trendAnalysis = this.trendAnalysisService.analyzeTrends(monthlyData);
             
@@ -343,8 +320,6 @@ Ensure recommendations are:
                 console.error('❌ [AI-SERVICE]', errorMsg);
                 throw new Error(errorMsg);
             }
-            
-            // If AI is disabled or not available, throw error
             if (!this.config.enabled || !this.anthropic) {
                 const errorMsg = 'AI is disabled or not configured. Please enable AI and provide API credentials.';
                 console.error('❌ [AI-SERVICE]', errorMsg);
@@ -353,11 +328,8 @@ Ensure recommendations are:
             
             console.log('🚀 [AI-SERVICE] AI is enabled, generating trend recommendations with', this.config.provider);
             
-            // Prepare prompt for AI
             const prompt = this.buildTrendPrompt(reportData, reportType, trendAnalysis);
             console.log('📝 [AI-SERVICE] Trend prompt prepared, length:', prompt.length, 'characters');
-            
-            // Call AI API
             console.log('📡 [AI-SERVICE] Calling', this.config.provider, 'API with model', this.config.model);
             const startTime = Date.now();
             let aiResponse;
@@ -371,7 +343,6 @@ Ensure recommendations are:
             console.log('✅ [AI-SERVICE] API call completed in', apiDuration, 'ms');
             console.log('✅ [AI-SERVICE] Response length:', aiResponse?.length || 0, 'characters');
             
-            // Parse and structure AI response
             const recommendations = this.parseTrendAIResponse(aiResponse, trendAnalysis);
             console.log('✅ [AI-SERVICE] Trend response parsed successfully');
             
@@ -395,7 +366,6 @@ Ensure recommendations are:
             console.error('❌ [AI-SERVICE] Error type:', error.constructor.name);
             console.error('❌ [AI-SERVICE] Stack:', error.stack);
             
-            // Re-throw error - no fallback to hardcoded recommendations
             throw error;
         }
     }
@@ -504,7 +474,6 @@ Ensure recommendations are:
      * @returns {String} Formatted trend data
      */
     formatTrendDataForAI(monthlyData, trendAnalysis) {
-        // Determine report type from data context (savings or disbursement)
         const isSavings = monthlyData.length > 0 && monthlyData[0].total !== undefined;
         let formatted = `MONTHLY ${isSavings ? 'SAVINGS' : 'DISBURSEMENT'} DATA:\n\n`;
         

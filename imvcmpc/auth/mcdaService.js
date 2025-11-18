@@ -2,16 +2,13 @@ const math = require('mathjs');
 
 class MCDAService {
     constructor() {
-        // Default criteria weights for TOPSIS analysis
         this.defaultWeights = {
-            total_savings: 0.25,      // 25%
-            total_disbursements: 0.20, // 20%
-            net_interest_income: 0.30,       // 30% (most important for financial health)
-            active_members: 0.15,     // 15%
-            performance_pct: 0.10     // 10%
+            total_savings: 0.25,
+            total_disbursements: 0.20,
+            net_interest_income: 0.30,
+            active_members: 0.15,
+            performance_pct: 0.10
         };
-        
-        // Criteria configuration
         this.criteria = {
             total_savings: { type: 'benefit', weight: this.defaultWeights.total_savings },
             total_disbursements: { type: 'cost', weight: this.defaultWeights.total_disbursements },
@@ -33,31 +30,14 @@ class MCDAService {
                 throw new Error('Invalid or empty branches data provided');
             }
 
-            // Use custom weights if provided, otherwise use defaults
             const weights = customWeights || this.defaultWeights;
-            
-            // Prepare decision matrix
             const decisionMatrix = this.prepareDecisionMatrix(branchesData);
-            
-            // Normalize the decision matrix using vector normalization
             const normalizedMatrix = this.normalizeMatrix(decisionMatrix);
-            
-            // Apply weights to normalized matrix
             const weightedMatrix = this.applyWeights(normalizedMatrix, weights);
-            
-            // Calculate ideal and negative-ideal solutions
             const { idealSolution, negativeIdealSolution } = this.calculateIdealSolutions(weightedMatrix);
-            
-            // Calculate distances from ideal and negative-ideal solutions
             const distances = this.calculateDistances(weightedMatrix, idealSolution, negativeIdealSolution);
-            
-            // Calculate TOPSIS scores
             const topsisScores = this.calculateTOPSISScores(distances);
-            
-            // Rank branches by TOPSIS score
             const rankedBranches = this.rankBranches(branchesData, topsisScores);
-            
-            // Generate recommendations
             const recommendations = this.generateRecommendations(rankedBranches, branchesData);
             
             return {
@@ -112,8 +92,6 @@ class MCDAService {
     normalizeMatrix(matrix) {
         const numCriteria = matrix[0].length;
         const normalizedMatrix = [];
-        
-        // Calculate normalization factors for each criterion
         const normalizationFactors = [];
         for (let j = 0; j < numCriteria; j++) {
             let sumOfSquares = 0;
@@ -123,7 +101,6 @@ class MCDAService {
             normalizationFactors[j] = Math.sqrt(sumOfSquares);
         }
         
-        // Normalize each element
         for (let i = 0; i < matrix.length; i++) {
             const normalizedRow = [];
             for (let j = 0; j < numCriteria; j++) {
@@ -171,8 +148,6 @@ class MCDAService {
             const maxValue = Math.max(...columnValues);
             const minValue = Math.min(...columnValues);
             
-            // For benefit criteria, ideal is max, negative-ideal is min
-            // For cost criteria, ideal is min, negative-ideal is max
             const criteriaKeys = Object.keys(this.criteria);
             const criteriaType = this.criteria[criteriaKeys[j]].type;
             
@@ -243,13 +218,10 @@ class MCDAService {
         const branchesWithScores = branchesData.map((branch, index) => ({
             ...branch,
             topsisScore: topsisScores[index],
-            rank: 0 // Will be set after sorting
+            rank: 0
         }));
         
-        // Sort by TOPSIS score (descending)
         branchesWithScores.sort((a, b) => b.topsisScore - a.topsisScore);
-        
-        // Assign ranks and categories
         return branchesWithScores.map((branch, index) => {
             const rank = index + 1;
             let category = 'Needs Improvement';
@@ -280,14 +252,11 @@ class MCDAService {
         const goodBranches = rankedBranches.filter(b => b.category === 'Good');
         const needsImprovementBranches = rankedBranches.filter(b => b.category === 'Needs Improvement');
         
-        // Strategic recommendations
         const strategicRecommendations = this.generateStrategicRecommendations(
             excellentBranches, 
             goodBranches, 
             needsImprovementBranches
         );
-        
-        // Branch-level recommendations
         const branchLevelRecommendations = this.generateBranchLevelRecommendations(rankedBranches);
         
         return {
@@ -320,7 +289,6 @@ class MCDAService {
             recommendations.push(`Branches in the 'Good' category have solid foundations but may benefit from targeted improvements in specific areas to reach 'Excellent' status.`);
         }
         
-        // Overall performance insights
         const totalBranches = excellentBranches.length + goodBranches.length + needsImprovementBranches.length;
         const excellentPercentage = Math.round((excellentBranches.length / totalBranches) * 100);
         
@@ -344,7 +312,6 @@ class MCDAService {
         return rankedBranches.map(branch => {
             const recommendations = [];
             
-            // Analyze specific performance gaps
             if (branch.total_savings < branch.total_disbursements) {
                 recommendations.push("Focus on increasing savings deposits to improve financial stability");
             }
@@ -365,7 +332,6 @@ class MCDAService {
                 recommendations.push("Develop comprehensive improvement plan addressing multiple performance areas");
             }
             
-            // Positive reinforcement for high performers
             if (branch.topsisScore >= 0.75) {
                 recommendations.push("Maintain current successful strategies and consider sharing best practices with other branches");
             }
@@ -386,15 +352,12 @@ class MCDAService {
      * @param {Object} newWeights - New weight configuration
      */
     updateWeights(newWeights) {
-        // Validate weights sum to 1
         const totalWeight = Object.values(newWeights).reduce((sum, weight) => sum + weight, 0);
         if (Math.abs(totalWeight - 1.0) > 0.01) {
             throw new Error('Weights must sum to 1.0');
         }
         
         this.defaultWeights = { ...this.defaultWeights, ...newWeights };
-        
-        // Update criteria weights
         Object.keys(newWeights).forEach(criteria => {
             if (this.criteria[criteria]) {
                 this.criteria[criteria].weight = newWeights[criteria];

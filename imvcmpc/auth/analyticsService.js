@@ -107,12 +107,9 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
-            // This ensures queries work consistently across different server timezone settings
-            const startDateFormatted = startDate; // YYYY-MM-DD format
-            const endDateFormatted = endDate; // YYYY-MM-DD format
+            const startDateFormatted = startDate;
+            const endDateFormatted = endDate;
             
-            // Check if user is Finance Officer or IT Head to calculate net_interest_income instead of net_growth
             const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
             
             if (isMainBranch) {
@@ -202,19 +199,15 @@ class AnalyticsService {
     async getBranchTableName(branchId) {
         const client = await this.pool.connect();
         try {
-            // Query the database to get the branch location
             const result = await client.query(`
                 SELECT location FROM branches WHERE id = $1
             `, [branchId]);
 
             if (result.rows.length === 0) {
-                // Fallback to main branch if branch not found
                 return 'ibaan_transactions';
             }
 
             const location = result.rows[0].location;
-            // Format location to table name: "LIPA CITY" -> "lipacity_transactions"
-            // Remove all non-alphanumeric characters (including spaces) and convert to lowercase
             const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '')}_transactions`;
             
             return tableName;
@@ -226,7 +219,6 @@ class AnalyticsService {
     async getBranchDisplayName(branchId) {
         const client = await this.pool.connect();
         try {
-            // Query the database to get the branch name
             const result = await client.query(`
                 SELECT name, location FROM branches WHERE id = $1
             `, [branchId]);
@@ -382,11 +374,9 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
-            const startDateFormatted = startDate; // YYYY-MM-DD format
-            const endDateFormatted = endDate; // YYYY-MM-DD format
+            const startDateFormatted = startDate;
+            const endDateFormatted = endDate;
             
-            // Check if user is Finance Officer or IT Head to include interest_income
             const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
             
             if (isMainBranch) {
@@ -507,12 +497,10 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
-            const startDateFormatted = startDate; // YYYY-MM-DD format
-            const endDateFormatted = endDate; // YYYY-MM-DD format
-            const limitValue = parseInt(limit) || 10; // Default to 10 if not provided
+            const startDateFormatted = startDate;
+            const endDateFormatted = endDate;
+            const limitValue = parseInt(limit) || 10;
             
-            // Check if user is Finance Officer or IT Head to order by total_savings instead of net_position
             const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
             
             if (isMainBranch) {
@@ -602,10 +590,9 @@ class AnalyticsService {
             const { startDate, endDate } = filters;
             let query, params;
             
-            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
-            const startDateFormatted = startDate; // YYYY-MM-DD format
-            const endDateFormatted = endDate; // YYYY-MM-DD format
-            const limitValue = parseInt(limit) || 10; // Default to 10 if not provided
+            const startDateFormatted = startDate;
+            const endDateFormatted = endDate;
+            const limitValue = parseInt(limit) || 10;
             
             if (isMainBranch) {
                 // Main branch users see top patrons from all branches
@@ -651,14 +638,10 @@ class AnalyticsService {
         try {
             const { startDate, endDate } = filters;
             
-            // Format dates for PostgreSQL - using DATE type for timezone-independent comparison
-            const startDateFormatted = startDate; // YYYY-MM-DD format
-            const endDateFormatted = endDate; // YYYY-MM-DD format
+            const startDateFormatted = startDate;
+            const endDateFormatted = endDate;
             
-            // Check if user is Finance Officer or IT Head to calculate net_interest_income instead of net_position
             const isFinanceOfficer = userRole === 'Finance Officer' || userRole === 'IT Head';
-            
-            // Dynamically fetch all branches from database
             const branchesResult = await this.pool.query(`
                 SELECT id, name, location, is_main_branch
                 FROM branches
