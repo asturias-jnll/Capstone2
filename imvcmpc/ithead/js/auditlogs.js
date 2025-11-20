@@ -6,6 +6,8 @@ let currentFilters = {};
 let timestampUpdateInterval = null;
 let autoRefreshInterval = null;
 let usernameFilterDebounce = null;
+let auditLogAbortController = null; // AbortController to cancel in-flight audit log requests
+let auditLogDebounceTimer = null; // Timer for debouncing audit log loads
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
@@ -52,16 +54,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const userFilterInput = document.getElementById('userFilter');
     if (userFilterInput) {
         userFilterInput.addEventListener('input', function() {
-            // Clear existing debounce timeout
-            if (usernameFilterDebounce) {
-                clearTimeout(usernameFilterDebounce);
-            }
-            
-            // Set new debounce timeout (400ms delay)
-            usernameFilterDebounce = setTimeout(() => {
-                applyFilters();
-            }, 400);
+            debouncedApplyFilters();
         });
+    }
+    
+    // Add debouncing to other filter inputs
+    const dateFromInput = document.getElementById('dateFrom');
+    const dateToInput = document.getElementById('dateTo');
+    const actionFilter = document.getElementById('actionFilter');
+    const resourceFilter = document.getElementById('resourceFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (dateFromInput) {
+        dateFromInput.addEventListener('change', debouncedApplyFilters);
+    }
+    if (dateToInput) {
+        dateToInput.addEventListener('change', debouncedApplyFilters);
+    }
+    if (actionFilter) {
+        actionFilter.addEventListener('change', debouncedApplyFilters);
+    }
+    if (resourceFilter) {
+        resourceFilter.addEventListener('change', debouncedApplyFilters);
+    }
+    if (statusFilter) {
+        statusFilter.addEventListener('change', debouncedApplyFilters);
     }
 });
 
@@ -121,6 +138,15 @@ async function loadAuditLogs() {
             return;
         }
 
+        // Cancel any previous in-flight request
+        if (auditLogAbortController) {
+            auditLogAbortController.abort();
+        }
+        
+        // Create new AbortController for this request
+        auditLogAbortController = new AbortController();
+        const signal = auditLogAbortController.signal;
+
         // Show loading state
         document.getElementById('logsTableBody').innerHTML = '<tr><td colspan="8" class="loading-cell"><i class="fas fa-spinner fa-spin"></i> Loading audit logs...</td></tr>';
         document.getElementById('logsCount').textContent = 'Loading logs...';
@@ -143,7 +169,8 @@ async function loadAuditLogs() {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            signal: signal
         });
 
         if (!response.ok) {
@@ -164,9 +191,20 @@ async function loadAuditLogs() {
         }
 
     } catch (error) {
+        // Check if request was aborted
+        if (error.name === 'AbortError' || (auditLogAbortController && auditLogAbortController.signal.aborted)) {
+            console.log('⚠️ Audit log request aborted');
+            return; // Silently return, don't update UI
+        }
+        
         console.error('Error loading audit logs:', error);
         document.getElementById('logsTableBody').innerHTML = '<tr><td colspan="8" class="error-cell"><i class="fas fa-exclamation-triangle"></i> Failed to load audit logs. Please try again.</td></tr>';
         document.getElementById('logsCount').textContent = 'Error loading logs';
+    } finally {
+        // Clear abort controller if request completed
+        if (auditLogAbortController && !auditLogAbortController.signal.aborted) {
+            auditLogAbortController = null;
+        }
     }
 }
 
@@ -345,6 +383,28 @@ function formatTimestamp(timestamp) {
         hour12: true,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Use browser's timezone
     });
+}
+
+// Debounced version of applyFilters
+function debouncedApplyFilters() {
+    // Cancel any pending debounce timer
+    if (auditLogDebounceTimer) {
+        clearTimeout(auditLogDebounceTimer);
+        auditLogDebounceTimer = null;
+    }
+    
+    // Cancel any in-flight API requests
+    if (auditLogAbortController) {
+        auditLogAbortController.abort();
+        auditLogAbortController = null;
+        console.log('⚠️ Cancelled previous audit log request due to new filter selection');
+    }
+    
+    // Debounce: Wait 300ms before loading data to prevent rapid-fire requests
+    auditLogDebounceTimer = setTimeout(() => {
+        auditLogDebounceTimer = null;
+        applyFilters();
+    }, 300);
 }
 
 // Apply filters

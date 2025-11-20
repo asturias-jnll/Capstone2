@@ -1,6 +1,7 @@
 const express = require('express');
 const ChangeRequestService = require('./changeRequestService');
 const { authenticateToken, checkRole, auditLog } = require('./middleware');
+const { changeRequestLimiter } = require('./rateLimiter');
 
 const router = express.Router();
 const changeRequestService = new ChangeRequestService();
@@ -8,6 +9,7 @@ const changeRequestService = new ChangeRequestService();
 // Create change request (Marketing Clerk)
 router.post('/change-requests',
     authenticateToken,
+    changeRequestLimiter,
     checkRole(['marketing_clerk']),
     auditLog('request_change', 'transactions'),
     async (req, res) => {
@@ -56,6 +58,7 @@ router.post('/change-requests',
 // Get change requests (Marketing Clerk and Finance Officer)
 router.get('/change-requests',
     authenticateToken,
+    changeRequestLimiter,
     checkRole(['marketing_clerk', 'finance_officer']),
     async (req, res) => {
         try {

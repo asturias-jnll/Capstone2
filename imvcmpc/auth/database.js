@@ -6,10 +6,14 @@ const connectionString = process.env.DATABASE_URL || config.database.connectionS
 
 // Build a pool configuration that works for both URL and individual fields
 const poolConfig = {
-    max: config.database.max || 20,
+    max: config.database.max || 15, // Reduced from 20 to prevent exhaustion
+    min: 2, // Minimum idle connections
     idleTimeoutMillis: config.database.idleTimeoutMillis || 30000,
-    connectionTimeoutMillis: config.database.connectionTimeoutMillis || 10000,
+    connectionTimeoutMillis: config.database.connectionTimeoutMillis || 5000, // Reduced from 10s
     maxUses: config.database.maxUses || 7500,
+    allowExitOnIdle: false,
+    // Add query timeout to prevent long-running queries
+    query_timeout: 30000, // 30 seconds
 };
 
 if (connectionString) {
@@ -32,14 +36,39 @@ if (connectionString) {
 
 const pool = new Pool(poolConfig);
 
-// Test database connection
+// Connection pool monitoring
 pool.on('connect', (client) => {
-    console.log('New client connected to database');
+    console.log('✅ New client connected | Pool stats:', {
+        total: pool.totalCount,
+        idle: pool.idleCount,
+        waiting: pool.waitingCount
+    });
+});
+
+pool.on('acquire', (client) => {
+    console.log('🔒 Client acquired | Pool stats:', {
+        total: pool.totalCount,
+        idle: pool.idleCount,
+        waiting: pool.waitingCount
+    });
+});
+
+pool.on('remove', (client) => {
+    console.log('❌ Client removed | Pool stats:', {
+        total: pool.totalCount,
+        idle: pool.idleCount,
+        waiting: pool.waitingCount
+    });
 });
 
 pool.on('error', (err, client) => {
-    console.error('Unexpected error on idle client', err);
-    process.exit(-1);
+    console.error('❌ Unexpected error on idle client', err);
+    console.error('Pool stats at error:', {
+        total: pool.totalCount,
+        idle: pool.idleCount,
+        waiting: pool.waitingCount
+    });
+    // Don't exit immediately, let PM2/render handle restart
 });
 
 // Database utility functions

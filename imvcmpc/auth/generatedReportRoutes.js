@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken, checkRole, auditLog } = require('./middleware');
+const { reportLimiter } = require('./rateLimiter');
 const GeneratedReportService = require('./generatedReportService');
 
 const router = express.Router();
@@ -11,6 +12,7 @@ const service = new GeneratedReportService();
 // Backend logs generate_report_pdf when PDF is generated
 router.post('/generated-reports',
     authenticateToken,
+    reportLimiter,
     checkRole(['finance_officer', 'it_head']),
     // Removed auditLog - frontend handles save_report/send_report logging, backend handles generate_report_pdf
     async (req, res) => {
@@ -72,6 +74,7 @@ router.post('/generated-reports',
 // Get reports list (filtered by role)
 router.get('/generated-reports',
     authenticateToken,
+    reportLimiter,
     checkRole(['marketing_clerk', 'finance_officer', 'it_head']),
     async (req, res) => {
         try {

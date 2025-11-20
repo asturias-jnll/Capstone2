@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('./database');
 const { authenticateToken, checkRole } = require('./middleware');
+const { auditLogLimiter } = require('./rateLimiter');
 const AuditLogService = require('./auditLogService');
 
 const router = express.Router();
@@ -19,7 +20,7 @@ const auditLogService = new AuditLogService();
  *   - limit: Number of records to return (default: 100, max: 1000)
  *   - offset: Number of records to skip (default: 0)
  */
-router.get('/audit-logs', authenticateToken, checkRole('it_head'), async (req, res) => {
+router.get('/audit-logs', authenticateToken, auditLogLimiter, checkRole('it_head'), async (req, res) => {
     try {
         const {
             eventType,

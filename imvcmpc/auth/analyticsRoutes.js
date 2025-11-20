@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken, auditLog } = require('./middleware');
+const { analyticsLimiter, filterLimiter } = require('./rateLimiter');
+
+// Apply rate limiting to all analytics routes
+router.use(analyticsLimiter);
 
 // Analytics routes
 
@@ -402,6 +406,7 @@ router.get('/all-branches-performance',
 // Log analytics filter usage
 router.post('/filter-log',
     authenticateToken,
+    filterLimiter, // Stricter rate limiting for filter changes
     auditLog('apply_analytics_filter', 'analytics'),
     async (req, res) => {
         try {

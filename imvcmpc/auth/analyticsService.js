@@ -1,9 +1,40 @@
 const { Pool } = require('pg');
 const config = require('./config');
 
+// Singleton pool instance to prevent connection exhaustion
+let poolInstance = null;
+
 class AnalyticsService {
     constructor() {
-        this.pool = new Pool(config.database);
+        // Use singleton pool to prevent multiple connections
+        if (!poolInstance) {
+            poolInstance = new Pool({
+                ...config.database,
+                max: 10, // Reduced from default 20
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 5000,
+                statement_timeout: 25000, // 25 second query timeout
+            });
+            console.log('📊 Analytics pool created with max 10 connections');
+        }
+        this.pool = poolInstance;
+    }
+
+    // Helper method to execute queries with timeout and error handling
+    async executeQuery(query, params = []) {
+        const startTime = Date.now();
+        try {
+            const result = await this.pool.query(query, params);
+            const duration = Date.now() - startTime;
+            if (duration > 10000) {
+                console.warn(`⚠️ Slow query detected (${duration}ms):`, query.substring(0, 100));
+            }
+            return result;
+        } catch (error) {
+            const duration = Date.now() - startTime;
+            console.error(`❌ Query error (${duration}ms):`, error.message);
+            throw error;
+        }
     }
 
     // Get transaction count data for charts
@@ -43,7 +74,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching transaction count:', error);
@@ -93,7 +124,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching average transaction value:', error);
@@ -163,7 +194,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             const defaultResult = {
                 total_savings: 0,
                 total_disbursements: 0,
@@ -197,8 +228,9 @@ class AnalyticsService {
 
     // Get branch table name based on branch ID (dynamically from database)
     async getBranchTableName(branchId) {
-        const client = await this.pool.connect();
+        let client;
         try {
+            client = await this.pool.connect();
             const result = await client.query(`
                 SELECT location FROM branches WHERE id = $1
             `, [branchId]);
@@ -211,14 +243,18 @@ class AnalyticsService {
             const tableName = `${location.toLowerCase().replace(/[^a-z0-9]/g, '')}_transactions`;
             
             return tableName;
+        } catch (error) {
+            console.error('Error getting branch table name:', error);
+            return 'ibaan_transactions';
         } finally {
-            client.release();
+            if (client) client.release();
         }
     }
 
     async getBranchDisplayName(branchId) {
-        const client = await this.pool.connect();
+        let client;
         try {
+            client = await this.pool.connect();
             const result = await client.query(`
                 SELECT name, location FROM branches WHERE id = $1
             `, [branchId]);
@@ -228,8 +264,11 @@ class AnalyticsService {
             }
 
             return result.rows[0].name || result.rows[0].location;
+        } catch (error) {
+            console.error('Error getting branch display name:', error);
+            return 'Main Branch';
         } finally {
-            client.release();
+            if (client) client.release();
         }
     }
 
@@ -270,7 +309,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching savings trend:', error);
@@ -315,7 +354,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching disbursement trend:', error);
@@ -360,7 +399,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching interest income trend:', error);
@@ -436,7 +475,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching branch performance:', error);
@@ -483,7 +522,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching member activity:', error);
@@ -576,7 +615,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching top members:', error);
@@ -625,7 +664,7 @@ class AnalyticsService {
                 params = [startDateFormatted, endDateFormatted];
             }
             
-            const result = await this.pool.query(query, params);
+            const result = await this.executeQuery(query, params);
             return result.rows;
         } catch (error) {
             console.error('Error fetching top patrons:', error);
@@ -724,7 +763,7 @@ class AnalyticsService {
             // Combine all branch queries with UNION ALL
             const finalQuery = branchQueries.join(' UNION ALL ');
             
-            const result = await this.pool.query(finalQuery, allParams);
+            const result = await this.executeQuery(finalQuery, allParams);
             
             // Sort branches by net position or net_interest_income (highest first)
             const sortedBranches = result.rows.sort((a, b) => {

@@ -46,6 +46,8 @@ let editingTransactionId = null;
 let currentZoom = 90;
 let pendingDeletionRequests = new Map(); // Track transactions with pending deletion requests
 let pendingEditRequests = new Map(); // Track transactions with pending edit requests
+let transactionAbortController = null; // AbortController to cancel in-flight transaction requests
+let transactionDebounceTimer = null; // Timer for debouncing transaction loads
 
 // Initialize transaction ledger
 function initializeTransactionLedger() {
@@ -249,6 +251,28 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 // Load transactions from database
+// Debounced version of loadTransactionsFromDatabase
+function debouncedLoadTransactions() {
+    // Cancel any pending debounce timer
+    if (transactionDebounceTimer) {
+        clearTimeout(transactionDebounceTimer);
+        transactionDebounceTimer = null;
+    }
+    
+    // Cancel any in-flight API requests
+    if (transactionAbortController) {
+        transactionAbortController.abort();
+        transactionAbortController = null;
+        console.log('⚠️ Cancelled previous transaction request due to new filter/action');
+    }
+    
+    // Debounce: Wait 300ms before loading data to prevent rapid-fire requests
+    transactionDebounceTimer = setTimeout(() => {
+        transactionDebounceTimer = null;
+        loadTransactionsFromDatabase();
+    }, 300);
+}
+
 async function loadTransactionsFromDatabase() {
     try {
         console.log('🔄 Loading transactions from database...');
@@ -265,12 +289,21 @@ async function loadTransactionsFromDatabase() {
             throw new Error('Branch information not found. Please log in again.');
         }
 
+        // Cancel any previous in-flight request
+        if (transactionAbortController) {
+            transactionAbortController.abort();
+        }
+        
+        // Create new AbortController for this request
+        transactionAbortController = new AbortController();
+        const signal = transactionAbortController.signal;
+
         showLoadingState();
         
         // Test server connection first
         try {
             console.log('Testing server connection...');
-            const healthResponse = await fetch('/health');
+            const healthResponse = await fetch('/health', { signal });
             if (healthResponse.ok) {
                 const healthText = await healthResponse.text();
                 console.log('✅ Server health check:', healthText);
@@ -278,13 +311,32 @@ async function loadTransactionsFromDatabase() {
                 throw new Error(`Health check failed: ${healthResponse.status}`);
             }
         } catch (healthError) {
+            if (healthError.name === 'AbortError') {
+                console.log('⚠️ Health check aborted');
+                return;
+            }
             console.error('❌ Server health check failed:', healthError);
             throw new Error('Server is not running. Please start the server on port 3001.');
         }
         
         // Always include branch_id in the request for proper data isolation
         console.log('📡 Making API request to:', `/transactions?branch_id=${userBranchId}`);
-        const response = await apiRequest(`/transactions?branch_id=${userBranchId}`);
+        
+        // Use fetch with abort signal instead of apiRequest for cancellation support
+        const token = localStorage.getItem('access_token');
+        const fetchResponse = await fetch(`${API_BASE_URL}/transactions?branch_id=${userBranchId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            signal: signal
+        });
+        
+        if (!fetchResponse.ok) {
+            throw new Error(`HTTP error! status: ${fetchResponse.status}`);
+        }
+        
+        const response = await fetchResponse.json();
         console.log('📊 API response:', response);
         
         if (response.success) {
@@ -304,6 +356,12 @@ async function loadTransactionsFromDatabase() {
             throw new Error(response.message || 'Failed to load transactions');
         }
     } catch (error) {
+        // Check if request was aborted
+        if (error.name === 'AbortError' || (transactionAbortController && transactionAbortController.signal.aborted)) {
+            console.log('⚠️ Transaction load request aborted');
+            return; // Silently return, don't update UI
+        }
+        
         console.error('Error loading transactions:', error);
         transactions = [];
         currentTransactions = [];
@@ -322,6 +380,10 @@ async function loadTransactionsFromDatabase() {
         }
         
     } finally {
+        // Clear abort controller
+        if (transactionAbortController && !transactionAbortController.signal.aborted) {
+            transactionAbortController = null;
+        }
         hideLoadingState();
     }
 }

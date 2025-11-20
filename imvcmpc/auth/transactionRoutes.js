@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const TransactionService = require('./transactionService');
 const { authenticateToken, checkPermission, checkBranchAccess, auditLog } = require('./middleware');
+const { transactionLimiter } = require('./rateLimiter');
 const { 
     TransactionNotFoundError, 
     BranchNotFoundError, 
@@ -11,7 +12,7 @@ const {
 const transactionService = new TransactionService();
 
 // Get all transactions with optional filtering
-router.get('/', authenticateToken, auditLog('view_transactions', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
+router.get('/', authenticateToken, transactionLimiter, auditLog('view_transactions', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
     try {
         // Ensure branch_id is always provided for data isolation
         const filters = {
@@ -305,7 +306,7 @@ router.delete('/:id', authenticateToken, auditLog('delete_transaction', 'transac
 });
 
 // Get transaction statistics
-router.get('/stats/summary', authenticateToken, auditLog('view_transactions', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
+router.get('/stats/summary', authenticateToken, transactionLimiter, auditLog('view_transactions', 'transactions'), checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data
@@ -336,7 +337,7 @@ router.get('/stats/summary', authenticateToken, auditLog('view_transactions', 't
 });
 
 // Get transaction summary for dashboard
-router.get('/stats/dashboard', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
+router.get('/stats/dashboard', authenticateToken, transactionLimiter, checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data
@@ -362,7 +363,7 @@ router.get('/stats/dashboard', authenticateToken, checkPermission('transactions:
 });
 
 // Get recent transactions
-router.get('/recent/:limit?', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
+router.get('/recent/:limit?', authenticateToken, transactionLimiter, checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data
@@ -391,7 +392,7 @@ router.get('/recent/:limit?', authenticateToken, checkPermission('transactions:r
 });
 
 // Search transactions by payee
-router.get('/search/payee/:term', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
+router.get('/search/payee/:term', authenticateToken, transactionLimiter, checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data
@@ -420,7 +421,7 @@ router.get('/search/payee/:term', authenticateToken, checkPermission('transactio
 });
 
 // Get transactions by date range
-router.get('/date-range/:startDate/:endDate', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
+router.get('/date-range/:startDate/:endDate', authenticateToken, transactionLimiter, checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data
@@ -450,7 +451,7 @@ router.get('/date-range/:startDate/:endDate', authenticateToken, checkPermission
 });
 
 // Get transactions by month
-router.get('/month/:year/:month', authenticateToken, checkPermission('transactions:read'), async (req, res) => {
+router.get('/month/:year/:month', authenticateToken, transactionLimiter, checkPermission('transactions:read'), async (req, res) => {
     try {
         // Allow all users to access transaction data (main branch, non-main branch, admin, finance officer)
         // Removed access restriction - all users can now access transaction data

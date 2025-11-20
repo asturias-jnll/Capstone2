@@ -126,6 +126,10 @@ async function ensureAuthToken() {
 // API base URL
 const API_BASE_URL = '/api/auth';
 
+// Debounce timer to prevent rapid-fire requests
+let filterDebounceTimer = null;
+const FILTER_DEBOUNCE_DELAY = 300; // 300ms delay
+
 // Setup filter button event listeners
 function setupFilterButtons() {
     // Prevent duplicate event listener registration
@@ -174,8 +178,11 @@ function setupFilterButtons() {
                 }
             }
             
-            // Auto-apply filters
-            applyFilters();
+            // Debounce filter application to prevent rapid-fire requests
+            clearTimeout(filterDebounceTimer);
+            filterDebounceTimer = setTimeout(() => {
+                applyFilters();
+            }, FILTER_DEBOUNCE_DELAY);
         });
         
         // Add keyboard support (Enter and Space)
@@ -224,9 +231,12 @@ function setupCustomTypeButtons() {
                 setCustomDateRange(customType);
             }
             
-            // Auto-apply filters if custom is selected
+            // Auto-apply filters if custom is selected (with debouncing)
             if (currentFilter === 'custom') {
-                applyFilters();
+                clearTimeout(filterDebounceTimer);
+                filterDebounceTimer = setTimeout(() => {
+                    applyFilters();
+                }, FILTER_DEBOUNCE_DELAY);
             }
         });
         
