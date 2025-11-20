@@ -2762,7 +2762,13 @@ function searchPayee() {
     // Check if search term is a month name
     const monthNumber = monthMap[searchTerm];
     
-    tableRows.forEach(row => {
+    // Debug: Log month search detection (remove after testing)
+    if (monthNumber) {
+        console.log('🔍 Month search detected:', searchTerm, '→ month:', monthNumber);
+    }
+    
+    let matchCount = 0;
+    tableRows.forEach((row, index) => {
         // Get cells for Date (index 0), Payee (index 1), and Reference (index 2)
         const dateCell = row.cells[0];
         const payeeCell = row.cells[1];
@@ -2777,27 +2783,45 @@ function searchPayee() {
             
             // Check if search term is a month name (full or abbreviated)
             if (monthNumber) {
-                // Parse MM/DD/YYYY format (en-US locale produces MM/DD/YYYY)
-                // Also handle potential whitespace or other characters
-                const cleanDateText = dateText.trim().replace(/\s+/g, '');
-                const dateParts = cleanDateText.split('/');
+                // Handle multiple date formats - try both YYYY-MM-DD and MM/DD/YYYY
+                let month = null;
                 
-                if (dateParts.length === 3) {
-                    // Extract month (first part), ensure it's 2 digits
-                    const month = dateParts[0].trim().padStart(2, '0');
-                    if (month === monthNumber) {
-                        matches = true;
-                    }
-                } else {
-                    // Try alternative date formats if MM/DD/YYYY doesn't work
-                    // Check for YYYY-MM-DD format
-                    const dashParts = cleanDateText.split('-');
+                // Try YYYY-MM-DD format first (database format like "2023-01-01")
+                if (dateText.includes('-')) {
+                    const dashParts = dateText.split('-');
                     if (dashParts.length === 3) {
-                        const month = dashParts[1].trim().padStart(2, '0'); // Month is in middle position
-                        if (month === monthNumber) {
-                            matches = true;
+                        // Check if first part is 4 digits (year) - YYYY-MM-DD format
+                        if (dashParts[0].length === 4) {
+                            month = dashParts[1].trim().padStart(2, '0');
+                        } else {
+                            // Could be DD-MM-YYYY format, month is in middle
+                            month = dashParts[1].trim().padStart(2, '0');
                         }
                     }
+                }
+                // Try MM/DD/YYYY format (display format from toLocaleDateString)
+                else if (dateText.includes('/')) {
+                    const slashParts = dateText.split('/');
+                    if (slashParts.length === 3) {
+                        // Check if first part is 2 digits or less (month) - MM/DD/YYYY format
+                        if (slashParts[0].length <= 2 && slashParts[2].length === 4) {
+                            month = slashParts[0].trim().padStart(2, '0');
+                        } else if (slashParts[2].length <= 2 && slashParts[0].length === 4) {
+                            // Could be YYYY/MM/DD format
+                            month = slashParts[1].trim().padStart(2, '0');
+                        }
+                    }
+                }
+                
+                // Debug: Log first few date parsing attempts
+                if (index < 3 && monthNumber) {
+                    console.log(`Date[${index}]: "${dateText}" → month extracted: "${month}", expected: "${monthNumber}", match: ${month === monthNumber}`);
+                }
+                
+                // Compare month if we successfully extracted it
+                if (month && month === monthNumber) {
+                    matches = true;
+                    matchCount++;
                 }
             }
             // Month number match (e.g., "1" matches "01", "01" matches "01")
@@ -2843,6 +2867,10 @@ function searchPayee() {
         row.style.display = matches ? '' : 'none';
     });
     
+    // Debug: Log match count (remove after testing)
+    if (monthNumber) {
+        console.log(`✅ Month search "${searchTerm}" (month ${monthNumber}): ${matchCount} matches found`);
+    }
 }
 
 
