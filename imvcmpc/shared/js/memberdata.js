@@ -2743,7 +2743,7 @@ function searchPayee() {
         return;
     }
     
-    // Month name mapping for search
+    // Month name mapping for search (full names and common abbreviations)
     const monthMap = {
         'january': '01', 'jan': '01',
         'february': '02', 'feb': '02',
@@ -2759,8 +2759,24 @@ function searchPayee() {
         'december': '12', 'dec': '12'
     };
     
-    // Check if search term is a month name
-    const monthNumber = monthMap[searchTerm];
+    // Check if search term is a month name (exact match first)
+    let monthNumber = monthMap[searchTerm];
+    
+    // If no exact match, check if search term is a prefix of any month name
+    // This allows partial matches like "janu", "janua", "januar", etc.
+    if (!monthNumber && searchTerm.length >= 3) {
+        const monthNames = [
+            'january', 'february', 'march', 'april', 'may',
+            'june', 'july', 'august', 'september', 'october', 'november', 'december'
+        ];
+        
+        for (const monthName of monthNames) {
+            if (monthName.startsWith(searchTerm)) {
+                monthNumber = monthMap[monthName];
+                break; // Found a match, stop searching
+            }
+        }
+    }
     
     // Debug: Log month search detection (remove after testing)
     if (monthNumber) {
