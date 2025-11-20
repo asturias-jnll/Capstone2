@@ -2773,12 +2773,8 @@ function searchPayee() {
             const dateText = dateCell.textContent.trim();
             const dateTextLower = dateText.toLowerCase();
             
-            // Direct text match (e.g., "01/15/2024" contains "01" or "2024")
-            if (dateTextLower.includes(searchTerm)) {
-                matches = true;
-            }
-            // Month name match - check if search term is a month name
-            else if (monthNumber) {
+            // First check if search term is a month name (full or abbreviated)
+            if (monthNumber) {
                 // Parse MM/DD/YYYY format
                 const dateParts = dateText.split('/');
                 if (dateParts.length === 3) {
@@ -2800,6 +2796,11 @@ function searchPayee() {
                         }
                     }
                 }
+            }
+            // Direct text match (e.g., "01/15/2024" contains "01" or "2024")
+            // This should be checked last to avoid conflicts with month name matching
+            else if (dateTextLower.includes(searchTerm)) {
+                matches = true;
             }
         }
         
