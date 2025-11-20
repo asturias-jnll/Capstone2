@@ -2783,11 +2783,42 @@ function searchPayee() {
             
             // Check if search term is a month name (full or abbreviated)
             if (monthNumber) {
-                // Handle multiple date formats - try both YYYY-MM-DD and MM/DD/YYYY
+                // Handle multiple date formats
                 let month = null;
                 
-                // Try YYYY-MM-DD format first (database format like "2023-01-01")
-                if (dateText.includes('-')) {
+                // Try "MMM DD, YYYY" or "MMMM DD, YYYY" format (e.g., "Nov 17, 2025" or "November 17, 2025")
+                // This is the format produced by toLocaleDateString('en-US')
+                if (dateText.includes(',')) {
+                    // Format: "Nov 17, 2025" or "November 17, 2025"
+                    const parts = dateText.split(',');
+                    if (parts.length === 2) {
+                        const datePart = parts[0].trim(); // "Nov 17" or "November 17"
+                        const monthNamePart = datePart.split(' ')[0].toLowerCase(); // "nov" or "november"
+                        
+                        // Check if this month name matches our search term's month
+                        const monthNameMap = {
+                            'january': '01', 'jan': '01',
+                            'february': '02', 'feb': '02',
+                            'march': '03', 'mar': '03',
+                            'april': '04', 'apr': '04',
+                            'may': '05',
+                            'june': '06', 'jun': '06',
+                            'july': '07', 'jul': '07',
+                            'august': '08', 'aug': '08',
+                            'september': '09', 'sep': '09', 'sept': '09',
+                            'october': '10', 'oct': '10',
+                            'november': '11', 'nov': '11',
+                            'december': '12', 'dec': '12'
+                        };
+                        
+                        const extractedMonth = monthNameMap[monthNamePart];
+                        if (extractedMonth === monthNumber) {
+                            month = extractedMonth;
+                        }
+                    }
+                }
+                // Try YYYY-MM-DD format (database format like "2023-01-01")
+                else if (dateText.includes('-')) {
                     const dashParts = dateText.split('-');
                     if (dashParts.length === 3) {
                         // Check if first part is 4 digits (year) - YYYY-MM-DD format
@@ -2799,7 +2830,7 @@ function searchPayee() {
                         }
                     }
                 }
-                // Try MM/DD/YYYY format (display format from toLocaleDateString)
+                // Try MM/DD/YYYY format
                 else if (dateText.includes('/')) {
                     const slashParts = dateText.split('/');
                     if (slashParts.length === 3) {
