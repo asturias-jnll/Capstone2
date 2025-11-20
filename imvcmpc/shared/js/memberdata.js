@@ -2730,6 +2730,8 @@ function updateZoom(value) {
 // Enhanced to support month name searches (e.g., "January", "Jan", "01")
 function searchPayee() {
     const searchInput = document.getElementById('payeeSearch');
+    if (!searchInput) return; // Safety check
+    
     const searchTerm = searchInput.value.toLowerCase().trim();
     const tableRows = document.querySelectorAll('.transaction-table tbody tr');
     
@@ -2775,12 +2777,26 @@ function searchPayee() {
             
             // Check if search term is a month name (full or abbreviated)
             if (monthNumber) {
-                // Parse MM/DD/YYYY format
-                const dateParts = dateText.split('/');
+                // Parse MM/DD/YYYY format (en-US locale produces MM/DD/YYYY)
+                // Also handle potential whitespace or other characters
+                const cleanDateText = dateText.trim().replace(/\s+/g, '');
+                const dateParts = cleanDateText.split('/');
+                
                 if (dateParts.length === 3) {
-                    const month = dateParts[0]; // MM (already padded, e.g., "01")
+                    // Extract month (first part), ensure it's 2 digits
+                    const month = dateParts[0].trim().padStart(2, '0');
                     if (month === monthNumber) {
                         matches = true;
+                    }
+                } else {
+                    // Try alternative date formats if MM/DD/YYYY doesn't work
+                    // Check for YYYY-MM-DD format
+                    const dashParts = cleanDateText.split('-');
+                    if (dashParts.length === 3) {
+                        const month = dashParts[1].trim().padStart(2, '0'); // Month is in middle position
+                        if (month === monthNumber) {
+                            matches = true;
+                        }
                     }
                 }
             }
@@ -2805,16 +2821,18 @@ function searchPayee() {
             }
         }
         
-        // Check Payee column
-        if (!matches && payeeCell) {
+        // Check Payee column - only if not searching by month name
+        // When searching by month, we only want to match dates, not payee names
+        if (!matches && !monthNumber && payeeCell) {
             const payeeText = payeeCell.textContent.toLowerCase();
             if (payeeText.includes(searchTerm)) {
                 matches = true;
             }
         }
         
-        // Check Reference column
-        if (!matches && referenceCell) {
+        // Check Reference column - only if not searching by month name
+        // When searching by month, we only want to match dates, not references
+        if (!matches && !monthNumber && referenceCell) {
             const referenceText = referenceCell.textContent.toLowerCase();
             if (referenceText.includes(searchTerm)) {
                 matches = true;
