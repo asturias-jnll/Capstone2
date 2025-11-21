@@ -222,7 +222,7 @@ Ensure recommendations are:
    - Total Disbursements: ₱${Number(branch.total_disbursements || 0).toLocaleString('en-PH')}
    - Net Interest Income: ₱${Number(branch.net_interest_income || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
    - Active Members: ${Number(branch.active_members || 0).toLocaleString('en-PH')}
-   - Performance %: ${Number(branch.performancePct || 0).toFixed(2)}%`;
+      `;
         }).join('\n\n');
     }
 

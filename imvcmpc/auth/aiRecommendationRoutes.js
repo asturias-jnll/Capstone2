@@ -281,8 +281,7 @@ router.post('/reports/generate-ai-recommendations',
           active_members: r.active_members,
           total_savings: r.total_savings,
           total_disbursements: r.total_disbursements,
-          net_interest_income: r.net_interest_income,
-          performancePct: r.performancePct
+          net_interest_income: r.net_interest_income
         }));
         
         console.log('📊 [AI-RECO] Running MCDA analysis for branch report...');
