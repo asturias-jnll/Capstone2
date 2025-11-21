@@ -2877,8 +2877,8 @@ function validateMemberConfig() {
 // Validate branch configuration
 function validateBranchConfig() {
     const selectedBranches = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked'));
-    if (selectedBranches.length === 0) {
-        showMessage('Please select at least one branch.', 'error');
+    if (selectedBranches.length < 2) {
+        showMessage('Please select at least 2 branches.', 'error');
         return false;
     }
     
@@ -3701,14 +3701,18 @@ function showAIRecommendationControls() {
         return;
     }
     
-    // For savings and disbursement reports, only show AI recommendations for current year
+    // For savings and disbursement reports, only show AI recommendations for current year and current month end range
     if (reportType === 'savings' || reportType === 'disbursement') {
         const selectedYears = getSelectedYears(reportType, true);
-        const currentYear = new Date().getFullYear();
+        const selectedMonths = getSelectedMonths(reportType);
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
         const selectedYear = selectedYears.length > 0 ? selectedYears[0] : null;
+        const endRangeMonth = selectedMonths.length > 0 ? Math.max(...selectedMonths) : null;
         
-        // Hide AI recommendations if selected year is not current year
-        if (selectedYear !== currentYear) {
+        // Hide AI recommendations if selected year is not current year or month end range is not current month
+        if (selectedYear !== currentYear || endRangeMonth !== currentMonth) {
             ctrl.style.display = 'none';
             ctrl.setAttribute('aria-hidden', 'true');
             return;
@@ -3764,20 +3768,8 @@ async function generateAIRecommendation() {
             return;
         }
 
-        // Validate restrictions for AI recommendations
+        // No validation needed here - button visibility is controlled by showAIRecommendationControls()
         const reportType = window.currentReportType;
-        
-        // For savings/disbursement reports: only current year
-        if (reportType === 'savings' || reportType === 'disbursement') {
-            const selectedYears = getSelectedYears(reportType, true);
-            const currentYear = new Date().getFullYear();
-            const selectedYear = selectedYears.length > 0 ? selectedYears[0] : null;
-            
-            if (selectedYear !== currentYear) {
-                showMessage('AI recommendations are only available for the current year to provide actionable, forward-looking insights.', 'error');
-                return;
-            }
-        }
         
         // For branch reports: only current month
         if (reportType === 'branch') {

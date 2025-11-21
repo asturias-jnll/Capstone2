@@ -3,18 +3,16 @@ const math = require('mathjs');
 class MCDAService {
     constructor() {
         this.defaultWeights = {
-            total_savings: 0.25,
-            total_disbursements: 0.20,
-            net_interest_income: 0.30,
-            active_members: 0.15,
-            performance_pct: 0.10
+            total_savings: 0.28,
+            total_disbursements: 0.22,
+            net_interest_income: 0.33,
+            active_members: 0.17
         };
         this.criteria = {
             total_savings: { type: 'benefit', weight: this.defaultWeights.total_savings },
             total_disbursements: { type: 'cost', weight: this.defaultWeights.total_disbursements },
             net_interest_income: { type: 'benefit', weight: this.defaultWeights.net_interest_income },
-            active_members: { type: 'benefit', weight: this.defaultWeights.active_members },
-            performance_pct: { type: 'benefit', weight: this.defaultWeights.performance_pct }
+            active_members: { type: 'benefit', weight: this.defaultWeights.active_members }
         };
     }
 
@@ -79,8 +77,7 @@ class MCDAService {
             parseFloat(branch.total_savings || 0),
             parseFloat(branch.total_disbursements || 0),
             parseFloat(branch.net_interest_income || 0),
-            parseFloat(branch.active_members || 0),
-            parseFloat(branch.performancePct || 0)
+            parseFloat(branch.active_members || 0)
         ]);
     }
 
@@ -124,8 +121,7 @@ class MCDAService {
             weights.total_savings,
             weights.total_disbursements,
             weights.net_interest_income,
-            weights.active_members,
-            weights.performance_pct
+            weights.active_members
         ];
         
         return normalizedMatrix.map(row => 
@@ -322,10 +318,6 @@ class MCDAService {
             
             if (branch.net_interest_income < 0) {
                 recommendations.push("Review lending strategies and interest rate policies to improve net interest income profitability");
-            }
-            
-            if (branch.performancePct < 0) {
-                recommendations.push("Review operational efficiency and cost management practices");
             }
             
             if (branch.topsisScore < 0.5) {

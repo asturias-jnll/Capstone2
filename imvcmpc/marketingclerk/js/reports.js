@@ -1240,8 +1240,8 @@ async function validateMemberConfig() {
 // Validate branch configuration
 function validateBranchConfig() {
     const selectedBranches = Array.from(document.querySelectorAll('input[name="branchSelection"]:checked'));
-    if (selectedBranches.length === 0) {
-        showValidationDialog('Please select at least one branch.');
+    if (selectedBranches.length < 2) {
+        showValidationDialog('Please select at least 2 branches.');
         return false;
     }
     
