@@ -832,6 +832,53 @@ class TransactionService {
         }
     }
 
+    // Check for duplicate references in the database
+    async checkDuplicateReferences(references, branchId) {
+        if (!references || !Array.isArray(references) || references.length === 0) {
+            return [];
+        }
+
+        const client = await this.pool.connect();
+        try {
+            // Get the appropriate table name for this branch
+            const tableName = await this.getTableName(branchId);
+            
+            // Filter out empty/null references
+            const nonEmptyReferences = references
+                .map(ref => ref ? String(ref).trim() : null)
+                .filter(ref => ref && ref !== '' && ref.toLowerCase() !== 'null');
+            
+            if (nonEmptyReferences.length === 0) {
+                return [];
+            }
+            
+            // Query for existing references
+            // Use parameterized query with IN clause
+            // Trim references in database for comparison to handle whitespace
+            const placeholders = nonEmptyReferences.map((_, index) => `$${index + 1}`).join(', ');
+            const query = `
+                SELECT DISTINCT TRIM(reference) as reference 
+                FROM ${tableName} 
+                WHERE branch_id = $${nonEmptyReferences.length + 1}
+                AND reference IS NOT NULL 
+                AND TRIM(reference) != ''
+                AND TRIM(reference) = ANY(ARRAY[${placeholders}])
+            `;
+            
+            const values = [...nonEmptyReferences, branchId];
+            const result = await client.query(query, values);
+            
+            // Return array of duplicate references (trimmed)
+            return result.rows.map(row => row.reference);
+            
+        } catch (error) {
+            console.error('Error checking duplicate references:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
     // Close database connection
     async close() {
         await this.pool.end();

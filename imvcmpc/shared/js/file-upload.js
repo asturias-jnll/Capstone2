@@ -4,6 +4,9 @@
 let uploadedFileData = null;
 let validTransactions = [];
 let invalidTransactions = [];
+let uploadValidationErrors = [];
+let currentUploadFileName = '';
+let currentUploadTotalRows = 0;
 
 // Show upload button for Marketing Clerks only
 document.addEventListener('DOMContentLoaded', function() {
@@ -41,6 +44,9 @@ function resetUploadModal() {
     uploadedFileData = null;
     validTransactions = [];
     invalidTransactions = [];
+    uploadValidationErrors = [];
+    currentUploadFileName = '';
+    currentUploadTotalRows = 0;
     
     const fileInput = document.getElementById('fileInput');
     if (fileInput) fileInput.value = '';
@@ -118,7 +124,7 @@ async function processFile(file) {
         }
         
         uploadedFileData = data;
-        validateAndPreviewData(data, fileName);
+        await validateAndPreviewData(data, fileName);
         
     } catch (error) {
         console.error('Error processing file:', error);
@@ -383,10 +389,13 @@ function parseExcelData(arrayBuffer, resolve, reject) {
 }
 
 // Validate and preview data
-function validateAndPreviewData(data, fileName) {
+async function validateAndPreviewData(data, fileName) {
     validTransactions = [];
     invalidTransactions = [];
     const errors = [];
+    uploadValidationErrors = errors;
+    currentUploadFileName = fileName;
+    currentUploadTotalRows = data.length;
     
     // Map column names (case-insensitive and flexible)
     const columnMap = {
@@ -487,19 +496,38 @@ function validateAndPreviewData(data, fileName) {
         }
     });
     
-    // Show preview
-    displayFilePreview(fileName, data.length, validTransactions.length, invalidTransactions.length);
-    displayPreviewTable(validTransactions, invalidTransactions);
+    // Check for duplicate references within the file
+    const referenceCounts = {};
+    validTransactions.forEach(trans => {
+        const ref = trans.reference ? String(trans.reference).trim() : '';
+        if (ref && ref !== '' && ref.toLowerCase() !== 'null') {
+            if (!referenceCounts[ref]) {
+                referenceCounts[ref] = [];
+            }
+            referenceCounts[ref].push(trans);
+        }
+    });
     
-    if (errors.length > 0) {
-        displayErrors(errors);
-    }
+    // Mark duplicates within file as invalid
+    Object.keys(referenceCounts).forEach(ref => {
+        if (referenceCounts[ref].length > 1) {
+            // Multiple transactions with same reference in the file
+            referenceCounts[ref].forEach((trans, index) => {
+                const transIndex = validTransactions.indexOf(trans);
+                if (transIndex > -1) {
+                    validTransactions.splice(transIndex, 1);
+                    const errorMsg = `Row ${trans.rowNumber}: Duplicate reference "${ref}" found in file (appears ${referenceCounts[ref].length} times)`;
+                    trans.errors = [errorMsg];
+                    invalidTransactions.push(trans);
+                    errors.push(errorMsg);
+                }
+            });
+        }
+    });
     
-    // Show or hide submit button
-    const submitBtn = document.getElementById('uploadSubmitBtn');
-    if (submitBtn) {
-        submitBtn.style.display = validTransactions.length > 0 ? 'block' : 'none';
-    }
+    refreshUploadPreview();
+    await checkDatabaseDuplicates();
+    refreshUploadPreview();
 }
 
 // Validate date format
@@ -671,12 +699,17 @@ function displayPreviewTable(validData, invalidData) {
             <th>Row</th>
             <th>Date</th>
             <th>Payee</th>
-            <th>Particulars</th>
-            <th>Debit</th>
-            <th>Credit</th>
+            <th>Reference</th>
+            <th>Loan Receivables</th>
+            <th>Savings Deposits</th>
             <th>Status</th>
         </tr>
     `;
+    
+    const formatAmount = (value) => {
+        const num = parseFloat(value);
+        return isNaN(num) ? '0.00' : num.toFixed(2);
+    };
     
     // Combine valid and invalid data for preview (show first 10)
     const allData = [...validData, ...invalidData].slice(0, 10);
@@ -685,15 +718,18 @@ function displayPreviewTable(validData, invalidData) {
         const isInvalid = invalidData.includes(transaction);
         const rowClass = isInvalid ? 'invalid-row' : '';
         const status = isInvalid ? '<span style="color: #DC2626;">Invalid</span>' : '<span style="color: #16A34A;">Valid</span>';
+        const reference = transaction.reference ? transaction.reference : '—';
+        const loanReceivables = formatAmount(transaction.loan_receivables || 0);
+        const savingsDeposits = formatAmount(transaction.savings_deposits || 0);
         
         return `
             <tr class="${rowClass}">
                 <td>${transaction.rowNumber}</td>
                 <td>${transaction.transaction_date}</td>
                 <td>${transaction.payee}</td>
-                <td>${transaction.particulars}</td>
-                <td>${parseFloat(transaction.debit_amount).toFixed(2)}</td>
-                <td>${parseFloat(transaction.credit_amount).toFixed(2)}</td>
+                <td>${reference}</td>
+                <td>${loanReceivables}</td>
+                <td>${savingsDeposits}</td>
                 <td>${status}</td>
             </tr>
         `;
@@ -714,6 +750,114 @@ function displayErrors(errors) {
             ${errors.length > 20 ? `<li>... and ${errors.length - 20} more errors</li>` : ''}
         </ul>
     `;
+}
+
+function hideErrors() {
+    const errorContainer = document.getElementById('errorMessages');
+    if (!errorContainer) return;
+    
+    errorContainer.style.display = 'none';
+    errorContainer.innerHTML = '';
+}
+
+function refreshUploadPreview() {
+    const totalRows = currentUploadTotalRows || (validTransactions.length + invalidTransactions.length);
+    const fileNameElement = document.getElementById('fileName');
+    const fileName = currentUploadFileName || (fileNameElement ? fileNameElement.textContent : 'file');
+    
+    displayFilePreview(
+        fileName,
+        totalRows,
+        validTransactions.length,
+        invalidTransactions.length
+    );
+    
+    displayPreviewTable(validTransactions, invalidTransactions);
+    
+    if (uploadValidationErrors && uploadValidationErrors.length > 0) {
+        displayErrors(uploadValidationErrors);
+    } else {
+        hideErrors();
+    }
+    
+    const submitBtn = document.getElementById('uploadSubmitBtn');
+    if (submitBtn) {
+        submitBtn.style.display = validTransactions.length > 0 ? 'block' : 'none';
+    }
+}
+
+async function checkDatabaseDuplicates() {
+    const userBranchId = localStorage.getItem('user_branch_id');
+    if (!userBranchId) return;
+    
+    const references = validTransactions
+        .map(t => t.reference ? String(t.reference).trim() : '')
+        .filter(ref => ref && ref !== '' && ref.toLowerCase() !== 'null');
+    
+    if (references.length === 0) {
+        return;
+    }
+    
+    const uniqueReferences = Array.from(new Set(references));
+    
+    try {
+        const response = await apiRequest('/transactions/check-duplicates', {
+            method: 'POST',
+            body: JSON.stringify({
+                references: uniqueReferences,
+                branch_id: parseInt(userBranchId)
+            })
+        });
+        
+        if (response.success && response.data.duplicates.length > 0) {
+            const affectedRefs = moveDatabaseDuplicatesToInvalid(response.data.duplicates, uploadValidationErrors);
+            
+            if (affectedRefs.length > 0) {
+                uploadValidationErrors.push(`Found ${affectedRefs.length} duplicate reference(s) already in the database.`);
+                affectedRefs.forEach(ref => {
+                    uploadValidationErrors.push(`Reference "${ref}" already exists in the database.`);
+                });
+                showError('Duplicate references found in the database. Please review the invalid rows before uploading.');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking duplicate references:', error);
+        // Do not block upload if duplicate check fails; just log the error.
+    }
+}
+
+function moveDatabaseDuplicatesToInvalid(duplicateRefs, errorsTarget = []) {
+    if (!duplicateRefs || duplicateRefs.length === 0) {
+        return [];
+    }
+    
+    const normalizedRefs = Array.from(new Set(
+        duplicateRefs
+            .map(ref => ref ? String(ref).trim() : '')
+            .filter(ref => ref && ref !== '' && ref.toLowerCase() !== 'null')
+    ));
+    
+    const affectedRefs = new Set();
+    
+    normalizedRefs.forEach(ref => {
+        for (let i = validTransactions.length - 1; i >= 0; i--) {
+            const transaction = validTransactions[i];
+            const transactionRef = transaction.reference ? String(transaction.reference).trim() : '';
+            
+            if (transactionRef && transactionRef === ref) {
+                validTransactions.splice(i, 1);
+                const errorMsg = `Row ${transaction.rowNumber}: Reference "${ref}" already exists in the database`;
+                transaction.errors = transaction.errors && transaction.errors.length ? [...transaction.errors, errorMsg] : [errorMsg];
+                invalidTransactions.push(transaction);
+                if (Array.isArray(errorsTarget)) {
+                    errorsTarget.push(errorMsg);
+                }
+                affectedRefs.add(ref);
+            }
+        }
+    });
+    
+    return Array.from(affectedRefs);
 }
 
 // Remove uploaded file
@@ -765,8 +909,74 @@ async function proceedWithUpload() {
     try {
         const userBranchId = localStorage.getItem('user_branch_id');
         
+        uploadValidationErrors = uploadValidationErrors || [];
+        
         // Prepare transaction data
         const transactionsData = validTransactions.map(t => ({
+            transaction_date: t.transaction_date,
+            payee: t.payee,
+            reference: t.reference,
+            cross_reference: t.cross_reference,
+            check_number: t.check_number,
+            particulars: t.particulars,
+            debit_amount: t.debit_amount,
+            credit_amount: t.credit_amount,
+            cash_in_bank: t.cash_in_bank,
+            loan_receivables: t.loan_receivables,
+            savings_deposits: t.savings_deposits,
+            interest_income: t.interest_income,
+            service_charge: t.service_charge,
+            sundries: t.sundries
+        }));
+        
+        // Check for duplicate references before uploading
+        const references = Array.from(new Set(
+            validTransactions
+                .map(t => t.reference ? String(t.reference).trim() : '')
+                .filter(ref => ref && ref !== '' && ref.toLowerCase() !== 'null')
+        ));
+        
+        if (references.length > 0) {
+            try {
+                const duplicateCheckResponse = await apiRequest('/transactions/check-duplicates', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        references: references,
+                        branch_id: parseInt(userBranchId)
+                    })
+                });
+                
+                if (duplicateCheckResponse.success && duplicateCheckResponse.data.duplicates.length > 0) {
+                    const affectedRefs = moveDatabaseDuplicatesToInvalid(duplicateCheckResponse.data.duplicates, uploadValidationErrors);
+                    
+                    if (affectedRefs.length > 0) {
+                        uploadValidationErrors.push(`Found ${affectedRefs.length} duplicate reference(s) already in the database before upload.`);
+                        affectedRefs.forEach(ref => {
+                            uploadValidationErrors.push(`Reference "${ref}" already exists in the database.`);
+                        });
+                        
+                        refreshUploadPreview();
+                        hideLoadingState();
+                        showError(`Cannot upload: ${affectedRefs.length} transaction(s) have duplicate references. Please review and remove duplicates before uploading.`);
+                        return;
+                    }
+                }
+            } catch (duplicateError) {
+                console.error('Error checking duplicates:', duplicateError);
+                // Continue with upload if duplicate check fails (don't block upload)
+                console.warn('Duplicate check failed, proceeding with upload anyway');
+            }
+        }
+        
+        // If no duplicates or duplicate check passed, proceed with upload
+        if (validTransactions.length === 0) {
+            hideLoadingState();
+            showError('No valid transactions to upload after duplicate check');
+            return;
+        }
+        
+        // Prepare final transaction data (only valid ones)
+        const finalTransactionsData = validTransactions.map(t => ({
             transaction_date: t.transaction_date,
             payee: t.payee,
             reference: t.reference,
@@ -787,7 +997,7 @@ async function proceedWithUpload() {
         const response = await apiRequest('/transactions/bulk', {
             method: 'POST',
             body: JSON.stringify({
-                transactions: transactionsData,
+                transactions: finalTransactionsData,
                 branch_id: parseInt(userBranchId)
             })
         });

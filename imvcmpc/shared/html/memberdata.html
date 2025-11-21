@@ -331,19 +331,18 @@
                 <div class="upload-instructions">
                     <h4><i class="fas fa-info-circle"></i> File Requirements:</h4>
                     <ul>
-                        <li>Excel (.xlsx, .xls) or CSV (.csv) format</li>
-                        <li>Required columns: Date, Payee, Particulars, Debit Amount, Credit Amount</li>
-                        <li>Optional columns: Reference, Cross Reference, Check Number, Cash in Bank, Loan Receivables, Savings Deposits, Interest Income, Service Charge, Sundries</li>
+                        <li>Excel (.xlsx, .xls) format</li>
+                        <li>Required columns: Date, Payee, Particulars, Debit Amount, Credit Amount, Reference, Cross Reference, Check Number, Cash in Bank, Loan Receivables, Savings Deposits, Interest Income, Service Charge, Sundries</li>
                         <li>Date format: MM/DD/YYYY or YYYY-MM-DD</li>
                     </ul>
                 </div>
                 
                 <div class="upload-area" id="uploadArea">
-                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleFileSelect(event)">
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
                     <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
                         <i class="fas fa-cloud-upload-alt"></i>
                         <p>Click to select or drag and drop your file here</p>
-                        <span class="file-types">Excel (.xlsx, .xls) or CSV (.csv)</span>
+                        <span class="file-types">Excel (.xlsx, .xls)</span>
                     </div>
                 </div>
                 

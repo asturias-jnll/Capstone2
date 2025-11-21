@@ -2385,7 +2385,7 @@ function openAddTransactionFormWithoutReset() {
 }
 
 // Preview transaction
-function previewTransaction() {
+async function previewTransaction() {
     const date = document.getElementById('transactionDate').value;
     const payee = document.getElementById('payee').value.trim();
     const reference = document.getElementById('reference').value.trim();
@@ -2424,45 +2424,23 @@ function previewTransaction() {
         hasErrors = true;
     }
     
-    if (debit === 0 && credit === 0) {
-        showFieldError('debitAmount', 'Please enter either a debit or credit amount');
-        showFieldError('creditAmount', 'Please enter either a debit or credit amount');
-        hasErrors = true;
-    }
-    
-    // Validate all account balance fields
-    if (cashInBank === 0) {
-        showFieldError('cashInBank', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (loanReceivables === 0) {
-        showFieldError('loanReceivables', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (savingsDeposits === 0) {
-        showFieldError('savingsDeposits', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (interestIncome === 0) {
-        showFieldError('interestIncome', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (serviceCharge === 0) {
-        showFieldError('serviceCharge', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (sundries === 0) {
-        showFieldError('sundries', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
     if (hasErrors) {
         return;
+    }
+    
+    // Prevent duplicate references when adding new transactions
+    if (!editingTransactionId && reference) {
+        const duplicateCheck = await validateReferenceUniqueness(reference);
+        if (duplicateCheck.isDuplicate) {
+            showFieldError('reference', 'This reference already exists in the member data.');
+            showError('Duplicate reference detected. Please use a unique reference number.');
+            return;
+        }
+        
+        if (duplicateCheck.error) {
+            showError(duplicateCheck.error);
+            return;
+        }
     }
     
     // Show preview modal
@@ -2498,6 +2476,42 @@ function closeTransactionForm() {
     editingTransactionId = null;
     // Hide autocomplete suggestions when closing form
     hidePayeeSuggestions();
+}
+
+async function validateReferenceUniqueness(referenceValue) {
+    const normalizedReference = referenceValue ? String(referenceValue).trim() : '';
+    
+    if (!normalizedReference) {
+        return { isDuplicate: false };
+    }
+    
+    const branchId = localStorage.getItem('user_branch_id');
+    if (!branchId) {
+        return { isDuplicate: false, error: 'Missing branch information. Please refresh and try again.' };
+    }
+    
+    try {
+        const response = await apiRequest('/transactions/check-duplicates', {
+            method: 'POST',
+            body: JSON.stringify({
+                references: [normalizedReference],
+                branch_id: parseInt(branchId)
+            })
+        });
+        
+        if (!response.success) {
+            return { isDuplicate: false, error: response.message || 'Failed to validate reference uniqueness.' };
+        }
+        
+        const duplicates = (response.data && response.data.duplicates ? response.data.duplicates : [])
+            .map(ref => ref ? String(ref).trim().toLowerCase() : '');
+        const isDuplicate = duplicates.includes(normalizedReference.toLowerCase());
+        
+        return { isDuplicate };
+    } catch (error) {
+        console.error('Error validating reference uniqueness:', error);
+        return { isDuplicate: false, error: 'Unable to validate reference. Please try again.' };
+    }
 }
 
 // Initialize Excel-like scroll controls
@@ -3299,6 +3313,22 @@ async function saveTransactionFromPreview() {
     
     try {
         showLoadingState();
+        
+        // Double-check reference uniqueness before saving
+        if (transactionData.reference) {
+            const duplicateCheck = await validateReferenceUniqueness(transactionData.reference);
+            if (duplicateCheck.isDuplicate) {
+                hideLoadingState();
+                showError('Cannot save transaction: the reference already exists in the member data.');
+                return;
+            }
+            
+            if (duplicateCheck.error) {
+                hideLoadingState();
+                showError(duplicateCheck.error);
+                return;
+            }
+        }
         
         const response = await apiRequest('/transactions', {
             method: 'POST',

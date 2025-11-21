@@ -67,7 +67,7 @@ router.get('/test-ai',
   }
 );
 
-// Generate AI recommendations (MCDA + optional LLM) with caching
+// Generate AI recommendations (MCDA + LLM) with caching
 router.post('/reports/generate-ai-recommendations',
   authenticateToken,
   checkRole(['marketing_clerk', 'finance_officer', 'it_head']),

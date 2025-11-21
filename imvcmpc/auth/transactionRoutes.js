@@ -480,6 +480,51 @@ router.get('/month/:year/:month', authenticateToken, transactionLimiter, checkPe
     }
 });
 
+// Check for duplicate references (before bulk upload)
+router.post('/check-duplicates', authenticateToken, checkPermission('transactions:create'), async (req, res) => {
+    try {
+        const { references, branch_id } = req.body;
+        
+        // Validate input
+        if (!references || !Array.isArray(references)) {
+            return res.status(400).json({
+                success: false,
+                message: 'References array is required'
+            });
+        }
+        
+        // Ensure user has permission and is from the correct branch
+        const userBranchId = req.user.branch_id;
+        const targetBranchId = parseInt(branch_id);
+        
+        if (userBranchId !== targetBranchId) {
+            return res.status(403).json({
+                success: false,
+                message: 'Cannot check duplicates for a different branch'
+            });
+        }
+        
+        // Check for duplicate references
+        const duplicates = await transactionService.checkDuplicateReferences(references, userBranchId);
+        
+        res.json({
+            success: true,
+            data: {
+                duplicates: duplicates,
+                count: duplicates.length
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error checking duplicate references:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to check duplicate references',
+            error: error.message
+        });
+    }
+});
+
 // Bulk upload transactions (Marketing Clerk only)
 router.post('/bulk', authenticateToken, auditLog('bulk_create_transactions', 'transactions'), checkPermission('transactions:create'), async (req, res) => {
     try {
