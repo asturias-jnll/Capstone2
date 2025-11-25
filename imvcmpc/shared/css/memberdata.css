@@ -1021,6 +1021,20 @@ body {
     font-style: italic;
 }
 
+.locked-field,
+.edit-input.locked-input {
+    background: var(--gray-50);
+    color: var(--gray-600);
+    cursor: not-allowed;
+    border-color: var(--gray-300);
+}
+
+.locked-field:focus,
+.edit-input.locked-input:focus {
+    border-color: var(--gray-300);
+    box-shadow: none;
+}
+
 /* Modal Footer Styles */
 .modal-footer {
     display: flex !important;

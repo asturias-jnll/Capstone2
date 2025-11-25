@@ -870,6 +870,9 @@ function startEditMode() {
     // Convert editable fields to input elements
     convertFieldsToInputs();
     
+    // Add reason field section to modal body
+    addReasonFieldToModalBody();
+    
     // Setup change detection after inputs are created
     setTimeout(() => {
         setupChangeDetection();
@@ -887,6 +890,7 @@ function convertFieldsToInputs() {
         'modalCashInBank', 'modalLoanReceivables', 'modalSavingsDeposits',
         'modalInterestIncome', 'modalServiceCharge', 'modalSundries'
     ];
+    const lockedFields = new Set(['modalReference', 'modalCrossReference', 'modalCheckNumber']);
     
     editableFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
@@ -917,6 +921,14 @@ function convertFieldsToInputs() {
             }
             input.id = `${fieldId}Input`;
             
+            if (lockedFields.has(fieldId)) {
+                input.readOnly = true;
+                input.classList.add('locked-input');
+                input.setAttribute('tabindex', '-1');
+                input.setAttribute('aria-disabled', 'true');
+                input.title = 'This field cannot be modified';
+            }
+            
             // Clear field and append input
             field.innerHTML = '';
             field.appendChild(input);
@@ -941,7 +953,7 @@ function convertFieldsToInputs() {
                 } else if (fieldId === 'modalParticulars') {
                     // Apply letter field validation for particulars
                     validateLetterField(input);
-                } else if (fieldId === 'modalReference' || fieldId === 'modalCrossReference' || fieldId === 'modalCheckNumber') {
+                } else if (!lockedFields.has(fieldId) && (fieldId === 'modalReference' || fieldId === 'modalCrossReference' || fieldId === 'modalCheckNumber')) {
                     // Setup reference field prefixes
                     if (fieldId === 'modalReference') {
                         setupReferenceFieldPrefix(`${fieldId}Input`, 'REF-', 6);
@@ -1038,6 +1050,64 @@ function checkForChanges(originalValues) {
     }
 }
 
+// Add reason field section to modal body
+function addReasonFieldToModalBody() {
+    const transactionDetails = document.querySelector('#transactionModal .transaction-details');
+    if (!transactionDetails) return;
+    
+    // Check if reason section already exists
+    if (document.getElementById('editRequestReasonSection')) {
+        return;
+    }
+    
+    // Create reason section
+    const reasonSection = document.createElement('div');
+    reasonSection.id = 'editRequestReasonSection';
+    reasonSection.className = 'details-section';
+    reasonSection.style.marginTop = '20px';
+    reasonSection.innerHTML = `
+        <h4 class="section-title">Request Information</h4>
+        <div style="margin-top: 16px;">
+            <label for="editRequestReason" style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 14px;">
+                Reason for Request <span style="color: #EF4444;">*</span>
+            </label>
+            <textarea 
+                id="editRequestReason" 
+                placeholder="Please provide a reason for requesting these changes..."
+                style="
+                    width: 100%;
+                    min-height: 100px;
+                    padding: 12px;
+                    border: 1px solid #D1D5DB;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-family: inherit;
+                    resize: vertical;
+                    box-sizing: border-box;
+                    transition: border-color 0.2s;
+                "
+                required
+            ></textarea>
+            <div id="editRequestReasonError" style="color: #EF4444; font-size: 12px; margin-top: 6px; display: none;"></div>
+        </div>
+    `;
+    
+    transactionDetails.appendChild(reasonSection);
+    
+    // Add focus/blur handlers for better UX
+    const reasonField = document.getElementById('editRequestReason');
+    if (reasonField) {
+        reasonField.addEventListener('focus', function() {
+            this.style.borderColor = '#0D5B11';
+        });
+        reasonField.addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.style.borderColor = '#D1D5DB';
+            }
+        });
+    }
+}
+
 // Update modal footer for edit mode
 function updateModalFooterForEdit() {
     const modalFooter = document.getElementById('modalFooter');
@@ -1117,6 +1187,12 @@ function cancelEdit() {
     // Clear any validation errors
     clearModalValidationErrors();
     
+    // Remove reason section from modal body
+    const reasonSection = document.getElementById('editRequestReasonSection');
+    if (reasonSection) {
+        reasonSection.remove();
+    }
+    
     // Remove edit mode class from modal
     const modal = document.getElementById('transactionModal');
     if (modal) {
@@ -1143,6 +1219,22 @@ async function requestChanges() {
     // Clear previous validation errors
     clearModalValidationErrors();
     
+    // Collect and validate reason
+    const reason = document.getElementById('editRequestReason')?.value.trim() || '';
+    if (!reason) {
+        const reasonError = document.getElementById('editRequestReasonError');
+        if (reasonError) {
+            reasonError.textContent = 'Please provide a reason for requesting these changes';
+            reasonError.style.display = 'block';
+        }
+        const reasonField = document.getElementById('editRequestReason');
+        if (reasonField) {
+            reasonField.style.borderColor = '#EF4444';
+            reasonField.focus();
+        }
+        return;
+    }
+    
     // Collect and validate edited values
     const particulars = document.getElementById('modalParticularsInput')?.value.trim() || '';
     const debit = parseFloat(document.getElementById('modalDebitInput')?.value) || 0;
@@ -1162,11 +1254,7 @@ async function requestChanges() {
         hasErrors = true;
     }
     
-    if (debit === 0 && credit === 0) {
-        showModalFieldError('modalDebitInput', 'Please enter either a debit or credit amount');
-        showModalFieldError('modalCreditInput', 'Please enter either a debit or credit amount');
-        hasErrors = true;
-    }
+    // Allow zero as valid amount value - removed validation that prevented both debit and credit from being zero
     
     if (debit < 0 || credit < 0) {
         if (debit < 0) {
@@ -1179,36 +1267,7 @@ async function requestChanges() {
         }
     }
     
-    // Validate all account balance fields
-    if (cashInBank === 0) {
-        showModalFieldError('modalCashInBankInput', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (loanReceivables === 0) {
-        showModalFieldError('modalLoanReceivablesInput', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (savingsDeposits === 0) {
-        showModalFieldError('modalSavingsDepositsInput', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (interestIncome === 0) {
-        showModalFieldError('modalInterestIncomeInput', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (serviceCharge === 0) {
-        showModalFieldError('modalServiceChargeInput', 'Please fill out this field');
-        hasErrors = true;
-    }
-    
-    if (sundries === 0) {
-        showModalFieldError('modalSundriesInput', 'Please fill out this field');
-        hasErrors = true;
-    }
+    // Allow zero as valid amount value for all account balance fields - removed validations that prevented zero values
     
     // Validate that account balance fields are not negative
     if (cashInBank < 0) {
@@ -1346,13 +1405,16 @@ async function requestChanges() {
                 break;
         }
         
+        // Get reason from input field
+        const reason = document.getElementById('editRequestReason')?.value.trim() || '';
+        
         // Create change request
         const changeRequestData = {
             transaction_id: window.currentTransaction.id,
             transaction_table: transactionTable,
             original_data: originalData,
             requested_changes: editedData,
-            reason: 'Transaction modification requested by marketing clerk',
+            reason: reason || 'Transaction modification requested by marketing clerk',
             request_type: 'modification'
         };
         
@@ -1511,6 +1573,28 @@ function showDeleteConfirmation() {
         <div class="simple-message-content">
             <div class="delete-icon"><i class="fas fa-trash"></i></div>
             <div class="message-text">Are you sure you want to delete this transaction?</div>
+            <div style="width: 100%; margin: 20px 0;">
+                <label for="deleteRequestReason" style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 14px; text-align: left;">
+                    Reason for Deletion <span style="color: #EF4444;">*</span>
+                </label>
+                <textarea 
+                    id="deleteRequestReason" 
+                    placeholder="Please provide a reason for deleting this transaction..."
+                    style="
+                        width: 100%;
+                        min-height: 80px;
+                        padding: 10px;
+                        border: 1px solid #D1D5DB;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-family: inherit;
+                        resize: vertical;
+                        box-sizing: border-box;
+                    "
+                    required
+                ></textarea>
+                <div id="deleteRequestReasonError" style="color: #EF4444; font-size: 12px; margin-top: 4px; display: none; text-align: left;"></div>
+            </div>
             <div class="confirmation-actions">
                 <button class="btn btn-secondary" onclick="closeDeleteConfirmation()">Cancel</button>
                 <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
@@ -1539,7 +1623,8 @@ function showDeleteConfirmation() {
             border-radius: 12px;
             text-align: center;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
+            max-width: 500px;
+            width: 90%;
         }
         
         .delete-icon {
@@ -1688,6 +1773,22 @@ async function confirmDelete() {
         return;
     }
     
+    // Collect and validate reason
+    const reason = document.getElementById('deleteRequestReason')?.value.trim() || '';
+    if (!reason) {
+        const reasonError = document.getElementById('deleteRequestReasonError');
+        if (reasonError) {
+            reasonError.textContent = 'Please provide a reason for deleting this transaction';
+            reasonError.style.display = 'block';
+        }
+        const reasonField = document.getElementById('deleteRequestReason');
+        if (reasonField) {
+            reasonField.style.borderColor = '#EF4444';
+            reasonField.focus();
+        }
+        return;
+    }
+    
     try {
         showLoadingState();
         closeDeleteConfirmation();
@@ -1701,7 +1802,7 @@ async function confirmDelete() {
             transaction_table: transaction.transaction_type || 'transactions',
             original_data: transaction,
             requested_changes: { action: 'delete' }, // Mark as delete action
-            reason: `MC requests to delete transaction for ${transaction.payee}`,
+            reason: reason || `MC requests to delete transaction for ${transaction.payee}`,
             request_type: 'deletion' // New type
         };
         
@@ -2300,6 +2401,129 @@ function setupReferenceFieldPrefix(fieldId, prefix, maxDigits) {
     });
 }
 
+// Normalize any date value to YYYY-MM-DD
+function normalizeDateString(dateValue) {
+    if (!dateValue) return null;
+    
+    if (typeof dateValue === 'string') {
+        const trimmed = dateValue.trim();
+        if (trimmed.includes('T')) {
+            return trimmed.split('T')[0];
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+            return trimmed;
+        }
+        const parsed = new Date(trimmed);
+        if (!isNaN(parsed.getTime())) {
+            return parsed.toISOString().split('T')[0];
+        }
+        return null;
+    }
+    
+    if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+        return dateValue.toISOString().split('T')[0];
+    }
+    
+    return null;
+}
+
+// Determine the next sequence number for a given date based on existing transactions
+function getTransactionSequenceForDate(dateValue) {
+    const normalizedDate = normalizeDateString(dateValue);
+    if (!normalizedDate) {
+        return 1;
+    }
+    
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+        return 1;
+    }
+    
+    const existingCount = transactions.filter(tx => {
+        const txDate = normalizeDateString(tx.transaction_date || tx.date);
+        return txDate === normalizedDate;
+    }).length;
+    
+    return existingCount + 1;
+}
+
+function shouldUpdateAutoField(field, prefix, forceUpdate = false) {
+    if (!field) return false;
+    if (forceUpdate) return true;
+    
+    if (!field.value || field.value === prefix) {
+        return true;
+    }
+    
+    if (field.dataset.lastAutogenValue && field.value === field.dataset.lastAutogenValue) {
+        return true;
+    }
+    
+    return false;
+}
+
+function setAutoGeneratedValue(field, value) {
+    if (!field) return;
+    field.value = value;
+    field.dataset.lastAutogenValue = value;
+}
+
+function registerAutoFieldListeners() {
+    ['reference', 'crossReference', 'checkNumber'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field && field.dataset.autoListenerBound !== 'true') {
+            field.addEventListener('input', () => {
+                if (field.dataset.lastAutogenValue && field.value !== field.dataset.lastAutogenValue) {
+                    field.dataset.lastAutogenValue = '';
+                }
+            });
+            field.dataset.autoListenerBound = 'true';
+        }
+    });
+}
+
+function generateAutoReferenceCodes(forceUpdate = false) {
+    const dateInput = document.getElementById('transactionDate');
+    const referenceField = document.getElementById('reference');
+    const crossReferenceField = document.getElementById('crossReference');
+    const checkNumberField = document.getElementById('checkNumber');
+    
+    if (!dateInput || !dateInput.value || !referenceField || !crossReferenceField || !checkNumberField) {
+        return;
+    }
+    
+    const sequence = getTransactionSequenceForDate(dateInput.value);
+    const sixDigitSequence = sequence.toString().padStart(6, '0');
+    const fourDigitSequence = sequence.toString().padStart(4, '0');
+    
+    if (shouldUpdateAutoField(referenceField, 'REF-', forceUpdate)) {
+        setAutoGeneratedValue(referenceField, `REF-${sixDigitSequence}`);
+    }
+    
+    if (shouldUpdateAutoField(crossReferenceField, 'XREF-', forceUpdate)) {
+        setAutoGeneratedValue(crossReferenceField, `XREF-${fourDigitSequence}`);
+    }
+    
+    if (shouldUpdateAutoField(checkNumberField, 'CHK-', forceUpdate)) {
+        setAutoGeneratedValue(checkNumberField, `CHK-${fourDigitSequence}`);
+    }
+}
+
+function setupAutoReferenceGeneration() {
+    const dateInput = document.getElementById('transactionDate');
+    if (!dateInput) return;
+    
+    registerAutoFieldListeners();
+    
+    if (dateInput.dataset.autoReferenceBound !== 'true') {
+        dateInput.addEventListener('change', () => {
+            generateAutoReferenceCodes(true);
+        });
+        dateInput.dataset.autoReferenceBound = 'true';
+    }
+    
+    generateAutoReferenceCodes();
+}
+
 // Initialize all input validations and formatting
 function initializeTransactionFormValidations() {
     // Hide any existing autocomplete suggestions
@@ -2334,6 +2558,9 @@ function initializeTransactionFormValidations() {
     setupReferenceFieldPrefix('reference', 'REF-', 6);
     setupReferenceFieldPrefix('crossReference', 'XREF-', 4);
     setupReferenceFieldPrefix('checkNumber', 'CHK-', 4);
+    
+    // Auto-generate reference values based on current date and daily counts
+    setupAutoReferenceGeneration();
 }
 
 // Open add transaction form
@@ -3105,6 +3332,17 @@ function clearModalValidationErrors() {
         input.style.borderColor = '';
         input.style.boxShadow = '';
     });
+    
+    // Clear reason field error
+    const reasonField = document.getElementById('editRequestReason');
+    if (reasonField) {
+        reasonField.style.borderColor = '';
+    }
+    const reasonError = document.getElementById('editRequestReasonError');
+    if (reasonError) {
+        reasonError.style.display = 'none';
+        reasonError.textContent = '';
+    }
     
     // Remove all error messages from modal
     const modal = document.getElementById('transactionModal');
