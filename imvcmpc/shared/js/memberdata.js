@@ -5159,7 +5159,7 @@ function createFinanceOfficerRequestItem(request) {
                     <strong>Requested by:</strong> ${requestedBy}
                 </div>
                 <div class="request-reason">
-                    Transaction modification requested by marketing clerk
+                    <strong>Reason:</strong> ${request.reason || 'No reason provided'}
                 </div>
                 <div class="deletion-warning">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -5199,7 +5199,7 @@ function createFinanceOfficerRequestItem(request) {
                 <strong>Requested by:</strong> ${requestedBy}
             </div>
             <div class="request-reason">
-                ${request.reason || 'No reason provided'}
+                <strong>Reason:</strong> ${request.reason || 'No reason provided'}
             </div>
             <div class="request-actions">
                 <button class="btn-approve" onclick="approveChangeRequest('${request.id}')">

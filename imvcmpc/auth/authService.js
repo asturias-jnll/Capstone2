@@ -317,27 +317,13 @@ class AuthService {
     // Update user profile (personal information)
     async updateProfile(userId, updateData) {
         try {
-            // Check if user exists and get last update time
+            // Check if user exists
             const userResult = await db.query(`
                 SELECT id, username, email, last_profile_update FROM users WHERE id = $1
             `, [userId]);
 
             if (userResult.rows.length === 0) {
                 throw new Error('User not found');
-            }
-
-            const user = userResult.rows[0];
-
-            // Check if 30 days have passed since last profile update
-            if (user.last_profile_update) {
-                const lastUpdate = new Date(user.last_profile_update);
-                const now = new Date();
-                const daysSinceLastUpdate = Math.floor((now - lastUpdate) / (1000 * 60 * 60 * 24));
-
-                if (daysSinceLastUpdate < 30) {
-                    const daysRemaining = 30 - daysSinceLastUpdate;
-                    throw new Error(`You can only update your profile once every 30 days. Please wait ${daysRemaining} more day(s).`);
-                }
             }
 
             // Validate required fields
@@ -417,7 +403,7 @@ class AuthService {
     // Change password
     async changePassword(userId, currentPassword, newPassword) {
         try {
-            // Get current password hash and last password change time
+            // Get current password hash
             const userResult = await db.query(`
                 SELECT password_hash, last_password_change FROM users WHERE id = $1
             `, [userId]);
@@ -427,18 +413,6 @@ class AuthService {
             }
 
             const user = userResult.rows[0];
-
-            // Check if 30 days have passed since last password change
-            if (user.last_password_change) {
-                const lastChange = new Date(user.last_password_change);
-                const now = new Date();
-                const daysSinceLastChange = Math.floor((now - lastChange) / (1000 * 60 * 60 * 24));
-
-                if (daysSinceLastChange < 30) {
-                    const daysRemaining = 30 - daysSinceLastChange;
-                    throw new Error(`You can only change your password once every 30 days. Please wait ${daysRemaining} more day(s).`);
-                }
-            }
 
             // Verify current password
             const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
