@@ -1,5 +1,12 @@
 // Main navigation and common functionality
 document.addEventListener('DOMContentLoaded', function() {
+    // Before doing anything else, ensure there is a valid session.
+    // This protects against using the browser Back button to return
+    // to a protected page after logout (when tokens are already cleared).
+    if (!ensureAuthenticatedSession()) {
+        return;
+    }
+    
     // Don't override user role - let it come from login process
     
     // Initialize date and time display
@@ -33,6 +40,47 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 });
+
+// Handle pages restored from the back/forward cache (bfcache).
+// On some browsers, navigating back does not reload the page, so
+// DOMContentLoaded will not fire again. We still need to enforce
+// the logged-out state in that scenario.
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        ensureAuthenticatedSession();
+    }
+});
+
+// Ensure there is an authenticated session for any shared main page
+// (Finance Officer dashboard, Marketing Clerk member data, IT Head pages, etc.).
+// If the access token or user data are missing, force a redirect to /login
+// and clear any stale session data.
+function ensureAuthenticatedSession() {
+    const token = localStorage.getItem('access_token');
+    const user = localStorage.getItem('user');
+    
+    if (!token || !user) {
+        if (typeof clearUserSession === 'function') {
+            try {
+                clearUserSession();
+            } catch (e) {
+                console.warn('Error clearing session during auth check:', e);
+            }
+        } else {
+            // Minimal fallback if clearUserSession is not available for some reason
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('user_role');
+        }
+        
+        // Use replace so the user cannot go "back" into the protected page
+        window.location.replace('/login');
+        return false;
+    }
+    
+    return true;
+}
 
 // Ensure notification badge exists in navigation
 function ensureNotificationBadgeExists() {

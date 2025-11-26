@@ -566,11 +566,11 @@ function createTransactionModal() {
                             </div>
                             <div class="detail-item">
                                 <label>Reference</label>
-                                <span id="modalReference" class="editable-field"></span>
+                                <span id="modalReference" class="readonly-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Cross Reference</label>
-                                <span id="modalCrossReference" class="editable-field"></span>
+                                <span id="modalCrossReference" class="readonly-field"></span>
                             </div>
                         </div>
                     </div>
@@ -580,7 +580,7 @@ function createTransactionModal() {
                         <div class="details-grid">
                             <div class="detail-item">
                                 <label>Check Number</label>
-                                <span id="modalCheckNumber" class="editable-field"></span>
+                                <span id="modalCheckNumber" class="readonly-field"></span>
                             </div>
                             <div class="detail-item">
                                 <label>Particulars</label>
@@ -1086,6 +1086,7 @@ function addReasonFieldToModalBody() {
                     box-sizing: border-box;
                     transition: border-color 0.2s;
                 "
+                maxlength="60"
                 required
             ></textarea>
             <div id="editRequestReasonError" style="color: #EF4444; font-size: 12px; margin-top: 6px; display: none;"></div>
@@ -1221,10 +1222,23 @@ async function requestChanges() {
     
     // Collect and validate reason
     const reason = document.getElementById('editRequestReason')?.value.trim() || '';
+    const maxReasonLength = 60;
     if (!reason) {
         const reasonError = document.getElementById('editRequestReasonError');
         if (reasonError) {
             reasonError.textContent = 'Please provide a reason for requesting these changes';
+            reasonError.style.display = 'block';
+        }
+        const reasonField = document.getElementById('editRequestReason');
+        if (reasonField) {
+            reasonField.style.borderColor = '#EF4444';
+            reasonField.focus();
+        }
+        return;
+    } else if (reason.length > maxReasonLength) {
+        const reasonError = document.getElementById('editRequestReasonError');
+        if (reasonError) {
+            reasonError.textContent = `Reason is too long. Please limit to ${maxReasonLength} characters.`;
             reasonError.style.display = 'block';
         }
         const reasonField = document.getElementById('editRequestReason');
@@ -1591,6 +1605,7 @@ function showDeleteConfirmation() {
                         resize: vertical;
                         box-sizing: border-box;
                     "
+                    maxlength="60"
                     required
                 ></textarea>
                 <div id="deleteRequestReasonError" style="color: #EF4444; font-size: 12px; margin-top: 4px; display: none; text-align: left;"></div>
@@ -1775,10 +1790,23 @@ async function confirmDelete() {
     
     // Collect and validate reason
     const reason = document.getElementById('deleteRequestReason')?.value.trim() || '';
+    const maxReasonLength = 60;
     if (!reason) {
         const reasonError = document.getElementById('deleteRequestReasonError');
         if (reasonError) {
             reasonError.textContent = 'Please provide a reason for deleting this transaction';
+            reasonError.style.display = 'block';
+        }
+        const reasonField = document.getElementById('deleteRequestReason');
+        if (reasonField) {
+            reasonField.style.borderColor = '#EF4444';
+            reasonField.focus();
+        }
+        return;
+    } else if (reason.length > maxReasonLength) {
+        const reasonError = document.getElementById('deleteRequestReasonError');
+        if (reasonError) {
+            reasonError.textContent = `Reason is too long. Please limit to ${maxReasonLength} characters.`;
             reasonError.style.display = 'block';
         }
         const reasonField = document.getElementById('deleteRequestReason');
@@ -2491,20 +2519,28 @@ function generateAutoReferenceCodes(forceUpdate = false) {
         return;
     }
     
+    const [year, month, day] = dateInput.value.split('-');
+    if (!year || !month || !day) {
+        return;
+    }
+    
     const sequence = getTransactionSequenceForDate(dateInput.value);
-    const sixDigitSequence = sequence.toString().padStart(6, '0');
-    const fourDigitSequence = sequence.toString().padStart(4, '0');
+    const sequenceStr = sequence.toString().padStart(3, '0'); // nth transaction, 3 digits
+    const yearFragment = year.slice(-2); // last two digits of year
+    
+    // Build 9-digit code: YY + MM + DD + NNN (e.g., 25 11 27 001 => 251127001)
+    const baseCode = `${yearFragment}${month}${day}${sequenceStr}`;
     
     if (shouldUpdateAutoField(referenceField, 'REF-', forceUpdate)) {
-        setAutoGeneratedValue(referenceField, `REF-${sixDigitSequence}`);
+        setAutoGeneratedValue(referenceField, `REF-${baseCode}`);
     }
     
     if (shouldUpdateAutoField(crossReferenceField, 'XREF-', forceUpdate)) {
-        setAutoGeneratedValue(crossReferenceField, `XREF-${fourDigitSequence}`);
+        setAutoGeneratedValue(crossReferenceField, `XREF-${baseCode}`);
     }
     
     if (shouldUpdateAutoField(checkNumberField, 'CHK-', forceUpdate)) {
-        setAutoGeneratedValue(checkNumberField, `CHK-${fourDigitSequence}`);
+        setAutoGeneratedValue(checkNumberField, `CHK-${baseCode}`);
     }
 }
 

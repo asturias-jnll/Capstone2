@@ -1023,15 +1023,15 @@ body {
 
 .locked-field,
 .edit-input.locked-input {
-    background: var(--gray-50);
+    background: var(--gray-100);
     color: var(--gray-600);
     cursor: not-allowed;
-    border-color: var(--gray-300);
+    border-color: var(--gray-200);
 }
 
 .locked-field:focus,
 .edit-input.locked-input:focus {
-    border-color: var(--gray-300);
+    border-color: var(--gray-200);
     box-shadow: none;
 }
 
